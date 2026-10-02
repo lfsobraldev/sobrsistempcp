@@ -24,6 +24,10 @@ import {
   LABELS,
 } from "@/lib/metrics";
 
+import {
+  modeloProduto,
+} from "@/lib/presentation";
+
 export default function Programacao() {
   const {
     refresh,
