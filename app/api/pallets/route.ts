@@ -932,35 +932,107 @@ export async function PATCH(
       );
     }
 
-    if (
-      action ===
-      "INSPECIONAR"
-    ) {
-      const area =
-        clean(
-          b.area,
-          20
-        ).toUpperCase()
-        as Area;
+if (
+  action ===
+  "INSPECIONAR"
+) {
+  const areaRaw = clean(
+    b.area,
+    20
+  ).toUpperCase();
 
-      if (
-        !(
-          area ===
-            "QUALIDADE" ||
-          area ===
-            "MSAC"
-        )
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              "Área inválida.",
-          },
-          {
-            status: 400,
-          }
-        );
+  const area = areaRaw as Area;
+
+  if (
+    !(
+      area ===
+        "QUALIDADE" ||
+      area ===
+        "MSAC"
+    )
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "Área inválida.",
+      },
+      {
+        status: 400,
       }
+    );
+  }
+
+  const checklist =
+    b.checklist &&
+    typeof
+      b.checklist ===
+      "object"
+      ? b.checklist
+      : {};
+
+  const resultado =
+    clean(
+      b.resultado,
+      30
+    ).toUpperCase() ||
+    "CONFORME";
+
+  await db`
+    insert into
+      pcp_pallet_inspecoes(
+        pallet_id,
+        area,
+        resultado,
+        checklist,
+        observacao,
+        usuario
+      )
+    values(
+      ${id},
+      ${area},
+      ${resultado},
+      ${
+        JSON.stringify(
+          checklist
+        )
+      }::jsonb,
+      ${
+        clean(
+          b.observacao,
+          1500
+        )
+      },
+      ${s.usuario}
+    )
+  `;
+
+  await db`
+    update
+      pcp_pallets
+    set
+      atualizado_em=now()
+    where
+      id=${id}
+  `;
+
+  await audit(
+    db,
+    id,
+    s.usuario,
+    "INSPECAO_REGISTRADA",
+    `Inspeção ${area} registrada`,
+    old,
+    {
+      area,
+      resultado,
+      checklist,
+    }
+  );
+
+  return NextResponse.json({
+    ok: true,
+  });
+}
 
       const checklist =
         b.checklist &&
