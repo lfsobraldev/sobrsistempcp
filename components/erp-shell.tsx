@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   Activity,
   History,
-  Settings, FileSpreadsheet, Flame,
+  Settings, FileSpreadsheet, Flame, ShieldCheck,
   LogOut,
   Bell,
   RefreshCw,
@@ -95,6 +95,16 @@ const menus: MenuGroup[] = [
     ],
   },
   {
+    label: "QUALIDADE",
+    items: [
+      {
+        path: "/inspecao-pallets",
+        label: "Inspeção de Pallets",
+        icon: ShieldCheck,
+      },
+    ],
+  },
+  {
     label: "ANÁLISE",
     items: [
       {
@@ -135,6 +145,7 @@ function allowed(role: string, path: string) {
       "/fluxo",
       "/andon",
       "/historico",
+      "/inspecao-pallets",
     ].includes(path);
   }
 
@@ -145,6 +156,7 @@ function allowed(role: string, path: string) {
       "/criticos",
       "/fluxo",
       "/andon",
+      "/inspecao-pallets",
     ].includes(path);
   }
 
@@ -154,6 +166,7 @@ function allowed(role: string, path: string) {
       "/criticos",
       "/fluxo",
       "/andon",
+      "/inspecao-pallets",
     ].includes(path);
   }
 
