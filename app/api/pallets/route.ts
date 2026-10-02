@@ -1,15 +1,6 @@
-import {
-  NextResponse,
-} from "next/server";
-
-import {
-  sql,
-} from "@/lib/db";
-
-import {
-  requireRoles,
-  session,
-} from "@/lib/auth";
+import { NextResponse } from "next/server";
+import { sql } from "@/lib/db";
+import { requireRoles, session } from "@/lib/auth";
 
 const MANAGE_ROLES = [
   "PCP",
@@ -27,34 +18,6 @@ const VIEW_ROLES = [
 type Area =
   | "QUALIDADE"
   | "MSAC";
-
-function statusGlobal(
-  q: string,
-  m: string
-) {
-  if (
-    q === "BLOQUEADO" ||
-    m === "BLOQUEADO"
-  ) {
-    return "BLOQUEADO";
-  }
-
-  if (
-    q === "LIBERADO" &&
-    m === "LIBERADO"
-  ) {
-    return "LIBERADO";
-  }
-
-  if (
-    q === "LIBERADO" ||
-    m === "LIBERADO"
-  ) {
-    return "EM_LIBERACAO";
-  }
-
-  return "AGUARDANDO_INSPECAO";
-}
 
 function clean(
   v: unknown,
@@ -135,6 +98,40 @@ function nullableDate(
     : d.toISOString();
 }
 
+function statusGlobal(
+  qualidade: string,
+  msac: string
+) {
+  if (
+    qualidade ===
+      "BLOQUEADO" ||
+    msac ===
+      "BLOQUEADO"
+  ) {
+    return "BLOQUEADO";
+  }
+
+  if (
+    qualidade ===
+      "LIBERADO" &&
+    msac ===
+      "LIBERADO"
+  ) {
+    return "LIBERADO";
+  }
+
+  if (
+    qualidade ===
+      "LIBERADO" ||
+    msac ===
+      "LIBERADO"
+  ) {
+    return "EM_LIBERACAO";
+  }
+
+  return "AGUARDANDO_INSPECAO";
+}
+
 async function audit(
   db: ReturnType<
     typeof sql
@@ -143,8 +140,8 @@ async function audit(
   usuario: string,
   tipo: string,
   descricao: string,
-  antes: unknown,
-  depois: unknown
+  antes: unknown = {},
+  depois: unknown = {}
 ) {
   await db`
     insert into
@@ -256,25 +253,18 @@ export async function GET(
                     json_build_object(
                       'id',
                       f.id,
-
                       'dataUrl',
                       f.data_url,
-
                       'legenda',
                       f.legenda,
-
                       'area',
                       f.area,
-
                       'tipo',
                       f.tipo,
-
                       'ncId',
                       f.nc_id,
-
                       'usuario',
                       f.usuario,
-
                       'criadoEm',
                       f.criado_em
                     )
@@ -296,22 +286,16 @@ export async function GET(
                     json_build_object(
                       'id',
                       i.id,
-
                       'area',
                       i.area,
-
                       'resultado',
                       i.resultado,
-
                       'checklist',
                       i.checklist,
-
                       'observacao',
                       i.observacao,
-
                       'usuario',
                       i.usuario,
-
                       'criadoEm',
                       i.criado_em
                     )
@@ -333,67 +317,46 @@ export async function GET(
                     json_build_object(
                       'id',
                       n.id,
-
                       'codigo',
                       n.codigo,
-
                       'categoria',
                       n.categoria,
-
                       'tipoDefeito',
                       n.tipo_defeito,
-
                       'gravidade',
                       n.gravidade,
-
                       'quantidadeAfetada',
                       n.quantidade_afetada,
-
                       'localDefeito',
                       n.local_defeito,
-
                       'descricao',
                       n.descricao,
-
                       'contencao',
                       n.contencao,
-
                       'acaoCorretiva',
                       n.acao_corretiva,
-
                       'responsavel',
                       n.responsavel,
-
                       'prazo',
                       n.prazo,
-
                       'status',
                       n.status,
-
                       'correcaoExecutada',
                       n.correcao_executada,
-
                       'corrigidoPor',
                       n.corrigido_por,
-
                       'corrigidoEm',
                       n.corrigido_em,
-
                       'reinspecaoResultado',
                       n.reinspecao_resultado,
-
                       'reinspecaoUsuario',
                       n.reinspecao_usuario,
-
                       'reinspecaoEm',
                       n.reinspecao_em,
-
                       'reinspecaoObservacao',
                       n.reinspecao_observacao,
-
                       'criadoPor',
                       n.criado_por,
-
                       'criadoEm',
                       n.criado_em
                     )
@@ -416,34 +379,24 @@ export async function GET(
                     json_build_object(
                       'id',
                       m.id,
-
                       'caracteristica',
                       m.caracteristica,
-
                       'nominal',
                       m.nominal,
-
                       'toleranciaMin',
                       m.tolerancia_min,
-
                       'toleranciaMax',
                       m.tolerancia_max,
-
                       'medido',
                       m.medido,
-
                       'unidade',
                       m.unidade,
-
                       'resultado',
                       m.resultado,
-
                       'observacao',
                       m.observacao,
-
                       'usuario',
                       m.usuario,
-
                       'criadoEm',
                       m.criado_em
                     )
@@ -465,16 +418,12 @@ export async function GET(
                     json_build_object(
                       'id',
                       e.id,
-
                       'tipo',
                       e.tipo,
-
                       'descricao',
                       e.descricao,
-
                       'usuario',
                       e.usuario,
-
                       'criadoEm',
                       e.criado_em
                     )
@@ -521,7 +470,7 @@ export async function GET(
       );
     }
 
-    const rows =
+    const itens =
       await db`
         select
           p.*,
@@ -574,22 +523,17 @@ export async function GET(
           )
 
         order by
-
           case
             p.status
-
             when
               'BLOQUEADO'
             then 0
-
             when
               'EM_LIBERACAO'
             then 1
-
             when
               'AGUARDANDO_INSPECAO'
             then 2
-
             else 3
           end,
 
@@ -598,41 +542,39 @@ export async function GET(
         limit 500
       `;
 
-    const resumoRows =
+    const [resumo] =
       await db`
         select
-
           count(*)::int
-            total,
+            as total,
 
           count(*)
             filter(
               where
                 status='LIBERADO'
             )::int
-            liberados,
+            as liberados,
 
           count(*)
             filter(
               where
                 status='BLOQUEADO'
             )::int
-            bloqueados,
+            as bloqueados,
 
           count(*)
             filter(
               where
                 status='EM_LIBERACAO'
             )::int
-            em_liberacao,
+            as em_liberacao,
 
           count(*)
             filter(
               where
-                status=
-                'AGUARDANDO_INSPECAO'
+                status='AGUARDANDO_INSPECAO'
             )::int
-            aguardando,
+            as aguardando,
 
           (
             select
@@ -659,11 +601,9 @@ export async function GET(
 
     return NextResponse.json(
       {
-        itens:
-          rows,
-
+        itens,
         resumo:
-          resumoRows[0] ||
+          resumo ||
           {},
       },
       {
@@ -702,9 +642,6 @@ export async function POST(
     const b =
       await req.json();
 
-    const db =
-      sql();
-
     const pedido =
       clean(
         b.pedido,
@@ -731,6 +668,9 @@ export async function POST(
         }
       );
     }
+
+    const db =
+      sql();
 
     const codigo =
       `PLT-${
@@ -835,7 +775,6 @@ export async function POST(
           },
           ${s.usuario}
         )
-
         returning *
       `;
 
@@ -932,107 +871,35 @@ export async function PATCH(
       );
     }
 
-if (
-  action ===
-  "INSPECIONAR"
-) {
-  const areaRaw = clean(
-    b.area,
-    20
-  ).toUpperCase();
-
-  const area = areaRaw as Area;
-
-  if (
-    !(
-      area ===
-        "QUALIDADE" ||
-      area ===
-        "MSAC"
-    )
-  ) {
-    return NextResponse.json(
-      {
-        error:
-          "Área inválida.",
-      },
-      {
-        status: 400,
-      }
-    );
-  }
-
-  const checklist =
-    b.checklist &&
-    typeof
-      b.checklist ===
-      "object"
-      ? b.checklist
-      : {};
-
-  const resultado =
-    clean(
-      b.resultado,
-      30
-    ).toUpperCase() ||
-    "CONFORME";
-
-  await db`
-    insert into
-      pcp_pallet_inspecoes(
-        pallet_id,
-        area,
-        resultado,
-        checklist,
-        observacao,
-        usuario
-      )
-    values(
-      ${id},
-      ${area},
-      ${resultado},
-      ${
-        JSON.stringify(
-          checklist
-        )
-      }::jsonb,
-      ${
+    if (
+      action ===
+      "INSPECIONAR"
+    ) {
+      const areaRaw =
         clean(
-          b.observacao,
-          1500
-        )
-      },
-      ${s.usuario}
-    )
-  `;
+          b.area,
+          20
+        ).toUpperCase();
 
-  await db`
-    update
-      pcp_pallets
-    set
-      atualizado_em=now()
-    where
-      id=${id}
-  `;
+      if (
+        areaRaw !==
+          "QUALIDADE" &&
+        areaRaw !==
+          "MSAC"
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "Área inválida.",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
 
-  await audit(
-    db,
-    id,
-    s.usuario,
-    "INSPECAO_REGISTRADA",
-    `Inspeção ${area} registrada`,
-    old,
-    {
-      area,
-      resultado,
-      checklist,
-    }
-  );
-
-  return NextResponse.json({
-    ok: true,
-  });
-}
+      const area: Area =
+        areaRaw;
 
       const checklist =
         b.checklist &&
@@ -1122,6 +989,12 @@ if (
           180
         );
 
+      const gravidade =
+        clean(
+          b.gravidade,
+          20
+        ).toUpperCase();
+
       if (
         !descricao ||
         !tipoDefeito
@@ -1136,12 +1009,6 @@ if (
           }
         );
       }
-
-      const gravidade =
-        clean(
-          b.gravidade,
-          20
-        ).toUpperCase();
 
       if (
         ![
@@ -1213,7 +1080,8 @@ if (
               clean(
                 b.categoria,
                 80
-              )
+              ) ||
+              "OUTROS"
             },
             ${tipoDefeito},
             ${gravidade},
@@ -1255,7 +1123,6 @@ if (
             'ABERTA',
             ${s.usuario}
           )
-
           returning *
         `;
 
@@ -1564,7 +1431,7 @@ if (
         await db`
           select
             count(*)::int
-            total
+            as total
 
           from
             pcp_pallet_nao_conformidades
@@ -1744,7 +1611,6 @@ if (
             },
             ${s.usuario}
           )
-
           returning *
         `;
 
@@ -1821,7 +1687,7 @@ if (
           await db`
             select
               count(*)::int
-              total
+              as total
 
             from
               pcp_pallet_nao_conformidades
@@ -1875,10 +1741,10 @@ if (
         );
       }
 
-      let q =
+      let qualidade =
         old.qualidade_status;
 
-      let m =
+      let msac =
         old.msac_status;
 
       let motivo =
@@ -1887,7 +1753,7 @@ if (
           800
         );
 
-      const obs =
+      const observacao =
         clean(
           b.observacao,
           1000
@@ -1897,7 +1763,7 @@ if (
         action ===
         "QUALIDADE_LIBERAR"
       ) {
-        q =
+        qualidade =
           "LIBERADO";
       }
 
@@ -1905,7 +1771,7 @@ if (
         action ===
         "QUALIDADE_BLOQUEAR"
       ) {
-        q =
+        qualidade =
           "BLOQUEADO";
       }
 
@@ -1913,7 +1779,7 @@ if (
         action ===
         "MSAC_LIBERAR"
       ) {
-        m =
+        msac =
           "LIBERADO";
       }
 
@@ -1921,7 +1787,7 @@ if (
         action ===
         "MSAC_BLOQUEAR"
       ) {
-        m =
+        msac =
           "BLOQUEADO";
       }
 
@@ -1929,10 +1795,10 @@ if (
         action ===
         "REABRIR"
       ) {
-        q =
+        qualidade =
           "PENDENTE";
 
-        m =
+        msac =
           "PENDENTE";
 
         motivo =
@@ -1958,21 +1824,27 @@ if (
 
       const global =
         statusGlobal(
-          q,
-          m
+          qualidade,
+          msac
         );
+
+      const bloqueadoEm =
+        global ===
+        "BLOQUEADO"
+          ? new Date()
+              .toISOString()
+          : null;
 
       const [updated] =
         await db`
           update
             pcp_pallets
-
           set
             qualidade_status=
-              ${q},
+              ${qualidade},
 
             msac_status=
-              ${m},
+              ${msac},
 
             status=
               ${global},
@@ -2008,7 +1880,7 @@ if (
                   like
                   'QUALIDADE_%'
                 then
-                  ${obs}
+                  ${observacao}
                 else
                   qualidade_observacao
               end,
@@ -2044,7 +1916,7 @@ if (
                   like
                   'MSAC_%'
                 then
-                  ${obs}
+                  ${observacao}
                 else
                   msac_observacao
               end,
@@ -2066,13 +1938,7 @@ if (
               },
 
             bloqueado_em=
-              ${
-                global ===
-                "BLOQUEADO"
-                  ? new Date()
-                      .toISOString()
-                  : null
-              },
+              ${bloqueadoEm},
 
             atualizado_em=
               now()
@@ -2115,7 +1981,6 @@ if (
         await db`
           update
             pcp_pallets
-
           set
             cliente=
               ${
