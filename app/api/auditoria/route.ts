@@ -1,0 +1,2 @@
+import { NextResponse } from "next/server";import { sql } from "@/lib/db";import { requireRoles } from "@/lib/auth";
+export async function GET(){try{await requireRoles(["PCP","GERENTE","ENCARREGADO"]);const rows=await sql()`select id,usuario,tipo,descricao,of,processo,antes,depois,criado_em from pcp_eventos order by criado_em desc limit 200`;return NextResponse.json({itens:rows},{headers:{"Cache-Control":"no-store"}})}catch(e:any){const s=e?.message==="SEM_PERMISSAO"?403:500;return NextResponse.json({error:s===403?"Sem permissão.":e.message},{status:s})}}
