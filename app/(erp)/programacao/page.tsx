@@ -24,6 +24,10 @@ import {
   LABELS,
 } from "@/lib/metrics";
 
+import {
+  modeloProduto,
+} from "@/lib/presentation";
+
 export default function Programacao() {
   const {
     refresh,
@@ -760,33 +764,221 @@ function Review({
         <table>
           <thead>
             <tr>
-              <th>SEQ.</th><th>PEDIDO</th><th>ITEM</th><th>OF</th><th>PRODUTO</th><th>FAMÍLIA</th><th>DESCRIÇÃO</th>
-              <th>TIPO</th><th>CANAL</th><th>REBAIXO</th><th>ACABAMENTO</th><th>COR</th><th className="num">QTD PROGRAMADA</th>
-              <th className="num">COMP.</th><th className="num">LARG.</th><th className="num">ESP.</th><th>PRIORIDADE</th><th>ROTA</th>
+              <th>SEQ.</th>
+              <th>PEDIDO</th>
+              <th>ITEM</th>
+              <th>OF</th>
+              <th>PRODUTO</th>
+              <th>FAMÍLIA</th>
+              <th>DESCRIÇÃO</th>
+              <th>TIPO</th>
+              <th>CANAL</th>
+              <th>REBAIXO</th>
+              <th>ACABAMENTO</th>
+              <th>COR</th>
+              <th className="num">
+                QTD PROGRAMADA
+              </th>
+              <th className="num">
+                COMP.
+              </th>
+              <th className="num">
+                LARG.
+              </th>
+              <th className="num">
+                ESP.
+              </th>
+              <th>
+                PRIORIDADE
+              </th>
+              <th>
+                ROTA
+              </th>
             </tr>
           </thead>
 
           <tbody>
-            {d.produtos.slice(0, 250).map((p, index) => {
-              const m = modeloProduto(p);
-              return (
-                <tr key={p.id}>
-                  <td className="mono">{String(index + 1).padStart(2, "0")}</td>
-                  <td>{m.pedido}</td><td>{m.item}</td><td><b>{m.of}</b></td><td>{m.produto}</td><td><em className="tag">{m.familia}</em></td>
-                  <td className="descCell"><b>{m.descricao}</b></td><td>{m.tipo}</td><td>{m.canal}</td><td>{m.rebaixo}</td><td>{m.acabamento}</td><td>{m.cor}</td>
-                  <td className="num">{m.planejado}</td><td className="num mono">{m.comprimento || "-"}</td><td className="num mono">{m.largura || "-"}</td><td className="num mono">{m.espessura || "-"}</td>
-                  <td><span className={`priority p-${String(m.prioridade).toLowerCase()}`}>{m.prioridade}</span></td>
-                  <td>
-                    <div className="route">
-                      {p.operacoes.map((o, i) => (
-                        <span key={o.id}>{LABELS[o.processo] || o.processo}{i < p.operacoes.length - 1 && <i>›</i>}</span>
-                      ))}
-                      {!p.operacoes.length && <em>SEM ROTA</em>}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+            {d.produtos
+              .slice(
+                0,
+                250
+              )
+              .map(
+                (
+                  p,
+                  index
+                ) => {
+                  const m =
+                    modeloProduto(
+                      p
+                    );
+
+                  return (
+                    <tr
+                      key={
+                        p.id
+                      }
+                    >
+                      <td className="mono">
+                        {String(
+                          index +
+                            1
+                        ).padStart(
+                          2,
+                          "0"
+                        )}
+                      </td>
+
+                      <td>
+                        {
+                          m.pedido
+                        }
+                      </td>
+
+                      <td>
+                        {
+                          m.item
+                        }
+                      </td>
+
+                      <td>
+                        <b>
+                          {
+                            m.of
+                          }
+                        </b>
+                      </td>
+
+                      <td>
+                        {
+                          m.produto
+                        }
+                      </td>
+
+                      <td>
+                        <em className="tag">
+                          {
+                            m.familia
+                          }
+                        </em>
+                      </td>
+
+                      <td className="descCell">
+                        <b>
+                          {
+                            m.descricao
+                          }
+                        </b>
+                      </td>
+
+                      <td>
+                        {
+                          m.tipo
+                        }
+                      </td>
+
+                      <td>
+                        {
+                          m.canal
+                        }
+                      </td>
+
+                      <td>
+                        {
+                          m.rebaixo
+                        }
+                      </td>
+
+                      <td>
+                        {
+                          m.acabamento
+                        }
+                      </td>
+
+                      <td>
+                        {
+                          m.cor
+                        }
+                      </td>
+
+                      <td className="num">
+                        {
+                          m.planejado
+                        }
+                      </td>
+
+                      <td className="num mono">
+                        {m.comprimento ||
+                          "-"}
+                      </td>
+
+                      <td className="num mono">
+                        {m.largura ||
+                          "-"}
+                      </td>
+
+                      <td className="num mono">
+                        {m.espessura ||
+                          "-"}
+                      </td>
+
+                      <td>
+                        <span
+                          className={`priority p-${String(
+                            m.prioridade
+                          ).toLowerCase()}`}
+                        >
+                          {
+                            m.prioridade
+                          }
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className="route">
+                          {p.operacoes.map(
+                            (
+                              o,
+                              i
+                            ) => (
+                              <span
+                                key={
+                                  o.id
+                                }
+                              >
+                                {LABELS[
+                                  o
+                                    .processo
+                                ] ||
+                                  o.processo}
+
+                                {i <
+                                  p
+                                    .operacoes
+                                    .length -
+                                    1 && (
+                                  <i>
+                                    ›
+                                  </i>
+                                )}
+                              </span>
+                            )
+                          )}
+
+                          {!p
+                            .operacoes
+                            .length && (
+                            <em>
+                              SEM
+                              ROTA
+                            </em>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+              )}
           </tbody>
         </table>
       </div>
