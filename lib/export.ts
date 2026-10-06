@@ -1,9 +1,7 @@
 import * as XLSX from "xlsx";
 import type { Andon, Produto } from "@/types/pcp";
 import { LABELS } from "@/lib/metrics";
-import { familiaDe, FAMILIAS } from "@/lib/sort";
-import { calcularCriticos } from "@/lib/criticos";
-import { modeloProduto } from "@/lib/presentation";
+import { familiaDe } from "@/lib/sort";
 
 export type Linha = Record<string, string | number>;
 
@@ -18,7 +16,6 @@ export function exportarExcel(abas: { nome: string; linhas: Linha[] }[], arquivo
     }));
     const ref = ws["!ref"];
     if (ref) ws["!autofilter"] = { ref };
-    ws["!freeze"] = { xSplit: 0, ySplit: 1 } as any;
     XLSX.utils.book_append_sheet(wb, ws, a.nome.slice(0, 31));
   }
   const d = new Date(), z = (n: number) => String(n).padStart(2, "0");
@@ -26,60 +23,37 @@ export function exportarExcel(abas: { nome: string; linhas: Linha[] }[], arquivo
   XLSX.writeFile(wb, `${arquivo}_${stamp}.xlsx`);
 }
 
-export const linhaOp = (p: Produto, o: Produto["operacoes"][number], turno = ""): Linha => {
-  const x = modeloProduto(p, o, turno);
-  return {
-    "Seq.": x.seq,
-    Pedido: x.pedido,
-    Item: x.item,
-    OF: x.of,
-    Produto: x.produto,
-    Família: x.familia,
-    Descrição: x.descricao,
-    Tipo: x.tipo,
-    Canal: x.canal,
-    Rebaixo: x.rebaixo,
-    Acabamento: x.acabamento,
-    Cor: x.cor,
-    "Qtd Programada": x.planejado,
-    Comprimento: x.comprimento,
-    Largura: x.largura,
-    Espessura: x.espessura,
-    "m³": Number(x.volumeM3.toFixed(3)),
-    Turno: x.turno,
-    Máquina: x.maquina,
-    Líder: x.lider,
-    "Qtd Produzida": x.produzido,
-    Saldo: x.saldo,
-    "% Concluído": Number(x.concluido.toFixed(2)) / 100,
-    Status: x.status,
-    Observação: x.observacao,
-    Prioridade: x.prioridade,
-  };
-};
+export const linhaOp = (p: Produto, o: Produto["operacoes"][number]): Linha => ({
+  Processo: LABELS[o.processo] || o.processo,
+  Seq: o.ordemFila,
+  Família: familiaDe(p.categoria),
+  Pedido: p.pedido,
+  OF: p.of,
+  Peça: p.descricao,
+  Material: p.material,
+  Medida: p.medida,
+  Rebaixo: p.rebaixo,
+  Acabamento: p.acabamento,
+  Cor: p.cor,
+  Prioridade: p.prioridade,
+  Status: o.status.replaceAll("_", " "),
+  Planejado: o.quantidadePlanejada,
+  Produzido: o.quantidadeProduzida,
+  Refugo: o.quantidadeRefugo,
+  Saldo: Math.max(0, o.quantidadePlanejada - o.quantidadeProduzida),
+});
 
-export function exportarCompleto(produtos: Produto[], andon: Andon[], turno = "") {
-  const ops = produtos.flatMap((p) => p.operacoes.map((o) => ({ p, o })));
-  const procs = [...new Set(ops.map((x) => x.o.processo))];
-  const soma = (l: Linha[], k: string) => l.reduce((s, x) => s + Number(x[k] || 0), 0);
-  const resumo: Linha[] = procs.map((pr) => {
-    const l = ops.filter((x) => x.o.processo === pr).map((x) => linhaOp(x.p, x.o, turno));
-    return { Processo: LABELS[pr] || pr, Operações: l.length, Programado: soma(l, "Qtd Programada"), Produzido: soma(l, "Qtd Produzida"), Saldo: soma(l, "Saldo") };
+/** Exportação completa: planilha profissional por setor (portas > batentes > alizares > baguetes > kit/suporte de trilho). */
+export async function exportarCompleto(produtos: Produto[], _andon: Andon[] = []) {
+  const { baixarPlanilhaProducao } = await import("@/lib/planilha");
+  await baixarPlanilhaProducao(produtos, { arquivo: "Programacao_Producao" });
+}
+
+/** Planilha de um único setor (usada nas telas de Líderes e Apontamentos). */
+export async function exportarSetor(produtos: Produto[], processo: string) {
+  const { baixarPlanilhaProducao } = await import("@/lib/planilha");
+  await baixarPlanilhaProducao(produtos, {
+    setores: [processo],
+    arquivo: `Programacao_${(LABELS[processo] || processo).replace(/\s+/g, "_")}`,
   });
-  const fam = (f: string) => ops.filter((x) => familiaDe(x.p.categoria) === f).map((x) => linhaOp(x.p, x.o, turno));
-  const crit = calcularCriticos(produtos, andon).map((c) => ({ Motivos: c.motivos.join(" | "), Gravidade: c.gravidade, ...linhaOp(c.p, c.o, turno) }));
-  exportarExcel(
-    [
-      { nome: "Resumo", linhas: resumo },
-      { nome: "Programação", linhas: produtos.map((p) => {
-        const x = modeloProduto(p, undefined, turno);
-        return { Pedido: x.pedido, Item: x.item, OF: x.of, Produto: x.produto, Família: x.familia, Descrição: x.descricao, Tipo: x.tipo, Canal: x.canal, Rebaixo: x.rebaixo, Acabamento: x.acabamento, Cor: x.cor, "Qtd Programada": p.quantidade, Comprimento: x.comprimento, Largura: x.largura, Espessura: x.espessura, "m³": Number(x.volumeM3.toFixed(3)), Turno: x.turno, Prioridade: x.prioridade };
-      }) },
-      ...procs.map((pr) => ({ nome: LABELS[pr] || pr, linhas: ops.filter((x) => x.o.processo === pr).sort((a, b) => a.o.ordemFila - b.o.ordemFila).map((x) => linhaOp(x.p, x.o, turno)) })),
-      { nome: "Críticos", linhas: crit },
-      ...FAMILIAS.filter((f) => f !== "OUTROS" && f !== "PORTAS").map((f) => ({ nome: f, linhas: fam(f) })),
-      { nome: "Andon", linhas: andon.map((a) => ({ Processo: LABELS[a.processo] || a.processo, Motivo: a.motivo, Observação: a.observacao, Status: a.status, Usuário: a.usuario_abertura, Aberto: a.criado_em, Pedido: a.pedido || "", OF: a.of || "" })) },
-    ],
-    "PCP_Completo"
-  );
 }
