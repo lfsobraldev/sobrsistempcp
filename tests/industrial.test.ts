@@ -1,0 +1,5 @@
+import test from "node:test";import assert from "node:assert/strict";import{compareProduction,calcOee,riskLevel,pareto}from"../lib/domain/industrial.ts";
+test('batente e travessa ficam juntos por largura maior para menor',()=>{const x=[{categoria:'BATENTE PERNA',medida:'2110x180x30'},{categoria:'TRAVESSA BATENTE',medida:'900x230x30'},{categoria:'BATENTE PERNA',medida:'2110x230x30'},{categoria:'TRAVESSA BATENTE',medida:'900x180x30'}].sort(compareProduction);assert.deepEqual(x.map(i=>`${i.medida.split('x')[1]}:${i.categoria.startsWith('TRAVESSA')?'T':'P'}`),['230:P','230:T','180:P','180:T'])});
+test('OEE retorna nulo sem dados suficientes',()=>assert.equal(calcOee({}),null));
+test('risco explica bloqueio e andon',()=>{const r=riskLevel({priority:'URGENTE',blocked:true,openAndon:true,remaining:20,queueHours:5});assert.equal(r.level,'CRITICO');assert.ok(r.reasons.length>=4)});
+test('pareto ordena maior perda',()=>assert.equal(pareto([{motivo:'Setup',minutos:10},{motivo:'Material',minutos:30},{motivo:'Setup',minutos:25}])[0].motivo,'Setup'));
