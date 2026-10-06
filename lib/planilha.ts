@@ -11,7 +11,7 @@ import { medidaDoItem, tipoPeca } from "@/lib/domain/industrial";
 /**
  * Planilha de programação por setor.
  * Organização: PORTAS > BATENTES > ALIZARES > BAGUETES > KIT DE CORRER / SUPORTE DE TRILHO > demais.
- * Dentro de cada seção: largura (ver LARGURA_ORDEM em lib/domain/industrial.ts).
+ * Dentro de cada seção: largura MAIOR → MENOR.
  * Batentes e alizares: perna e travessa da mesma largura ficam em sequência.
  */
 
@@ -187,16 +187,16 @@ function montarAbaSetor(
   ws.mergeCells(1, 1, 1, N_COLS);
   const t = ws.getCell(1, 1);
   t.value = `PROGRAMAÇÃO DE PRODUÇÃO  |  ${nomeAba}`;
-  t.font = { name: FONTE, size: 15, bold: true, color: { argb: "FFFFFFFF" } };
+  t.font = { name: FONTE, size: 18, bold: true, color: { argb: "FFFFFFFF" } };
   t.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR.grafite } };
   t.alignment = { vertical: "middle", indent: 1 };
-  ws.getRow(1).height = 32;
+  ws.getRow(1).height = 38;
 
   // Identificação do setor (campos para preenchimento do líder)
   const rotulo = (col: number, txt: string) => {
     const c = ws.getCell(2, col);
     c.value = txt;
-    c.font = { name: FONTE, size: 9, bold: true, color: { argb: COR.suave } };
+    c.font = { name: FONTE, size: 11, bold: true, color: { argb: COR.suave } };
     c.alignment = { vertical: "middle", horizontal: "right" };
   };
   const campo = (c1: number, c2: number, valor?: string) => {
@@ -206,7 +206,7 @@ function montarAbaSetor(
     }
     const cell = ws.getCell(2, c1);
     cell.value = valor ?? null;
-    cell.font = { name: FONTE, size: 10, bold: true, color: { argb: COR.texto } };
+    cell.font = { name: FONTE, size: 12, bold: true, color: { argb: COR.texto } };
     cell.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
   };
   rotulo(1, "Data:");
@@ -220,8 +220,8 @@ function montarAbaSetor(
   rotulo(12, "Turno:");
   campo(13, 13);
   rotulo(14, "Ordem:");
-  campo(15, 20, "Família  ›  largura menor → maior");
-  ws.getRow(2).height = 24;
+  campo(15, 20, "Família  ›  largura MAIOR → MENOR");
+  ws.getRow(2).height = 28;
   ws.getRow(3).height = 6;
 
   // Cabeçalho da tabela
@@ -229,7 +229,7 @@ function montarAbaSetor(
   COLS.forEach((c, i) => {
     const cell = head.getCell(i + 1);
     cell.value = c.h;
-    cell.font = { name: FONTE, size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.font = { name: FONTE, size: 12, bold: true, color: { argb: "FFFFFFFF" } };
     cell.fill = {
       type: "pattern",
       pattern: "solid",
@@ -238,7 +238,7 @@ function montarAbaSetor(
     cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
     cell.border = { left: fino("FF59646E"), right: fino("FF59646E") };
   });
-  head.height = 32;
+  head.height = 38;
 
   let rowNum = 5;
   const primeira = rowNum;
@@ -262,7 +262,7 @@ function montarAbaSetor(
     bTxt.value = `${FAMILIA_INFO[familia].secao}   •   ${grupo.length} ${
       grupo.length === 1 ? "item" : "itens"
     }`;
-    bTxt.font = { name: FONTE, size: 11, bold: true, color: { argb: COR.texto } };
+    bTxt.font = { name: FONTE, size: 13, bold: true, color: { argb: COR.texto } };
     bTxt.alignment = { vertical: "middle", horizontal: "left", indent: 1 };
     for (let c = 1; c <= N_COLS; c++) {
       const cell = bandaRow.getCell(c);
@@ -272,7 +272,7 @@ function montarAbaSetor(
         bottom: fino(COR.grupo),
       };
     }
-    bandaRow.height = 24;
+    bandaRow.height = 28;
     rowNum++;
 
     const ini = rowNum;
@@ -329,7 +329,7 @@ function montarAbaSetor(
       valores.forEach((v, k) => {
         const cell = r.getCell(k + 1);
         if (v !== null) cell.value = v as ExcelJS.CellValue;
-        cell.font = { name: FONTE, size: 10, color: { argb: COR.texto } };
+        cell.font = { name: FONTE, size: 12, color: { argb: COR.texto } };
         cell.alignment = {
           vertical: "middle",
           horizontal: COLS[k].align ?? "left",
@@ -356,9 +356,9 @@ function montarAbaSetor(
       r.getCell(C.saldo).numFmt = "General";
       r.getCell(C.pct).numFmt = "0%";
       r.getCell(18).numFmt = "0.000";
-      r.getCell(C.qtd).font = { name: FONTE, size: 10, bold: true, color: { argb: COR.texto } };
-      r.getCell(C.saldo).font = { name: FONTE, size: 10, bold: true, color: { argb: COR.texto } };
-      r.height = 21;
+      r.getCell(C.qtd).font = { name: FONTE, size: 12, bold: true, color: { argb: COR.texto } };
+      r.getCell(C.saldo).font = { name: FONTE, size: 12, bold: true, color: { argb: COR.texto } };
+      r.height = 27;
 
       larguraAnterior = larg;
       rowNum++;
@@ -371,7 +371,7 @@ function montarAbaSetor(
     const subtotal = (col: number, ref: string, result: number) => {
       const cell = bandaRow.getCell(col);
       cell.value = { formula: `SUBTOTAL(9,${ref}${ini}:${ref}${fim})`, result };
-      cell.font = { name: FONTE, size: 10, bold: true, color: { argb: COR.texto } };
+      cell.font = { name: FONTE, size: 12, bold: true, color: { argb: COR.texto } };
       cell.alignment = { vertical: "middle", horizontal: "right" };
       cell.numFmt = "General";
     };
@@ -383,7 +383,7 @@ function montarAbaSetor(
       formula: `IFERROR(${P}${bandaNum}/${Q}${bandaNum},0)`,
       result: qtdSecao > 0 ? somaProd / qtdSecao : 0,
     };
-    pctCell.font = { name: FONTE, size: 10, bold: true, color: { argb: COR.texto } };
+    pctCell.font = { name: FONTE, size: 12, bold: true, color: { argb: COR.texto } };
     pctCell.alignment = { vertical: "middle", horizontal: "right" };
     pctCell.numFmt = "0%";
 
@@ -403,7 +403,7 @@ function montarAbaSetor(
   tot.getCell(1).value = `TOTAL DO SETOR  —  ${itens.length} itens`;
   for (let c = 1; c <= N_COLS; c++) {
     const cell = tot.getCell(c);
-    cell.font = { name: FONTE, size: 11, bold: true, color: { argb: "FFFFFFFF" } };
+    cell.font = { name: FONTE, size: 13, bold: true, color: { argb: "FFFFFFFF" } };
     cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR.grafite } };
     cell.alignment = {
       vertical: "middle",
@@ -428,20 +428,20 @@ function montarAbaSetor(
     result: totalQtd > 0 ? totalProd / totalQtd : 0,
   };
   tot.getCell(C.pct).numFmt = "0%";
-  tot.height = 26;
+  tot.height = 30;
 
   // Impressão
   ws.pageSetup = {
     orientation: "landscape",
     paperSize: 8 as unknown as ExcelJS.PaperSize, // A3
     fitToPage: true,
-    fitToWidth: 1,
+    fitToWidth: 2,
     fitToHeight: 0,
     margins: { left: 0.3, right: 0.3, top: 0.4, bottom: 0.5, header: 0.2, footer: 0.25 },
     printTitlesRow: "4:4",
   };
   ws.headerFooter = {
-    oddFooter: "&L&8&A&C&8Página &P de &N&R&8Impresso em &D &T",
+    oddFooter: "&L&10&A&C&10Página &P de &N&R&10Impresso em &D &T",
   };
 
   const stat = (x: Item) => {
@@ -645,7 +645,7 @@ function montarLeiaMe(wb: Workbook) {
   const linhas = [
     "Cada aba traz somente os itens que passam pelo setor.",
     "Sequência das seções: Portas, Batentes, Alizares, Baguetes, Kit de Correr / Suporte de Trilho e demais itens.",
-    "Dentro de cada seção os itens seguem a largura, da menor para a maior.",
+    "Dentro de cada seção os itens seguem SEMPRE a largura, da MAIOR para a MENOR.",
     "Em Batentes e Alizares, perna e travessa da mesma largura ficam em sequência (mesmo material, acabamento, cor e rebaixo).",
     "Linhas com divisória mais escura marcam a troca de largura.",
     "O líder preenche as colunas com fundo claro: Turno, Máquina, Líder, Qtd Produzida e Observação.",
