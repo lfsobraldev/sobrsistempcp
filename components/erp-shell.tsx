@@ -441,20 +441,28 @@ function Inner({
             </b>
           </div>
 
-          <div className="topright">
-            {pg && me.perfil !== "APONTADOR" && (
-              <button className="exportAll" onClick={() => exportarCompleto(pg.produtos, andon, pg.turno || "")}>
-                <FileSpreadsheet />
-                Exportar Excel
-              </button>
-            )}
-            {pg && (
-              <>
-                <div className="headMeta">
-                  <small>
-                    Filtro
-                  </small>
+       <div className="topright">
+  {pg && me.perfil !== "APONTADOR" && (
+    <button
+      className="exportAll"
+      onClick={() =>
+        exportarCompleto(
+          pg.produtos,
+          andon
+        )
+      }
+    >
+      <FileSpreadsheet />
+      Exportar Excel
+    </button>
+  )}
 
+  {pg && (
+    <>
+      <div className="headMeta">
+        <small>
+          Filtro
+        </small>
                   <b>
                     {
                       pg.filtro
