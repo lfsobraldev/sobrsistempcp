@@ -1,3 +1,0 @@
-import { NextResponse } from "next/server";import { parseFiltro } from "@/lib/filter-parser";import { requireRoles } from "@/lib/auth";
-export const runtime="nodejs";export const maxDuration=60;
-export async function POST(req:Request){try{await requireRoles(["PCP"]);const fd=await req.formData(),file=fd.get("filtro");if(!(file instanceof File))return NextResponse.json({error:"Envie o CSV exportado do Consistem."},{status:400});const r=await parseFiltro(file);return NextResponse.json(r,{headers:{"Cache-Control":"no-store"}})}catch(e:any){const s=e?.message==="SEM_PERMISSAO"?403:500;return NextResponse.json({error:s===403?"Sem permissão.":e?.message||"Falha ao ler filtro."},{status:s})}}
