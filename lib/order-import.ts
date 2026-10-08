@@ -91,13 +91,20 @@ function route(
   ) {
     processos.push(
       "LIXAR",
-      "RECOBRIDORA"
+      "RECOBRIDORA-2"
     );
   } else if (
     familia === "BAGUETE"
   ) {
     processos.push(
-      "PREPARACAO"
+      "PREPARACAO",
+      "RECOBRIDORA-2"
+    );
+  } else if (
+    familia === "KIT CORRER"
+  ) {
+    processos.push(
+      "RECOBRIDORA-2"
     );
   }
 
