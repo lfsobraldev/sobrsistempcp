@@ -2,7 +2,7 @@
 
 import { useOps } from "@/components/operational-provider";
 import { LABELS, atual } from "@/lib/metrics";
-import { PROCESSOS } from "@/lib/filter-parser";
+import { PROCESSOS } from "@/lib/processos";
 
 export default function Fluxo() {
   const { pg, me } = useOps();
