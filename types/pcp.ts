@@ -1,4 +1,4 @@
-export type Perfil = "PCP" | "GERENTE" | "ENCARREGADO" | "LIDER" | "APONTADOR";
+export type Perfil = "PCP" | "GERENTE" | "ENCARREGADO" | "LIDER" | "APONTADOR" | "QUALIDADE";
 export type Prioridade = "NORMAL" | "ALTA" | "URGENTE";
 export type StatusOperacao = "PENDENTE" | "LIBERADA" | "EM_ANDAMENTO" | "CONCLUIDA" | "BLOQUEADA" | "DIVERGENCIA";
 
