@@ -229,6 +229,11 @@ export async function GET(
         80
       );
 
+    const includeFotos =
+      url.searchParams.get(
+        "includeFotos"
+      ) === "1";
+
     const db =
       sql();
 
@@ -259,7 +264,14 @@ export async function GET(
                       f.id,
 
                       'dataUrl',
-                      f.data_url,
+                      case
+                        when ${includeFotos}
+                        then f.data_url
+                        else null
+                      end,
+
+                      'url',
+                      '/api/pallets/fotos?id=' || f.id,
 
                       'legenda',
                       f.legenda,
