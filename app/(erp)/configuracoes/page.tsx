@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Panel } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
 import { LABELS } from "@/lib/metrics";
-import { PROCESSOS } from "@/lib/filter-parser";
+import { PROCESSOS } from "@/lib/processos";
 
 export default function Config() {
   const { pg, toast } = useOps();
