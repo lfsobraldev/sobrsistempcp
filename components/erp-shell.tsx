@@ -55,6 +55,7 @@ function allowed(role:string,path:string){
   if(role==="ENCARREGADO")return ["/dashboard","/prioridades","/criticos","/lideres","/inspecao-pallets"].includes(path);
   if(role==="LIDER")return ["/lideres"].includes(path);
   if(role==="APONTADOR")return ["/apontamentos"].includes(path);
+  if(role==="QUALIDADE")return ["/dashboard","/inspecao-pallets"].includes(path);
   return false;
 }
 
@@ -75,6 +76,7 @@ function Inner({children}:{children:React.ReactNode}){
     if(allowed(me.perfil,path))return;
     if(me.perfil==="LIDER"){router.replace("/lideres");return}
     if(me.perfil==="APONTADOR"){router.replace("/apontamentos");return}
+    if(me.perfil==="QUALIDADE"){router.replace("/inspecao-pallets");return}
     router.replace("/dashboard");
   },[me,path,router,loading]);
 
