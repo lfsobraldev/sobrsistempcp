@@ -1,0 +1,1 @@
+declare module "pdf-parse" {\n  const pdf: (buffer: Buffer, options?: any) => Promise<any>;\n  export default pdf;\n}\n
