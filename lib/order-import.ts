@@ -9,7 +9,7 @@ import type {
 
 import {
   PROCESSOS,
-} from "@/lib/filter-parser";
+} from "@/lib/processos";
 
 import {
   categoriaIndustrial,
