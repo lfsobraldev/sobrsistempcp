@@ -8,6 +8,7 @@ import {
 
 import {
   categoriaIndustrial,
+  processoEmbalagemDoItem,
   processosOperacionaisDaFonte,
 } from "@/lib/domain/industrial";
 
@@ -815,6 +816,52 @@ export async function parseFiltro(
             })
           )
       );
+
+    /*
+     * A embalagem é uma etapa estrutural do fluxo.
+     *
+     * Não dependemos exclusivamente da coluna EMBALAGEM do CSV,
+     * porque alguns itens válidos chegam sem valor nessa coluna.
+     * Assim:
+     *
+     * PORTA / BANDEIRA -> EMBALAGEM-PORTAS
+     * BATENTE / ALIZAR / BAGUETE / KIT / SUPORTE -> EMBALAGEM-1
+     *
+     * Quando o CSV possui percentual de EMBALAGEM, preservamos
+     * esse percentual. Caso contrário, a etapa entra como pendente.
+     */
+    const embalagemObrigatoria =
+      processoEmbalagemDoItem(
+        base,
+        false
+      );
+
+    if (
+      embalagemObrigatoria
+    ) {
+      const embalagemFonte =
+        sourceRoute.find(
+          (
+            x
+          ) =>
+            x.processo ===
+            "EMBALAGEM"
+        );
+
+      expanded.push({
+        processo:
+          embalagemObrigatoria,
+
+        sourceIndex:
+          PROCESSOS_FONTE.indexOf(
+            "EMBALAGEM"
+          ),
+
+        percentual:
+          embalagemFonte?.percentual ??
+          0,
+      });
+    }
 
     /*
      * EVITA DUPLICAR UM
