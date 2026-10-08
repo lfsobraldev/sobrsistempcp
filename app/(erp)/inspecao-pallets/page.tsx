@@ -8,7 +8,7 @@ import {
 import { Modal, Panel } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
 
-type Foto = { id:string; dataUrl:string; legenda:string; area:string; usuario:string; criadoEm:string };
+type Foto = { id:string; dataUrl:string; legenda:string; area:string; usuario:string; criadoEm:string; tipo?:string; ncId?:string|null };
 type Pallet = {
   id:string; codigo:string; pedido:string; cliente:string; filtro:string; pallet:string; tipo_produto:string;
   quantidade:number; jogos:number; turno:string; destino:string; montador:string; conferente:string; observacao:string;
@@ -16,6 +16,8 @@ type Pallet = {
   qualidade_observacao:string; msac_usuario:string; msac_em:string|null; msac_observacao:string;
   bloqueio_motivo:string; criado_em:string; atualizado_em:string; fotos_count:number; fotos?:Foto[];
   inspecoes?:{id:string;area:string;resultado:string;checklist:Record<string,boolean>;observacao:string;usuario:string;criadoEm:string}[];
+  naoConformidades?:any[];
+  medicoes?:any[];
   eventos?:{id:number;tipo:string;descricao:string;usuario:string;criadoEm:string}[];
 };
 
@@ -45,6 +47,7 @@ async function compressImage(file:File){
 
 export default function InspecaoPallets(){
   const { toast, me } = useOps();
+  const isQuality = me?.perfil === "QUALIDADE";
   const [itens,setItens]=useState<Pallet[]>([]),[resumo,setResumo]=useState<Resumo>({}),[busy,setBusy]=useState(false);
   const [q,setQ]=useState(""),[status,setStatus]=useState(""),[selected,setSelected]=useState<Pallet|null>(null);
   const [createOpen,setCreateOpen]=useState(false),[inspectionOpen,setInspectionOpen]=useState(false),[decisionOpen,setDecisionOpen]=useState(false);
@@ -144,15 +147,62 @@ export default function InspecaoPallets(){
     }
   }
 
+  async function exportarPalletCompleto(pallet:Pallet){
+    setBusy(true);
+
+    try{
+      const r=await fetch(
+        `/api/pallets?id=${encodeURIComponent(pallet.id)}`,
+        {cache:"no-store"}
+      );
+
+      const j=await r.json();
+
+      if(!r.ok){
+        throw new Error(
+          j.error||
+          "Falha ao carregar o relatório do pallet."
+        );
+      }
+
+      const completo=j.item as Pallet;
+
+      const {baixarRelatorioPalletsExcel}=
+        await import("@/lib/pallet-excel");
+
+      const nomeSeguro=String(completo.pallet||completo.codigo||"Pallet")
+        .replace(/[\\/:*?"<>|]+/g,"-")
+        .replace(/\s+/g,"_");
+
+      await baixarRelatorioPalletsExcel(
+        [completo as any],
+        `Relatorio_Pallet_${nomeSeguro}`
+      );
+
+      toast(
+        "success",
+        `Relatório completo do pallet ${completo.pallet} gerado.`
+      );
+    }catch(e:any){
+      toast(
+        "error",
+        e?.message||
+        "Falha ao gerar relatório do pallet."
+      );
+    }finally{
+      setBusy(false);
+    }
+  }
+
   return <>
-    <div className="pageTitle"><div><span>QUALIDADE / MSAC</span><h1>Inspeção e Liberação de Pallets</h1><p>Inspeção com fotos, bloqueio, dupla liberação e etiqueta rastreável.</p></div><div className="palletTopActions"><button className="secondary" disabled={busy||!itens.length} onClick={exportarRelatorioExcel}><FileSpreadsheet/>Exportar relatório Excel</button><button className="secondary" onClick={load}><RefreshCw/>Atualizar</button><button className="primary" onClick={()=>setCreateOpen(true)}><Plus/>Novo pallet</button></div></div>
+    <div className="pageTitle"><div><span>QUALIDADE / MSAC</span><h1>Inspeção e Liberação de Pallets</h1><p>Inspeção com fotos, bloqueio, dupla liberação e etiqueta rastreável.</p></div><div className="palletTopActions"><button className="secondary" disabled={busy||!itens.length} onClick={exportarRelatorioExcel}><FileSpreadsheet/>Exportar relatório Excel</button><button className="secondary" onClick={load}><RefreshCw/>Atualizar</button>{!isQuality&&<button className="primary" onClick={()=>setCreateOpen(true)}><Plus/>Novo pallet</button>}</div></div>
 
     <div className="palletKpis">{cards.map(([a,b,t])=><div key={String(a)} className={`palletKpi ${t}`}><span>{a}</span><b>{b}</b></div>)}</div>
 
     <Panel title="Controle de pallets" subtitle="Qualidade libera primeiro; MSAC confirma a liberação final.">
       <div className="palletFilters"><label><Search/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar pedido, pallet, filtro ou cliente..."/></label><select value={status} onChange={e=>setStatus(e.target.value)}><option value="">Todos os status</option><option>AGUARDANDO_INSPECAO</option><option>EM_LIBERACAO</option><option>BLOQUEADO</option><option>LIBERADO</option></select></div>
       <div className="tableWrap palletTable"><table><thead><tr><th>Pallet</th><th>Pedido</th><th>Cliente</th><th>Filtro</th><th>Tipo</th><th className="num">Qtd</th><th className="num">Jogos</th><th>Qualidade</th><th>MSAC</th><th>Status</th><th>Fotos</th><th>Atualizado</th><th>Ações</th></tr></thead><tbody>
-        {itens.map(p=><tr key={p.id} className={p.status==="BLOQUEADO"?"critRow":""} onClick={()=>openPallet(p.id)}><td><b>{p.pallet}</b><small className="palletCode">{p.codigo}</small></td><td>{p.pedido}</td><td>{p.cliente||"-"}</td><td>{p.filtro||"-"}</td><td>{p.tipo_produto||"-"}</td><td className="num">{fmt(p.quantidade)}</td><td className="num">{fmt(p.jogos)}</td><td><span className={`palletStage s-${p.qualidade_status.toLowerCase()}`}>{statusLabel(p.qualidade_status)}</span></td><td><span className={`palletStage s-${p.msac_status.toLowerCase()}`}>{statusLabel(p.msac_status)}</span></td><td><span className={`palletGlobal g-${p.status.toLowerCase()}`}>{statusLabel(p.status)}</span></td><td>{p.fotos_count||0}</td><td>{date(p.atualizado_em)}</td><td><div className="rowActions" onClick={e=>e.stopPropagation()}><button title="Abrir" onClick={()=>openPallet(p.id)}><ClipboardCheck/></button><button title="Etiqueta" onClick={()=>printLabel(p)}><Printer/></button></div></td></tr>)}
+        {itens.map(p=><tr key={p.id} className={p.status==="BLOQUEADO"?"critRow":""} onClick={()=>openPallet(p.id)}><td><b>{p.pallet}</b><small className="palletCode">{p.codigo}</small></td><td>{p.pedido}</td><td>{p.cliente||"-"}</td><td>{p.filtro||"-"}</td><td>{p.tipo_produto||"-"}</td><td className="num">{fmt(p.quantidade)}</td><td className="num">{fmt(p.jogos)}</td><td><span className={`palletStage s-${p.qualidade_status.toLowerCase()}`}>{statusLabel(p.qualidade_status)}</span></td><td><span className={`palletStage s-${p.msac_status.toLowerCase()}`}>{statusLabel(p.msac_status)}</span></td><td><span className={`palletGlobal g-${p.status.toLowerCase()}`}>{statusLabel(p.status)}</span></td><td>{p.fotos_count||0}</td><td>{date(p.atualizado_em)}</td><td><div className="rowActions" onClick={e=>e.stopPropagation()}><button title="Abrir" onClick={()=>openPallet(p.id)}><ClipboardCheck/></button><button title="Relatório completo" onClick={()=>exportarPalletCompleto(p)}><FileSpreadsheet/></button><button title="Etiqueta" onClick={()=>printLabel(p)}><Printer/></button></div></td></tr>)}
         {!itens.length&&!busy&&<tr><td colSpan={13}><div className="empty"><b>Nenhum pallet encontrado.</b><span>Cadastre o primeiro pallet ou altere os filtros.</span></div></td></tr>}
       </tbody></table></div>
     </Panel>
@@ -161,9 +211,9 @@ export default function InspecaoPallets(){
       <div className="releaseFlow"><div className={selected.qualidade_status==="LIBERADO"?"done":selected.qualidade_status==="BLOQUEADO"?"blocked":""}><ShieldCheck/><span>QUALIDADE</span><b>{statusLabel(selected.qualidade_status)}</b><small>{selected.qualidade_usuario||"Aguardando"}</small></div><i>→</i><div className={selected.msac_status==="LIBERADO"?"done":selected.msac_status==="BLOQUEADO"?"blocked":""}><Truck/><span>MSAC</span><b>{statusLabel(selected.msac_status)}</b><small>{selected.msac_usuario||"Aguardando"}</small></div><i>→</i><div className={selected.status==="LIBERADO"?"done":selected.status==="BLOQUEADO"?"blocked":""}><PackageCheck/><span>PALLET</span><b>{statusLabel(selected.status)}</b><small>{selected.status==="LIBERADO"?"Pronto para seguir":"Controle ativo"}</small></div></div>
       {selected.status==="BLOQUEADO"&&<div className="palletBlockAlert"><LockKeyhole/><div><b>PALLET BLOQUEADO</b><span>{selected.bloqueio_motivo||"Motivo não informado"}</span></div></div>}
       <div className="palletMeta"><div><small>Quantidade</small><b>{fmt(selected.quantidade)}</b></div><div><small>Jogos</small><b>{fmt(selected.jogos)}</b></div><div><small>Turno</small><b>{selected.turno||"-"}</b></div><div><small>Tipo</small><b>{selected.tipo_produto||"-"}</b></div><div><small>Montador</small><b>{selected.montador||"-"}</b></div><div><small>Conferente</small><b>{selected.conferente||"-"}</b></div></div>
-      <div className="palletActionGrid"><button onClick={()=>{setArea("QUALIDADE");setInspectionOpen(true)}}><ClipboardCheck/>Inspecionar Qualidade</button><button onClick={()=>{setArea("MSAC");setInspectionOpen(true)}}><Truck/>Inspecionar MSAC</button><button onClick={()=>photoRef.current?.click()}><ImagePlus/>Adicionar foto</button><button onClick={()=>printLabel(selected)}><Printer/>Gerar etiqueta</button></div>
+      <div className="palletActionGrid"><button onClick={()=>{setArea("QUALIDADE");setInspectionOpen(true)}}><ClipboardCheck/>Inspecionar Qualidade</button>{!isQuality&&<button onClick={()=>{setArea("MSAC");setInspectionOpen(true)}}><Truck/>Inspecionar MSAC</button>}<button onClick={()=>photoRef.current?.click()}><ImagePlus/>Adicionar foto</button><button onClick={()=>exportarPalletCompleto(selected)}><FileSpreadsheet/>Relatório completo</button><button onClick={()=>printLabel(selected)}><Printer/>Gerar etiqueta</button></div>
       <input ref={photoRef} type="file" accept="image/*" capture="environment" hidden onChange={e=>addPhoto(e.target.files?.[0])}/>
-      <div className="palletDecisionGrid"><button className="release" onClick={()=>openDecision("QUALIDADE_LIBERAR","Liberar pela Qualidade")}><CheckCircle2/>Liberar Qualidade</button><button className="block" onClick={()=>openDecision("QUALIDADE_BLOQUEAR","Bloquear pela Qualidade")}><LockKeyhole/>Bloquear Qualidade</button><button className="release" disabled={selected.qualidade_status!=="LIBERADO"} onClick={()=>openDecision("MSAC_LIBERAR","Liberar pelo MSAC")}><CheckCircle2/>Liberar MSAC</button><button className="block" onClick={()=>openDecision("MSAC_BLOQUEAR","Bloquear pelo MSAC")}><LockKeyhole/>Bloquear MSAC</button>{["PCP","GERENTE","ENCARREGADO"].includes(String(me?.perfil))&&<button className="reopen" onClick={()=>openDecision("REABRIR","Reabrir pallet")}><UnlockKeyhole/>Reabrir</button>}</div>
+      <div className="palletDecisionGrid"><button className="release" onClick={()=>openDecision("QUALIDADE_LIBERAR","Liberar pela Qualidade")}><CheckCircle2/>Liberar Qualidade</button><button className="block" onClick={()=>openDecision("QUALIDADE_BLOQUEAR","Bloquear pela Qualidade")}><LockKeyhole/>Bloquear Qualidade</button>{!isQuality&&<><button className="release" disabled={selected.qualidade_status!=="LIBERADO"} onClick={()=>openDecision("MSAC_LIBERAR","Liberar pelo MSAC")}><CheckCircle2/>Liberar MSAC</button><button className="block" onClick={()=>openDecision("MSAC_BLOQUEAR","Bloquear pelo MSAC")}><LockKeyhole/>Bloquear MSAC</button></>}{["PCP","GERENTE","ENCARREGADO"].includes(String(me?.perfil))&&<button className="reopen" onClick={()=>openDecision("REABRIR","Reabrir pallet")}><UnlockKeyhole/>Reabrir</button>}</div>
       <div className="photoSection"><div className="sectionTitle"><Camera/><b>Evidências fotográficas</b><span>{selected.fotos?.length||0} foto(s)</span></div>{selected.fotos?.length?<div className="photoGrid">{selected.fotos.map(f=><figure key={f.id}><img src={f.dataUrl} alt={f.legenda||"Foto do pallet"}/><figcaption><b>{f.area}</b><span>{f.usuario} • {date(f.criadoEm)}</span></figcaption></figure>)}</div>:<div className="empty"><b>Nenhuma foto adicionada.</b><span>Use “Adicionar foto” para registrar a condição do pallet.</span></div>}</div>
       <div className="palletHistory"><div><div className="sectionTitle"><ClipboardCheck/><b>Inspeções</b><span>{selected.inspecoes?.length||0}</span></div>{selected.inspecoes?.length?<div className="historyList">{selected.inspecoes.slice(0,8).map(i=><article key={i.id}><b>{i.area} • {i.resultado}</b><span>{i.usuario} • {date(i.criadoEm)}</span>{i.observacao&&<p>{i.observacao}</p>}</article>)}</div>:<div className="empty"><span>Sem inspeções registradas.</span></div>}</div><div><div className="sectionTitle"><RefreshCw/><b>Rastreabilidade</b><span>{selected.eventos?.length||0}</span></div>{selected.eventos?.length?<div className="historyList">{selected.eventos.slice(0,10).map(e=><article key={e.id}><b>{e.descricao}</b><span>{e.usuario} • {date(e.criadoEm)}</span></article>)}</div>:<div className="empty"><span>Sem eventos registrados.</span></div>}</div></div>
     </div>}
