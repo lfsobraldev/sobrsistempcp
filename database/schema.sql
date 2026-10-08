@@ -1,4 +1,22 @@
 create extension if not exists pgcrypto;
+
+-- Usuários internos / perfis de acesso
+create table if not exists pcp_usuarios(
+  id uuid primary key default gen_random_uuid(),
+  usuario varchar(80) not null unique,
+  nome varchar(150) not null,
+  senha_hash text not null,
+  perfil varchar(30) not null,
+  ativo boolean not null default true,
+  criado_por varchar(100) not null default '',
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  constraint ck_pcp_usuarios_perfil check (
+    perfil in ('PCP','GERENTE','ENCARREGADO','LIDER','APONTADOR','QUALIDADE')
+  )
+);
+create index if not exists ix_pcp_usuarios_ativo on pcp_usuarios(ativo,perfil);
+
 create table if not exists pcp_programacoes(
  id uuid primary key default gen_random_uuid(), pedido varchar(40) not null default 'MULTIPLOS', cliente text not null default '', destino text not null default '', filtro varchar(40) not null default '', data_programacao date not null, turno varchar(20) not null default 'A', status varchar(20) not null default 'ATIVA', origem varchar(30) not null default 'FILTRO', criado_em timestamptz not null default now(), encerrado_em timestamptz, import_linhas int not null default 0, import_pedidos int not null default 0, import_ofs int not null default 0, import_pecas numeric(16,3) not null default 0, import_operacoes int not null default 0, import_sem_rota int not null default 0, import_inconsistencias int not null default 0, import_processos jsonb not null default '{}'::jsonb);
 alter table pcp_programacoes add column if not exists pedido varchar(40) not null default 'MULTIPLOS';
