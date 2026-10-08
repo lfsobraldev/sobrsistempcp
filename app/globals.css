@@ -255,3 +255,34 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .prioritySelect-alta{border-left:4px solid var(--warn);background:#fffaf0}
 .prioritySelect-urgente{border-left:4px solid var(--danger);background:#fff4f4;color:#7d2f2f}
 .prioritySelect:disabled{opacity:.6;cursor:not-allowed}
+
+
+/* Prioridades • ações do cabeçalho sem herdar botões compactos da tabela */
+.priorityTopActions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px;
+  flex:0 0 auto;
+}
+.priorityTopActions .secondary,
+.priorityTopActions .primary{
+  width:auto;
+  min-width:max-content;
+  height:42px;
+  padding:0 14px;
+  white-space:nowrap;
+  flex:0 0 auto;
+}
+.priorityTopActions svg{
+  width:15px;
+  flex:0 0 auto;
+}
+@media(max-width:720px){
+  .priorityTopActions{
+    width:100%;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+}
