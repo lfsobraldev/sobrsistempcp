@@ -18,7 +18,7 @@ export const PROCESSOS_FONTE = [
   "EXPEDICAO",
 ] as const;
 
-export const PROCESSOS = [
+export const PROCESSOS: string[] = [
   "PREPARACAO",
 
   "USINAGEM-PORTAS",
@@ -40,9 +40,9 @@ export const PROCESSOS = [
   "EMBALAGEM-1",
 
   "EXPEDICAO",
-] as const;
+];
 
-export type Processo = (typeof PROCESSOS)[number];
+export type Processo = string;
 export type ProcessoFonte = (typeof PROCESSOS_FONTE)[number];
 
 const ORDEM = new Map<string, number>(
