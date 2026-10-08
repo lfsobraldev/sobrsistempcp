@@ -98,7 +98,17 @@ export const SETORES:
 
   [
     "EMBALAGEM-1",
-    "EMBALAGEM 1",
+    "EMBALAGEM 1 - PERNA BATENTE",
+  ],
+
+  [
+    "EMBALAGEM-2",
+    "EMBALAGEM 2 - TRAVESSA BATENTE",
+  ],
+
+  [
+    "EMBALAGEM-3",
+    "EMBALAGEM 3 - ALIZAR / KIT / BAGUETE",
   ],
 
   [
