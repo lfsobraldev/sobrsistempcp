@@ -19,7 +19,7 @@ const MOTIVOS = ["Falta material", "Quebra máquina", "Manutenção", "Setup", "
 export default function Apontamentos() {
   const { pg, me, andon: andons, refresh, toast } = useOps();
   const products = pg?.produtos || [];
-  const procs = me?.processos?.length
+  const procs: string[] = me?.processos?.length
     ? PROCESSOS.filter((x) => me.processos.includes(x))
     : [...PROCESSOS];
 
