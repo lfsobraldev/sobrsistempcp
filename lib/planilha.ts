@@ -2073,6 +2073,373 @@ function montarAbaSetor(
   };
 }
 
+function montarPrioridades(
+  ws: Worksheet,
+  produtos: Produto[]
+) {
+  const rank: Record<string, number> = {
+    URGENTE: 0,
+    ALTA: 1,
+    NORMAL: 2,
+  };
+
+  const pedidos =
+    new Map<
+      string,
+      {
+        pedido: string;
+        prioridade: string;
+        ofs: Set<string>;
+        processos: Set<string>;
+        saldo: number;
+      }
+    >();
+
+  for (const p of produtos) {
+    const nivel =
+      String(
+        p.prioridade ||
+        "NORMAL"
+      ).toUpperCase();
+
+    if (
+      nivel !== "URGENTE" &&
+      nivel !== "ALTA"
+    ) {
+      continue;
+    }
+
+    const atual =
+      p.operacoes.find(
+        (
+          o
+        ) =>
+          o.status !==
+          "CONCLUIDA"
+      );
+
+    if (!atual) {
+      continue;
+    }
+
+    const saldo =
+      Math.max(
+        0,
+        atual.quantidadePlanejada -
+          atual.quantidadeProduzida
+      );
+
+    const existente =
+      pedidos.get(
+        p.pedido
+      );
+
+    if (existente) {
+      existente.saldo +=
+        saldo;
+
+      if (p.of) {
+        existente.ofs.add(
+          p.of
+        );
+      }
+
+      existente.processos.add(
+        atual.processo
+      );
+
+      if (
+        (
+          rank[nivel] ??
+          9
+        ) <
+        (
+          rank[
+            existente.prioridade
+          ] ??
+          9
+        )
+      ) {
+        existente.prioridade =
+          nivel;
+      }
+    } else {
+      pedidos.set(
+        p.pedido,
+        {
+          pedido:
+            p.pedido,
+
+          prioridade:
+            nivel,
+
+          ofs:
+            new Set(
+              p.of
+                ? [
+                    p.of,
+                  ]
+                : []
+            ),
+
+          processos:
+            new Set([
+              atual.processo,
+            ]),
+
+          saldo,
+        }
+      );
+    }
+  }
+
+  ws.columns = [
+    {
+      header:
+        "PRIORIDADE",
+      width:
+        15,
+    },
+    {
+      header:
+        "PEDIDO",
+      width:
+        16,
+    },
+    {
+      header:
+        "OFs",
+      width:
+        32,
+    },
+    {
+      header:
+        "PROCESSO ATUAL",
+      width:
+        34,
+    },
+    {
+      header:
+        "SALDO",
+      width:
+        14,
+    },
+    {
+      header:
+        "ORIENTAÇÃO",
+      width:
+        42,
+    },
+  ];
+
+  const linhas =
+    [
+      ...pedidos.values(),
+    ].sort(
+      (
+        a,
+        b
+      ) =>
+        (
+          rank[
+            a.prioridade
+          ] ??
+          9
+        ) -
+          (
+            rank[
+              b.prioridade
+            ] ??
+            9
+          ) ||
+        a.pedido.localeCompare(
+          b.pedido,
+          "pt-BR",
+          {
+            numeric:
+              true,
+          }
+        )
+    );
+
+  if (
+    !linhas.length
+  ) {
+    ws.addRow([
+      "NORMAL",
+      "-",
+      "-",
+      "-",
+      0,
+      "Nenhuma prioridade especial definida para este turno.",
+    ]);
+  } else {
+    for (
+      const x
+      of linhas
+    ) {
+      ws.addRow([
+        x.prioridade,
+        x.pedido,
+        [
+          ...x.ofs,
+        ].join(
+          ", "
+        ),
+        [
+          ...x.processos,
+        ].join(
+          " / "
+        ),
+        x.saldo,
+        x.prioridade ===
+        "URGENTE"
+          ? "EXECUTAR PRIMEIRO SEM QUEBRAR A ROTA DO SETOR"
+          : "PRIORIZAR APÓS OS URGENTES, RESPEITANDO A SEQUÊNCIA DO SETOR",
+      ]);
+    }
+  }
+
+  const head =
+    ws.getRow(
+      1
+    );
+
+  head.font = {
+    name:
+      FONTE,
+
+    size:
+      13,
+
+    bold:
+      true,
+
+    color: {
+      argb:
+        "FFFFFFFF",
+    },
+  };
+
+  head.fill = {
+    type:
+      "pattern",
+
+    pattern:
+      "solid",
+
+    fgColor: {
+      argb:
+        COR.cabecalho,
+    },
+  };
+
+  head.alignment = {
+    vertical:
+      "middle",
+
+    horizontal:
+      "center",
+
+    wrapText:
+      true,
+  };
+
+  head.height =
+    32;
+
+  for (
+    let r =
+      2;
+    r <=
+    ws.rowCount;
+    r++
+  ) {
+    const row =
+      ws.getRow(
+        r
+      );
+
+    row.height =
+      28;
+
+    row.eachCell(
+      (
+        cell
+      ) => {
+        cell.font = {
+          name:
+            FONTE,
+
+          size:
+            12,
+
+          bold:
+            cell.col <=
+            2,
+        };
+
+        cell.alignment = {
+          vertical:
+            "middle",
+
+          wrapText:
+            true,
+        };
+
+        cell.border = {
+          top:
+            fino(
+              COR.linha
+            ),
+
+          bottom:
+            fino(
+              COR.linha
+            ),
+
+          left:
+            fino(
+              COR.linha
+            ),
+
+          right:
+            fino(
+              COR.linha
+            ),
+        };
+      }
+    );
+  }
+
+  ws.views = [
+    {
+      state:
+        "frozen",
+
+      ySplit:
+        1,
+
+      showGridLines:
+        false,
+    },
+  ];
+
+  ws.pageSetup = {
+    orientation:
+      "landscape",
+
+    fitToPage:
+      true,
+
+    fitToWidth:
+      1,
+
+    fitToHeight:
+      0,
+  };
+}
+
 function montarControle(
   ws: Worksheet,
   resumos:
@@ -3057,6 +3424,24 @@ export function montarPlanilha(
     fullCalcOnLoad:
       true,
   };
+
+  const prioridades =
+    wb.addWorksheet(
+      "PRIORIDADES",
+      {
+        views: [
+          {
+            showGridLines:
+              false,
+          },
+        ],
+      }
+    );
+
+  montarPrioridades(
+    prioridades,
+    produtos
+  );
 
   const controle =
     wb.addWorksheet(
