@@ -388,25 +388,16 @@ export function temCanalBorracha(
   const canal =
     norm(item.canal);
 
+  const rebaixo =
+    norm(item.rebaixo);
+
   const text =
     textoItem(item);
 
-  if (
-    /\bSEM CANAL\b/.test(text) ||
-    /\bS CANAL\b/.test(text)
-  ) {
-    return false;
-  }
-
-  if (
-    /\bCANAL\b/.test(text) ||
-    /\bBORRACHA\b/.test(text)
-  ) {
-    return true;
-  }
-
-  if (
-    !canal ||
+  const vazioTecnico = (
+    value: string
+  ) =>
+    !value ||
     [
       "N/A",
       "NA",
@@ -417,12 +408,54 @@ export function temCanalBorracha(
       "ND",
       "NAO",
       "NÃO",
-    ].includes(canal)
+      "SEM",
+      "SEM REBAIXO",
+      "S REBAIXO",
+      "SEM CANAL",
+      "S CANAL",
+    ].includes(value);
+
+  /*
+   * NEGATIVOS EXPLÍCITOS SEMPRE GANHAM.
+   */
+  if (
+    /\bSEM CANAL\b/.test(text) ||
+    /\bS CANAL\b/.test(text) ||
+    /\bSEM BORRACHA\b/.test(text)
   ) {
     return false;
   }
 
-  return true;
+  /*
+   * A TUPIA É A USINAGEM DO CANAL/BORRACHA.
+   *
+   * No filtro, nem todas as linhas descrevem "CANAL" ou
+   * "BORRACHA" literalmente. Muitas chegam apenas com REBAIXO
+   * preenchido. Para batentes e travessas, rebaixo válido também
+   * significa que a peça precisa passar pela Tupia.
+   */
+  if (
+    !vazioTecnico(rebaixo)
+  ) {
+    return true;
+  }
+
+  if (
+    /\bCANAL\b/.test(text) ||
+    /\bBORRACHA\b/.test(text) ||
+    /\bREBAIXO\b/.test(text) ||
+    /\bRB\s*\d+/i.test(text)
+  ) {
+    return true;
+  }
+
+  if (
+    !vazioTecnico(canal)
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 /*
@@ -458,9 +491,23 @@ export function processosUsinagemDoItem(
     tipoPeca(item) ===
     "TRAVESSA"
   ) {
-    return [
+    const processos = [
       "USINAGEM-TRAVESSAS",
     ];
+
+    /*
+     * Travessa de batente com rebaixo/canal/borracha
+     * também passa na Tupia.
+     */
+    if (
+      temCanalBorracha(item)
+    ) {
+      processos.push(
+        "USINAGEM-TUPIA"
+      );
+    }
+
+    return processos;
   }
 
   const processos = [
