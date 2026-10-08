@@ -21,7 +21,7 @@ async function migrarProcessosLegados(
       and o.processo in ('USINAGEM-1', 'USINAGEM-2', 'EMBALAGEM')
   `;
 
-  if (!Number(legacy[0]?.total || 0)) return;
+  void legacy;
 
   /*
    * PERNAS DE BATENTE:
@@ -230,6 +230,115 @@ async function migrarProcessosLegados(
     where p.id = o.produto_id
       and p.programacao_id = ${programacaoId}
       and o.processo = 'EMBALAGEM'
+  `;
+
+  /*
+   * GARANTE EMBALAGEM PARA TODAS AS PEÇAS RECONHECIDAS,
+   * MESMO QUANDO O CSV ORIGINAL VEIO SEM VALOR NA COLUNA EMBALAGEM.
+   *
+   * Também cobre nomenclaturas como SUPORTE DE TRILHO que em
+   * programações antigas podem ter sido salvas como OUTROS.
+   */
+  await db`
+    insert into pcp_operacoes (
+      produto_id,
+      processo,
+      sequencia,
+      percentual,
+      status,
+      ordem_fila,
+      fixada,
+      quantidade_planejada,
+      quantidade_produzida,
+      quantidade_refugo,
+      atualizado_em
+    )
+    select
+      p.id,
+      case
+        when upper(coalesce(p.categoria, '')) like 'PORTA%'
+          or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
+          then 'EMBALAGEM-PORTAS'
+        else 'EMBALAGEM-1'
+      end,
+      case
+        when upper(coalesce(p.categoria, '')) like 'PORTA%'
+          or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
+          then 12
+        else 13
+      end,
+      0,
+      'PENDENTE',
+      0,
+      false,
+      p.quantidade,
+      0,
+      0,
+      now()
+    from pcp_produtos p
+    where p.programacao_id = ${programacaoId}
+      and (
+        upper(coalesce(p.categoria, '')) like 'PORTA%'
+        or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
+        or upper(coalesce(p.categoria, '')) like 'BATENTE%'
+        or upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+        or upper(coalesce(p.categoria, '')) like 'BAGUETE%'
+        or upper(coalesce(p.categoria, '')) like 'KIT%'
+        or upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
+        or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
+        or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+        or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+        or upper(coalesce(p.descricao, '')) like '%BAGUETE%'
+      )
+      and upper(coalesce(p.categoria, '')) not like 'FERRAGEM%'
+      and not exists (
+        select 1
+        from pcp_operacoes x
+        where x.produto_id = p.id
+          and x.processo = case
+            when upper(coalesce(p.categoria, '')) like 'PORTA%'
+              or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
+              then 'EMBALAGEM-PORTAS'
+            else 'EMBALAGEM-1'
+          end
+      )
+  `;
+
+  /*
+   * REMOVE USINAGENS NOVAS QUE NÃO PERTENCEM À FAMÍLIA DA PEÇA.
+   * Isso evita resíduos de programações que foram convertidas
+   * enquanto a classificação ainda estava incorreta.
+   */
+  await db`
+    delete from pcp_operacoes o
+    using pcp_produtos p
+    where p.id = o.produto_id
+      and p.programacao_id = ${programacaoId}
+      and o.processo in (
+        'USINAGEM-PORTAS',
+        'USINAGEM-TRAVESSAS',
+        'USINAGEM-CONTRATESTA',
+        'USINAGEM-DOBRADICAS',
+        'USINAGEM-TUPIA'
+      )
+      and (
+        (
+          o.processo = 'USINAGEM-PORTAS'
+          and upper(coalesce(p.categoria, '')) not like 'PORTA%'
+        )
+        or (
+          o.processo = 'USINAGEM-TRAVESSAS'
+          and upper(coalesce(p.categoria, '')) not like 'BATENTE%TRAVESSA%'
+        )
+        or (
+          o.processo in (
+            'USINAGEM-CONTRATESTA',
+            'USINAGEM-DOBRADICAS',
+            'USINAGEM-TUPIA'
+          )
+          and upper(coalesce(p.categoria, '')) not like 'BATENTE%PERNA%'
+        )
+      )
   `;
 
   /*
