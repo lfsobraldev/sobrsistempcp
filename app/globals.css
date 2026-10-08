@@ -235,3 +235,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .priorityActions button.active{background:var(--green);border-color:var(--green);color:#fff}
 .priorityActions button:disabled{opacity:.65;cursor:not-allowed}
 @media(max-width:960px){.priorityActions{min-width:220px}.priorityActions button{min-width:66px}}
+
+
+/* Prioridades • controle compacto e legível */
+.priorityCell{min-width:150px}
+.prioritySelect{
+  width:138px;
+  height:36px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--text);
+  padding:0 34px 0 10px;
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:.2px;
+  outline:none;
+}
+.prioritySelect-normal{border-left:4px solid #7f8d85}
+.prioritySelect-alta{border-left:4px solid var(--warn);background:#fffaf0}
+.prioritySelect-urgente{border-left:4px solid var(--danger);background:#fff4f4;color:#7d2f2f}
+.prioritySelect:disabled{opacity:.6;cursor:not-allowed}
