@@ -39,6 +39,11 @@ export const users = () =>
       role: "APONTADOR" as Perfil,
     },
     {
+      user: process.env.QUALIDADE_USER,
+      pass: process.env.QUALIDADE_PASSWORD,
+      role: "QUALIDADE" as Perfil,
+    },
+    {
       user: process.env.ADMIN_USER,
       pass: process.env.ADMIN_INITIAL_PASSWORD,
       role: "PCP" as Perfil,
