@@ -209,16 +209,17 @@ export default function Prioridades() {
                 <td>{[...x.alertas].join(" / ") || "-"}</td>
 
                 <td>
-                  <div className="rowActions">
+                  <div className="priorityActions">
                     {(["NORMAL", "ALTA", "URGENTE"] as Nivel[]).map((n) => (
                       <button
                         key={n}
+                        className={x.prioridade === n ? "active" : ""}
                         disabled={busy === x.pedido || x.prioridade === n}
                         onClick={() => alterar(x.pedido, n)}
-                        title={n}
+                        title={`Definir como ${n}`}
                       >
                         <Flag />
-                        {n}
+                        <span>{n}</span>
                       </button>
                     ))}
                   </div>
