@@ -78,7 +78,7 @@ export const SETORES:
 
   [
     "USINAGEM-TUPIA",
-    "TUPIA / CANAL BORRACHA",
+    "TUPIA - CANAL BORRACHA",
   ],
 
   [
@@ -610,9 +610,14 @@ function montarAbaSetor(
   data:
     string
 ): ResumoSetor {
+  const nomeAbaExcel =
+    nomeAba
+      .replace(/[\\/*?:\[\]]/g, "-")
+      .slice(0, 31);
+
   const ws =
     wb.addWorksheet(
-      nomeAba,
+      nomeAbaExcel,
       {
         properties: {
           defaultRowHeight:
