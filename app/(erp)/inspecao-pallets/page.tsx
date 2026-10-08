@@ -8,7 +8,7 @@ import {
 import { Modal, Panel } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
 
-type Foto = { id:string; dataUrl:string; legenda:string; area:string; usuario:string; criadoEm:string; tipo?:string; ncId?:string|null };
+type Foto = { id:string; dataUrl?:string|null; url?:string; legenda:string; area:string; usuario:string; criadoEm:string; tipo?:string; ncId?:string|null };
 type Pallet = {
   id:string; codigo:string; pedido:string; cliente:string; filtro:string; pallet:string; tipo_produto:string;
   quantidade:number; jogos:number; turno:string; destino:string; montador:string; conferente:string; observacao:string;
@@ -152,7 +152,7 @@ export default function InspecaoPallets(){
 
     try{
       const r=await fetch(
-        `/api/pallets?id=${encodeURIComponent(pallet.id)}`,
+        `/api/pallets?id=${encodeURIComponent(pallet.id)}&includeFotos=1`,
         {cache:"no-store"}
       );
 
@@ -214,7 +214,7 @@ export default function InspecaoPallets(){
       <div className="palletActionGrid"><button onClick={()=>{setArea("QUALIDADE");setInspectionOpen(true)}}><ClipboardCheck/>Inspecionar Qualidade</button>{!isQuality&&<button onClick={()=>{setArea("MSAC");setInspectionOpen(true)}}><Truck/>Inspecionar MSAC</button>}<button onClick={()=>photoRef.current?.click()}><ImagePlus/>Adicionar foto</button><button onClick={()=>exportarPalletCompleto(selected)}><FileSpreadsheet/>Relatório completo</button><button onClick={()=>printLabel(selected)}><Printer/>Gerar etiqueta</button></div>
       <input ref={photoRef} type="file" accept="image/*" capture="environment" hidden onChange={e=>addPhoto(e.target.files?.[0])}/>
       <div className="palletDecisionGrid"><button className="release" onClick={()=>openDecision("QUALIDADE_LIBERAR","Liberar pela Qualidade")}><CheckCircle2/>Liberar Qualidade</button><button className="block" onClick={()=>openDecision("QUALIDADE_BLOQUEAR","Bloquear pela Qualidade")}><LockKeyhole/>Bloquear Qualidade</button>{!isQuality&&<><button className="release" disabled={selected.qualidade_status!=="LIBERADO"} onClick={()=>openDecision("MSAC_LIBERAR","Liberar pelo MSAC")}><CheckCircle2/>Liberar MSAC</button><button className="block" onClick={()=>openDecision("MSAC_BLOQUEAR","Bloquear pelo MSAC")}><LockKeyhole/>Bloquear MSAC</button></>}{["PCP","GERENTE","ENCARREGADO"].includes(String(me?.perfil))&&<button className="reopen" onClick={()=>openDecision("REABRIR","Reabrir pallet")}><UnlockKeyhole/>Reabrir</button>}</div>
-      <div className="photoSection"><div className="sectionTitle"><Camera/><b>Evidências fotográficas</b><span>{selected.fotos?.length||0} foto(s)</span></div>{selected.fotos?.length?<div className="photoGrid">{selected.fotos.map(f=><figure key={f.id}><img src={f.dataUrl} alt={f.legenda||"Foto do pallet"}/><figcaption><b>{f.area}</b><span>{f.usuario} • {date(f.criadoEm)}</span></figcaption></figure>)}</div>:<div className="empty"><b>Nenhuma foto adicionada.</b><span>Use “Adicionar foto” para registrar a condição do pallet.</span></div>}</div>
+      <div className="photoSection"><div className="sectionTitle"><Camera/><b>Evidências fotográficas</b><span>{selected.fotos?.length||0} foto(s)</span></div>{selected.fotos?.length?<div className="photoGrid">{selected.fotos.map(f=><figure key={f.id}><img src={f.url||f.dataUrl||""} loading="lazy" decoding="async" alt={f.legenda||"Foto do pallet"}/><figcaption><b>{f.area}</b><span>{f.usuario} • {date(f.criadoEm)}</span></figcaption></figure>)}</div>:<div className="empty"><b>Nenhuma foto adicionada.</b><span>Use “Adicionar foto” para registrar a condição do pallet.</span></div>}</div>
       <div className="palletHistory"><div><div className="sectionTitle"><ClipboardCheck/><b>Inspeções</b><span>{selected.inspecoes?.length||0}</span></div>{selected.inspecoes?.length?<div className="historyList">{selected.inspecoes.slice(0,8).map(i=><article key={i.id}><b>{i.area} • {i.resultado}</b><span>{i.usuario} • {date(i.criadoEm)}</span>{i.observacao&&<p>{i.observacao}</p>}</article>)}</div>:<div className="empty"><span>Sem inspeções registradas.</span></div>}</div><div><div className="sectionTitle"><RefreshCw/><b>Rastreabilidade</b><span>{selected.eventos?.length||0}</span></div>{selected.eventos?.length?<div className="historyList">{selected.eventos.slice(0,10).map(e=><article key={e.id}><b>{e.descricao}</b><span>{e.usuario} • {date(e.criadoEm)}</span></article>)}</div>:<div className="empty"><span>Sem eventos registrados.</span></div>}</div></div>
     </div>}
 
