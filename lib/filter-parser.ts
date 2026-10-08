@@ -51,55 +51,172 @@ const REQUIRED = [
   ),
 ];
 
-const ALIAS:
-  Record<
-    string,
-    string[]
-  > = {
+const PROCESS_ALIAS:
+  Record<string, string[]> = {
+  PREPARACAO: [
+    "PREPARACAO",
+    "PREPARAÇÃO",
+    "PREPARACAO 1",
+    "PREPARAÇÃO 1",
+  ],
+
+  "USINAGEM-1": [
+    "USINAGEM-1",
+    "USINAGEM 1",
+    "USINAGEM1",
+  ],
+
+  LIXAR: [
+    "LIXAR",
+    "LIXA",
+    "LIXADEIRA",
+  ],
+
+  RECOBRIDORA: [
+    "RECOBRIDORA",
+    "RECOBRIDORA 1",
+    "RECOBRIDORA1",
+    "RECOBRIDORA-1",
+  ],
+
   "RECOBRIDORA-2": [
-    "Recobridora 2",
+    "RECOBRIDORA-2",
     "RECOBRIDORA 2",
     "RECOBRIDORA2",
-    "Recobridora-2",
+  ],
+
+  "USINAGEM-2": [
+    "USINAGEM-2",
+    "USINAGEM 2",
+    "USINAGEM2",
+  ],
+
+  LUSTRACAO: [
+    "LUSTRACAO",
+    "LUSTRAÇÃO",
+  ],
+
+  TERCEIROS: [
+    "TERCEIROS",
+    "TERCEIRO",
+  ],
+
+  EMBALAGEM: [
+    "EMBALAGEM",
+    "EMBALAGEM 1",
+  ],
+
+  EXPEDICAO: [
+    "EXPEDICAO",
+    "EXPEDIÇÃO",
   ],
 };
 
-function cell(
-  r:
-    Record<
-      string,
-      string
-    >,
+const FIELD_ALIAS:
+  Record<string, string[]> = {
+  Filtro: [
+    "Filtro",
+  ],
 
-  proc:
-    string
-) {
-  if (
-    proc in r
-  ) {
-    return r[
-      proc
-    ];
-  }
+  Pedido: [
+    "Pedido",
+  ],
 
-  for (
-    const a of
-    ALIAS[
-      proc
-    ] ||
-    []
-  ) {
-    if (
-      a in r
-    ) {
-      return r[
-        a
-      ];
-    }
-  }
+  Item: [
+    "Item",
+    "Nº Item",
+    "N Item",
+    "Numero Item",
+    "Número Item",
+  ],
 
-  return "";
-}
+  Produto: [
+    "Produto",
+    "Código Produto",
+    "Codigo Produto",
+  ],
+
+  "Descrição": [
+    "Descrição",
+    "Descricao",
+    "Descrição Produto",
+    "Descricao Produto",
+  ],
+
+  Tipo: [
+    "Tipo",
+    "Material",
+  ],
+
+  Canal: [
+    "Canal",
+    "Canal Borracha",
+    "Canal de Borracha",
+  ],
+
+  Rebaixo: [
+    "Rebaixo",
+    "Rebaixo/Usinagem",
+  ],
+
+  Acabamento: [
+    "Acabamento",
+  ],
+
+  Cor: [
+    "Cor",
+  ],
+
+  "Quantidade Pecas": [
+    "Quantidade Pecas",
+    "Quantidade Peças",
+    "Qtd Pecas",
+    "Qtd Peças",
+    "Quantidade",
+  ],
+
+  "Pedido Cliente": [
+    "Pedido Cliente",
+    "Pedido do Cliente",
+  ],
+
+  "Status Engenharia": [
+    "Status Engenharia",
+    "Status da Engenharia",
+  ],
+
+  "OF's": [
+    "OF's",
+    "OF",
+    "OFs",
+    "OF'S",
+    "Ordem Fabricação",
+    "Ordem Fabricacao",
+  ],
+
+  "% Concluído Produto": [
+    "% Concluído Produto",
+    "% Concluido Produto",
+    "% Produto",
+  ],
+
+  "Código Modelo": [
+    "Código Modelo",
+    "Codigo Modelo",
+  ],
+
+  "Descrição Modelo": [
+    "Descrição Modelo",
+    "Descricao Modelo",
+  ],
+
+  "Outras Características": [
+    "Outras Características",
+    "Outras Caracteristicas",
+    "Características",
+    "Caracteristicas",
+  ],
+};
 
 const clean = (
   v: unknown
@@ -109,10 +226,113 @@ const clean = (
       ""
   )
     .replace(
-      /\s+/g,
+      /\u0000/g,
+      ""
+    )
+    .replace(
+      /[\r\n\t]+/g,
+      " "
+    )
+    .replace(
+      / {2,}/g,
       " "
     )
     .trim();
+
+const headerKey = (
+  v: unknown
+) =>
+  clean(v)
+    .replace(
+      /^\uFEFF/,
+      ""
+    )
+    .normalize(
+      "NFD"
+    )
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
+    .replace(
+      /[’‘´`]/g,
+      "'"
+    )
+    .replace(
+      /\s*[-_/]+\s*/g,
+      " "
+    )
+    .replace(
+      /[^A-Z0-9%']+/gi,
+      " "
+    )
+    .replace(
+      /\s+/g,
+      " "
+    )
+    .trim()
+    .toUpperCase();
+
+function findKey(
+  r: Record<string, string>,
+  aliases: string[]
+) {
+  const wanted =
+    new Set(
+      aliases.map(
+        headerKey
+      )
+    );
+
+  return Object.keys(
+    r
+  ).find(
+    (
+      key
+    ) =>
+      wanted.has(
+        headerKey(key)
+      )
+  );
+}
+
+function field(
+  r: Record<string, string>,
+  nome: string
+) {
+  const aliases =
+    FIELD_ALIAS[nome] ||
+    [nome];
+
+  const key =
+    findKey(
+      r,
+      aliases
+    );
+
+  return key
+    ? r[key]
+    : "";
+}
+
+function cell(
+  r: Record<string, string>,
+  proc: string
+) {
+  const aliases =
+    PROCESS_ALIAS[proc] ||
+    [proc];
+
+  const key =
+    findKey(
+      r,
+      aliases
+    );
+
+  return key
+    ? r[key]
+    : "";
+}
 
 const up = (
   v: unknown
@@ -133,22 +353,31 @@ function num(
   v: unknown
 ) {
   let s =
-    clean(
-      v
-    );
+    clean(v)
+      .replace(
+        /%/g,
+        ""
+      )
+      .replace(
+        /\s/g,
+        ""
+      );
 
-  if (
-    !s
-  ) {
+  if (!s) {
     return 0;
   }
 
+  /*
+   * Aceita números do Consistem nos formatos:
+   * 100
+   * 100,00
+   * 1.234,50
+   * 1234.50
+   * 100%
+   */
   if (
-    s.includes(
-      ","
-    ) &&
-    s.includes(
-      "."
+    /^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(
+      s
     )
   ) {
     s =
@@ -162,51 +391,52 @@ function num(
           "."
         );
   } else if (
-    s.includes(
-      ","
-    )
+    s.includes(",")
   ) {
     s =
-      s.replace(
-        ",",
-        "."
-      );
+      s
+        .replace(
+          /\./g,
+          ""
+        )
+        .replace(
+          ",",
+          "."
+        );
   }
 
   const n =
-    Number(
-      s
-    );
+    Number(s);
 
-  return Number.isFinite(
-    n
-  )
+  return Number.isFinite(n)
     ? n
     : 0;
 }
 
+const ROUTE_EMPTY =
+  new Set([
+    "N/A",
+    "NA",
+    "N.A.",
+    "-",
+    "—",
+    "N/D",
+    "ND",
+    "SEM",
+    "NAO",
+    "NÃO",
+  ]);
+
 function isRouteValue(
   v: unknown
 ) {
-  const s =
-    up(
-      v
-    );
+  const value =
+    up(v);
 
   return (
-    !!s &&
-    !new Set(
-      [
-        "N/A",
-        "NA",
-        "N.A.",
-        "-",
-        "—",
-        "N/D",
-        "ND",
-      ]
-    ).has(
-      s
+    !!value &&
+    !ROUTE_EMPTY.has(
+      value
     )
   );
 }
@@ -215,73 +445,131 @@ function medida(
   ...valores: unknown[]
 ) {
   /*
-   * A medida não aparece sempre na mesma coluna do Filtro.
-   * Alguns itens trazem a dimensão em Descrição, outros em
-   * Descrição Modelo ou Outras Características.
+   * Leitura de medida sem depender de uma única coluna.
    *
-   * Também aceitamos:
+   * Formatos aceitos, entre outros:
    * 2110x130x30
    * 2110 X 130 X 30
    * 2110×130×30
    * 2110*130*30
+   * 2110 / 130 / 30
+   * 2110-130-30 (quando aparece isolado como dimensão)
    * 2110x130
    */
   const textos =
     valores
-      .map((v) => up(v))
-      .filter(Boolean);
-
-  const normalizarNumero = (v: string) => {
-    const n =
-      Number(
-        v.replace(",", ".")
+      .map(
+        (
+          v
+        ) =>
+          clean(v)
+      )
+      .filter(
+        Boolean
       );
 
-    if (!Number.isFinite(n)) {
+  const numero = (
+    v: string
+  ) => {
+    const n =
+      Number(
+        v.replace(
+          ",",
+          "."
+        )
+      );
+
+    if (
+      !Number.isFinite(
+        n
+      )
+    ) {
       return v;
     }
 
-    return Number.isInteger(n)
+    return Number.isInteger(
+      n
+    )
       ? String(n)
-      : String(n).replace(".", ",");
+      : String(n);
   };
 
-  for (const texto of textos) {
-    const d =
-      texto
-        .replace(/\bMM\b/g, " ")
-        .replace(/\s*[X×*]\s*/g, "X");
+  const montar = (
+    partes: string[]
+  ) =>
+    partes
+      .map(
+        numero
+      )
+      .join(
+        "x"
+      );
 
-    /*
-     * Primeiro procura 3 dimensões.
-     */
-    const tripla =
+  for (
+    const original
+    of textos
+  ) {
+    const d =
+      original
+        .normalize(
+          "NFD"
+        )
+        .replace(
+          /[\u0300-\u036f]/g,
+          ""
+        )
+        .toUpperCase()
+        .replace(
+          /\b(MM|MILIMETROS?|MILIMETRO)\b/g,
+          " "
+        )
+        .replace(
+          /\s*[X×*]\s*/g,
+          "X"
+        );
+
+    const triplaX =
       d.match(
         /(^|[^0-9])([0-9]{2,4}(?:[.,][0-9]+)?)X([0-9]{2,4}(?:[.,][0-9]+)?)X([0-9]{1,4}(?:[.,][0-9]+)?)(?=$|[^0-9])/
       );
 
-    if (tripla) {
-      return [
-        normalizarNumero(tripla[2]),
-        normalizarNumero(tripla[3]),
-        normalizarNumero(tripla[4]),
-      ].join("x");
+    if (
+      triplaX
+    ) {
+      return montar([
+        triplaX[2],
+        triplaX[3],
+        triplaX[4],
+      ]);
     }
 
-    /*
-     * Depois aceita 2 dimensões.
-     * Não inventamos espessura quando ela não existe no arquivo.
-     */
-    const dupla =
+    const triplaSeparada =
+      d.match(
+        /(?:^|\b)([0-9]{3,4})\s*[\/;]\s*([0-9]{2,4})\s*[\/;]\s*([0-9]{1,3})(?:\b|$)/
+      );
+
+    if (
+      triplaSeparada
+    ) {
+      return montar([
+        triplaSeparada[1],
+        triplaSeparada[2],
+        triplaSeparada[3],
+      ]);
+    }
+
+    const duplaX =
       d.match(
         /(^|[^0-9])([0-9]{2,4}(?:[.,][0-9]+)?)X([0-9]{2,4}(?:[.,][0-9]+)?)(?=$|[^0-9X])/
       );
 
-    if (dupla) {
-      return [
-        normalizarNumero(dupla[2]),
-        normalizarNumero(dupla[3]),
-      ].join("x");
+    if (
+      duplaX
+    ) {
+      return montar([
+        duplaX[2],
+        duplaX[3],
+      ]);
     }
   }
 
@@ -291,12 +579,49 @@ function medida(
 function medidaLinha(
   r: Record<string, string>
 ) {
+  const prioritarios = [
+    field(
+      r,
+      "Descrição"
+    ),
+    field(
+      r,
+      "Descrição Modelo"
+    ),
+    field(
+      r,
+      "Outras Características"
+    ),
+    field(
+      r,
+      "Produto"
+    ),
+    field(
+      r,
+      "Tipo"
+    ),
+  ];
+
+  const encontrada =
+    medida(
+      ...prioritarios
+    );
+
+  if (
+    encontrada
+  ) {
+    return encontrada;
+  }
+
+  /*
+   * Último recurso: procura em TODAS as colunas da linha.
+   * A expressão de medida exige separadores dimensionais,
+   * então não confunde Pedido/OF com medida.
+   */
   return medida(
-    r["Descrição"],
-    r["Descrição Modelo"],
-    r["Outras Características"],
-    r["Produto"],
-    r["Tipo"]
+    ...Object.values(
+      r
+    )
   );
 }
 
@@ -305,16 +630,12 @@ function material(
 ) {
   const tipo =
     up(
-      r[
-        "Tipo"
-      ]
+      field(r, "Tipo")
     );
 
   const d =
     up(
-      r[
-        "Descrição"
-      ]
+      field(r, "Descrição")
     );
 
   if (
@@ -347,9 +668,7 @@ function material(
       "N/A"
   ) {
     return clean(
-      r[
-        "Tipo"
-      ]
+      field(r, "Tipo")
     );
   }
 
@@ -393,9 +712,7 @@ function fallbackAcab(
 ) {
   const d =
     up(
-      r[
-        "Descrição"
-      ]
+      field(r, "Descrição")
     );
 
   if (
@@ -526,21 +843,66 @@ function regression() {
 export async function parseFiltro(
   file: File
 ): Promise<ImportResult> {
-  const text =
-    new TextDecoder(
-      "windows-1252"
-    ).decode(
-      new Uint8Array(
-        await file.arrayBuffer()
-      )
+  const bytes =
+    new Uint8Array(
+      await file.arrayBuffer()
     );
+
+  /*
+   * O Consistem normalmente exporta Windows-1252, mas alguns
+   * arquivos chegam em UTF-8. Tentamos UTF-8 estrito primeiro
+   * para não corromper acentos; se falhar, usamos Windows-1252.
+   */
+  let text = "";
+
+  try {
+    text =
+      new TextDecoder(
+        "utf-8",
+        {
+          fatal: true,
+        }
+      ).decode(
+        bytes
+      );
+  } catch {
+    text =
+      new TextDecoder(
+        "windows-1252"
+      ).decode(
+        bytes
+      );
+  }
+
+  const primeiraLinha =
+    text
+      .replace(
+        /^\uFEFF/,
+        ""
+      )
+      .split(
+        /\r?\n/,
+        1
+      )[0] ||
+    "";
+
+  const delimitador =
+    primeiraLinha.includes(
+      ";"
+    )
+      ? ";"
+      : primeiraLinha.includes(
+          "\t"
+        )
+      ? "\t"
+      : ",";
 
   const rows =
     parse(
       text,
       {
         delimiter:
-          ";",
+          delimitador,
 
         columns:
           true,
@@ -551,8 +913,20 @@ export async function parseFiltro(
         relax_column_count:
           true,
 
+        relax_quotes:
+          true,
+
         bom:
           true,
+
+        trim:
+          false,
+
+        ltrim:
+          false,
+
+        rtrim:
+          false,
       }
     ) as Record<
       string,
@@ -567,22 +941,35 @@ export async function parseFiltro(
     );
   }
 
-  const headers =
-    Object.keys(
-      rows[
-        0
-      ] ||
-        {}
-    );
+  const primeiro =
+    rows[
+      0
+    ] ||
+    {};
 
   const missing =
     REQUIRED.filter(
       (
-        x
-      ) =>
-        !headers.includes(
-          x
-        )
+        nome
+      ) => {
+        if (
+          PROCESSOS_FONTE.includes(
+            nome as any
+          )
+        ) {
+          return !findKey(
+            primeiro,
+            PROCESS_ALIAS[nome] ||
+            [nome]
+          );
+        }
+
+        return !findKey(
+          primeiro,
+          FIELD_ALIAS[nome] ||
+          [nome]
+        );
+      }
     );
 
   if (
@@ -600,21 +987,9 @@ export async function parseFiltro(
       (
         r
       ) =>
-        clean(
-          r[
-            "Filtro"
-          ]
-        ) &&
-        clean(
-          r[
-            "Pedido"
-          ]
-        ) &&
-        clean(
-          r[
-            "Descrição"
-          ]
-        )
+        clean(field(r, "Filtro")) &&
+        clean(field(r, "Pedido")) &&
+        clean(field(r, "Descrição"))
     );
 
   if (
@@ -640,9 +1015,7 @@ export async function parseFiltro(
 
     const quantidade =
       num(
-        r[
-          "Quantidade Pecas"
-        ]
+        field(r, "Quantidade Pecas")
       );
 
     const base:
@@ -650,66 +1023,42 @@ export async function parseFiltro(
       id,
 
       filtro:
-        clean(
-          r[
-            "Filtro"
-          ]
-        ),
+        clean(field(r, "Filtro")),
 
       pedido:
-        clean(
-          r[
-            "Pedido"
-          ]
-        ),
+        clean(field(r, "Pedido")),
 
       item:
         clean(
-          r[
-            "Item"
-          ]
+          field(r, "Item")
         ),
 
       produto:
         clean(
-          r[
-            "Produto"
-          ]
+          field(r, "Produto")
         ),
 
       descricao:
-        clean(
-          r[
-            "Descrição"
-          ]
-        ),
+        clean(field(r, "Descrição")),
 
       tipo:
         clean(
-          r[
-            "Tipo"
-          ]
+          field(r, "Tipo")
         ),
 
       canal:
         clean(
-          r[
-            "Canal"
-          ]
+          field(r, "Canal")
         ),
 
       rebaixo:
         clean(
-          r[
-            "Rebaixo"
-          ]
+          field(r, "Rebaixo")
         ),
 
       acabamento:
         clean(
-          r[
-            "Acabamento"
-          ]
+          field(r, "Acabamento")
         ) ||
         fallbackAcab(
           r
@@ -717,60 +1066,44 @@ export async function parseFiltro(
 
       cor:
         clean(
-          r[
-            "Cor"
-          ]
+          field(r, "Cor")
         ),
 
       quantidade,
 
       pedidoCliente:
         clean(
-          r[
-            "Pedido Cliente"
-          ]
+          field(r, "Pedido Cliente")
         ),
 
       statusEngenharia:
         clean(
-          r[
-            "Status Engenharia"
-          ]
+          field(r, "Status Engenharia")
         ),
 
       of:
         clean(
-          r[
-            "OF's"
-          ]
+          field(r, "OF's")
         ),
 
       percentualProduto:
         num(
-          r[
-            "% Concluído Produto"
-          ]
+          field(r, "% Concluído Produto")
         ),
 
       codigoModelo:
         clean(
-          r[
-            "Código Modelo"
-          ]
+          field(r, "Código Modelo")
         ),
 
       descricaoModelo:
         clean(
-          r[
-            "Descrição Modelo"
-          ]
+          field(r, "Descrição Modelo")
         ),
 
       outrasCaracteristicas:
         clean(
-          r[
-            "Outras Características"
-          ]
+          field(r, "Outras Características")
         ),
 
       categoria:
