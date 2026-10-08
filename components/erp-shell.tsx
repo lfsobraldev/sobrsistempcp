@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Factory, LayoutDashboard, UploadCloud, SlidersHorizontal, UsersRound,
-  ClipboardCheck, Workflow, AlertTriangle, Activity, History, Settings,
-  FileSpreadsheet, Flame, ShieldCheck, TimerReset, LogOut, RefreshCw,
+  Factory, LayoutDashboard, UploadCloud, ClipboardCheck, History, Settings,
+  FileSpreadsheet, Flag, ShieldCheck, LogOut, RefreshCw, Printer,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -16,33 +15,45 @@ type MenuItem={path:string;label:string;icon:LucideIcon};
 type MenuGroup={label:string;items:MenuItem[]};
 
 const menus:MenuGroup[]=[
-  {label:"VISÃO",items:[{path:"/dashboard",label:"Central",icon:LayoutDashboard}]},
+  {label:"VISÃO",items:[
+    {path:"/dashboard",label:"Central",icon:LayoutDashboard},
+  ]},
   {label:"PLANEJAR",items:[
     {path:"/programacao",label:"Programação",icon:UploadCloud},
-    {path:"/sequenciamento",label:"Sequência",icon:SlidersHorizontal},
+    {path:"/plano-turno",label:"Plano do Turno",icon:Printer},
+    {path:"/prioridades",label:"Prioridades",icon:Flag},
   ]},
   {label:"EXECUTAR",items:[
-    {path:"/lideres",label:"Líderes",icon:UsersRound},
     {path:"/apontamentos",label:"Apontamentos",icon:ClipboardCheck},
-    {path:"/criticos",label:"Críticos",icon:Flame},
-    {path:"/fluxo",label:"Fluxo",icon:Workflow},
-    {path:"/andon",label:"Andon",icon:AlertTriangle},
-    {path:"/perdas",label:"Perdas",icon:TimerReset},
   ]},
-  {label:"QUALIDADE",items:[{path:"/inspecao-pallets",label:"Pallets",icon:ShieldCheck}]},
-  {label:"ANÁLISE",items:[
-    {path:"/performance",label:"Performance",icon:Activity},
+  {label:"QUALIDADE",items:[
+    {path:"/inspecao-pallets",label:"Pallets",icon:ShieldCheck},
+  ]},
+  {label:"CONTROLE",items:[
     {path:"/historico",label:"Histórico",icon:History},
   ]},
-  {label:"AJUSTES",items:[{path:"/configuracoes",label:"Configurações",icon:Settings}]},
+  {label:"AJUSTES",items:[
+    {path:"/configuracoes",label:"Configurações",icon:Settings},
+  ]},
 ];
 
 function allowed(role:string,path:string){
-  if(role==="PCP")return true;
-  if(role==="GERENTE")return ["/dashboard","/performance","/lideres","/criticos","/fluxo","/andon","/perdas","/historico","/inspecao-pallets"].includes(path);
-  if(role==="ENCARREGADO")return ["/dashboard","/lideres","/criticos","/fluxo","/andon","/perdas","/inspecao-pallets"].includes(path);
-  if(role==="LIDER")return ["/lideres","/criticos","/fluxo","/andon","/perdas","/inspecao-pallets"].includes(path);
-  if(role==="APONTADOR")return ["/apontamentos","/fluxo","/andon"].includes(path);
+  const pcp=[
+    "/dashboard",
+    "/programacao",
+    "/plano-turno",
+    "/prioridades",
+    "/apontamentos",
+    "/inspecao-pallets",
+    "/historico",
+    "/configuracoes",
+  ];
+
+  if(role==="PCP")return pcp.includes(path);
+  if(role==="GERENTE")return ["/dashboard","/plano-turno","/prioridades","/inspecao-pallets","/historico"].includes(path);
+  if(role==="ENCARREGADO")return ["/dashboard","/plano-turno","/prioridades","/inspecao-pallets"].includes(path);
+  if(role==="LIDER")return ["/plano-turno"].includes(path);
+  if(role==="APONTADOR")return ["/apontamentos"].includes(path);
   return false;
 }
 
@@ -61,7 +72,7 @@ function Inner({children}:{children:React.ReactNode}){
     if(loading)return;
     if(!me){router.replace("/login");return}
     if(allowed(me.perfil,path))return;
-    if(me.perfil==="LIDER"){router.replace("/lideres");return}
+    if(me.perfil==="LIDER"){router.replace("/plano-turno");return}
     if(me.perfil==="APONTADOR"){router.replace("/apontamentos");return}
     router.replace("/dashboard");
   },[me,path,router,loading]);
