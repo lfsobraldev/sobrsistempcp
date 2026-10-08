@@ -224,6 +224,156 @@ export async function baixarRelatorioPalletsExcel(
   const inspecoesTotal = pallets.reduce((s, p) => s + (p.inspecoes?.length || 0), 0);
   const ncTotal = pallets.reduce((s, p) => s + (p.naoConformidades?.length || 0), 0);
 
+  if (pallets.length === 1) {
+    const p = pallets[0];
+    const rel = wb.addWorksheet("RELATORIO PALLET");
+
+    rel.columns = [
+      { width: 24 },
+      { width: 34 },
+      { width: 24 },
+      { width: 34 },
+    ];
+
+    rel.mergeCells("A1:D1");
+    rel.getCell("A1").value =
+      `RELATÓRIO COMPLETO DE INSPEÇÃO • PALLET ${p.pallet || p.codigo}`;
+    rel.getCell("A1").font = { bold: true, size: 16 };
+    rel.getCell("A1").alignment = { vertical: "middle", horizontal: "left" };
+    rel.getRow(1).height = 32;
+
+    const dados: Array<[string, unknown, string, unknown]> = [
+      ["Pallet", p.pallet || "-", "Código", p.codigo || "-"],
+      ["Pedido", p.pedido || "-", "Cliente", p.cliente || "-"],
+      ["Filtro", p.filtro || "-", "Destino", p.destino || "-"],
+      ["Tipo", p.tipo_produto || "-", "Turno", p.turno || "-"],
+      ["Quantidade", Number(p.quantidade || 0), "Jogos", Number(p.jogos || 0)],
+      ["Montador", p.montador || "-", "Conferente", p.conferente || "-"],
+      ["Status final", textoStatus(p.status), "Bloqueio", p.bloqueio_motivo || "-"],
+      ["Qualidade", textoStatus(p.qualidade_status), "Responsável", p.qualidade_usuario || "-"],
+      ["Data Qualidade", data(p.qualidade_em), "Obs. Qualidade", p.qualidade_observacao || "-"],
+      ["MSAC", textoStatus(p.msac_status), "Responsável MSAC", p.msac_usuario || "-"],
+      ["Data MSAC", data(p.msac_em), "Obs. MSAC", p.msac_observacao || "-"],
+      ["Inspeções", p.inspecoes?.length || 0, "Fotos", p.fotos?.length || p.fotos_count || 0],
+      ["Não conformidades", p.naoConformidades?.length || 0, "Medições", p.medicoes?.length || 0],
+      ["Criado em", data(p.criado_em), "Atualizado em", data(p.atualizado_em)],
+      ["Observação geral", p.observacao || "-", "", ""],
+    ];
+
+    let row = 3;
+
+    for (const [a, b, c, d] of dados) {
+      rel.getCell(row, 1).value = a;
+      rel.getCell(row, 2).value = b as any;
+      rel.getCell(row, 3).value = c;
+      rel.getCell(row, 4).value = d as any;
+
+      rel.getCell(row, 1).font = { bold: true };
+      rel.getCell(row, 3).font = { bold: true };
+
+      for (let col = 1; col <= 4; col++) {
+        rel.getCell(row, col).alignment = {
+          vertical: "middle",
+          wrapText: true,
+        };
+        rel.getCell(row, col).border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+      }
+
+      row++;
+    }
+
+    row += 1;
+    rel.mergeCells(row, 1, row, 4);
+    rel.getCell(row, 1).value = "HISTÓRICO DE INSPEÇÕES";
+    rel.getCell(row, 1).font = { bold: true, size: 13 };
+    row++;
+
+    rel.getRow(row).values = [
+      "Data",
+      "Área",
+      "Resultado",
+      "Checklist / Observação",
+    ];
+    estiloCabecalho(rel.getRow(row));
+    row++;
+
+    const inspecoes = [...(p.inspecoes || [])].sort(
+      (a, b) =>
+        new Date(a.criadoEm || 0).getTime() -
+        new Date(b.criadoEm || 0).getTime()
+    );
+
+    if (!inspecoes.length) {
+      rel.addRow(["-", "-", "SEM INSPEÇÃO", "Nenhuma inspeção registrada."]);
+    } else {
+      for (const i of inspecoes) {
+        rel.getRow(row).values = [
+          data(i.criadoEm),
+          i.area || "-",
+          textoStatus(i.resultado),
+          [checklistTexto(i.checklist), i.observacao || ""]
+            .filter(Boolean)
+            .join(" • "),
+        ];
+        rel.getRow(row).height = 36;
+        row++;
+      }
+    }
+
+    row = rel.rowCount + 2;
+    rel.mergeCells(row, 1, row, 4);
+    rel.getCell(row, 1).value = "CONCLUSÃO DA INSPEÇÃO";
+    rel.getCell(row, 1).font = { bold: true, size: 13 };
+    row++;
+
+    const pendenciasInspecao = (p.inspecoes || []).filter(
+      (i) => String(i.resultado || "").toUpperCase() !== "CONFORME"
+    ).length;
+
+    const ncsAbertas = (p.naoConformidades || []).filter(
+      (n) => !["APROVADA", "ENCERRADA"].includes(String(n.status || "").toUpperCase())
+    ).length;
+
+    rel.getCell(row, 1).value = "Resultado";
+    rel.getCell(row, 1).font = { bold: true };
+    rel.getCell(row, 2).value =
+      p.status === "LIBERADO" && pendenciasInspecao === 0 && ncsAbertas === 0
+        ? "PALLET LIBERADO / INSPEÇÕES CONFORMES"
+        : p.status === "BLOQUEADO"
+        ? "PALLET BLOQUEADO"
+        : "PALLET COM CONTROLE PENDENTE";
+
+    rel.getCell(row, 3).value = "Pendências";
+    rel.getCell(row, 3).font = { bold: true };
+    rel.getCell(row, 4).value =
+      `${pendenciasInspecao} inspeção(ões) com pendência • ${ncsAbertas} NC(s) aberta(s)`;
+
+    for (let r = 3; r <= rel.rowCount; r++) {
+      rel.getRow(r).eachCell((cell: any) => {
+        cell.alignment = { vertical: "middle", wrapText: true };
+        cell.border = {
+          top: { style: "thin" },
+          left: { style: "thin" },
+          bottom: { style: "thin" },
+          right: { style: "thin" },
+        };
+      });
+    }
+
+    rel.views = [{ state: "frozen", ySplit: 1 }];
+    rel.pageSetup = {
+      orientation: "landscape",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+    };
+  }
+
   const resumo = wb.addWorksheet("RESUMO");
   resumo.addRow(["Indicador", "Valor"]);
   resumo.addRows([
