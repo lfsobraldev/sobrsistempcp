@@ -60,7 +60,7 @@ function allowed(role:string,path:string){
 }
 
 function Inner({children}:{children:React.ReactNode}){
-  const{me,pg,lastSync,refresh,loading}=useOps();
+  const{me,pg,lastSync,realtimeStatus,refresh,loading}=useOps();
   const path=usePathname();
   const router=useRouter();
 
@@ -103,7 +103,7 @@ function Inner({children}:{children:React.ReactNode}){
           <div><span>TURNO</span><b>{pg.turno}</b></div>
           <div><span>DATA</span><b>{new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}</b></div>
         </div>}
-        <div className="pcpLive"><i/><div><span>ATUALIZAÇÃO</span><b>{lastSync?lastSync.toLocaleTimeString("pt-BR"):"--:--:--"}</b></div></div>
+        <div className={`pcpLive rt-${realtimeStatus}`}><i/><div><span>{realtimeStatus==="tempo_real"?"TEMPO REAL":realtimeStatus==="reconectando"?"RECONECTANDO":"ATUALIZAÇÃO"}</span><b>{lastSync?lastSync.toLocaleTimeString("pt-BR"):"--:--:--"}</b></div></div>
         <button className="pcpRefresh" onClick={refresh} title="Atualizar"><RefreshCw/></button>
         <div className="pcpProfile"><div>{me.usuario.slice(0,2).toUpperCase()}</div><span><b>{me.usuario}</b><small>{me.perfil}</small></span></div>
         <button className="pcpExit" onClick={logout} title="Sair"><LogOut/></button>
