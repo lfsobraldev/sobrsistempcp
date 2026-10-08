@@ -4,7 +4,7 @@ import { AlertTriangle, CheckCircle2, FileSpreadsheet, Play, Search } from "luci
 import { useEffect, useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS, queueRows } from "@/lib/metrics";
-import { PROCESSOS } from "@/lib/filter-parser";
+import { PROCESSOS } from "@/lib/processos";
 import { FAMILIAS, familiaDe } from "@/lib/sort";
 import { modeloProduto } from "@/lib/presentation";
 import { fmt, fmtPct, pct } from "@/lib/format";
