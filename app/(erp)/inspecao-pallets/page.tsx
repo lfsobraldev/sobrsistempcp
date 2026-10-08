@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Camera, CheckCircle2, ClipboardCheck, ImagePlus, LockKeyhole, PackageCheck, Plus,
+  Camera, CheckCircle2, ClipboardCheck, FileSpreadsheet, ImagePlus, LockKeyhole, PackageCheck, Plus,
   Printer, RefreshCw, Search, ShieldCheck, Truck, UnlockKeyhole, XCircle
 } from "lucide-react";
 import { Modal, Panel } from "@/components/ui";
@@ -77,8 +77,75 @@ export default function InspecaoPallets(){
 
   function printLabel(p:Pallet){setSelected(p);setTimeout(()=>{document.body.classList.add("print-pallet-label");window.print();document.body.classList.remove("print-pallet-label")},80)}
 
+  async function exportarRelatorioExcel(){
+    if(!itens.length){
+      toast("error","Nenhum pallet para exportar.");
+      return;
+    }
+
+    setBusy(true);
+
+    try{
+      /*
+       * Busca os detalhes completos de cada pallet porque a listagem
+       * resumida não carrega fotos, inspeções, NCs, medições e eventos.
+       *
+       * Fazemos em pequenos lotes para não disparar dezenas de consultas
+       * ao Neon ao mesmo tempo.
+       */
+      const completos:Pallet[]=[];
+
+      for(let i=0;i<itens.length;i+=4){
+        const lote=itens.slice(i,i+4);
+
+        const dados=await Promise.all(
+          lote.map(async(p)=>{
+            const r=await fetch(
+              `/api/pallets?id=${encodeURIComponent(p.id)}`,
+              {cache:"no-store"}
+            );
+
+            const j=await r.json();
+
+            if(!r.ok){
+              throw new Error(
+                j.error||
+                `Falha ao carregar o pallet ${p.pallet}.`
+              );
+            }
+
+            return j.item as Pallet;
+          })
+        );
+
+        completos.push(...dados);
+      }
+
+      const {baixarRelatorioPalletsExcel}=
+        await import("@/lib/pallet-excel");
+
+      await baixarRelatorioPalletsExcel(
+        completos,
+        "Relatorio_Inspecao_Pallets"
+      );
+
+      toast(
+        "success",
+        `Relatório gerado com ${completos.length} pallet(s).`
+      );
+    }catch(e:any){
+      toast(
+        "error",
+        e?.message||
+        "Falha ao gerar relatório Excel."
+      );
+    }finally{
+      setBusy(false);
+    }
+  }
+
   return <>
-    <div className="pageTitle"><div><span>QUALIDADE / MSAC</span><h1>Inspeção e Liberação de Pallets</h1><p>Inspeção com fotos, bloqueio, dupla liberação e etiqueta rastreável.</p></div><div className="palletTopActions"><button className="secondary" onClick={load}><RefreshCw/>Atualizar</button><button className="primary" onClick={()=>setCreateOpen(true)}><Plus/>Novo pallet</button></div></div>
+    <div className="pageTitle"><div><span>QUALIDADE / MSAC</span><h1>Inspeção e Liberação de Pallets</h1><p>Inspeção com fotos, bloqueio, dupla liberação e etiqueta rastreável.</p></div><div className="palletTopActions"><button className="secondary" disabled={busy||!itens.length} onClick={exportarRelatorioExcel}><FileSpreadsheet/>Exportar relatório Excel</button><button className="secondary" onClick={load}><RefreshCw/>Atualizar</button><button className="primary" onClick={()=>setCreateOpen(true)}><Plus/>Novo pallet</button></div></div>
 
     <div className="palletKpis">{cards.map(([a,b,t])=><div key={String(a)} className={`palletKpi ${t}`}><span>{a}</span><b>{b}</b></div>)}</div>
 
