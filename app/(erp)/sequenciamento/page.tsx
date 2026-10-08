@@ -4,6 +4,7 @@ import { ArrowDown, ArrowUp, FileSpreadsheet, Pin, PinOff } from "lucide-react";
 import { useState } from "react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS, queueRows } from "@/lib/metrics";
+import { PROCESSOS } from "@/lib/filter-parser";
 import { FAMILIAS, familiaDe } from "@/lib/sort";
 import { modeloProduto } from "@/lib/presentation";
 import { fmt } from "@/lib/format";
@@ -15,13 +16,7 @@ export default function Sequenciamento() {
 
   const products = pg?.produtos || [];
 
-  const procs = [
-    ...new Set(
-      products.flatMap((p) =>
-        p.operacoes.map((o) => o.processo)
-      )
-    ),
-  ];
+  const procs = [...PROCESSOS];
 
   const [proc, setProc] = useState(
     procs[0] || "RECOBRIDORA"
