@@ -233,6 +233,70 @@ async function migrarProcessosLegados(
   `;
 
   /*
+   * NORMALIZA AS RECOBRIDORAS DA PROGRAMAÇÃO ATIVA.
+   *
+   * RECOBRIDORA 1:
+   * BATENTES + TRAVESSAS DE BATENTE
+   *
+   * RECOBRIDORA 2:
+   * ALIZARES + TRAVESSAS DE ALIZAR + BAGUETES
+   * + KIT DE CORRER / SUPORTE DE TRILHO
+   */
+  await db`
+    update pcp_operacoes o
+    set
+      processo = 'RECOBRIDORA',
+      atualizado_em = now()
+    from pcp_produtos p
+    where p.id = o.produto_id
+      and p.programacao_id = ${programacaoId}
+      and o.processo in ('RECOBRIDORA', 'RECOBRIDORA-2')
+      and upper(coalesce(p.categoria, '')) like 'BATENTE%'
+  `;
+
+  await db`
+    update pcp_operacoes o
+    set
+      processo = 'RECOBRIDORA-2',
+      atualizado_em = now()
+    from pcp_produtos p
+    where p.id = o.produto_id
+      and p.programacao_id = ${programacaoId}
+      and o.processo in ('RECOBRIDORA', 'RECOBRIDORA-2')
+      and (
+        upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+        or upper(coalesce(p.categoria, '')) like 'BAGUETE%'
+        or upper(coalesce(p.categoria, '')) like 'KIT%'
+        or upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
+        or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
+        or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+        or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+      )
+  `;
+
+  /*
+   * Remove das recobridoras qualquer família que não pertença
+   * a nenhuma das duas máquinas.
+   */
+  await db`
+    delete from pcp_operacoes o
+    using pcp_produtos p
+    where p.id = o.produto_id
+      and p.programacao_id = ${programacaoId}
+      and o.processo in ('RECOBRIDORA', 'RECOBRIDORA-2')
+      and not (
+        upper(coalesce(p.categoria, '')) like 'BATENTE%'
+        or upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+        or upper(coalesce(p.categoria, '')) like 'BAGUETE%'
+        or upper(coalesce(p.categoria, '')) like 'KIT%'
+        or upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
+        or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
+        or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+        or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+      )
+  `;
+
+  /*
    * GARANTE EMBALAGEM PARA TODAS AS PEÇAS RECONHECIDAS,
    * MESMO QUANDO O CSV ORIGINAL VEIO SEM VALOR NA COLUNA EMBALAGEM.
    *
