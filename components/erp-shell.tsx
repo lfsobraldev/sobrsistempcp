@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Factory, LayoutDashboard, UploadCloud, ClipboardCheck, History, Settings,
-  Flag, ShieldCheck, LogOut, RefreshCw, Printer,
+  Flag, ShieldCheck, LogOut, RefreshCw, UsersRound, AlertTriangle,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -19,10 +19,11 @@ const menus:MenuGroup[]=[
   ]},
   {label:"PLANEJAR",items:[
     {path:"/programacao",label:"Programação",icon:UploadCloud},
-    {path:"/plano-turno",label:"Plano do Turno",icon:Printer},
     {path:"/prioridades",label:"Prioridades",icon:Flag},
+    {path:"/criticos",label:"Pedidos em Risco",icon:AlertTriangle},
   ]},
   {label:"EXECUTAR",items:[
+    {path:"/lideres",label:"Líderes",icon:UsersRound},
     {path:"/apontamentos",label:"Apontamentos",icon:ClipboardCheck},
   ]},
   {label:"QUALIDADE",items:[
@@ -40,8 +41,9 @@ function allowed(role:string,path:string){
   const pcp=[
     "/dashboard",
     "/programacao",
-    "/plano-turno",
     "/prioridades",
+    "/criticos",
+    "/lideres",
     "/apontamentos",
     "/inspecao-pallets",
     "/historico",
@@ -49,9 +51,9 @@ function allowed(role:string,path:string){
   ];
 
   if(role==="PCP")return pcp.includes(path);
-  if(role==="GERENTE")return ["/dashboard","/plano-turno","/prioridades","/inspecao-pallets","/historico"].includes(path);
-  if(role==="ENCARREGADO")return ["/dashboard","/plano-turno","/prioridades","/inspecao-pallets"].includes(path);
-  if(role==="LIDER")return ["/plano-turno"].includes(path);
+  if(role==="GERENTE")return ["/dashboard","/prioridades","/criticos","/lideres","/inspecao-pallets","/historico"].includes(path);
+  if(role==="ENCARREGADO")return ["/dashboard","/prioridades","/criticos","/lideres","/inspecao-pallets"].includes(path);
+  if(role==="LIDER")return ["/lideres"].includes(path);
   if(role==="APONTADOR")return ["/apontamentos"].includes(path);
   return false;
 }
@@ -71,7 +73,7 @@ function Inner({children}:{children:React.ReactNode}){
     if(loading)return;
     if(!me){router.replace("/login");return}
     if(allowed(me.perfil,path))return;
-    if(me.perfil==="LIDER"){router.replace("/plano-turno");return}
+    if(me.perfil==="LIDER"){router.replace("/lideres");return}
     if(me.perfil==="APONTADOR"){router.replace("/apontamentos");return}
     router.replace("/dashboard");
   },[me,path,router,loading]);
