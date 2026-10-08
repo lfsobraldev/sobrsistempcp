@@ -4,6 +4,7 @@ import { AlertTriangle, CheckCircle2, FileSpreadsheet, Play, Search } from "luci
 import { useEffect, useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS, queueRows } from "@/lib/metrics";
+import { PROCESSOS } from "@/lib/filter-parser";
 import { FAMILIAS, familiaDe } from "@/lib/sort";
 import { modeloProduto } from "@/lib/presentation";
 import { fmt, fmtPct, pct } from "@/lib/format";
@@ -18,8 +19,9 @@ const MOTIVOS = ["Falta material", "Quebra máquina", "Manutenção", "Setup", "
 export default function Apontamentos() {
   const { pg, me, andon: andons, refresh, toast } = useOps();
   const products = pg?.produtos || [];
-  const all = [...new Set(products.flatMap((p) => p.operacoes.map((o) => o.processo)))];
-  const procs = me?.processos?.length ? all.filter((x) => me.processos.includes(x)) : all;
+  const procs = me?.processos?.length
+    ? PROCESSOS.filter((x) => me.processos.includes(x))
+    : [...PROCESSOS];
 
   const [proc, setProc] = useState("");
   const [fam, setFam] = useState("TODAS");
