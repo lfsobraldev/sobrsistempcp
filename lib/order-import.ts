@@ -13,6 +13,7 @@ import {
 
 import {
   categoriaIndustrial,
+  ehFerragem,
   familiaIndustrial,
   processoEmbalagemDoItem,
   processosUsinagemDoItem,
@@ -857,7 +858,9 @@ export async function parsePedidoUsinagem(
 
   const produtos:
     Produto[] =
-    raws.map(
+    raws
+      .filter((r) => !ehFerragem({ descricao: r.descricao }))
+      .map(
       (
         r
       ) => {
