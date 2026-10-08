@@ -4,6 +4,7 @@ import { FileSpreadsheet } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS } from "@/lib/metrics";
+import { ordenarProcessos } from "@/lib/processos";
 import { calcularCriticos } from "@/lib/criticos";
 import { exportarExcel, linhaOp } from "@/lib/export";
 import { fmt } from "@/lib/format";
@@ -14,7 +15,7 @@ import { TableScroll } from "@/components/table-scroll";
 export default function Criticos() {
   const { pg, andon } = useOps();
   const lista = useMemo(() => calcularCriticos(pg?.produtos || [], andon), [pg, andon]);
-  const procs = [...new Set(lista.map((c) => c.o.processo))];
+  const procs = ordenarProcessos([...new Set(lista.map((c) => c.o.processo))]);
   const [proc, setProc] = useState("TODOS");
   const rows = proc === "TODOS" ? lista : lista.filter((c) => c.o.processo === proc);
 
