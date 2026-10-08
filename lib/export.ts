@@ -54,6 +54,8 @@ export async function exportarSetor(produtos: Produto[], processo: string) {
   const { baixarPlanilhaProducao } = await import("@/lib/planilha");
   await baixarPlanilhaProducao(produtos, {
     setores: [processo],
-    arquivo: `Programacao_${(LABELS[processo] || processo).replace(/\s+/g, "_")}`,
+    arquivo: `Programacao_${(LABELS[processo] || processo)
+      .replace(/[\\/:*?"<>|]+/g, "-")
+      .replace(/\s+/g, "_")}`,
   });
 }
