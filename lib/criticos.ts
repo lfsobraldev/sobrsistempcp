@@ -1,5 +1,5 @@
 import type { Andon, Operacao, Produto } from "@/types/pcp";
-import { familiaDe } from "@/lib/sort";
+import { familiaDe, produtoEntraPCP } from "@/lib/sort";
 
 export type Critico = {
   p: Produto; o: Operacao; motivos: string[]; gravidade: number; saldo: number;
@@ -11,6 +11,7 @@ export function calcularCriticos(produtos: Produto[], andon: Andon[] = []): Crit
   const comAndon = new Set(andon.filter((a) => a.status === "ABERTO").map((a) => a.operacao_id));
   const out: Critico[] = [];
   for (const p of produtos) {
+    if (!produtoEntraPCP(p)) continue;
     const atual = p.operacoes.find((o) => o.status !== "CONCLUIDA");
     if (!atual) continue;
     const motivos: string[] = []; let g = 0;
