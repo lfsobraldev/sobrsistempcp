@@ -40,44 +40,72 @@ export const SETORES:
     "PREPARACAO",
     "PREPARAÇÃO",
   ],
+
   [
-    "USINAGEM-1",
-    "USINAGEM 1",
+    "USINAGEM-PORTAS",
+    "USINAGEM DE PORTAS",
   ],
+
+  [
+    "USINAGEM-TRAVESSAS",
+    "USINAGEM DE TRAVESSAS",
+  ],
+
   [
     "LIXAR",
     "LIXAR",
   ],
+
   [
     "RECOBRIDORA",
     "RECOBRIDORA 1",
   ],
+
   [
     "RECOBRIDORA-2",
     "RECOBRIDORA 2",
   ],
+
   [
-    "USINAGEM-2",
-    "USINAGEM 2",
+    "USINAGEM-CONTRATESTA",
+    "USINAGEM CONTRATESTA",
   ],
+
+  [
+    "USINAGEM-DOBRADICAS",
+    "USINAGEM DOBRADIÇAS",
+  ],
+
+  [
+    "USINAGEM-TUPIA",
+    "TUPIA / CANAL BORRACHA",
+  ],
+
   [
     "LUSTRACAO",
     "LUSTRAÇÃO",
   ],
+
   [
     "TERCEIROS",
     "TERCEIROS",
   ],
+
   [
-    "EMBALAGEM",
-    "EMBALAGEM",
+    "EMBALAGEM-PORTAS",
+    "EMBALAGEM DE PORTAS",
   ],
+
+  [
+    "EMBALAGEM-1",
+    "EMBALAGEM 1",
+  ],
+
   [
     "EXPEDICAO",
     "EXPEDIÇÃO",
   ],
 ];
-
 const FAMILIA_INFO:
   Record<
     Familia,
