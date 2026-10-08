@@ -4,11 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Factory, LayoutDashboard, UploadCloud, ClipboardCheck, History, Settings,
-  FileSpreadsheet, Flag, ShieldCheck, LogOut, RefreshCw, Printer,
+  Flag, ShieldCheck, LogOut, RefreshCw, Printer,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
-import { exportarCompleto } from "@/lib/export";
 import { OperationalProvider, useOps } from "@/components/operational-provider";
 
 type MenuItem={path:string;label:string;icon:LucideIcon};
@@ -58,7 +57,7 @@ function allowed(role:string,path:string){
 }
 
 function Inner({children}:{children:React.ReactNode}){
-  const{me,pg,andon,lastSync,refresh,loading}=useOps();
+  const{me,pg,lastSync,refresh,loading}=useOps();
   const path=usePathname();
   const router=useRouter();
 
@@ -114,7 +113,6 @@ function Inner({children}:{children:React.ReactNode}){
           return <Link key={item.path} href={item.path} className={path===item.path?"active":""}><Icon/><span>{item.label}</span></Link>
         })}
       </nav>
-      {pg&&me.perfil!=="APONTADOR"&&<button className="pcpExport" onClick={()=>exportarCompleto(pg.produtos,andon)}><FileSpreadsheet/>Exportar produção</button>}
     </div>
 
     <main className="pcpMain"><div className="page">{children}</div></main>
