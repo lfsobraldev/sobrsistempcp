@@ -11,63 +11,22 @@ import {
   processosOperacionaisDaFonte,
 } from "@/lib/domain/industrial";
 
+import {
+  PROCESSOS,
+  PROCESSOS_FONTE,
+} from "@/lib/processos";
+
+export {
+  PROCESSOS,
+  PROCESSOS_FONTE,
+} from "@/lib/processos";
+
 import type {
   ImportResult,
   Operacao,
   Produto,
   StatusOperacao,
 } from "@/types/pcp";
-
-/*
- * COLUNAS ORIGINAIS
- * VINDAS DO CONSISTEM.
- */
-export const PROCESSOS_FONTE = [
-  "PREPARACAO",
-  "USINAGEM-1",
-  "LIXAR",
-  "RECOBRIDORA",
-  "RECOBRIDORA-2",
-  "USINAGEM-2",
-  "LUSTRACAO",
-  "TERCEIROS",
-  "EMBALAGEM",
-  "EXPEDICAO",
-] as const;
-
-/*
- * SETORES REAIS
- * DENTRO DO PCP.
- */
-export const PROCESSOS = [
-  "PREPARACAO",
-
-  "USINAGEM-PORTAS",
-
-  "USINAGEM-TRAVESSAS",
-
-  "LIXAR",
-
-  "RECOBRIDORA",
-
-  "RECOBRIDORA-2",
-
-  "USINAGEM-CONTRATESTA",
-
-  "USINAGEM-DOBRADICAS",
-
-  "USINAGEM-TUPIA",
-
-  "LUSTRACAO",
-
-  "TERCEIROS",
-
-  "EMBALAGEM-PORTAS",
-
-  "EMBALAGEM-1",
-
-  "EXPEDICAO",
-] as const;
 
 const OPCIONAIS =
   new Set<string>([
