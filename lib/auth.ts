@@ -272,6 +272,14 @@ export async function session():
         "EMBALAGEM-1"
       );
 
+      processos.add(
+        "EMBALAGEM-2"
+      );
+
+      processos.add(
+        "EMBALAGEM-3"
+      );
+
       continue;
     }
 
