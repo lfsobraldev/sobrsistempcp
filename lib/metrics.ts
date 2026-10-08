@@ -2,6 +2,8 @@ import type {
   Produto,
 } from "@/types/pcp";
 
+import { ordenarProcessos } from "@/lib/processos";
+
 import {
   compareChave,
   compareProduto,
@@ -175,7 +177,7 @@ export function resumoMaquinas(
     }
   }
 
-  return [
+  const rows = [
     ...map.values(),
   ].map(
     (
@@ -202,6 +204,15 @@ export function resumoMaquinas(
             row.pecasEquivalentes
         ),
     })
+  );
+
+  const ordem = ordenarProcessos(rows.map((row) => row.processo));
+  const rank = new Map(ordem.map((processo, index) => [processo, index]));
+
+  return rows.sort(
+    (a, b) =>
+      (rank.get(a.processo) ?? 999) -
+      (rank.get(b.processo) ?? 999)
   );
 }
 
