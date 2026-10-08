@@ -1,6 +1,6 @@
 "use client";
 
-import { FileSpreadsheet, Flag, RefreshCw } from "lucide-react";
+import { FileSpreadsheet, RefreshCw } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS } from "@/lib/metrics";
@@ -208,21 +208,18 @@ export default function Prioridades() {
                 <td className="num"><b>{fmt(x.saldo)}</b></td>
                 <td>{[...x.alertas].join(" / ") || "-"}</td>
 
-                <td>
-                  <div className="priorityActions">
-                    {(["NORMAL", "ALTA", "URGENTE"] as Nivel[]).map((n) => (
-                      <button
-                        key={n}
-                        className={x.prioridade === n ? "active" : ""}
-                        disabled={busy === x.pedido || x.prioridade === n}
-                        onClick={() => alterar(x.pedido, n)}
-                        title={`Definir como ${n}`}
-                      >
-                        <Flag />
-                        <span>{n}</span>
-                      </button>
-                    ))}
-                  </div>
+                <td className="priorityCell">
+                  <select
+                    className={`prioritySelect prioritySelect-${x.prioridade.toLowerCase()}`}
+                    value={x.prioridade}
+                    disabled={busy === x.pedido}
+                    onChange={(e) => alterar(x.pedido, e.target.value as Nivel)}
+                    aria-label={`Prioridade do pedido ${x.pedido}`}
+                  >
+                    <option value="NORMAL">NORMAL</option>
+                    <option value="ALTA">ALTA</option>
+                    <option value="URGENTE">URGENTE</option>
+                  </select>
                 </td>
               </tr>
             ))}
