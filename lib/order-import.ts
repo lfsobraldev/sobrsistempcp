@@ -14,7 +14,8 @@ import {
 import {
   categoriaIndustrial,
   familiaIndustrial,
-  temCanalBorracha,
+  processoEmbalagemDoItem,
+  processosUsinagemDoItem,
   tipoPeca,
 } from "@/lib/domain/industrial";
 
@@ -72,154 +73,82 @@ function route(
   const familia =
     familiaIndustrial(item);
 
-  /*
-   * =========================
-   * PORTAS
-   * =========================
-   */
-  if (
-    familia === "PORTAS"
-  ) {
-    return [
-      "USINAGEM-PORTAS",
-      "EMBALAGEM-PORTAS",
-    ];
-  }
+  const processos:
+    string[] = [];
 
   /*
-   * =========================
-   * BANDEIRAS
-   * =========================
-   *
-   * Bandeira vai somente
-   * para embalagem de portas.
-   */
-  if (
-    familia === "BANDEIRA"
-  ) {
-    return [
-      "EMBALAGEM-PORTAS",
-    ];
-  }
-
-  /*
-   * =========================
-   * BATENTES
-   * =========================
+   * PROCESSOS ANTERIORES À USINAGEM
    */
   if (
     familia === "BATENTES"
   ) {
-    /*
-     * TRAVESSA DE BATENTE
-     *
-     * Não entra nas máquinas
-     * de contratesta/dobradiça.
-     */
-    if (
-      tipoPeca(item) ===
-      "TRAVESSA"
-    ) {
-      return [
-        "PREPARACAO",
-        "RECOBRIDORA",
-        "USINAGEM-TRAVESSAS",
-        "EMBALAGEM-1",
-      ];
-    }
-
-    /*
-     * PERNA DE BATENTE
-     *
-     * A perna passa separadamente:
-     *
-     * CONTRATESTA
-     * DOBRADIÇAS
-     *
-     * e TUPIA quando possui
-     * canal de borracha.
-     */
-    const processos = [
-      "PREPARACAO",
-      "RECOBRIDORA",
-      "USINAGEM-CONTRATESTA",
-      "USINAGEM-DOBRADICAS",
-    ];
-
-    if (
-      temCanalBorracha(item)
-    ) {
-      processos.push(
-        "USINAGEM-TUPIA"
-      );
-    }
-
     processos.push(
-      "EMBALAGEM-1"
+      "PREPARACAO",
+      "RECOBRIDORA"
     );
-
-    return processos;
-  }
-
-  /*
-   * =========================
-   * ALIZARES
-   * =========================
-   *
-   * NÃO entram nas usinagens.
-   *
-   * Entram somente nos processos
-   * corretos de acabamento e
-   * embalagem.
-   */
-  if (
+  } else if (
     familia === "ALIZARES"
   ) {
-    return [
+    processos.push(
       "LIXAR",
-      "RECOBRIDORA",
-      "EMBALAGEM-1",
-    ];
-  }
-
-  /*
-   * =========================
-   * BAGUETE
-   * =========================
-   *
-   * NÃO entra em usinagem.
-   */
-  if (
+      "RECOBRIDORA"
+    );
+  } else if (
     familia === "BAGUETE"
   ) {
-    return [
-      "PREPARACAO",
-      "EMBALAGEM-1",
-    ];
+    processos.push(
+      "PREPARACAO"
+    );
   }
 
   /*
-   * =========================
-   * KIT DE CORRER /
-   * SUPORTE DE TRILHO
-   * =========================
+   * DISTRIBUIÇÃO DAS USINAGENS
    *
-   * NÃO entra nas usinagens.
+   * PORTA -> USINAGEM DE PORTAS
+   * BATENTE TRAVESSA -> USINAGEM DE TRAVESSAS
+   * BATENTE PERNA -> CONTRATESTA + DOBRADIÇAS
+   * + TUPIA quando houver canal.
+   *
+   * ALIZAR / BAGUETE / KIT / SUPORTE / BANDEIRA
+   * não entram nessas usinagens.
    */
-  if (
-    familia === "KIT CORRER"
-  ) {
-    return [
-      "EMBALAGEM-1",
-    ];
+  processos.push(
+    ...processosUsinagemDoItem(
+      item
+    )
+  );
+
+  /*
+   * EMBALAGEM FINAL
+   */
+  const embalagem =
+    processoEmbalagemDoItem(
+      item,
+      false
+    );
+
+  if (embalagem) {
+    processos.push(
+      embalagem
+    );
   }
 
   /*
-   * FERRAGEM / OUTROS
-   *
-   * Não cria rota automática.
+   * Remove duplicidades e mantém
+   * a ordem oficial do PCP.
    */
-  return [];
+  return [
+    ...new Set(
+      processos
+    ),
+  ].sort(
+    (
+      a,
+      b
+    ) =>
+      PROCESSOS.indexOf(a) -
+      PROCESSOS.indexOf(b)
+  );
 }
 
 type Raw = {
