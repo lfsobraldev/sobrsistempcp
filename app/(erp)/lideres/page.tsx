@@ -1,9 +1,10 @@
 "use client";
 
 import { FileSpreadsheet } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS, leaderPlanRows, leaderReleasedRows } from "@/lib/metrics";
+import { PROCESSOS } from "@/lib/filter-parser";
 import { FAMILIAS } from "@/lib/sort";
 import { fmt, fmtPct, pct } from "@/lib/format";
 import { exportarSetor } from "@/lib/export";
@@ -13,9 +14,15 @@ import { FamiliaTabs, TableScroll } from "@/components/table-scroll";
 export default function Lideres() {
   const { pg, me } = useOps();
   const products = pg?.produtos || [];
-  const all = [...new Set(products.flatMap((p) => p.operacoes.map((o) => o.processo)))];
-  const procs = me?.processos?.length ? all.filter((x) => me.processos.includes(x)) : all;
+  const procs = me?.processos?.length
+    ? PROCESSOS.filter((x) => me.processos.includes(x))
+    : [...PROCESSOS];
   const [proc, setProc] = useState(procs[0] || "RECOBRIDORA");
+
+  useEffect(() => {
+    if (!procs.length) return;
+    if (!procs.includes(proc as (typeof PROCESSOS)[number])) setProc(procs[0]);
+  }, [procs.join("|"), proc]);
   const [tab, setTab] = useState<"PLAN" | "NOW">("PLAN");
   const [fam, setFam] = useState("TODAS");
 
