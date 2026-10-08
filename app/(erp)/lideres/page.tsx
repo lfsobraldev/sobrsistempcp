@@ -5,11 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS, leaderPlanRows, leaderReleasedRows } from "@/lib/metrics";
 import { PROCESSOS } from "@/lib/processos";
-import { FAMILIAS } from "@/lib/sort";
 import { fmt, fmtPct, pct } from "@/lib/format";
 import { exportarSetor } from "@/lib/export";
 import { Empty } from "@/components/ui";
-import { FamiliaTabs, TableScroll } from "@/components/table-scroll";
+import { TableScroll } from "@/components/table-scroll";
 
 export default function Lideres() {
   const { pg, me } = useOps();
@@ -24,12 +23,10 @@ export default function Lideres() {
     if (!procs.includes(proc as (typeof PROCESSOS)[number])) setProc(procs[0]);
   }, [procs.join("|"), proc]);
   const [tab, setTab] = useState<"PLAN" | "NOW">("PLAN");
-  const [fam, setFam] = useState("TODAS");
 
   const plan = useMemo(() => leaderPlanRows(products, proc), [products, proc]);
   const now = useMemo(() => leaderReleasedRows(products, proc), [products, proc]);
-  const base = tab === "PLAN" ? plan : now;
-  const rows = fam === "TODAS" ? base : base.filter((x) => x.familia === fam);
+  const rows = tab === "PLAN" ? plan : now;
 
   const soma = (l: typeof plan, k: "quantidade" | "produzido" | "saldo") => l.reduce((s, x) => s + x[k], 0);
   const planned = soma(plan, "quantidade");
@@ -70,8 +67,6 @@ export default function Lideres() {
           LIBERADO AGORA <b>{fmt(soma(now, "quantidade"))} pçs</b>
         </button>
       </div>
-
-      <FamiliaTabs value={fam} onChange={setFam} familias={FAMILIAS} />
 
       <TableScroll className="leader">
         <table>
