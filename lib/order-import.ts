@@ -2,6 +2,12 @@ import { getDocument } from "pdfjs-serverless";
 import * as XLSX from "xlsx";
 import type { ImportResult, Operacao, Produto } from "@/types/pcp";
 import { PROCESSOS } from "@/lib/filter-parser";
+import {
+  categoriaIndustrial,
+  familiaIndustrial,
+  temCanalBorracha,
+  tipoPeca,
+} from "@/lib/domain/industrial";
 
 const clean=(v:unknown)=>String(v??"").replace(/\s+/g," ").trim();
 const up=(v:unknown)=>clean(v).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
