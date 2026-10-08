@@ -57,6 +57,28 @@ function textoItem(item: SeqItem) {
 const textoDescricao = (item: SeqItem) =>
   pontuacao(item.descricao);
 
+/*
+ * Identidade principal da linha do Filtro 51.
+ *
+ * Descrição Modelo / Outras Características podem descrever o conjunto
+ * completo (por exemplo, "PORTA ...") mesmo quando a linha atual é um
+ * batente ou alizar. Por isso a classificação primeiro olha os campos
+ * próprios da peça e só usa o texto completo como último recurso.
+ */
+function textoPrimario(item: SeqItem) {
+  return pontuacao(
+    [
+      item.categoria,
+      item.descricao,
+      item.produto,
+      item.tipo,
+      item.canal,
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
+}
+
 /**
  * MAIOR -> MENOR.
  */
@@ -115,6 +137,9 @@ export function familiaIndustrial(
   const text =
     textoItem(item);
 
+  const primary =
+    textoPrimario(item);
+
   const desc =
     textoDescricao(item);
 
@@ -122,36 +147,33 @@ export function familiaIndustrial(
    * BANDEIRA
    */
   if (
-    /\bBANDEIRA\b/.test(text) ||
-    /\bBAND\b/.test(text)
+    /\bBANDEIRA\b/.test(primary) ||
+    /\bBAND\b/.test(primary) ||
+    /\bBANDEIRA\b/.test(text)
   ) {
     return "BANDEIRA";
   }
 
   /*
-   * KIT DE CORRER /
-   * SUPORTE DE TRILHO
-   *
-   * TEM QUE VIR ANTES
-   * DE ALIZAR.
+   * KIT DE CORRER / SUPORTE DE TRILHO
    */
   if (
-    /\bKIT DE CORRER\b/.test(text) ||
-    /\bKIT CORRER\b/.test(text) ||
-    /\bSUP(?:ORTE)?(?: DE)? TRILHO\b/.test(text) ||
-    /\bSUP(?: DE)? TRILHO\b/.test(text) ||
-    /\bSUP KIT\b/.test(text) ||
-    /\bPERNA KIT\b/.test(text) ||
-    /\bPE KIT\b/.test(text) ||
-    /\bAL KIT\b/.test(text) ||
-    /\bA KIT\b/.test(text) ||
-    /\bCA KIT\b/.test(text) ||
-    /\bCAB K COR\b/.test(text) ||
-    /\bP K COR\b/.test(text) ||
-    /\bS K COR\b/.test(text) ||
+    /\bKIT DE CORRER\b/.test(primary) ||
+    /\bKIT CORRER\b/.test(primary) ||
+    /\bSUP(?:ORTE)?(?: DE)? TRILHO\b/.test(primary) ||
+    /\bSUP(?: DE)? TRILHO\b/.test(primary) ||
+    /\bSUP KIT\b/.test(primary) ||
+    /\bPERNA KIT\b/.test(primary) ||
+    /\bPE KIT\b/.test(primary) ||
+    /\bAL KIT\b/.test(primary) ||
+    /\bA KIT\b/.test(primary) ||
+    /\bCA KIT\b/.test(primary) ||
+    /\bCAB K COR\b/.test(primary) ||
+    /\bP K COR\b/.test(primary) ||
+    /\bS K COR\b/.test(primary) ||
     (
-      /\bKIT\b/.test(text) &&
-      /\bCORRER\b/.test(text)
+      /\bKIT\b/.test(primary) &&
+      /\bCORRER\b/.test(primary)
     )
   ) {
     return "KIT CORRER";
@@ -159,31 +181,52 @@ export function familiaIndustrial(
 
   /*
    * FERRAGENS
-   *
-   * NÃO entram no PCP.
-   *
-   * Não classificamos
-   * DOBRADIÇA ou CONTRATESTA
-   * automaticamente como ferragem
-   * porque são também nomes das
-   * máquinas de usinagem de batente.
    */
   if (
-    /\bFERRAGEM\b/.test(text) ||
-    /\bFECHADURA\b/.test(text) ||
-    /\bPUXADOR\b/.test(text) ||
-    /\bROLDANA\b/.test(text)
+    /\bFERRAGEM\b/.test(primary) ||
+    /\bFECHADURA\b/.test(primary) ||
+    /\bPUXADOR\b/.test(primary) ||
+    /\bROLDANA\b/.test(primary)
   ) {
     return "FERRAGENS";
   }
 
   /*
-   * PORTAS
+   * BAGUETE
    */
   if (
-    /\b(PORTA|PORTAS)\b/.test(
-      text
-    ) ||
+    /\bBAGUETE\b/.test(primary) ||
+    /^BAG\b/.test(desc)
+  ) {
+    return "BAGUETE";
+  }
+
+  /*
+   * COMPONENTES DEVEM GANHAR DE "PORTA".
+   *
+   * Uma linha de batente/alizar pode carregar "PORTA" em Descrição Modelo.
+   * Antes isso fazia a peça entrar no meio das portas.
+   */
+  if (
+    /\bALIZAR(?:ES)?\b/.test(primary) ||
+    /\b(PE AL|PER ALI|P A|TR AL|TR ALI|TRA ALI|T A)\b/.test(primary) ||
+    /^A (STD|ULTRA)\b/.test(desc)
+  ) {
+    return "ALIZARES";
+  }
+
+  if (
+    /\b(BATENTE|MARCO)\b/.test(primary) ||
+    /\b(M P|M T|M CJ|M STD|M ULTRA)\b/.test(primary)
+  ) {
+    return "BATENTES";
+  }
+
+  /*
+   * PORTA EXPLÍCITA NA PRÓPRIA LINHA.
+   */
+  if (
+    /\b(PORTA|PORTAS)\b/.test(primary) ||
     /^FO POR\b/.test(desc) ||
     /^FO P\b/.test(desc) ||
     /^FP\b/.test(desc) ||
@@ -195,51 +238,26 @@ export function familiaIndustrial(
   }
 
   /*
-   * BAGUETE
-   */
-  if (
-    /\bBAGUETE\b/.test(text) ||
-    /^BAG\b/.test(desc)
-  ) {
-    return "BAGUETE";
-  }
-
-  /*
-   * ALIZARES
-   */
-  if (
-    /\bALIZAR(?:ES)?\b/.test(text) ||
-    /\b(PE AL|PER ALI|P A|TR AL|TR ALI|TRA ALI|T A)\b/.test(
-      text
-    ) ||
-    /^A (STD|ULTRA)\b/.test(desc)
-  ) {
-    return "ALIZARES";
-  }
-
-  /*
-   * BATENTES
-   */
-  if (
-    /\b(BATENTE|MARCO)\b/.test(
-      text
-    ) ||
-    /\b(M P|M T|M CJ|M STD|M ULTRA)\b/.test(
-      text
-    )
-  ) {
-    return "BATENTES";
-  }
-
-  /*
-   * PEÇA COMEÇANDO
-   * DIRETO PELA MEDIDA
+   * PEÇA COMEÇANDO DIRETO PELA MEDIDA.
+   *
+   * Larguras típicas de folha são muito maiores que larguras de
+   * batente/alizar. Isso evita contar uma porta numérica como batente.
    */
   if (
     /^\d+X\d+/.test(desc)
   ) {
-    const esp =
-      medidaDoItem(item)[2];
+    const [
+      ,
+      largura,
+      esp,
+    ] =
+      medidaDoItem(item);
+
+    if (
+      largura >= 450
+    ) {
+      return "PORTAS";
+    }
 
     if (
       esp > 0 &&
@@ -257,6 +275,18 @@ export function familiaIndustrial(
     return /\bRTO?\b/.test(desc)
       ? "ALIZARES"
       : "BATENTES";
+  }
+
+  /*
+   * ÚLTIMO RECURSO:
+   * usa o contexto completo somente quando a própria linha não identificou
+   * a peça. Assim ainda reconhecemos portas cujo modelo carrega o nome,
+   * sem deixar esse contexto sobrescrever batentes/alizares explícitos.
+   */
+  if (
+    /\b(PORTA|PORTAS)\b/.test(text)
+  ) {
+    return "PORTAS";
   }
 
   return "OUTROS";
