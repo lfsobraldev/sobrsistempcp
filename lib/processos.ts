@@ -38,6 +38,8 @@ export const PROCESSOS: string[] = [
 
   "EMBALAGEM-PORTAS",
   "EMBALAGEM-1",
+  "EMBALAGEM-2",
+  "EMBALAGEM-3",
 
   "EXPEDICAO",
 ];
