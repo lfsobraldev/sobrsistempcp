@@ -107,12 +107,20 @@ async function migrarProcessosLegados(
     join pcp_produtos p on p.id = o.produto_id
     where p.programacao_id = ${programacaoId}
       and o.processo in ('USINAGEM-1', 'USINAGEM-2')
-      and upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
+      and upper(coalesce(p.categoria, '')) like 'BATENTE%'
       and (
         (
+          trim(coalesce(p.rebaixo, '')) <> ''
+          and upper(trim(coalesce(p.rebaixo, ''))) not in (
+            'N/A', 'NA', 'N.A.', '-', '—', 'N/D', 'ND', 'NAO', 'NÃO',
+            'SEM', 'SEM REBAIXO', 'S REBAIXO'
+          )
+        )
+        or (
           trim(coalesce(p.canal, '')) <> ''
           and upper(trim(coalesce(p.canal, ''))) not in (
-            'N/A', 'NA', 'N.A.', '-', '—', 'N/D', 'ND', 'NAO', 'NÃO'
+            'N/A', 'NA', 'N.A.', '-', '—', 'N/D', 'ND', 'NAO', 'NÃO',
+            'SEM', 'SEM CANAL', 'S CANAL'
           )
         )
         or (
@@ -297,6 +305,71 @@ async function migrarProcessosLegados(
   `;
 
   /*
+   * GARANTE TUPIA PARA BATENTES E TRAVESSAS COM
+   * REBAIXO / CANAL / BORRACHA.
+   *
+   * Isso corrige também programações antigas já salvas.
+   */
+  await db`
+    insert into pcp_operacoes (
+      produto_id,
+      processo,
+      sequencia,
+      percentual,
+      status,
+      ordem_fila,
+      fixada,
+      quantidade_planejada,
+      quantidade_produzida,
+      quantidade_refugo,
+      atualizado_em
+    )
+    select
+      p.id,
+      'USINAGEM-TUPIA',
+      8,
+      0,
+      'PENDENTE',
+      0,
+      false,
+      p.quantidade,
+      0,
+      0,
+      now()
+    from pcp_produtos p
+    where p.programacao_id = ${programacaoId}
+      and upper(coalesce(p.categoria, '')) like 'BATENTE%'
+      and (
+        (
+          trim(coalesce(p.rebaixo, '')) <> ''
+          and upper(trim(coalesce(p.rebaixo, ''))) not in (
+            'N/A', 'NA', 'N.A.', '-', '—', 'N/D', 'ND',
+            'NAO', 'NÃO', 'SEM', 'SEM REBAIXO', 'S REBAIXO'
+          )
+        )
+        or (
+          trim(coalesce(p.canal, '')) <> ''
+          and upper(trim(coalesce(p.canal, ''))) not in (
+            'N/A', 'NA', 'N.A.', '-', '—', 'N/D', 'ND',
+            'NAO', 'NÃO', 'SEM', 'SEM CANAL', 'S CANAL'
+          )
+        )
+        or upper(coalesce(p.descricao, '')) like '%CANAL%'
+        or upper(coalesce(p.descricao, '')) like '%BORRACHA%'
+        or upper(coalesce(p.descricao, '')) like '%REBAIXO%'
+        or upper(coalesce(p.descricao, '')) ~ '(^|[^A-Z0-9])RB[ ]*[0-9]+'
+      )
+      and upper(coalesce(p.descricao, '')) not like '%SEM CANAL%'
+      and upper(coalesce(p.descricao, '')) not like '%SEM BORRACHA%'
+      and not exists (
+        select 1
+        from pcp_operacoes x
+        where x.produto_id = p.id
+          and x.processo = 'USINAGEM-TUPIA'
+      )
+  `;
+
+  /*
    * GARANTE EMBALAGEM PARA TODAS AS PEÇAS RECONHECIDAS,
    * MESMO QUANDO O CSV ORIGINAL VEIO SEM VALOR NA COLUNA EMBALAGEM.
    *
@@ -397,10 +470,13 @@ async function migrarProcessosLegados(
         or (
           o.processo in (
             'USINAGEM-CONTRATESTA',
-            'USINAGEM-DOBRADICAS',
-            'USINAGEM-TUPIA'
+            'USINAGEM-DOBRADICAS'
           )
           and upper(coalesce(p.categoria, '')) not like 'BATENTE%PERNA%'
+        )
+        or (
+          o.processo = 'USINAGEM-TUPIA'
+          and upper(coalesce(p.categoria, '')) not like 'BATENTE%'
         )
       )
   `;
