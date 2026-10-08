@@ -183,7 +183,14 @@ async function migrarProcessosLegados(
   `;
 
   /*
-   * Separa embalagem de portas e embalagem de componentes.
+   * SEPARA AS EMBALAGENS REAIS:
+   * - EMBALAGEM-PORTAS: portas e bandeiras
+   * - EMBALAGEM-1: pernas de batente
+   * - EMBALAGEM-2: travessas de batente
+   * - EMBALAGEM-3: alizares, travessas de alizar, kit, baguete e suporte trilho
+   *
+   * Também corrige programações antigas que estavam concentradas
+   * em EMBALAGEM ou EMBALAGEM-1.
    */
   await db`
     update pcp_operacoes o
@@ -192,45 +199,55 @@ async function migrarProcessosLegados(
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 'EMBALAGEM-PORTAS'
-        when upper(coalesce(p.categoria, '')) like 'BATENTE%'
-          or upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+        when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
+          then 'EMBALAGEM-1'
+        when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
+          then 'EMBALAGEM-2'
+        when upper(coalesce(p.categoria, '')) like 'ALIZAR%'
           or upper(coalesce(p.categoria, '')) like 'BAGUETE%'
           or upper(coalesce(p.categoria, '')) like 'KIT%'
           or upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
-          then 'EMBALAGEM-1'
+          or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
+          or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+          or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+          or upper(coalesce(p.descricao, '')) like '%BAGUETE%'
+          then 'EMBALAGEM-3'
         else o.processo
       end,
       sequencia = case
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 12
-        when upper(coalesce(p.categoria, '')) like 'BATENTE%'
-          or upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+        when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
+          then 13
+        when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
+          then 14
+        when upper(coalesce(p.categoria, '')) like 'ALIZAR%'
           or upper(coalesce(p.categoria, '')) like 'BAGUETE%'
           or upper(coalesce(p.categoria, '')) like 'KIT%'
           or upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
-          then 13
+          or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
+          or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+          or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+          or upper(coalesce(p.descricao, '')) like '%BAGUETE%'
+          then 15
         else o.sequencia
       end,
       atualizado_em = now()
     from pcp_produtos p
     where p.id = o.produto_id
       and p.programacao_id = ${programacaoId}
-      and o.processo = 'EMBALAGEM'
-      and (
-        upper(coalesce(p.categoria, '')) like 'PORTA%'
-        or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
-        or upper(coalesce(p.categoria, '')) like 'BATENTE%'
-        or upper(coalesce(p.categoria, '')) like 'ALIZAR%'
-        or upper(coalesce(p.categoria, '')) like 'BAGUETE%'
-        or upper(coalesce(p.categoria, '')) like 'KIT%'
-        or upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
+      and o.processo in (
+        'EMBALAGEM',
+        'EMBALAGEM-PORTAS',
+        'EMBALAGEM-1',
+        'EMBALAGEM-2',
+        'EMBALAGEM-3'
       )
   `;
 
   /*
-   * Remove resíduos de EMBALAGEM antiga que não pertencem
-   * a nenhuma das duas embalagens reais.
+   * Remove resíduos genéricos antigos que não conseguiram ser classificados.
    */
   await db`
     delete from pcp_operacoes o
@@ -370,11 +387,8 @@ async function migrarProcessosLegados(
   `;
 
   /*
-   * GARANTE EMBALAGEM PARA TODAS AS PEÇAS RECONHECIDAS,
-   * MESMO QUANDO O CSV ORIGINAL VEIO SEM VALOR NA COLUNA EMBALAGEM.
-   *
-   * Também cobre nomenclaturas como SUPORTE DE TRILHO que em
-   * programações antigas podem ter sido salvas como OUTROS.
+   * GARANTE A EMBALAGEM CORRETA MESMO QUANDO O CSV NÃO TROUXE
+   * A COLUNA EMBALAGEM PREENCHIDA.
    */
   await db`
     insert into pcp_operacoes (
@@ -396,13 +410,21 @@ async function migrarProcessosLegados(
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 'EMBALAGEM-PORTAS'
-        else 'EMBALAGEM-1'
+        when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
+          then 'EMBALAGEM-1'
+        when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
+          then 'EMBALAGEM-2'
+        else 'EMBALAGEM-3'
       end,
       case
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 12
-        else 13
+        when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
+          then 13
+        when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
+          then 14
+        else 15
       end,
       0,
       'PENDENTE',
@@ -417,7 +439,8 @@ async function migrarProcessosLegados(
       and (
         upper(coalesce(p.categoria, '')) like 'PORTA%'
         or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
-        or upper(coalesce(p.categoria, '')) like 'BATENTE%'
+        or upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
+        or upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
         or upper(coalesce(p.categoria, '')) like 'ALIZAR%'
         or upper(coalesce(p.categoria, '')) like 'BAGUETE%'
         or upper(coalesce(p.categoria, '')) like 'KIT%'
@@ -436,7 +459,11 @@ async function migrarProcessosLegados(
             when upper(coalesce(p.categoria, '')) like 'PORTA%'
               or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
               then 'EMBALAGEM-PORTAS'
-            else 'EMBALAGEM-1'
+            when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
+              then 'EMBALAGEM-1'
+            when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
+              then 'EMBALAGEM-2'
+            else 'EMBALAGEM-3'
           end
       )
   `;
