@@ -17,8 +17,20 @@ export const LABELS:
   PREPARACAO:
     "Preparação",
 
-  "USINAGEM-1":
-    "Usinagem 1",
+  "USINAGEM-PORTAS":
+    "Usinagem de Portas",
+
+  "USINAGEM-TRAVESSAS":
+    "Usinagem de Travessas",
+
+  "USINAGEM-CONTRATESTA":
+    "Usinagem Contratesta",
+
+  "USINAGEM-DOBRADICAS":
+    "Usinagem Dobradiças",
+
+  "USINAGEM-TUPIA":
+    "Tupia / Canal da Borracha",
 
   LIXAR:
     "Lixadeira",
@@ -29,22 +41,21 @@ export const LABELS:
   "RECOBRIDORA-2":
     "Recobridora 2",
 
-  "USINAGEM-2":
-    "Usinagem 2",
-
   LUSTRACAO:
     "Lustração",
 
   TERCEIROS:
     "Terceiros",
 
-  EMBALAGEM:
-    "Embalagem",
+  "EMBALAGEM-PORTAS":
+    "Embalagem de Portas",
+
+  "EMBALAGEM-1":
+    "Embalagem 1",
 
   EXPEDICAO:
     "Expedição",
 };
-
 export function atual(
   produto: Produto
 ) {
