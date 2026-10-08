@@ -183,10 +183,17 @@ export function familiaIndustrial(
    * FERRAGENS
    */
   if (
-    /\bFERRAGEM\b/.test(primary) ||
-    /\bFECHADURA\b/.test(primary) ||
-    /\bPUXADOR\b/.test(primary) ||
-    /\bROLDANA\b/.test(primary)
+    /\bFERRAGEM(?:NS)?\b/.test(primary) ||
+    /\bFECHADURA(?:S)?\b/.test(primary) ||
+    /\bDOBRADIC(?:A|AS)\b/.test(primary) ||
+    /\bDOBRADICA(?:S)?\b/.test(primary) ||
+    /\bDOBR\.?\s*(?:ACO|AÇO)?\b/.test(primary) ||
+    /\bFEC\.?\s*DOBR\.?\b/.test(primary) ||
+    /\bFEC\.?\b/.test(primary) ||
+    /\bPUXADOR(?:ES)?\b/.test(primary) ||
+    /\bROLDANA(?:S)?\b/.test(primary) ||
+    /\bTRINCO(?:S)?\b/.test(primary) ||
+    /\bPARAFUS(?:O|OS)\b/.test(primary)
   ) {
     return "FERRAGENS";
   }
@@ -209,7 +216,9 @@ export function familiaIndustrial(
    */
   if (
     /\bALIZAR(?:ES)?\b/.test(primary) ||
-    /\b(PE AL|PER ALI|P A|TR AL|TR ALI|TRA ALI|T A)\b/.test(primary) ||
+    /\bPERNA(?:S)?(?: DE)? ALIZAR(?:ES)?\b/.test(primary) ||
+    /\bTRAVESSA(?:S)?(?: DE)? ALIZAR(?:ES)?\b/.test(primary) ||
+    /\b(PE AL|PE ALI|PER AL|PER ALI|P A|TR AL|TR ALI|TRA ALI|T A)\b/.test(primary) ||
     /^A (STD|ULTRA)\b/.test(desc)
   ) {
     return "ALIZARES";
@@ -217,9 +226,29 @@ export function familiaIndustrial(
 
   if (
     /\b(BATENTE|MARCO)\b/.test(primary) ||
-    /\b(M P|M T|M CJ|M STD|M ULTRA)\b/.test(primary)
+    /\bPERNA(?:S)?(?: DE)? (?:BATENTE|MARCO)\b/.test(primary) ||
+    /\bTRAVESSA(?:S)?(?: DE)? (?:BATENTE|MARCO)\b/.test(primary) ||
+    /\b(PE BAT|PER BAT|P BAT|TR BAT|TRA BAT|M P|M T|M CJ|M STD|M ULTRA)\b/.test(primary)
   ) {
     return "BATENTES";
+  }
+
+  /*
+   * Linhas que chegam apenas como PERNA/TRAVESSA + medida.
+   * O perfil físico decide a família quando o texto não diz BATENTE/ALIZAR.
+   */
+  if (
+    /\b(PERNA|PERNAS|TRAVESSA|TRAVESSAS|TRAV)\b/.test(primary)
+  ) {
+    const [, largura, esp] = medidaDoItem(item);
+
+    if (esp > 0 && esp <= 20) {
+      return "ALIZARES";
+    }
+
+    if (esp >= 25 || (largura > 0 && largura <= 400)) {
+      return "BATENTES";
+    }
   }
 
   /*
