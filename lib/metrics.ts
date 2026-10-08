@@ -53,7 +53,13 @@ export const LABELS:
     "Embalagem de Portas",
 
   "EMBALAGEM-1":
-    "Embalagem 1",
+    "Embalagem 1 • Perna de batente",
+
+  "EMBALAGEM-2":
+    "Embalagem 2 • Travessa de batente",
+
+  "EMBALAGEM-3":
+    "Embalagem 3 • Alizar / Kit / Baguete",
 
   EXPEDICAO:
     "Expedição",
