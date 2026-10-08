@@ -56,19 +56,106 @@ export async function session(): Promise<Sessao | null> {
   const s = verifyToken(c.get("pcp_session")?.value);
   if (!s) return null;
 
-  const processEnv =
-    s.perfil === "LIDER" ? process.env.LIDER_PROCESSOS :
-    s.perfil === "APONTADOR" ? process.env.APONTADOR_PROCESSOS :
-    "";
+ const processEnv =
+  s.perfil ===
+  "LIDER"
+    ? process.env.LIDER_PROCESSOS
+    : s.perfil ===
+      "APONTADOR"
+    ? process.env.APONTADOR_PROCESSOS
+    : "";
 
-  s.processos = (processEnv || "")
-    .split(",")
-    .map(x => x.trim().toUpperCase())
-    .filter(Boolean);
+const recebidos =
+  (
+    processEnv ||
+    ""
+  )
+    .split(
+      ","
+    )
+    .map(
+      (
+        x
+      ) =>
+        x
+          .trim()
+          .toUpperCase()
+    )
+    .filter(
+      Boolean
+    );
 
-  return s;
+const processos =
+  new Set<string>();
+
+for (
+  const processo
+  of recebidos
+) {
+  /*
+   * COMPATIBILIDADE
+   * COM ENV ANTIGA.
+   */
+  if (
+    processo ===
+    "USINAGEM-1"
+  ) {
+    processos.add(
+      "USINAGEM-PORTAS"
+    );
+
+    processos.add(
+      "USINAGEM-TRAVESSAS"
+    );
+
+    continue;
+  }
+
+  if (
+    processo ===
+    "USINAGEM-2"
+  ) {
+    processos.add(
+      "USINAGEM-CONTRATESTA"
+    );
+
+    processos.add(
+      "USINAGEM-DOBRADICAS"
+    );
+
+    processos.add(
+      "USINAGEM-TUPIA"
+    );
+
+    continue;
+  }
+
+  if (
+    processo ===
+    "EMBALAGEM"
+  ) {
+    processos.add(
+      "EMBALAGEM-PORTAS"
+    );
+
+    processos.add(
+      "EMBALAGEM-1"
+    );
+
+    continue;
+  }
+
+  processos.add(
+    processo
+  );
 }
 
+s.processos =
+  [
+    ...processos,
+  ];
+
+return s;
 export async function requireRoles(roles: Perfil[]) {
   const s = await session();
   if (!s || !roles.includes(s.perfil)) throw new Error("SEM_PERMISSAO");
