@@ -9,83 +9,103 @@ import { fmt } from "@/lib/format";
 
 type Nivel = "NORMAL" | "ALTA" | "URGENTE";
 
+type PedidoResumo = {
+  pedido: string;
+  prioridade: Nivel;
+  saldo: number;
+  ofs: Set<string>;
+  processos: Set<string>;
+  alertas: Set<string>;
+};
+
 const PESO: Record<Nivel, number> = {
   NORMAL: 0,
   ALTA: 1,
   URGENTE: 2,
 };
 
+function nivel(v: string): Nivel {
+  return v === "URGENTE" || v === "ALTA" ? v : "NORMAL";
+}
+
 export default function Prioridades() {
   const { pg, refresh, toast } = useOps();
   const [busy, setBusy] = useState("");
 
-  const pedidos = useMemo(() => {
-    const map = new Map<string, any>();
+  const pedidos = useMemo<PedidoResumo[]>(() => {
+    const map = new Map<string, PedidoResumo>();
 
     for (const p of pg?.produtos || []) {
-      const atual =
-        p.operacoes.find((o) => o.status !== "CONCLUIDA") ||
-        null;
-
+      const atual = p.operacoes.find((o) => o.status !== "CONCLUIDA");
       if (!atual) continue;
 
       const saldo = Math.max(
         0,
-        atual.quantidadePlanejada - atual.quantidadeProduzida
+        Number(atual.quantidadePlanejada || 0) -
+          Number(atual.quantidadeProduzida || 0)
       );
 
-      const nivel = (p.prioridade || "NORMAL") as Nivel;
-      const x = map.get(p.pedido);
+      const prioridade = nivel(String(p.prioridade || "NORMAL"));
+      const existente = map.get(p.pedido);
 
-      if (x) {
-        x.saldo += saldo;
-        x.ofs.add(p.of);
-        x.processos.add(atual.processo);
-        if (PESO[nivel] > PESO[x.prioridade]) x.prioridade = nivel;
-        if (atual.status === "BLOQUEADA") x.alertas.add("BLOQUEADA");
-        if (atual.status === "DIVERGENCIA") x.alertas.add("DIVERGÊNCIA");
+      if (existente) {
+        existente.saldo += saldo;
+        if (p.of) existente.ofs.add(p.of);
+        existente.processos.add(atual.processo);
+
+        if (PESO[prioridade] > PESO[existente.prioridade]) {
+          existente.prioridade = prioridade;
+        }
+
+        if (atual.status === "BLOQUEADA") {
+          existente.alertas.add("BLOQUEADA");
+        }
+
+        if (atual.status === "DIVERGENCIA") {
+          existente.alertas.add("DIVERGÊNCIA");
+        }
       } else {
+        const alertas = new Set<string>();
+
+        if (atual.status === "BLOQUEADA") alertas.add("BLOQUEADA");
+        if (atual.status === "DIVERGENCIA") alertas.add("DIVERGÊNCIA");
+
         map.set(p.pedido, {
           pedido: p.pedido,
-          prioridade: nivel,
+          prioridade,
           saldo,
-          ofs: new Set(p.of ? [p.of] : []),
-          processos: new Set([atual.processo]),
-          alertas: new Set(
-            atual.status === "BLOQUEADA"
-              ? ["BLOQUEADA"]
-              : atual.status === "DIVERGENCIA"
-              ? ["DIVERGÊNCIA"]
-              : []
-          ),
+          ofs: new Set<string>(p.of ? [p.of] : []),
+          processos: new Set<string>([atual.processo]),
+          alertas,
         });
       }
     }
 
     return [...map.values()].sort(
       (a, b) =>
-        PESO[b.prioridade as Nivel] - PESO[a.prioridade as Nivel] ||
+        PESO[b.prioridade] - PESO[a.prioridade] ||
         b.alertas.size - a.alertas.size ||
-        String(a.pedido).localeCompare(String(b.pedido), "pt-BR", {
-          numeric: true,
-        })
+        a.pedido.localeCompare(b.pedido, "pt-BR", { numeric: true })
     );
   }, [pg]);
 
   async function alterar(pedido: string, prioridade: Nivel) {
     setBusy(pedido);
+
     try {
       const r = await fetch("/api/prioridades", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ pedido, prioridade }),
       });
+
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error);
+      if (!r.ok) throw new Error(j.error || "Falha ao alterar prioridade.");
+
       toast("success", `Pedido ${pedido}: ${prioridade}.`);
       await refresh();
     } catch (e: any) {
-      toast("error", e.message);
+      toast("error", e?.message || "Falha ao alterar prioridade.");
     } finally {
       setBusy("");
     }
@@ -93,13 +113,13 @@ export default function Prioridades() {
 
   function exportar() {
     const linhas = pedidos
-      .filter((x) => x.prioridade !== "NORMAL" || x.alertas.size)
+      .filter((x) => x.prioridade !== "NORMAL" || x.alertas.size > 0)
       .map((x) => ({
         Prioridade: x.prioridade,
         Pedido: x.pedido,
         OFs: [...x.ofs].join(", "),
         "Processo atual": [...x.processos]
-          .map((p) => LABELS[p] || p)
+          .map((proc) => LABELS[proc] || proc)
           .join(" / "),
         Saldo: x.saldo,
         Observação: [...x.alertas].join(" / "),
@@ -112,7 +132,7 @@ export default function Prioridades() {
   }
 
   const importantes = pedidos.filter(
-    (x) => x.prioridade !== "NORMAL" || x.alertas.size
+    (x) => x.prioridade !== "NORMAL" || x.alertas.size > 0
   );
 
   return (
@@ -121,14 +141,16 @@ export default function Prioridades() {
         <div>
           <span>CONTROLE DO TURNO</span>
           <h1>Prioridades</h1>
-          <p>Defina somente os pedidos que precisam passar na frente e imprima a orientação do turno.</p>
+          <p>Defina somente exceções que realmente precisam passar na frente.</p>
         </div>
+
         <div className="rowActions">
           <button className="secondary" onClick={refresh}>
             <RefreshCw /> Atualizar
           </button>
+
           <button className="primary" onClick={exportar}>
-            <FileSpreadsheet /> Exportar para imprimir
+            <FileSpreadsheet /> Exportar prioridades
           </button>
         </div>
       </div>
@@ -139,11 +161,13 @@ export default function Prioridades() {
           <b>{pedidos.length}</b>
           <small>na programação</small>
         </article>
+
         <article className={importantes.length ? "attention" : ""}>
           <span>COM PRIORIDADE</span>
           <b>{importantes.length}</b>
           <small>para orientar os líderes</small>
         </article>
+
         <article>
           <span>URGENTES</span>
           <b>{pedidos.filter((x) => x.prioridade === "URGENTE").length}</b>
@@ -164,40 +188,44 @@ export default function Prioridades() {
               <th>DEFINIR</th>
             </tr>
           </thead>
+
           <tbody>
             {pedidos.map((x) => (
               <tr key={x.pedido}>
                 <td>
-                  <span className={`priority p-${String(x.prioridade).toLowerCase()}`}>
+                  <span className={`priority p-${x.prioridade.toLowerCase()}`}>
                     {x.prioridade}
                   </span>
                 </td>
+
                 <td><b>{x.pedido}</b></td>
                 <td>{[...x.ofs].join(", ") || "-"}</td>
                 <td>
                   {[...x.processos]
-                    .map((p) => LABELS[String(p)] || String(p))
+                    .map((proc) => LABELS[proc] || proc)
                     .join(" / ")}
                 </td>
                 <td className="num"><b>{fmt(x.saldo)}</b></td>
                 <td>{[...x.alertas].join(" / ") || "-"}</td>
+
                 <td>
                   <div className="rowActions">
-                    {(["NORMAL", "ALTA", "URGENTE"] as Nivel[]).map((nivel) => (
+                    {(["NORMAL", "ALTA", "URGENTE"] as Nivel[]).map((n) => (
                       <button
-                        key={nivel}
-                        disabled={busy === x.pedido || x.prioridade === nivel}
-                        onClick={() => alterar(x.pedido, nivel)}
-                        title={nivel}
+                        key={n}
+                        disabled={busy === x.pedido || x.prioridade === n}
+                        onClick={() => alterar(x.pedido, n)}
+                        title={n}
                       >
                         <Flag />
-                        {nivel}
+                        {n}
                       </button>
                     ))}
                   </div>
                 </td>
               </tr>
             ))}
+
             {!pedidos.length && (
               <tr>
                 <td colSpan={7}>
