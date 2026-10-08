@@ -138,8 +138,8 @@ export function familiaIndustrial(
   if (
     /\bKIT DE CORRER\b/.test(text) ||
     /\bKIT CORRER\b/.test(text) ||
-    /\bSUP(?:ORTE)? TRILHO\b/.test(text) ||
-    /\bSUP TRILHO\b/.test(text) ||
+    /\bSUP(?:ORTE)?(?: DE)? TRILHO\b/.test(text) ||
+    /\bSUP(?: DE)? TRILHO\b/.test(text) ||
     /\bSUP KIT\b/.test(text) ||
     /\bPERNA KIT\b/.test(text) ||
     /\bPE KIT\b/.test(text) ||
@@ -181,12 +181,15 @@ export function familiaIndustrial(
    * PORTAS
    */
   if (
-    /\b(PORTA|PORTAS|FOLHA)\b/.test(
+    /\b(PORTA|PORTAS)\b/.test(
       text
     ) ||
-    /^(FO|FOL|FP|FPC|F P|F P P)\b/.test(
-      desc
-    )
+    /^FO POR\b/.test(desc) ||
+    /^FO P\b/.test(desc) ||
+    /^FP\b/.test(desc) ||
+    /^FPC\b/.test(desc) ||
+    /^FOL[ .]/.test(desc) ||
+    /^F P P\b/.test(desc)
   ) {
     return "PORTAS";
   }
@@ -342,10 +345,10 @@ export function categoriaIndustrial(
     familia === "KIT CORRER"
   ) {
     if (
-      /\bSUP(?:ORTE)? TRILHO\b/.test(
+      /\bSUP(?:ORTE)?(?: DE)? TRILHO\b/.test(
         text
       ) ||
-      /\bSUP TRILHO\b/.test(
+      /\bSUP(?: DE)? TRILHO\b/.test(
         text
       )
     ) {
@@ -435,6 +438,131 @@ export function temCanalBorracha(
  * Aqui transformamos isso nos
  * setores reais da fábrica.
  */
+export function processosUsinagemDoItem(
+  item: SeqItem
+): string[] {
+  const familia =
+    familiaIndustrial(item);
+
+  if (familia === "PORTAS") {
+    return [
+      "USINAGEM-PORTAS",
+    ];
+  }
+
+  if (familia !== "BATENTES") {
+    return [];
+  }
+
+  if (
+    tipoPeca(item) ===
+    "TRAVESSA"
+  ) {
+    return [
+      "USINAGEM-TRAVESSAS",
+    ];
+  }
+
+  const processos = [
+    "USINAGEM-CONTRATESTA",
+    "USINAGEM-DOBRADICAS",
+  ];
+
+  if (
+    temCanalBorracha(item)
+  ) {
+    processos.push(
+      "USINAGEM-TUPIA"
+    );
+  }
+
+  return processos;
+}
+
+export function ehComponenteEmbalagem1(
+  item: SeqItem
+) {
+  const familia =
+    familiaIndustrial(item);
+
+  if (
+    [
+      "BATENTES",
+      "ALIZARES",
+      "BAGUETE",
+      "KIT CORRER",
+    ].includes(familia)
+  ) {
+    return true;
+  }
+
+  if (
+    familia !== "OUTROS"
+  ) {
+    return false;
+  }
+
+  const text =
+    textoItem(item);
+
+  /*
+   * Componentes que podem aparecer com nomenclaturas
+   * diferentes no Consistem e não devem ser perdidos
+   * da Embalagem 1.
+   */
+  return (
+    /\bSUP(?:ORTE)?(?: DE)? TRILHO\b/.test(text) ||
+    /\bSUP(?:ORTE)? KIT\b/.test(text) ||
+    /\bKIT(?: DE)? CORRER\b/.test(text) ||
+    /\bCAB(?:ECEIRA)?(?: DO)? KIT\b/.test(text) ||
+    /\bPERNA(?: DO)? KIT\b/.test(text) ||
+    /\bTRAVESSA(?: DE)? ALIZAR\b/.test(text) ||
+    /\bPERNA(?: DE)? ALIZAR\b/.test(text) ||
+    /\bTRAVESSA(?: DE)? BATENTE\b/.test(text) ||
+    /\bPERNA(?: DE)? BATENTE\b/.test(text) ||
+    /\bBAGUETE\b/.test(text)
+  );
+}
+
+export function processoEmbalagemDoItem(
+  item: SeqItem,
+  incluirOutroComRota = false
+): string | null {
+  const familia =
+    familiaIndustrial(item);
+
+  if (
+    familia === "PORTAS" ||
+    familia === "BANDEIRA"
+  ) {
+    return "EMBALAGEM-PORTAS";
+  }
+
+  if (
+    ehComponenteEmbalagem1(item)
+  ) {
+    return "EMBALAGEM-1";
+  }
+
+  /*
+   * Se o próprio Consistem informou que um item OUTROS
+   * passa por EMBALAGEM, respeitamos a rota e o tratamos
+   * como componente da Embalagem 1. Ferragens continuam fora.
+   */
+  if (
+    incluirOutroComRota &&
+    familia === "OUTROS"
+  ) {
+    return "EMBALAGEM-1";
+  }
+
+  return null;
+}
+
+/*
+ * Converte uma coluna genérica do Consistem
+ * no setor/máquina real do PCP.
+ */
 export function processosOperacionaisDaFonte(
   item: SeqItem,
   processoFonte: string
@@ -442,133 +570,27 @@ export function processosOperacionaisDaFonte(
   const processo =
     norm(processoFonte);
 
-  const familia =
-    familiaIndustrial(item);
-
-  /*
-   * =========================
-   * USINAGENS
-   * =========================
-   */
   if (
     processo === "USINAGEM-1" ||
     processo === "USINAGEM-2"
   ) {
-    /*
-     * PORTAS
-     */
-    if (
-      familia === "PORTAS"
-    ) {
-      return [
-        "USINAGEM-PORTAS",
-      ];
-    }
-
-    /*
-     * BATENTES
-     */
-    if (
-      familia === "BATENTES"
-    ) {
-      /*
-       * TRAVESSA
-       */
-      if (
-        tipoPeca(item) ===
-        "TRAVESSA"
-      ) {
-        return [
-          "USINAGEM-TRAVESSAS",
-        ];
-      }
-
-      /*
-       * PERNA DE BATENTE
-       *
-       * passa:
-       * CONTRATESTA
-       * DOBRADIÇAS
-       *
-       * TUPIA somente
-       * quando houver canal.
-       */
-      const processos = [
-        "USINAGEM-CONTRATESTA",
-        "USINAGEM-DOBRADICAS",
-      ];
-
-      if (
-        temCanalBorracha(item)
-      ) {
-        processos.push(
-          "USINAGEM-TUPIA"
-        );
-      }
-
-      return processos;
-    }
-
-    /*
-     * NÃO ENTRAM NAS
-     * USINAGENS:
-     *
-     * ALIZAR
-     * BAGUETE
-     * KIT
-     * SUPORTE TRILHO
-     * BANDEIRA
-     * OUTROS
-     */
-    return [];
+    return processosUsinagemDoItem(item);
   }
 
-  /*
-   * =========================
-   * EMBALAGENS
-   * =========================
-   */
   if (
     processo === "EMBALAGEM"
   ) {
-    /*
-     * EMBALAGEM DE PORTAS
-     */
-    if (
-      familia === "PORTAS" ||
-      familia === "BANDEIRA"
-    ) {
-      return [
-        "EMBALAGEM-PORTAS",
-      ];
-    }
+    const embalagem =
+      processoEmbalagemDoItem(
+        item,
+        true
+      );
 
-    /*
-     * EMBALAGEM 1
-     *
-     * componentes
-     */
-    if (
-      [
-        "BATENTES",
-        "ALIZARES",
-        "BAGUETE",
-        "KIT CORRER",
-      ].includes(familia)
-    ) {
-      return [
-        "EMBALAGEM-1",
-      ];
-    }
-
-    return [];
+    return embalagem
+      ? [embalagem]
+      : [];
   }
 
-  /*
-   * Demais processos
-   * permanecem como vieram
-   * no filtro.
-   */
   return [
     processoFonte,
   ];
@@ -866,6 +888,23 @@ export function compareProduction(
   a: SeqItem,
   b: SeqItem
 ) {
+  /*
+   * A sequência industrial é soberana:
+   * PORTAS -> BATENTES -> ALIZARES -> BAGUETES
+   * -> KIT/SUPORTE -> BANDEIRAS -> OUTROS.
+   *
+   * Prioridade atua apenas dentro da mesma família.
+   */
+  const familyDiff =
+    familyRank(a) -
+    familyRank(b);
+
+  if (
+    familyDiff !== 0
+  ) {
+    return familyDiff;
+  }
+
   const priorityDiff =
     prioridadeRank(
       a.prioridade
@@ -878,16 +917,6 @@ export function compareProduction(
     priorityDiff !== 0
   ) {
     return priorityDiff;
-  }
-
-  const familyDiff =
-    familyRank(a) -
-    familyRank(b);
-
-  if (
-    familyDiff !== 0
-  ) {
-    return familyDiff;
   }
 
   return compareDentroDaFamilia(
