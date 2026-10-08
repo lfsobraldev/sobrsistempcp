@@ -21,53 +21,6 @@ type Inspecao = {
   criadoEm?: string;
 };
 
-type NaoConformidade = {
-  id: string;
-  codigo?: string;
-  categoria?: string;
-  tipoDefeito?: string;
-  gravidade?: string;
-  quantidadeAfetada?: number;
-  localDefeito?: string;
-  descricao?: string;
-  contencao?: string;
-  acaoCorretiva?: string;
-  responsavel?: string;
-  prazo?: string | null;
-  status?: string;
-  correcaoExecutada?: string;
-  corrigidoPor?: string;
-  corrigidoEm?: string | null;
-  reinspecaoResultado?: string;
-  reinspecaoUsuario?: string;
-  reinspecaoEm?: string | null;
-  reinspecaoObservacao?: string;
-  criadoPor?: string;
-  criadoEm?: string;
-};
-
-type Medicao = {
-  id: string;
-  caracteristica?: string;
-  nominal?: number | null;
-  toleranciaMin?: number | null;
-  toleranciaMax?: number | null;
-  medido?: number;
-  unidade?: string;
-  resultado?: string;
-  observacao?: string;
-  usuario?: string;
-  criadoEm?: string;
-};
-
-type Evento = {
-  id: number;
-  tipo?: string;
-  descricao?: string;
-  usuario?: string;
-  criadoEm?: string;
-};
-
 export type PalletRelatorio = {
   id: string;
   codigo: string;
@@ -98,9 +51,6 @@ export type PalletRelatorio = {
   fotos_count: number;
   fotos?: Foto[];
   inspecoes?: Inspecao[];
-  naoConformidades?: NaoConformidade[];
-  medicoes?: Medicao[];
-  eventos?: Evento[];
 };
 
 const DATA = new Intl.DateTimeFormat("pt-BR", {
@@ -118,17 +68,26 @@ function textoStatus(v?: string) {
   return String(v || "").replaceAll("_", " ");
 }
 
+const CHECK_LABELS: Record<string, string> = {
+  alinhamento: "Alinhamento",
+  amarracao: "Amarração",
+  calcos: "Calços / proteção",
+  avarias: "Sem avarias",
+  quantidade: "Quantidade",
+  identificacao: "Identificação",
+};
+
 function checklistTexto(checklist?: Record<string, boolean>) {
   if (!checklist) return "";
   return Object.entries(checklist)
-    .map(([k, ok]) => `${k}: ${ok ? "OK" : "NÃO"}`)
+    .map(([key, ok]) => `${CHECK_LABELS[key] || key}: ${ok ? "OK" : "PENDENTE"}`)
     .join(" | ");
 }
 
 function estiloCabecalho(row: any) {
   row.font = { bold: true };
   row.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
-  row.height = 28;
+  row.height = 26;
 }
 
 function bordas(ws: any) {
@@ -149,22 +108,10 @@ function bordas(ws: any) {
   });
 }
 
-function autoLargura(ws: any, min = 11, max = 42) {
-  ws.columns.forEach((col: any) => {
-    let width = min;
-    col.eachCell?.({ includeEmpty: true }, (cell: any) => {
-      const len = String(cell.value ?? "").length + 2;
-      width = Math.max(width, Math.min(max, len));
-    });
-    col.width = width;
-  });
-}
-
 async function imagemCompativel(dataUrl: string) {
   const m = String(dataUrl || "").match(
     /^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/i
   );
-
   if (!m) return null;
 
   const tipo = m[1].toLowerCase();
@@ -175,8 +122,6 @@ async function imagemCompativel(dataUrl: string) {
     return { base64: dataUrl, extension: "png" as const };
   }
 
-  // ExcelJS não trabalha de forma confiável com WebP.
-  // Converte para JPEG no navegador antes de inserir no XLSX.
   const img = await new Promise<HTMLImageElement>((resolve, reject) => {
     const i = new Image();
     i.onload = () => resolve(i);
@@ -195,15 +140,6 @@ async function imagemCompativel(dataUrl: string) {
   };
 }
 
-function adicionarTitulo(ws: any, titulo: string, colunas: number) {
-  ws.insertRow(1, [titulo]);
-  ws.mergeCells(1, 1, 1, Math.max(1, colunas));
-  const c = ws.getCell(1, 1);
-  c.font = { bold: true, size: 16 };
-  c.alignment = { vertical: "middle", horizontal: "left" };
-  ws.getRow(1).height = 30;
-}
-
 export async function baixarRelatorioPalletsExcel(
   pallets: PalletRelatorio[],
   nome = "Relatorio_Inspecao_Pallets"
@@ -215,265 +151,63 @@ export async function baixarRelatorioPalletsExcel(
   wb.creator = "Sobral PCP";
   wb.created = new Date();
 
-  const total = pallets.length;
-  const liberados = pallets.filter((p) => p.status === "LIBERADO").length;
-  const bloqueados = pallets.filter((p) => p.status === "BLOQUEADO").length;
-  const aguardando = pallets.filter((p) => p.status === "AGUARDANDO_INSPECAO").length;
-  const emLiberacao = pallets.filter((p) => p.status === "EM_LIBERACAO").length;
-  const fotosTotal = pallets.reduce((s, p) => s + (p.fotos?.length || 0), 0);
-  const inspecoesTotal = pallets.reduce((s, p) => s + (p.inspecoes?.length || 0), 0);
-  const ncTotal = pallets.reduce((s, p) => s + (p.naoConformidades?.length || 0), 0);
+  /*
+   * RELATÓRIO ENXUTO:
+   * somente o que importa para a inspeção do pallet.
+   *
+   * 1) INSPEÇÕES
+   * 2) FOTOS
+   */
+  const insp = wb.addWorksheet("INSPECOES");
+  insp.columns = [
+    { width: 14 },
+    { width: 16 },
+    { width: 28 },
+    { width: 18 },
+    { width: 18 },
+    { width: 54 },
+    { width: 42 },
+    { width: 22 },
+    { width: 20 },
+  ];
 
-  if (pallets.length === 1) {
-    const p = pallets[0];
-    const rel = wb.addWorksheet("RELATORIO PALLET");
-
-    rel.columns = [
-      { width: 24 },
-      { width: 34 },
-      { width: 24 },
-      { width: 34 },
-    ];
-
-    rel.mergeCells("A1:D1");
-    rel.getCell("A1").value =
-      `RELATÓRIO COMPLETO DE INSPEÇÃO • PALLET ${p.pallet || p.codigo}`;
-    rel.getCell("A1").font = { bold: true, size: 16 };
-    rel.getCell("A1").alignment = { vertical: "middle", horizontal: "left" };
-    rel.getRow(1).height = 32;
-
-    const dados: Array<[string, unknown, string, unknown]> = [
-      ["Pallet", p.pallet || "-", "Código", p.codigo || "-"],
-      ["Pedido", p.pedido || "-", "Cliente", p.cliente || "-"],
-      ["Filtro", p.filtro || "-", "Destino", p.destino || "-"],
-      ["Tipo", p.tipo_produto || "-", "Turno", p.turno || "-"],
-      ["Quantidade", Number(p.quantidade || 0), "Jogos", Number(p.jogos || 0)],
-      ["Montador", p.montador || "-", "Conferente", p.conferente || "-"],
-      ["Status final", textoStatus(p.status), "Bloqueio", p.bloqueio_motivo || "-"],
-      ["Qualidade", textoStatus(p.qualidade_status), "Responsável", p.qualidade_usuario || "-"],
-      ["Data Qualidade", data(p.qualidade_em), "Obs. Qualidade", p.qualidade_observacao || "-"],
-      ["MSAC", textoStatus(p.msac_status), "Responsável MSAC", p.msac_usuario || "-"],
-      ["Data MSAC", data(p.msac_em), "Obs. MSAC", p.msac_observacao || "-"],
-      ["Inspeções", p.inspecoes?.length || 0, "Fotos", p.fotos?.length || p.fotos_count || 0],
-      ["Não conformidades", p.naoConformidades?.length || 0, "Medições", p.medicoes?.length || 0],
-      ["Criado em", data(p.criado_em), "Atualizado em", data(p.atualizado_em)],
-      ["Observação geral", p.observacao || "-", "", ""],
-    ];
-
-    let row = 3;
-
-    for (const [a, b, c, d] of dados) {
-      rel.getCell(row, 1).value = a;
-      rel.getCell(row, 2).value = b as any;
-      rel.getCell(row, 3).value = c;
-      rel.getCell(row, 4).value = d as any;
-
-      rel.getCell(row, 1).font = { bold: true };
-      rel.getCell(row, 3).font = { bold: true };
-
-      for (let col = 1; col <= 4; col++) {
-        rel.getCell(row, col).alignment = {
-          vertical: "middle",
-          wrapText: true,
-        };
-        rel.getCell(row, col).border = {
-          top: { style: "thin" },
-          left: { style: "thin" },
-          bottom: { style: "thin" },
-          right: { style: "thin" },
-        };
-      }
-
-      row++;
-    }
-
-    row += 1;
-    rel.mergeCells(row, 1, row, 4);
-    rel.getCell(row, 1).value = "HISTÓRICO DE INSPEÇÕES";
-    rel.getCell(row, 1).font = { bold: true, size: 13 };
-    row++;
-
-    rel.getRow(row).values = [
-      "Data",
-      "Área",
-      "Resultado",
-      "Checklist / Observação",
-    ];
-    estiloCabecalho(rel.getRow(row));
-    row++;
-
-    const inspecoes = [...(p.inspecoes || [])].sort(
-      (a, b) =>
-        new Date(a.criadoEm || 0).getTime() -
-        new Date(b.criadoEm || 0).getTime()
-    );
-
-    if (!inspecoes.length) {
-      rel.addRow(["-", "-", "SEM INSPEÇÃO", "Nenhuma inspeção registrada."]);
-    } else {
-      for (const i of inspecoes) {
-        rel.getRow(row).values = [
-          data(i.criadoEm),
-          i.area || "-",
-          textoStatus(i.resultado),
-          [checklistTexto(i.checklist), i.observacao || ""]
-            .filter(Boolean)
-            .join(" • "),
-        ];
-        rel.getRow(row).height = 36;
-        row++;
-      }
-    }
-
-    row = rel.rowCount + 2;
-    rel.mergeCells(row, 1, row, 4);
-    rel.getCell(row, 1).value = "CONCLUSÃO DA INSPEÇÃO";
-    rel.getCell(row, 1).font = { bold: true, size: 13 };
-    row++;
-
-    const pendenciasInspecao = (p.inspecoes || []).filter(
-      (i) => String(i.resultado || "").toUpperCase() !== "CONFORME"
-    ).length;
-
-    const ncsAbertas = (p.naoConformidades || []).filter(
-      (n) => !["APROVADA", "ENCERRADA"].includes(String(n.status || "").toUpperCase())
-    ).length;
-
-    rel.getCell(row, 1).value = "Resultado";
-    rel.getCell(row, 1).font = { bold: true };
-    rel.getCell(row, 2).value =
-      p.status === "LIBERADO" && pendenciasInspecao === 0 && ncsAbertas === 0
-        ? "PALLET LIBERADO / INSPEÇÕES CONFORMES"
-        : p.status === "BLOQUEADO"
-        ? "PALLET BLOQUEADO"
-        : "PALLET COM CONTROLE PENDENTE";
-
-    rel.getCell(row, 3).value = "Pendências";
-    rel.getCell(row, 3).font = { bold: true };
-    rel.getCell(row, 4).value =
-      `${pendenciasInspecao} inspeção(ões) com pendência • ${ncsAbertas} NC(s) aberta(s)`;
-
-    for (let r = 3; r <= rel.rowCount; r++) {
-      rel.getRow(r).eachCell((cell: any) => {
-        cell.alignment = { vertical: "middle", wrapText: true };
-        cell.border = {
-          top: { style: "thin" },
-          left: { style: "thin" },
-          bottom: { style: "thin" },
-          right: { style: "thin" },
-        };
-      });
-    }
-
-    rel.views = [{ state: "frozen", ySplit: 1 }];
-    rel.pageSetup = {
-      orientation: "landscape",
-      fitToPage: true,
-      fitToWidth: 1,
-      fitToHeight: 0,
-    };
-  }
-
-  const resumo = wb.addWorksheet("RESUMO");
-  resumo.addRow(["Indicador", "Valor"]);
-  resumo.addRows([
-    ["Pallets no relatório", total],
-    ["Liberados", liberados],
-    ["Bloqueados", bloqueados],
-    ["Em liberação", emLiberacao],
-    ["Aguardando inspeção", aguardando],
-    ["Inspeções registradas", inspecoesTotal],
-    ["Não conformidades", ncTotal],
-    ["Fotos / evidências", fotosTotal],
-    ["Gerado em", new Date().toLocaleString("pt-BR")],
-  ]);
-  estiloCabecalho(resumo.getRow(1));
-  autoLargura(resumo, 18, 40);
-  bordas(resumo);
-
-  const ws = wb.addWorksheet("PALLETS");
-  ws.addRow([
-    "Nº Pallet",
-    "Código",
+  insp.addRow([
+    "Pallet",
     "Pedido",
     "Cliente",
-    "Filtro",
-    "Tipo de produto",
-    "Quantidade",
-    "Jogos",
-    "Turno",
-    "Destino",
-    "Montador",
-    "Conferente",
-    "Status",
-    "Qualidade",
-    "Usuário Qualidade",
-    "Data Qualidade",
-    "Obs. Qualidade",
-    "MSAC",
-    "Usuário MSAC",
-    "Data MSAC",
-    "Obs. MSAC",
-    "Bloqueio",
-    "Observação",
-    "Fotos",
-    "Criado em",
-    "Atualizado em",
-  ]);
-
-  for (const p of pallets) {
-    ws.addRow([
-      p.pallet,
-      p.codigo,
-      p.pedido,
-      p.cliente,
-      p.filtro,
-      p.tipo_produto,
-      Number(p.quantidade || 0),
-      Number(p.jogos || 0),
-      p.turno,
-      p.destino,
-      p.montador,
-      p.conferente,
-      textoStatus(p.status),
-      textoStatus(p.qualidade_status),
-      p.qualidade_usuario,
-      data(p.qualidade_em),
-      p.qualidade_observacao,
-      textoStatus(p.msac_status),
-      p.msac_usuario,
-      data(p.msac_em),
-      p.msac_observacao,
-      p.bloqueio_motivo,
-      p.observacao,
-      p.fotos?.length || p.fotos_count || 0,
-      data(p.criado_em),
-      data(p.atualizado_em),
-    ]);
-  }
-  estiloCabecalho(ws.getRow(1));
-  ws.views = [{ state: "frozen", ySplit: 1 }];
-  ws.autoFilter = { from: "A1", to: "Z1" };
-  autoLargura(ws, 11, 36);
-  bordas(ws);
-
-  const insp = wb.addWorksheet("INSPECOES");
-  insp.addRow([
-    "Nº Pallet",
-    "Pedido",
     "Área",
     "Resultado",
-    "Checklist",
+    "Itens verificados",
     "Observação",
-    "Usuário",
+    "Responsável",
     "Data",
   ]);
+  estiloCabecalho(insp.getRow(1));
+
   for (const p of pallets) {
-    for (const i of p.inspecoes || []) {
+    const inspecoes = p.inspecoes || [];
+
+    if (!inspecoes.length) {
       insp.addRow([
         p.pallet,
         p.pedido,
-        i.area || "",
+        p.cliente || "",
+        "",
+        "SEM INSPEÇÃO",
+        "",
+        "",
+        "",
+        "",
+      ]);
+      continue;
+    }
+
+    for (const i of inspecoes) {
+      insp.addRow([
+        p.pallet,
+        p.pedido,
+        p.cliente || "",
+        i.area || "QUALIDADE",
         textoStatus(i.resultado),
         checklistTexto(i.checklist),
         i.observacao || "",
@@ -482,160 +216,31 @@ export async function baixarRelatorioPalletsExcel(
       ]);
     }
   }
-  estiloCabecalho(insp.getRow(1));
+
   insp.views = [{ state: "frozen", ySplit: 1 }];
-  autoLargura(insp, 12, 48);
   bordas(insp);
 
-  const nc = wb.addWorksheet("NAO CONFORMIDADES");
-  nc.addRow([
-    "Nº Pallet",
-    "Pedido",
-    "Código NC",
-    "Categoria",
-    "Defeito",
-    "Gravidade",
-    "Qtd afetada",
-    "Local",
-    "Descrição",
-    "Contenção",
-    "Ação corretiva",
-    "Responsável",
-    "Prazo",
-    "Status",
-    "Correção executada",
-    "Corrigido por",
-    "Corrigido em",
-    "Reinspeção",
-    "Usuário reinspeção",
-    "Data reinspeção",
-    "Obs. reinspeção",
-    "Criado por",
-    "Criado em",
-  ]);
-  for (const p of pallets) {
-    for (const n of p.naoConformidades || []) {
-      nc.addRow([
-        p.pallet,
-        p.pedido,
-        n.codigo || "",
-        n.categoria || "",
-        n.tipoDefeito || "",
-        n.gravidade || "",
-        Number(n.quantidadeAfetada || 0),
-        n.localDefeito || "",
-        n.descricao || "",
-        n.contencao || "",
-        n.acaoCorretiva || "",
-        n.responsavel || "",
-        data(n.prazo),
-        textoStatus(n.status),
-        n.correcaoExecutada || "",
-        n.corrigidoPor || "",
-        data(n.corrigidoEm),
-        textoStatus(n.reinspecaoResultado),
-        n.reinspecaoUsuario || "",
-        data(n.reinspecaoEm),
-        n.reinspecaoObservacao || "",
-        n.criadoPor || "",
-        data(n.criadoEm),
-      ]);
-    }
-  }
-  estiloCabecalho(nc.getRow(1));
-  nc.views = [{ state: "frozen", ySplit: 1 }];
-  autoLargura(nc, 12, 48);
-  bordas(nc);
-
-  const med = wb.addWorksheet("MEDICOES");
-  med.addRow([
-    "Nº Pallet",
-    "Pedido",
-    "Característica",
-    "Nominal",
-    "Tol. mín.",
-    "Tol. máx.",
-    "Medido",
-    "Unidade",
-    "Resultado",
-    "Observação",
-    "Usuário",
-    "Data",
-  ]);
-  for (const p of pallets) {
-    for (const m of p.medicoes || []) {
-      med.addRow([
-        p.pallet,
-        p.pedido,
-        m.caracteristica || "",
-        m.nominal ?? "",
-        m.toleranciaMin ?? "",
-        m.toleranciaMax ?? "",
-        m.medido ?? "",
-        m.unidade || "",
-        textoStatus(m.resultado),
-        m.observacao || "",
-        m.usuario || "",
-        data(m.criadoEm),
-      ]);
-    }
-  }
-  estiloCabecalho(med.getRow(1));
-  med.views = [{ state: "frozen", ySplit: 1 }];
-  autoLargura(med, 12, 42);
-  bordas(med);
-
-  const hist = wb.addWorksheet("RASTREABILIDADE");
-  hist.addRow([
-    "Nº Pallet",
-    "Pedido",
-    "Evento",
-    "Descrição",
-    "Usuário",
-    "Data",
-  ]);
-  for (const p of pallets) {
-    for (const e of p.eventos || []) {
-      hist.addRow([
-        p.pallet,
-        p.pedido,
-        textoStatus(e.tipo),
-        e.descricao || "",
-        e.usuario || "",
-        data(e.criadoEm),
-      ]);
-    }
-  }
-  estiloCabecalho(hist.getRow(1));
-  hist.views = [{ state: "frozen", ySplit: 1 }];
-  autoLargura(hist, 12, 50);
-  bordas(hist);
-
-  /*
-   * Evidências fotográficas incorporadas ao próprio Excel.
-   * Cada foto mostra pallet, pedido, área, tipo, usuário, data e legenda.
-   */
   const fotos = wb.addWorksheet("FOTOS");
   fotos.columns = [
+    { width: 14 },
     { width: 16 },
+    { width: 28 },
     { width: 18 },
-    { width: 18 },
-    { width: 18 },
-    { width: 26 },
     { width: 22 },
-    { width: 24 },
+    { width: 20 },
     { width: 38 },
+    { width: 42 },
   ];
 
   fotos.addRow([
-    "Nº Pallet",
+    "Pallet",
     "Pedido",
+    "Cliente",
     "Área",
-    "Tipo",
-    "Usuário",
+    "Responsável",
     "Data",
-    "NC",
-    "Legenda / Evidência",
+    "Observação",
+    "Imagem",
   ]);
   estiloCabecalho(fotos.getRow(1));
 
@@ -648,32 +253,30 @@ export async function baixarRelatorioPalletsExcel(
       fotos.addRow([
         p.pallet,
         p.pedido,
-        "",
-        "",
+        p.cliente || "",
         "",
         "",
         "",
         "Sem foto registrada",
+        "",
       ]);
       linha++;
       continue;
     }
 
-    for (let idx = 0; idx < evidencias.length; idx++) {
-      const f = evidencias[idx];
-
+    for (const f of evidencias) {
       fotos.addRow([
         p.pallet,
         p.pedido,
-        f.area || "",
-        f.tipo || "GERAL",
+        p.cliente || "",
+        f.area || "QUALIDADE",
         f.usuario || "",
         data(f.criadoEm),
-        f.ncId || "",
         f.legenda || "",
+        "",
       ]);
 
-      fotos.getRow(linha).height = 125;
+      fotos.getRow(linha).height = 120;
 
       try {
         const imagem = await imagemCompativel(f.dataUrl);
@@ -683,29 +286,21 @@ export async function baixarRelatorioPalletsExcel(
             extension: imagem.extension,
           });
 
-          /*
-           * Coloca a imagem abaixo da linha de metadados,
-           * ocupando uma área ampla e legível.
-           */
           fotos.addImage(id, {
-            tl: { col: 8, row: linha - 1 },
-            ext: { width: 240, height: 160 },
+            tl: { col: 7, row: linha - 1 },
+            ext: { width: 250, height: 150 },
           });
-          fotos.getColumn(9).width = 36;
         }
       } catch {
-        // O relatório continua sendo gerado mesmo que uma foto isolada falhe.
+        fotos.getCell(linha, 8).value = "Imagem indisponível";
       }
 
       linha++;
     }
   }
 
-  fotos.getCell("I1").value = "Imagem";
-  fotos.getCell("I1").font = { bold: true };
-  fotos.getCell("I1").alignment = { horizontal: "center" };
-  bordas(fotos);
   fotos.views = [{ state: "frozen", ySplit: 1 }];
+  bordas(fotos);
 
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
