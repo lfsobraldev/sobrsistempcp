@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Factory, LayoutDashboard, UploadCloud, ClipboardCheck, History, Settings,
-  Flag, ShieldCheck, LogOut, RefreshCw, UsersRound, AlertTriangle,
+  Flag, ShieldCheck, LogOut, RefreshCw, UsersRound, AlertTriangle, Boxes,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -29,6 +29,9 @@ const menus:MenuGroup[]=[
   {label:"QUALIDADE",items:[
     {path:"/inspecao-pallets",label:"Pallets",icon:ShieldCheck},
   ]},
+  {label:"EXPEDIÇÃO",items:[
+    {path:"/romaneios",label:"Romaneios",icon:Boxes},
+  ]},
   {label:"CONTROLE",items:[
     {path:"/historico",label:"Histórico",icon:History},
   ]},
@@ -46,13 +49,14 @@ function allowed(role:string,path:string){
     "/lideres",
     "/apontamentos",
     "/inspecao-pallets",
+    "/romaneios",
     "/historico",
     "/configuracoes",
   ];
 
   if(role==="PCP")return pcp.includes(path);
-  if(role==="GERENTE")return ["/dashboard","/prioridades","/criticos","/lideres","/inspecao-pallets","/historico"].includes(path);
-  if(role==="ENCARREGADO")return ["/dashboard","/prioridades","/criticos","/lideres","/inspecao-pallets"].includes(path);
+  if(role==="GERENTE")return ["/dashboard","/prioridades","/criticos","/lideres","/inspecao-pallets","/romaneios","/historico"].includes(path);
+  if(role==="ENCARREGADO")return ["/dashboard","/prioridades","/criticos","/lideres","/inspecao-pallets","/romaneios"].includes(path);
   if(role==="LIDER")return ["/lideres"].includes(path);
   if(role==="APONTADOR")return ["/apontamentos"].includes(path);
   if(role==="QUALIDADE")return ["/dashboard","/inspecao-pallets"].includes(path);
