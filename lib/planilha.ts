@@ -2375,8 +2375,9 @@ function montarPrioridades(
             12,
 
           bold:
-            cell.col <=
-            2,
+            Number(
+              (cell as unknown as { col?: number }).col || 0
+            ) <= 2,
         };
 
         cell.alignment = {
