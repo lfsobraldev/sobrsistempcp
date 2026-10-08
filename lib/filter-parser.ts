@@ -8,6 +8,7 @@ import {
 
 import {
   categoriaIndustrial,
+  ehFerragem,
   processoEmbalagemDoItem,
   processosOperacionaisDaFonte,
 } from "@/lib/domain/industrial";
@@ -1134,6 +1135,15 @@ export async function parseFiltro(
       categoriaIndustrial(
         base
       );
+
+    /*
+     * Ferragens não fazem parte deste PCP.
+     * Ignora a linha por completo: não entra em telas, indicadores,
+     * riscos, filas, planilhas ou relatórios.
+     */
+    if (ehFerragem(base)) {
+      continue;
+    }
 
     /*
      * PRIMEIRO:
