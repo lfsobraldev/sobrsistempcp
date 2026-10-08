@@ -212,24 +212,92 @@ function isRouteValue(
 }
 
 function medida(
-  t: string
+  ...valores: unknown[]
 ) {
-  const d =
-    up(
-      t
-    ).replace(
-      /\s*[X×]\s*/g,
-      "X"
-    );
+  /*
+   * A medida não aparece sempre na mesma coluna do Filtro.
+   * Alguns itens trazem a dimensão em Descrição, outros em
+   * Descrição Modelo ou Outras Características.
+   *
+   * Também aceitamos:
+   * 2110x130x30
+   * 2110 X 130 X 30
+   * 2110×130×30
+   * 2110*130*30
+   * 2110x130
+   */
+  const textos =
+    valores
+      .map((v) => up(v))
+      .filter(Boolean);
 
-  const m =
-    d.match(
-      /(\d{3,4})X(\d{2,4})X(\d{1,3})/
-    );
+  const normalizarNumero = (v: string) => {
+    const n =
+      Number(
+        v.replace(",", ".")
+      );
 
-  return m
-    ? `${m[1]}x${m[2]}x${m[3]}`
-    : "";
+    if (!Number.isFinite(n)) {
+      return v;
+    }
+
+    return Number.isInteger(n)
+      ? String(n)
+      : String(n).replace(".", ",");
+  };
+
+  for (const texto of textos) {
+    const d =
+      texto
+        .replace(/\bMM\b/g, " ")
+        .replace(/\s*[X×*]\s*/g, "X");
+
+    /*
+     * Primeiro procura 3 dimensões.
+     */
+    const tripla =
+      d.match(
+        /(^|[^0-9])([0-9]{2,4}(?:[.,][0-9]+)?)X([0-9]{2,4}(?:[.,][0-9]+)?)X([0-9]{1,4}(?:[.,][0-9]+)?)(?=$|[^0-9])/
+      );
+
+    if (tripla) {
+      return [
+        normalizarNumero(tripla[2]),
+        normalizarNumero(tripla[3]),
+        normalizarNumero(tripla[4]),
+      ].join("x");
+    }
+
+    /*
+     * Depois aceita 2 dimensões.
+     * Não inventamos espessura quando ela não existe no arquivo.
+     */
+    const dupla =
+      d.match(
+        /(^|[^0-9])([0-9]{2,4}(?:[.,][0-9]+)?)X([0-9]{2,4}(?:[.,][0-9]+)?)(?=$|[^0-9X])/
+      );
+
+    if (dupla) {
+      return [
+        normalizarNumero(dupla[2]),
+        normalizarNumero(dupla[3]),
+      ].join("x");
+    }
+  }
+
+  return "";
+}
+
+function medidaLinha(
+  r: Record<string, string>
+) {
+  return medida(
+    r["Descrição"],
+    r["Descrição Modelo"],
+    r["Outras Características"],
+    r["Produto"],
+    r["Tipo"]
+  );
 }
 
 function material(
@@ -714,12 +782,8 @@ export async function parseFiltro(
         ),
 
       medida:
-        medida(
-          clean(
-            r[
-              "Descrição"
-            ]
-          )
+        medidaLinha(
+          r
         ),
 
       prioridade:
