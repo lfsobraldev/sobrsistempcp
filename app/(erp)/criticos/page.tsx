@@ -24,10 +24,10 @@ export default function Criticos() {
       <div className="pageTitle">
         <div>
           <span>OPERAÇÃO</span>
-          <h1>Itens Críticos</h1>
-          <p>{fmt(lista.length)} itens exigem atenção. Ordenados por gravidade.</p>
+          <h1>Pedidos em Risco</h1>
+          <p>{fmt(lista.length)} item(ns) exigem atenção antes de virarem atraso.</p>
         </div>
-        <button className="secondary" onClick={() => exportarExcel([{ nome: "Críticos", linhas: rows.map((c) => ({ Motivos: c.motivos.join(" | "), Gravidade: c.gravidade, ...linhaOp(c.p, c.o) })) }], "Criticos")}>
+        <button className="secondary" onClick={() => exportarExcel([{ nome: "Pedidos em Risco", linhas: rows.map((c) => ({ Motivos: c.motivos.join(" | "), Gravidade: c.gravidade, ...linhaOp(c.p, c.o) })) }], "Pedidos_em_Risco")}>
           <FileSpreadsheet />Exportar Excel
         </button>
       </div>
@@ -56,7 +56,7 @@ export default function Criticos() {
             ))}
           </tbody>
         </table>
-        {!rows.length && <Empty title="Nenhum item crítico no momento." />}
+        {!rows.length && <Empty title="Nenhum pedido em risco no momento." />}
       </TableScroll>
     </>
   );
