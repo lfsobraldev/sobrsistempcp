@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import type { Andon, Programacao, Sessao } from "@/types/pcp";
+import { produtoEntraPCP } from "@/lib/sort";
 
 type Toast = {
   id: number;
@@ -69,7 +70,18 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
         fetch("/api/andon", { cache: "no-store" }),
       ]);
 
-      if (a.ok && mounted.current) setPg((await a.json()).programacao);
+      if (a.ok && mounted.current) {
+        const programacao = (await a.json()).programacao as Programacao | null;
+
+        if (programacao) {
+          setPg({
+            ...programacao,
+            produtos: (programacao.produtos || []).filter(produtoEntraPCP),
+          });
+        } else {
+          setPg(null);
+        }
+      }
       if (c.ok && mounted.current) setAndon((await c.json()).itens || []);
       if (mounted.current) setLastSync(new Date());
     } finally {
