@@ -616,21 +616,36 @@ export function processoEmbalagemDoItem(
   }
 
   if (
-    ehComponenteEmbalagem1(item)
+    familia === "BATENTES"
   ) {
-    return "EMBALAGEM-1";
+    return tipoPeca(item) === "TRAVESSA"
+      ? "EMBALAGEM-2"
+      : "EMBALAGEM-1";
   }
 
-  /*
-   * Se o próprio Consistem informou que um item OUTROS
-   * passa por EMBALAGEM, respeitamos a rota e o tratamos
-   * como componente da Embalagem 1. Ferragens continuam fora.
-   */
+  if (
+    familia === "ALIZARES" ||
+    familia === "BAGUETE" ||
+    familia === "KIT CORRER"
+  ) {
+    return "EMBALAGEM-3";
+  }
+
   if (
     incluirOutroComRota &&
     familia === "OUTROS"
   ) {
-    return "EMBALAGEM-1";
+    const text = textoItem(item);
+
+    if (
+      /\bSUP(?:ORTE)?(?: DE)? TRILHO\b/.test(text) ||
+      /\bSUP(?:ORTE)? KIT\b/.test(text) ||
+      /\bKIT(?: DE)? CORRER\b/.test(text) ||
+      /\bBAGUETE\b/.test(text) ||
+      /\bALIZAR\b/.test(text)
+    ) {
+      return "EMBALAGEM-3";
+    }
   }
 
   return null;
