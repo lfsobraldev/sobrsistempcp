@@ -577,6 +577,48 @@ export function processosOperacionaisDaFonte(
     return processosUsinagemDoItem(item);
   }
 
+  /*
+   * RECOBRIDORAS REAIS
+   *
+   * RECOBRIDORA 1
+   * → BATENTES (PERNAS + TRAVESSAS)
+   *
+   * RECOBRIDORA 2
+   * → ALIZARES (PERNAS + TRAVESSAS)
+   * → BAGUETES
+   * → KIT DE CORRER / SUPORTE DE TRILHO
+   *
+   * A peça manda na máquina; não mantemos uma peça
+   * na recobridora errada só porque a coluna veio preenchida.
+   */
+  if (
+    processo === "RECOBRIDORA" ||
+    processo === "RECOBRIDORA-2"
+  ) {
+    const familia =
+      familiaIndustrial(item);
+
+    if (
+      familia === "BATENTES"
+    ) {
+      return [
+        "RECOBRIDORA",
+      ];
+    }
+
+    if (
+      familia === "ALIZARES" ||
+      familia === "BAGUETE" ||
+      familia === "KIT CORRER"
+    ) {
+      return [
+        "RECOBRIDORA-2",
+      ];
+    }
+
+    return [];
+  }
+
   if (
     processo === "EMBALAGEM"
   ) {
