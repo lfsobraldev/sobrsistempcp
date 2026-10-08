@@ -2,8 +2,11 @@ export type SeqItem = {
   prioridade?: string;
   categoria?: string;
   descricao?: string;
+  descricaoModelo?: string;
+  outrasCaracteristicas?: string;
   produto?: string;
   tipo?: string;
+  canal?: string;
   material?: string;
   acabamento?: string;
   cor?: string;
@@ -31,27 +34,36 @@ const norm = (value: unknown) =>
     .trim();
 
 const pontuacao = (value: unknown) =>
-  norm(value).replace(/[^A-Z0-9]+/g, " ").trim();
+  norm(value)
+    .replace(/[^A-Z0-9]+/g, " ")
+    .trim();
 
 function textoItem(item: SeqItem) {
   return pontuacao(
-    [item.categoria, item.descricao, item.produto, item.tipo]
+    [
+      item.categoria,
+      item.descricao,
+      item.descricaoModelo,
+      item.outrasCaracteristicas,
+      item.produto,
+      item.tipo,
+      item.canal,
+    ]
       .filter(Boolean)
       .join(" ")
   );
 }
 
-/** Apenas a descrição, sem pontuação (P.A. -> P A). Usada em testes de prefixo. */
-const textoDescricao = (item: SeqItem) => pontuacao(item.descricao);
+const textoDescricao = (item: SeqItem) =>
+  pontuacao(item.descricao);
 
 /**
- * REGRA DE LARGURA: "ASC" = da MENOR para a MAIOR largura.
- * Para inverter (maior -> menor) basta trocar para "DESC".
- * Largura = segunda dimensão da medida (CxLxE).
+ * MAIOR -> MENOR.
  */
-export const LARGURA_ORDEM: "ASC" | "DESC" = "DESC";
+export const LARGURA_ORDEM:
+  | "ASC"
+  | "DESC" = "DESC";
 
-/** Abaixo deste comprimento (mm) a peça sem identificação é tratada como travessa. */
 const LIMITE_TRAVESSA = 1500;
 
 const MEDIDA =
@@ -60,143 +72,545 @@ const MEDIDA =
 export function parseMeasure(
   value: unknown
 ): [number, number, number] {
-  const match = String(value ?? "").match(MEDIDA);
+  const match =
+    String(value ?? "").match(MEDIDA);
 
   if (!match) {
     return [0, 0, 0];
   }
 
-  const n = (v?: string) => (v ? Number(v.replace(",", ".")) : 0);
+  const n = (v?: string) =>
+    v
+      ? Number(v.replace(",", "."))
+      : 0;
 
-  return [n(match[1]), n(match[2]), n(match[3])];
+  return [
+    n(match[1]),
+    n(match[2]),
+    n(match[3]),
+  ];
 }
 
-/** Medida do item; se o campo medida estiver vazio, lê da descrição (inclusive truncada: 2100X700X). */
-export function medidaDoItem(item: SeqItem): [number, number, number] {
-  const direta = parseMeasure(item.medida);
+export function medidaDoItem(
+  item: SeqItem
+): [number, number, number] {
+  const direta =
+    parseMeasure(item.medida);
 
-  if (direta[0] > 0 && direta[1] > 0) {
+  if (
+    direta[0] > 0 &&
+    direta[1] > 0
+  ) {
     return direta;
   }
 
-  return parseMeasure(item.descricao);
+  return parseMeasure(
+    item.descricao
+  );
 }
 
 export function familiaIndustrial(
   item: SeqItem
 ): FamiliaIndustrial {
-  const text = textoItem(item);
-  const desc = textoDescricao(item);
+  const text =
+    textoItem(item);
 
-  // BANDEIRA
-  if (/\bBANDEIRA\b/.test(text) || /\bBAND\b/.test(text)) {
+  const desc =
+    textoDescricao(item);
+
+  /*
+   * BANDEIRA
+   */
+  if (
+    /\bBANDEIRA\b/.test(text) ||
+    /\bBAND\b/.test(text)
+  ) {
     return "BANDEIRA";
   }
 
-  // KIT DE CORRER / SUPORTE DE TRILHO (antes de alizar/batente: "P A KIT DE CORRER")
+  /*
+   * KIT DE CORRER /
+   * SUPORTE DE TRILHO
+   *
+   * TEM QUE VIR ANTES
+   * DE ALIZAR.
+   */
   if (
-    /\bKIT\b/.test(text) ||
     /\bKIT DE CORRER\b/.test(text) ||
-    /\bSUP(ORTE)? TRILHO\b/.test(text) ||
-    /\bTRILHO\b/.test(text)
+    /\bKIT CORRER\b/.test(text) ||
+    /\bSUP(?:ORTE)? TRILHO\b/.test(text) ||
+    /\bSUP TRILHO\b/.test(text) ||
+    /\bSUP KIT\b/.test(text) ||
+    /\bPERNA KIT\b/.test(text) ||
+    /\bPE KIT\b/.test(text) ||
+    /\bAL KIT\b/.test(text) ||
+    /\bA KIT\b/.test(text) ||
+    /\bCA KIT\b/.test(text) ||
+    /\bCAB K COR\b/.test(text) ||
+    /\bP K COR\b/.test(text) ||
+    /\bS K COR\b/.test(text) ||
+    (
+      /\bKIT\b/.test(text) &&
+      /\bCORRER\b/.test(text)
+    )
   ) {
     return "KIT CORRER";
   }
 
-  // FERRAGENS - NÃO ENTRAM NO PCP
+  /*
+   * FERRAGENS
+   *
+   * NÃO entram no PCP.
+   *
+   * Não classificamos
+   * DOBRADIÇA ou CONTRATESTA
+   * automaticamente como ferragem
+   * porque são também nomes das
+   * máquinas de usinagem de batente.
+   */
   if (
     /\bFERRAGEM\b/.test(text) ||
-    /\bDOBRADICA\b/.test(text) ||
-    /\bDOB\b/.test(text) ||
-    /\bDOBR\b/.test(text) ||
     /\bFECHADURA\b/.test(text) ||
-    /\bFEC\b/.test(text) ||
-    /\bCONTRA ?TESTA\b/.test(text) ||
     /\bPUXADOR\b/.test(text) ||
     /\bROLDANA\b/.test(text)
   ) {
     return "FERRAGENS";
   }
 
-  // PORTAS
+  /*
+   * PORTAS
+   */
   if (
-    /\b(PORTA|PORTAS|FOLHA)\b/.test(text) ||
-    /^(FO|FOL|FP|FPC|F P|F P P)\b/.test(desc)
+    /\b(PORTA|PORTAS|FOLHA)\b/.test(
+      text
+    ) ||
+    /^(FO|FOL|FP|FPC|F P|F P P)\b/.test(
+      desc
+    )
   ) {
     return "PORTAS";
   }
 
-  // BAGUETE
-  if (/\bBAGUETE\b/.test(text) || /\bBAG\b/.test(text)) {
+  /*
+   * BAGUETE
+   */
+  if (
+    /\bBAGUETE\b/.test(text) ||
+    /^BAG\b/.test(desc)
+  ) {
     return "BAGUETE";
   }
 
-  // ALIZARES (antes de batente)
+  /*
+   * ALIZARES
+   */
   if (
-    /\bALIZAR(ES)?\b/.test(text) ||
-    /\b(PE AL|PER ALI|P A|TR AL|TR ALI|TRA ALI|T A)\b/.test(text) ||
+    /\bALIZAR(?:ES)?\b/.test(text) ||
+    /\b(PE AL|PER ALI|P A|TR AL|TR ALI|TRA ALI|T A)\b/.test(
+      text
+    ) ||
     /^A (STD|ULTRA)\b/.test(desc)
   ) {
     return "ALIZARES";
   }
 
-  // BATENTES
+  /*
+   * BATENTES
+   */
   if (
-    /\b(BATENTE|MARCO)\b/.test(text) ||
-    /\b(M P|M T|M CJ|M STD|M ULTRA)\b/.test(text)
+    /\b(BATENTE|MARCO)\b/.test(
+      text
+    ) ||
+    /\b(M P|M T|M CJ|M STD|M ULTRA)\b/.test(
+      text
+    )
   ) {
     return "BATENTES";
   }
 
-  // Descrição que começa direto pela medida (ex.: 2110x130x30 42x10 ... ou 2200X70X15 RTO ...)
-  if (/^\d+X\d+/.test(desc)) {
-    const esp = medidaDoItem(item)[2];
+  /*
+   * PEÇA COMEÇANDO
+   * DIRETO PELA MEDIDA
+   */
+  if (
+    /^\d+X\d+/.test(desc)
+  ) {
+    const esp =
+      medidaDoItem(item)[2];
 
-    if (esp > 0 && esp <= 20) return "ALIZARES";
-    if (esp >= 25) return "BATENTES";
+    if (
+      esp > 0 &&
+      esp <= 20
+    ) {
+      return "ALIZARES";
+    }
 
-    return /\bRTO?\b/.test(desc) ? "ALIZARES" : "BATENTES";
+    if (
+      esp >= 25
+    ) {
+      return "BATENTES";
+    }
+
+    return /\bRTO?\b/.test(desc)
+      ? "ALIZARES"
+      : "BATENTES";
   }
 
   return "OUTROS";
 }
 
-export function ehFerragem(item: SeqItem) {
-  return familiaIndustrial(item) === "FERRAGENS";
+export function ehFerragem(
+  item: SeqItem
+) {
+  return (
+    familiaIndustrial(item) ===
+    "FERRAGENS"
+  );
 }
 
-export type TipoPeca = "PERNA" | "TRAVESSA";
+export type TipoPeca =
+  | "PERNA"
+  | "TRAVESSA";
 
-/** Perna x travessa (batentes e alizares). Sem identificação explícita, decide pelo comprimento. */
-export function tipoPeca(item: SeqItem): TipoPeca {
-  const text = textoItem(item);
+export function tipoPeca(
+  item: SeqItem
+): TipoPeca {
+  const text =
+    textoItem(item);
 
-  if (/\b(TRAVESSA|TRAV|TR AL|TR ALI|TRA ALI|T A|M T)\b/.test(text)) {
+  if (
+    /\b(TRAVESSA|TRAV|TR AL|TR ALI|TRA ALI|T A|M T)\b/.test(
+      text
+    )
+  ) {
     return "TRAVESSA";
   }
 
-  if (/\b(PERNA|PE AL|PER ALI|P A|M P)\b/.test(text)) {
+  if (
+    /\b(PERNA|PE AL|PER ALI|P A|M P)\b/.test(
+      text
+    )
+  ) {
     return "PERNA";
   }
 
-  const comprimento = medidaDoItem(item)[0];
+  const comprimento =
+    medidaDoItem(item)[0];
 
-  return comprimento > 0 && comprimento < LIMITE_TRAVESSA
+  return (
+    comprimento > 0 &&
+    comprimento < LIMITE_TRAVESSA
+  )
     ? "TRAVESSA"
     : "PERNA";
 }
 
-function prioridadeRank(value?: string) {
-  const priority = norm(value);
+export function categoriaIndustrial(
+  item: SeqItem
+) {
+  const familia =
+    familiaIndustrial(item);
 
-  if (priority === "URGENTE") return 0;
-  if (priority === "ALTA") return 1;
+  const text =
+    textoItem(item);
+
+  if (
+    familia === "PORTAS"
+  ) {
+    return "PORTA";
+  }
+
+  if (
+    familia === "BANDEIRA"
+  ) {
+    return "BANDEIRA";
+  }
+
+  if (
+    familia === "BAGUETE"
+  ) {
+    return "BAGUETE";
+  }
+
+  if (
+    familia === "FERRAGENS"
+  ) {
+    return "FERRAGEM";
+  }
+
+  if (
+    familia === "KIT CORRER"
+  ) {
+    if (
+      /\bSUP(?:ORTE)? TRILHO\b/.test(
+        text
+      ) ||
+      /\bSUP TRILHO\b/.test(
+        text
+      )
+    ) {
+      return "SUPORTE TRILHO";
+    }
+
+    return "KIT CORRER";
+  }
+
+  if (
+    familia === "BATENTES"
+  ) {
+    return `BATENTE • ${tipoPeca(
+      item
+    )}`;
+  }
+
+  if (
+    familia === "ALIZARES"
+  ) {
+    return `ALIZAR • ${tipoPeca(
+      item
+    )}`;
+  }
+
+  return "OUTROS";
+}
+
+/*
+ * BATENTE QUE PRECISA
+ * PASSAR NA TUPIA /
+ * CANAL DA BORRACHA
+ */
+export function temCanalBorracha(
+  item: SeqItem
+) {
+  const canal =
+    norm(item.canal);
+
+  const text =
+    textoItem(item);
+
+  if (
+    /\bSEM CANAL\b/.test(text) ||
+    /\bS CANAL\b/.test(text)
+  ) {
+    return false;
+  }
+
+  if (
+    /\bCANAL\b/.test(text) ||
+    /\bBORRACHA\b/.test(text)
+  ) {
+    return true;
+  }
+
+  if (
+    !canal ||
+    [
+      "N/A",
+      "NA",
+      "N.A.",
+      "-",
+      "—",
+      "N/D",
+      "ND",
+      "NAO",
+      "NÃO",
+    ].includes(canal)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/*
+ * REGRA CENTRAL DE SETOR.
+ *
+ * Nenhuma tela deve inventar
+ * novamente a classificação.
+ *
+ * O filtro do Consistem possui
+ * USINAGEM-1 / USINAGEM-2 /
+ * EMBALAGEM.
+ *
+ * Aqui transformamos isso nos
+ * setores reais da fábrica.
+ */
+export function processosOperacionaisDaFonte(
+  item: SeqItem,
+  processoFonte: string
+): string[] {
+  const processo =
+    norm(processoFonte);
+
+  const familia =
+    familiaIndustrial(item);
+
+  /*
+   * =========================
+   * USINAGENS
+   * =========================
+   */
+  if (
+    processo === "USINAGEM-1" ||
+    processo === "USINAGEM-2"
+  ) {
+    /*
+     * PORTAS
+     */
+    if (
+      familia === "PORTAS"
+    ) {
+      return [
+        "USINAGEM-PORTAS",
+      ];
+    }
+
+    /*
+     * BATENTES
+     */
+    if (
+      familia === "BATENTES"
+    ) {
+      /*
+       * TRAVESSA
+       */
+      if (
+        tipoPeca(item) ===
+        "TRAVESSA"
+      ) {
+        return [
+          "USINAGEM-TRAVESSAS",
+        ];
+      }
+
+      /*
+       * PERNA DE BATENTE
+       *
+       * passa:
+       * CONTRATESTA
+       * DOBRADIÇAS
+       *
+       * TUPIA somente
+       * quando houver canal.
+       */
+      const processos = [
+        "USINAGEM-CONTRATESTA",
+        "USINAGEM-DOBRADICAS",
+      ];
+
+      if (
+        temCanalBorracha(item)
+      ) {
+        processos.push(
+          "USINAGEM-TUPIA"
+        );
+      }
+
+      return processos;
+    }
+
+    /*
+     * NÃO ENTRAM NAS
+     * USINAGENS:
+     *
+     * ALIZAR
+     * BAGUETE
+     * KIT
+     * SUPORTE TRILHO
+     * BANDEIRA
+     * OUTROS
+     */
+    return [];
+  }
+
+  /*
+   * =========================
+   * EMBALAGENS
+   * =========================
+   */
+  if (
+    processo === "EMBALAGEM"
+  ) {
+    /*
+     * EMBALAGEM DE PORTAS
+     */
+    if (
+      familia === "PORTAS" ||
+      familia === "BANDEIRA"
+    ) {
+      return [
+        "EMBALAGEM-PORTAS",
+      ];
+    }
+
+    /*
+     * EMBALAGEM 1
+     *
+     * componentes
+     */
+    if (
+      [
+        "BATENTES",
+        "ALIZARES",
+        "BAGUETE",
+        "KIT CORRER",
+      ].includes(familia)
+    ) {
+      return [
+        "EMBALAGEM-1",
+      ];
+    }
+
+    return [];
+  }
+
+  /*
+   * Demais processos
+   * permanecem como vieram
+   * no filtro.
+   */
+  return [
+    processoFonte,
+  ];
+}
+
+function prioridadeRank(
+  value?: string
+) {
+  const priority =
+    norm(value);
+
+  if (
+    priority === "URGENTE"
+  ) {
+    return 0;
+  }
+
+  if (
+    priority === "ALTA"
+  ) {
+    return 1;
+  }
 
   return 2;
 }
 
-/** Sequência fixa: PORTAS > BATENTES > ALIZARES > BAGUETES > KIT DE CORRER/SUPORTE DE TRILHO > demais. */
-const FAMILY_ORDER: Record<FamiliaIndustrial, number> = {
+/*
+ * SEQUÊNCIA:
+ *
+ * PORTAS
+ * BATENTES
+ * ALIZARES
+ * BAGUETES
+ * KIT / SUPORTE TRILHO
+ * BANDEIRAS
+ * OUTROS
+ */
+const FAMILY_ORDER:
+  Record<
+    FamiliaIndustrial,
+    number
+  > = {
   PORTAS: 0,
   BATENTES: 1,
   ALIZARES: 2,
@@ -207,102 +621,313 @@ const FAMILY_ORDER: Record<FamiliaIndustrial, number> = {
   FERRAGENS: 99,
 };
 
-function familyRank(item: SeqItem) {
-  return FAMILY_ORDER[familiaIndustrial(item)] ?? 98;
-}
-
-function compareText(a: unknown, b: unknown) {
-  return norm(a).localeCompare(norm(b), "pt-BR", { numeric: true });
-}
-
-/** Largura desconhecida (0) vai sempre para o fim. */
-function compareLargura(a: number, b: number) {
-  const x = a > 0 ? a : Infinity;
-  const y = b > 0 ? b : Infinity;
-
-  if (x === y) return 0;
-  if (x === Infinity) return 1;
-  if (y === Infinity) return -1;
-
-  return LARGURA_ORDEM === "ASC" ? x - y : y - x;
-}
-
-const compareSetup = (a: SeqItem, b: SeqItem) =>
-  compareText(a.material, b.material) ||
-  compareText(a.acabamento, b.acabamento) ||
-  compareText(a.cor, b.cor) ||
-  compareText(a.rebaixo, b.rebaixo);
-
-/**
- * Ordem DENTRO de uma mesma família.
- * Batentes e alizares: mesma largura ficam juntas (perna e travessa em sequência,
- * dentro do mesmo material/acabamento/cor/rebaixo) — nunca todas as pernas e depois
- * todas as travessas.
- */
-export function compareDentroDaFamilia(a: SeqItem, b: SeqItem) {
-  const family = familiaIndustrial(a);
-  const [compA, largA, espA] = medidaDoItem(a);
-  const [compB, largB, espB] = medidaDoItem(b);
-
-  const larguraDiff = compareLargura(largA, largB);
-
-  if (larguraDiff !== 0) return larguraDiff;
-
-  if (family === "BATENTES" || family === "ALIZARES") {
-    const setup = compareSetup(a, b);
-
-    if (setup) return setup;
-
-    const tipoDiff =
-      (tipoPeca(a) === "TRAVESSA" ? 1 : 0) -
-      (tipoPeca(b) === "TRAVESSA" ? 1 : 0);
-
-    if (tipoDiff !== 0) return tipoDiff;
-
-    if (compA !== compB) return compB - compA;
-    if (espA !== espB) return espB - espA;
-  } else {
-    if (compA !== compB) return compB - compA;
-
-    const setup = compareSetup(a, b);
-
-    if (setup) return setup;
-
-    if (espA !== espB) return espB - espA;
-
-    const descDiff = compareText(a.descricao, b.descricao);
-
-    if (descDiff) return descDiff;
-  }
-
+function familyRank(
+  item: SeqItem
+) {
   return (
-    compareText(a.pedido, b.pedido) ||
-    compareText(a.of, b.of) ||
-    compareText(a.categoria, b.categoria)
+    FAMILY_ORDER[
+      familiaIndustrial(item)
+    ] ??
+    98
   );
 }
 
-/** Ordem de produção (filas): prioridade -> família -> largura. */
-export function compareProduction(a: SeqItem, b: SeqItem) {
-  const priorityDiff =
-    prioridadeRank(a.prioridade) - prioridadeRank(b.prioridade);
-
-  if (priorityDiff !== 0) return priorityDiff;
-
-  const familyDiff = familyRank(a) - familyRank(b);
-
-  if (familyDiff !== 0) return familyDiff;
-
-  return compareDentroDaFamilia(a, b);
+function compareText(
+  a: unknown,
+  b: unknown
+) {
+  return norm(a).localeCompare(
+    norm(b),
+    "pt-BR",
+    {
+      numeric: true,
+    }
+  );
 }
 
-/** Ordem ESTRITA da planilha: família primeiro e, dentro dela, largura MAIOR -> MENOR. Prioridade não quebra essa sequência. */
-export function compareParaPlanilha(a: SeqItem, b: SeqItem) {
-  const familyDiff = familyRank(a) - familyRank(b);
+function compareLargura(
+  a: number,
+  b: number
+) {
+  const x =
+    a > 0
+      ? a
+      : Infinity;
 
-  if (familyDiff !== 0) return familyDiff;
+  const y =
+    b > 0
+      ? b
+      : Infinity;
 
-  return compareDentroDaFamilia(a, b);
+  if (
+    x === y
+  ) {
+    return 0;
+  }
+
+  if (
+    x === Infinity
+  ) {
+    return 1;
+  }
+
+  if (
+    y === Infinity
+  ) {
+    return -1;
+  }
+
+  return (
+    LARGURA_ORDEM ===
+    "ASC"
+  )
+    ? x - y
+    : y - x;
+}
+
+const compareSetup = (
+  a: SeqItem,
+  b: SeqItem
+) =>
+  compareText(
+    a.material,
+    b.material
+  ) ||
+  compareText(
+    a.acabamento,
+    b.acabamento
+  ) ||
+  compareText(
+    a.cor,
+    b.cor
+  ) ||
+  compareText(
+    a.rebaixo,
+    b.rebaixo
+  );
+
+export function compareDentroDaFamilia(
+  a: SeqItem,
+  b: SeqItem
+) {
+  const family =
+    familiaIndustrial(a);
+
+  const [
+    compA,
+    largA,
+    espA,
+  ] =
+    medidaDoItem(a);
+
+  const [
+    compB,
+    largB,
+    espB,
+  ] =
+    medidaDoItem(b);
+
+  /*
+   * PRIMEIRO:
+   * LARGURA MAIOR -> MENOR
+   */
+  const larguraDiff =
+    compareLargura(
+      largA,
+      largB
+    );
+
+  if (
+    larguraDiff !== 0
+  ) {
+    return larguraDiff;
+  }
+
+  /*
+   * BATENTES / ALIZARES
+   *
+   * mesma largura:
+   * perna + travessa juntas
+   */
+  if (
+    family === "BATENTES" ||
+    family === "ALIZARES"
+  ) {
+    const setup =
+      compareSetup(
+        a,
+        b
+      );
+
+    if (
+      setup
+    ) {
+      return setup;
+    }
+
+    const tipoDiff =
+      (
+        tipoPeca(a) ===
+        "TRAVESSA"
+          ? 1
+          : 0
+      ) -
+      (
+        tipoPeca(b) ===
+        "TRAVESSA"
+          ? 1
+          : 0
+      );
+
+    if (
+      tipoDiff !== 0
+    ) {
+      return tipoDiff;
+    }
+
+    if (
+      compA !== compB
+    ) {
+      return (
+        compB -
+        compA
+      );
+    }
+
+    if (
+      espA !== espB
+    ) {
+      return (
+        espB -
+        espA
+      );
+    }
+  } else {
+    if (
+      compA !== compB
+    ) {
+      return (
+        compB -
+        compA
+      );
+    }
+
+    const setup =
+      compareSetup(
+        a,
+        b
+      );
+
+    if (
+      setup
+    ) {
+      return setup;
+    }
+
+    if (
+      espA !== espB
+    ) {
+      return (
+        espB -
+        espA
+      );
+    }
+
+    const descDiff =
+      compareText(
+        a.descricao,
+        b.descricao
+      );
+
+    if (
+      descDiff
+    ) {
+      return descDiff;
+    }
+  }
+
+  return (
+    compareText(
+      a.pedido,
+      b.pedido
+    ) ||
+    compareText(
+      a.of,
+      b.of
+    ) ||
+    compareText(
+      a.categoria,
+      b.categoria
+    )
+  );
+}
+
+export function compareProduction(
+  a: SeqItem,
+  b: SeqItem
+) {
+  const priorityDiff =
+    prioridadeRank(
+      a.prioridade
+    ) -
+    prioridadeRank(
+      b.prioridade
+    );
+
+  if (
+    priorityDiff !== 0
+  ) {
+    return priorityDiff;
+  }
+
+  const familyDiff =
+    familyRank(a) -
+    familyRank(b);
+
+  if (
+    familyDiff !== 0
+  ) {
+    return familyDiff;
+  }
+
+  return compareDentroDaFamilia(
+    a,
+    b
+  );
+}
+
+export function compareParaPlanilha(
+  a: SeqItem,
+  b: SeqItem
+) {
+  const familyDiff =
+    familyRank(a) -
+    familyRank(b);
+
+  if (
+    familyDiff !== 0
+  ) {
+    return familyDiff;
+  }
+
+  const priorityDiff =
+    prioridadeRank(
+      a.prioridade
+    ) -
+    prioridadeRank(
+      b.prioridade
+    );
+
+  if (
+    priorityDiff !== 0
+  ) {
+    return priorityDiff;
+  }
+
+  return compareDentroDaFamilia(
+    a,
+    b
+  );
 }
 
 export type Capacity = {
@@ -323,38 +948,65 @@ export function bottlenecks(
   caps: Capacity[]
 ) {
   return queues
-    .map((q) => {
-      const c = caps.find(
-        (x) =>
-          x.processo ===
-          q.processo
-      );
+    .map(
+      (
+        q
+      ) => {
+        const c =
+          caps.find(
+            (
+              x
+            ) =>
+              x.processo ===
+              q.processo
+          );
 
-      const rate =
-        c &&
-        c.pecasHora > 0
-          ? c.pecasHora *
-            Math.max(
-              0,
-              c.eficiencia || 100
-            ) /
-            100
-          : 0;
+        const rate =
+          c &&
+          c.pecasHora >
+            0
+            ? (
+                c.pecasHora *
+                Math.max(
+                  0,
+                  c.eficiencia ||
+                    100
+                )
+              ) /
+              100
+            : 0;
 
-      return {
-        ...q,
-        capacidadeConfigurada: !!rate,
-        pecasHora: rate,
-        horasFila:
-          rate > 0
-            ? q.filaPecas / rate
-            : null,
-      };
-    })
+        return {
+          ...q,
+
+          capacidadeConfigurada:
+            !!rate,
+
+          pecasHora:
+            rate,
+
+          horasFila:
+            rate >
+            0
+              ? q.filaPecas /
+                rate
+              : null,
+        };
+      }
+    )
     .sort(
-      (a, b) =>
-        (b.horasFila ?? -1) -
-        (a.horasFila ?? -1)
+      (
+        a,
+        b
+      ) =>
+        (
+          b.horasFila ??
+          -1
+        ) -
+        (
+          a.horasFila ??
+          -1
+        )
     );
 }
 
@@ -373,7 +1025,8 @@ export function calcOee(
     idealRate,
     produced,
     good,
-  } = input;
+  } =
+    input;
 
   if (
     !plannedMinutes ||
@@ -388,13 +1041,16 @@ export function calcOee(
     return null;
   }
 
-  const run = Math.max(
-    0,
-    plannedMinutes - stopMinutes
-  );
+  const run =
+    Math.max(
+      0,
+      plannedMinutes -
+        stopMinutes
+    );
 
   const availability =
-    run / plannedMinutes;
+    run /
+    plannedMinutes;
 
   const performance =
     run > 0
@@ -403,7 +1059,10 @@ export function calcOee(
           produced /
             (
               idealRate *
-              (run / 60)
+              (
+                run /
+                60
+              )
             )
         )
       : 0;
@@ -412,7 +1071,8 @@ export function calcOee(
     produced > 0
       ? Math.min(
           1,
-          good / produced
+          good /
+            produced
         )
       : 0;
 
@@ -420,6 +1080,7 @@ export function calcOee(
     availability,
     performance,
     quality,
+
     oee:
       availability *
       performance *
@@ -433,64 +1094,98 @@ export function riskLevel(
     blocked?: boolean;
     openAndon?: boolean;
     remaining?: number;
-    queueHours?: number | null;
+    queueHours?:
+      | number
+      | null;
   }
 ) {
-  let score = 0;
-  const reasons: string[] = [];
+  let score =
+    0;
+
+  const reasons:
+    string[] = [];
 
   if (
-    norm(input.priority) ===
+    norm(
+      input.priority
+    ) ===
     "URGENTE"
   ) {
-    score += 3;
+    score +=
+      3;
+
     reasons.push(
       "Prioridade urgente"
     );
   } else if (
-    norm(input.priority) ===
+    norm(
+      input.priority
+    ) ===
     "ALTA"
   ) {
-    score += 1;
+    score +=
+      1;
+
     reasons.push(
       "Prioridade alta"
     );
   }
 
-  if (input.blocked) {
-    score += 4;
+  if (
+    input.blocked
+  ) {
+    score +=
+      4;
+
     reasons.push(
       "Bloqueio de qualidade/pallet"
     );
   }
 
-  if (input.openAndon) {
-    score += 3;
+  if (
+    input.openAndon
+  ) {
+    score +=
+      3;
+
     reasons.push(
       "Ocorrência Andon aberta"
     );
   }
 
   if (
-    (input.queueHours ?? 0) >=
+    (
+      input.queueHours ??
+      0
+    ) >=
     4
   ) {
-    score += 3;
+    score +=
+      3;
+
     reasons.push(
       "Fila estimada acima de 4 h"
     );
   } else if (
-    (input.queueHours ?? 0) >=
+    (
+      input.queueHours ??
+      0
+    ) >=
     2
   ) {
-    score += 1;
+    score +=
+      1;
+
     reasons.push(
       "Fila estimada acima de 2 h"
     );
   }
 
   if (
-    (input.remaining ?? 0) >
+    (
+      input.remaining ??
+      0
+    ) >
     0
   ) {
     reasons.push(
@@ -507,6 +1202,7 @@ export function riskLevel(
         : score >= 2
         ? "ATENCAO"
         : "NO_PRAZO",
+
     score,
     reasons,
   };
@@ -521,34 +1217,51 @@ export function pareto<
   rows: T[]
 ) {
   const map =
-    new Map<string, number>();
+    new Map<
+      string,
+      number
+    >();
 
-  for (const row of rows) {
+  for (
+    const row
+    of rows
+  ) {
     map.set(
       row.motivo,
+
       (
-        map.get(row.motivo) ||
+        map.get(
+          row.motivo
+        ) ||
         0
       ) +
         Math.max(
           0,
-          row.minutos || 0
+          row.minutos ||
+            0
         )
     );
   }
 
-  return [...map]
+  return [
+    ...map,
+  ]
     .map(
-      ([
-        motivo,
-        minutos,
-      ]) => ({
+      (
+        [
+          motivo,
+          minutos,
+        ]
+      ) => ({
         motivo,
         minutos,
       })
     )
     .sort(
-      (a, b) =>
+      (
+        a,
+        b
+      ) =>
         b.minutos -
         a.minutos
     );
