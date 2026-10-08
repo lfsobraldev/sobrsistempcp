@@ -22,6 +22,7 @@ const VIEW_ROLES = [
   "GERENTE",
   "ENCARREGADO",
   "LIDER",
+  "QUALIDADE",
 ] as const;
 
 type Area =
@@ -891,6 +892,7 @@ export async function PATCH(
         "GERENTE",
         "ENCARREGADO",
         "LIDER",
+        "QUALIDADE",
       ]);
 
     const b =
@@ -907,6 +909,38 @@ export async function PATCH(
         b.action,
         50
       ).toUpperCase();
+
+    /*
+     * Perfil QUALIDADE atua somente no fluxo da Qualidade.
+     * Não pode criar/editar pallet, liberar MSAC nem reabrir.
+     */
+    if (
+      s.perfil === "QUALIDADE" &&
+      ![
+        "INSPECIONAR",
+        "CRIAR_NC",
+        "REINSPECIONAR_NC",
+        "MEDICAO",
+        "QUALIDADE_LIBERAR",
+        "QUALIDADE_BLOQUEAR",
+      ].includes(action)
+    ) {
+      return NextResponse.json(
+        { error: "Ação não permitida para o perfil Qualidade." },
+        { status: 403 }
+      );
+    }
+
+    if (
+      s.perfil === "QUALIDADE" &&
+      action === "INSPECIONAR" &&
+      clean(b.area,20).toUpperCase() !== "QUALIDADE"
+    ) {
+      return NextResponse.json(
+        { error: "O perfil Qualidade só pode registrar inspeção da Qualidade." },
+        { status: 403 }
+      );
+    }
 
     const db =
       sql();
@@ -1366,12 +1400,13 @@ export async function PATCH(
       if (
         !MANAGE_ROLES.includes(
           s.perfil as any
-        )
+        ) &&
+        s.perfil !== "QUALIDADE"
       ) {
         return NextResponse.json(
           {
             error:
-              "Somente PCP, Gerente ou Encarregado pode concluir a reinspeção.",
+              "Somente PCP, Gerente, Encarregado ou Qualidade pode concluir a reinspeção.",
           },
           {
             status: 403,
@@ -1725,15 +1760,20 @@ export async function PATCH(
         action
       )
     ) {
+      const qualidadePodeDecidir =
+        s.perfil === "QUALIDADE" &&
+        action.startsWith("QUALIDADE_");
+
       if (
         !MANAGE_ROLES.includes(
           s.perfil as any
-        )
+        ) &&
+        !qualidadePodeDecidir
       ) {
         return NextResponse.json(
           {
             error:
-              "Somente PCP, Gerente ou Encarregado pode liberar/bloquear.",
+              "Sem permissão para esta decisão.",
           },
           {
             status: 403,
