@@ -4,7 +4,7 @@ import { FileSpreadsheet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS, leaderPlanRows, leaderReleasedRows } from "@/lib/metrics";
-import { PROCESSOS } from "@/lib/filter-parser";
+import { PROCESSOS } from "@/lib/processos";
 import { FAMILIAS } from "@/lib/sort";
 import { fmt, fmtPct, pct } from "@/lib/format";
 import { exportarSetor } from "@/lib/export";
