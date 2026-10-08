@@ -144,7 +144,7 @@ export default function Prioridades() {
           <p>Defina somente exceções que realmente precisam passar na frente.</p>
         </div>
 
-        <div className="rowActions">
+        <div className="priorityTopActions">
           <button className="secondary" onClick={refresh}>
             <RefreshCw /> Atualizar
           </button>
