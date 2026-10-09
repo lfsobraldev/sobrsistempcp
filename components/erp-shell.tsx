@@ -89,7 +89,7 @@ function Inner({children}:{children:React.ReactNode}){
     <header className="pcpTop">
       <div className="pcpBrand">
         <div className="pcpLogo"><Factory/></div>
-        <div><strong>SOBRAL PCP</strong><span>CONTROLE INDUSTRIAL</span></div>
+        <div><strong>SOBRAL PCP</strong><span>ERP INDUSTRIAL • V11</span></div>
       </div>
 
       <div className="pcpTitleBlock">
@@ -110,14 +110,29 @@ function Inner({children}:{children:React.ReactNode}){
       </div>
     </header>
 
-    <div className="pcpNavigation">
+    <aside className="pcpNavigation">
       <nav>
-        {visible.flatMap(g=>g.items).map(item=>{
-          const Icon=item.icon;
-          return <Link key={item.path} href={item.path} className={path===item.path?"active":""}><Icon/><span>{item.label}</span></Link>
-        })}
+        {visible.map((group)=>(
+          <section key={group.label} className="pcpNavGroup">
+            <label>{group.label}</label>
+            {group.items.map((item)=>{
+              const Icon=item.icon;
+              return (
+                <Link key={item.path} href={item.path} className={path===item.path?"active":""}>
+                  <Icon/>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </section>
+        ))}
       </nav>
-    </div>
+      <div className="pcpNavFoot">
+        <span>PROGRAMAÇÃO ATIVA</span>
+        <b>{pg?.filtro || "SEM FILTRO"}</b>
+        <small>{pg ? `Turno ${pg.turno} • ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}` : "Aguardando programação"}</small>
+      </div>
+    </aside>
 
     <main className="pcpMain"><div className="page">{children}</div></main>
   </div>
