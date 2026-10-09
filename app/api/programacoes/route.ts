@@ -9,6 +9,11 @@ export async function POST(req: Request) {
     const b = await req.json();
     const db = sql();
 
+    await db`
+      alter table pcp_produtos
+      add column if not exists tipo_pedido varchar(20) not null default 'NORMAL'
+    `;
+
     /*
       IMPORTANTE:
       A programação NÃO é mais bloqueada porque o Filtro 51 mudou
@@ -95,7 +100,8 @@ export async function POST(req: Request) {
           categoria,
           material,
           medida,
-          prioridade
+          prioridade,
+          tipo_pedido
         )
         values(
           ${pg.id},
@@ -120,7 +126,8 @@ export async function POST(req: Request) {
           ${String(p.categoria || "OUTROS")},
           ${String(p.material || "")},
           ${String(p.medida || "")},
-          ${String(p.prioridade || "NORMAL")}
+          ${String(p.prioridade || "NORMAL")},
+          ${["REVENDA","ENGENHARIA"].includes(String(p.tipoPedido || "").toUpperCase()) ? String(p.tipoPedido).toUpperCase() : "NORMAL"}
         )
         returning id
       `;
@@ -141,7 +148,7 @@ export async function POST(req: Request) {
           )
           values(
             ${prod.id},
-            ${String(o.processo || "")},
+            ${["REVENDA","ENGENHARIA"].includes(String(p.tipoPedido || "").toUpperCase()) && String(o.processo || "").startsWith("EMBALAGEM") ? `EMBALAGEM-${String(p.tipoPedido).toUpperCase()}` : String(o.processo || "")},
             ${Number(o.sequencia || 0)},
             ${Number(o.percentual || 0)},
             ${String(o.status || "PENDENTE")},
