@@ -73,6 +73,10 @@ function applyDocumentStyle(ws:ExcelJS.Worksheet,data:ProcessingResult,lastData:
     }
   }
 }
+function cleanObservation(value: string) {
+  return String(value || "").replace(/\s+/g, " ").trim();
+}
+
 function applyRowStyle(ws: ExcelJS.Worksheet, rowNumber: number, row: PackageRow) {
   if (!row.rowStyle) return;
   const fill = (row.rowStyle.fillColor || "").replace("#", "").toUpperCase();
@@ -201,18 +205,51 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
     }
   }
 
-  // A coluna Obs segue os grupos de origem, inclusive quando um grupo continua em outro pallet.
-  // Isso reproduz o comportamento dos romaneios manuais: uma lista de Itens não é repetida em cada linha.
-  for (const group of contiguousGroups(written.map((entry) => entry.row), observationKey)) {
-    const entries = written.slice(group.start, group.end + 1);
-    const first = entries[0]?.excelRow;
-    const last = entries.at(-1)?.excelRow;
-    if (!first || !last) continue;
-    const text = observationText(entries.map((entry) => entry.row));
+  /*
+   * Coluna Itens/Obs:
+   * - mantém a ordem em que as linhas aparecem no romaneio;
+   * - cada item de origem aparece somente na PRIMEIRA ocorrência;
+   * - se uma porta ou conjunto for dividido em mais de um pallet, o item não se repete;
+   * - observações livres continuam aparecendo sem duplicação.
+   */
+  const seenSourceItems = new Set<string>();
+  const seenCustomObs = new Set<string>();
+
+  for (const entry of written) {
+    const row = entry.row;
+    const freshItems = [...new Set(row.sourceItems || [])]
+      .filter((item) => {
+        if (seenSourceItems.has(item)) return false;
+        seenSourceItems.add(item);
+        return true;
+      });
+
+    const itemPart = freshItems.length
+      ? (freshItems.length === 1
+        ? `Item ${compactItemIds(freshItems)}`
+        : `Itens ${compactItemIds(freshItems)}`)
+      : "";
+
+    const customRaw = cleanObservation(row.observation || "");
+    const custom =
+      customRaw &&
+      !/^Itens?\s+[\d\s./-]+$/i.test(customRaw) &&
+      !seenCustomObs.has(customRaw)
+        ? customRaw
+        : "";
+
+    if (custom) seenCustomObs.add(custom);
+
+    const text = [itemPart, custom].filter(Boolean).join(" | ");
     if (!text) continue;
-    set(ws, `${COL.obs}${first}`, text);
-    if (last > first) safeMerge(ws, `${COL.obs}${first}:${COL.obs}${last}`);
-    ws.getCell(`${COL.obs}${first}`).alignment = { ...(ws.getCell(`${COL.obs}${first}`).alignment || {}), vertical:"middle", horizontal:"center", wrapText:true };
+
+    set(ws, `${COL.obs}${entry.excelRow}`, text);
+    ws.getCell(`${COL.obs}${entry.excelRow}`).alignment = {
+      ...(ws.getCell(`${COL.obs}${entry.excelRow}`).alignment || {}),
+      vertical: "middle",
+      horizontal: "center",
+      wrapText: true,
+    };
   }
 
   for (let row = cursor; row <= positions.lastData; row++) ws.getRow(row).hidden = true;
