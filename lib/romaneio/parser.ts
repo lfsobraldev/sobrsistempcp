@@ -626,6 +626,7 @@ export type FilterRomaneioProduct = {
   item?: string;
   produto?: string;
   descricao?: string;
+  categoria?: string;
   quantidade?: number;
   medida?: string;
   acabamento?: string;
@@ -636,8 +637,21 @@ export type FilterRomaneioProduct = {
   outrasCaracteristicas?: string;
 };
 
+function filterCategoryPrefix(category?: string) {
+  const value = norm(category);
+  if (value.startsWith("PORTA")) return "PORTA";
+  if (value.startsWith("BATENTE") || value.startsWith("MARCO")) return "BATENTE";
+  if (value.startsWith("ALIZAR")) return "ALIZAR";
+  if (value.startsWith("KIT")) return "KIT DE CORRER";
+  if (value.startsWith("BAGUETE")) return "ALIZAR BAGUETE";
+  if (value.startsWith("FERRAGEM")) return "FERRAGEM";
+  if (value.startsWith("BANDEIRA")) return "PORTA BANDEIRA";
+  return "";
+}
+
 function filterProductDescription(product: FilterRomaneioProduct) {
   const base = clean(product.descricao || "");
+  const prefix = filterCategoryPrefix(product.categoria);
   const extras = [
     product.medida,
     product.material,
@@ -654,7 +668,24 @@ function filterProductDescription(product: FilterRomaneioProduct) {
     )
     .filter((value) => !norm(base).includes(norm(value)));
 
-  return clean([base, ...extras].filter(Boolean).join(" "));
+  return clean(
+    [prefix, base, ...extras]
+      .filter(Boolean)
+      .filter((value, index, all) =>
+        all.findIndex((other) => norm(other) === norm(value)) === index
+      )
+      .join(" ")
+  );
+}
+
+function categoryFromFilterProduct(product: FilterRomaneioProduct): ProductCategory {
+  const value = norm(product.categoria);
+  if (value.startsWith("PORTA") || value.startsWith("BANDEIRA")) return "PORTA";
+  if (value.startsWith("BATENTE") || value.startsWith("MARCO")) return "MARCO";
+  if (value.startsWith("ALIZAR") || value.startsWith("BAGUETE")) return "ALIZAR";
+  if (value.startsWith("KIT") || value.startsWith("SUPORTE TRILHO")) return "KIT";
+  if (value.startsWith("FERRAGEM")) return "FERRAGEM";
+  return classifyProduct(filterProductDescription(product));
 }
 
 export function buildProcessingFromFilterProducts(
@@ -673,20 +704,51 @@ export function buildProcessingFromFilterProducts(
     orderOptions?: OrderOptions;
   }
 ): ProcessingResult {
-  const allItems: PdfItem[] = input.products
-    .map((product, index) => ({
-      item: clean(product.item || String(index + 1)),
-      code: clean(product.produto || ""),
-      description: filterProductDescription(product),
-      unit: "UN",
-      quantity: Math.max(0, Math.round(Number(product.quantidade || 0))),
-    }))
+  const duplicateCount = new Map<string, number>();
+
+  const sourceRows = input.products
+    .map((product, index) => {
+      const originalItem = clean(product.item || "");
+      const baseKey = originalItem || String(index + 1);
+      const seen = (duplicateCount.get(baseKey) || 0) + 1;
+      duplicateCount.set(baseKey, seen);
+
+      return {
+        product,
+        item: seen === 1 ? baseKey : `${baseKey}-${seen}`,
+        originalItem: originalItem || baseKey,
+        code: clean(product.produto || ""),
+        description: filterProductDescription(product),
+        unit: "UN",
+        quantity: Math.max(0, Math.round(Number(product.quantidade || 0))),
+        category: categoryFromFilterProduct(product),
+      };
+    })
     .filter((item) => item.quantity > 0 && !!item.description);
 
-  const items = physicalOrderItems(allItems);
+  /*
+   * No Filtro 51 cada registro já representa uma linha produtiva válida.
+   * Não aplicamos physicalOrderItems(), pois essa função foi criada para
+   * o PDF do pedido e pode eliminar linhas ao interpretar item "1" como
+   * pai de "1.1". Isso estava fazendo pedidos inteiros virarem poucas linhas.
+   */
+  const allItems: PdfItem[] = sourceRows.map((row) => ({
+    item: row.item,
+    code: row.code,
+    description: row.description,
+    unit: row.unit,
+    quantity: row.quantity,
+  }));
+
+  const items = allItems;
   const machining = parseMachining(machiningBuffer);
   const warnings: string[] = [];
   const rows: PackageRow[] = [];
+  const categoryByItem = new Map(
+    sourceRows.map((row) => [row.item, row.category] as const)
+  );
+  const itemCategory = (item: PdfItem) =>
+    categoryByItem.get(item.item) || classifyProduct(item.description);
 
   rows.push(...buildMachinedDoors(machining, items));
   rows.push(...buildMachinedFrames(machining, items));
@@ -694,29 +756,47 @@ export function buildProcessingFromFilterProducts(
   const already = () => new Set(rows.flatMap((row) => row.sourceItems || []));
 
   for (const item of items.filter((x) =>
-    classifyProduct(x.description) === "PORTA" && !already().has(x.item)
+    itemCategory(x) === "PORTA" && !already().has(x.item)
   )) {
     rows.push(buildSimpleDoor(item));
   }
 
   const unmatchedFrames = items.filter((x) =>
-    classifyProduct(x.description) === "MARCO" && !already().has(x.item)
+    itemCategory(x) === "MARCO" && !already().has(x.item)
   );
   for (const item of unmatchedFrames) rows.push(...buildSimpleFrame(item));
 
   rows.push(...buildTrimRows(items.filter((x) =>
-    classifyProduct(x.description) === "ALIZAR" && !already().has(x.item)
+    itemCategory(x) === "ALIZAR" && !already().has(x.item)
   )));
   rows.push(...buildKitRows(items.filter((x) =>
-    classifyProduct(x.description) === "KIT" && !already().has(x.item)
+    itemCategory(x) === "KIT" && !already().has(x.item)
   )));
   rows.push(...buildHardwareRows(items.filter((x) =>
-    classifyProduct(x.description) === "FERRAGEM" && !already().has(x.item)
+    itemCategory(x) === "FERRAGEM" && !already().has(x.item)
   )));
 
   const after = already();
   for (const item of items) {
-    if (!after.has(item.item)) rows.push(buildFallback(item));
+    if (after.has(item.item)) continue;
+
+    const fallback = buildFallback(item);
+    const category = itemCategory(item);
+    fallback.category = category;
+    fallback.groupType = category;
+    fallback.role =
+      category === "PORTA"
+        ? "PORTA"
+        : category === "MARCO"
+        ? "MARCO_PERNA_SEM_MAO"
+        : category === "ALIZAR"
+        ? "ALIZAR_MAIOR_PERNA"
+        : category === "KIT"
+        ? "KIT"
+        : category === "FERRAGEM"
+        ? "FERRAGEM"
+        : "OUTRO";
+    rows.push(fallback);
   }
 
   if (!machiningBuffer) {
@@ -743,7 +823,7 @@ export function buildProcessingFromFilterProducts(
       unit: item.unit,
       quantity: item.quantity,
       volume: item.volume,
-      category: classifyProduct(item.description),
+      category: itemCategory(item),
       lengthMm: d?.[0],
       widthMm: d?.[1],
       thicknessMm: d?.[2],
@@ -758,8 +838,18 @@ export function buildProcessingFromFilterProducts(
     warnings.push(`${unmappedItems.length} item(ns) físico(s) ainda não foram associados a uma linha do romaneio.`);
   }
 
-  const sourceCategories = countSourceCategories(items);
-  const mappedCategories = countMappedSourceCategories(items, rows);
+  const sourceCategories: Partial<Record<ProductCategory, number>> = {};
+  for (const item of items) {
+    const category = itemCategory(item);
+    sourceCategories[category] = (sourceCategories[category] || 0) + 1;
+  }
+  const usedItems = new Set(rows.flatMap((row) => row.sourceItems || []));
+  const mappedCategories: Partial<Record<ProductCategory, number>> = {};
+  for (const item of items) {
+    if (!usedItems.has(item.item)) continue;
+    const category = itemCategory(item);
+    mappedCategories[category] = (mappedCategories[category] || 0) + 1;
+  }
   const generatedCategories = countGeneratedCategories(rows);
   const diagnosticNotes: string[] = [];
 
