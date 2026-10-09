@@ -7,7 +7,8 @@ export type RealtimeEvent =
   | "PRIORIDADE_ATUALIZADA"
   | "PROGRAMACAO_ATUALIZADA"
   | "PALLET_ATUALIZADO"
-  | "QUALIDADE_ATUALIZADA";
+  | "QUALIDADE_ATUALIZADA"
+  | "GESTAO_ATUALIZADA";
 
 export async function publishRealtimeEvent(
   event: RealtimeEvent,
