@@ -825,3 +825,179 @@ button:disabled{
   .leaderFilterGrid{grid-template-columns:1fr}
   .leaderFiltersHead{align-items:flex-start}
 }
+
+
+/* V11.1 • shell ERP com menu lateral real */
+.pcpShell{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:214px minmax(0,1fr);
+  grid-template-rows:54px minmax(0,1fr);
+  background:var(--bg);
+}
+.pcpTop{
+  grid-column:1/-1;
+  grid-row:1;
+  position:sticky;
+  top:0;
+  z-index:40;
+}
+.pcpNavigation{
+  grid-column:1;
+  grid-row:2;
+  min-height:calc(100vh - 54px);
+  height:calc(100vh - 54px);
+  position:sticky;
+  top:54px;
+  display:flex;
+  flex-direction:column;
+  background:#15281f;
+  border-right:1px solid #0d1b15;
+  border-bottom:0;
+  overflow:hidden;
+}
+.pcpNavigation nav{
+  flex:1;
+  display:block;
+  padding:10px 8px;
+  overflow:auto;
+}
+.pcpNavGroup{
+  display:block;
+  margin-bottom:13px;
+}
+.pcpNavGroup>label{
+  display:block;
+  padding:0 10px 5px;
+  color:rgba(255,255,255,.38);
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:1.25px;
+}
+.pcpNavigation nav a{
+  min-height:36px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:0 10px;
+  margin:1px 0;
+  color:rgba(255,255,255,.72);
+  border:0;
+  border-left:3px solid transparent;
+  font-size:11px;
+  font-weight:750;
+  background:transparent;
+  text-decoration:none;
+}
+.pcpNavigation nav a svg{
+  width:15px;
+  height:15px;
+  flex:0 0 auto;
+  opacity:.82;
+}
+.pcpNavigation nav a:hover{
+  color:#fff;
+  background:rgba(255,255,255,.055);
+}
+.pcpNavigation nav a.active{
+  color:#fff;
+  background:rgba(255,255,255,.09);
+  border-left-color:#9cc2ac;
+}
+.pcpNavFoot{
+  border-top:1px solid rgba(255,255,255,.08);
+  padding:10px 12px 12px;
+  background:#102019;
+}
+.pcpNavFoot span,.pcpNavFoot b,.pcpNavFoot small{display:block}
+.pcpNavFoot span{
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:1px;
+  color:rgba(255,255,255,.4);
+}
+.pcpNavFoot b{
+  margin-top:4px;
+  font-size:11px;
+  color:#fff;
+}
+.pcpNavFoot small{
+  margin-top:2px;
+  font-size:8px;
+  color:rgba(255,255,255,.5);
+}
+.pcpMain{
+  grid-column:2;
+  grid-row:2;
+  min-width:0;
+  min-height:calc(100vh - 54px);
+  background:var(--bg);
+}
+.pcpMain>.page{
+  margin:0;
+  max-width:none;
+}
+.pcpBrand{
+  width:214px;
+  min-width:214px;
+}
+.pcpTitleBlock{
+  margin-left:0;
+}
+@media(max-width:920px){
+  .pcpShell{
+    grid-template-columns:1fr;
+    grid-template-rows:auto auto minmax(0,1fr);
+  }
+  .pcpTop{
+    grid-column:1;
+    grid-row:1;
+    position:sticky;
+  }
+  .pcpBrand{
+    width:auto;
+    min-width:0;
+  }
+  .pcpNavigation{
+    grid-column:1;
+    grid-row:2;
+    height:auto;
+    min-height:0;
+    position:sticky;
+    top:54px;
+    z-index:35;
+    display:block;
+    background:#15281f;
+    overflow:auto hidden;
+  }
+  .pcpNavigation nav{
+    display:flex;
+    gap:4px;
+    padding:6px;
+    overflow:auto hidden;
+  }
+  .pcpNavGroup{
+    display:flex;
+    gap:3px;
+    margin:0;
+  }
+  .pcpNavGroup>label,.pcpNavFoot{
+    display:none;
+  }
+  .pcpNavigation nav a{
+    min-height:34px;
+    padding:0 9px;
+    border-left:0;
+    border-bottom:2px solid transparent;
+    white-space:nowrap;
+  }
+  .pcpNavigation nav a.active{
+    border-left:0;
+    border-bottom-color:#9cc2ac;
+  }
+  .pcpMain{
+    grid-column:1;
+    grid-row:3;
+    min-height:0;
+  }
+}
