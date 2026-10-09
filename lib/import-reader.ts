@@ -278,3 +278,48 @@ export async function loadRobustTable(
     warnings,
   };
 }
+
+
+export async function loadRobustTables(
+  file: File,
+  aliases: HeaderAliases,
+  options?: { forwardFillFields?: string[] }
+): Promise<RobustTable[]> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const aliasPool = buildAliasPool(aliases);
+  const name = cleanImportText(file.name).toLowerCase();
+  const isExcel = /\.(xlsx?|xlsm|xlsb)$/i.test(name);
+
+  if (!isExcel) {
+    return [await loadRobustTable(file, aliases, options)];
+  }
+
+  const wb = XLSX.read(bytes, { type: "array", raw: false, cellDates: false });
+  const result: RobustTable[] = [];
+
+  for (const sheetName of wb.SheetNames) {
+    const matrix = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], {
+      header: 1,
+      defval: "",
+      raw: false,
+      blankrows: false,
+    }) as unknown[][];
+
+    const detected = bestHeader(matrix, aliasPool);
+    if (!detected) continue;
+
+    result.push({
+      rows: matrixToRows(matrix, detected.index, aliases, options?.forwardFillFields || []),
+      headerRow: detected.index + 1,
+      sheetName,
+      totalRawRows: matrix.length,
+      warnings: [],
+    });
+  }
+
+  if (!result.length) {
+    throw new Error("Não foi possível identificar cabeçalho em nenhuma planilha do arquivo.");
+  }
+
+  return result;
+}
