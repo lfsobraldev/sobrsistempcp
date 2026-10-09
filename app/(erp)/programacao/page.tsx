@@ -388,8 +388,8 @@ export default function Programacao() {
                 set={
                   setFilter
                 }
-                accept=".csv"
-                title="CSV do filtro diário"
+                accept=".csv,.txt,.xls,.xlsx"
+                title="Filtro diário do Consistem"
               />
             ) : (
               <div className="doubleDrop">
@@ -762,6 +762,83 @@ function Review({
           </span>
         </div>
       )}
+
+      <Panel
+        title="Resumo automático por pedido"
+        subtitle="Campos que antes precisavam de preenchimento manual na programação do gerente."
+      >
+        <div className="tableWrap managerSummaryTable">
+          <table>
+            <thead>
+              <tr>
+                <th>PEDIDO</th>
+                <th>QTD. KITS</th>
+                <th>PLANILHA USINAGEM</th>
+                <th>MEDIDAS DE ALIZAR</th>
+                <th>MATERIAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...new Set(d.produtos.map((p) => p.pedido))]
+                .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }))
+                .map((pedidoNumero) => {
+                  const produtos = d.produtos.filter((p) => p.pedido === pedidoNumero);
+
+                  const kits = produtos
+                    .filter((p) => {
+                      const categoria = String(p.categoria || "").toUpperCase();
+                      return categoria.includes("KIT CORRER") && !categoria.includes("SUPORTE");
+                    })
+                    .reduce((sum, p) => sum + Number(p.quantidade || 0), 0);
+
+                  const medidasAlizar = [...new Set(
+                    produtos
+                      .filter((p) => String(p.categoria || "").toUpperCase().startsWith("ALIZAR"))
+                      .map((p) => {
+                        const m = String(p.medida || "").match(/(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)/i);
+                        if (!m) return "";
+                        const largura = Number(m[2].replace(",", "."));
+                        const espessura = Number(m[3].replace(",", "."));
+                        if (!(largura > 0 && espessura > 0)) return "";
+                        return `${largura}x${espessura}`;
+                      })
+                      .filter(Boolean)
+                  )].sort((a, b) => {
+                    const [la, ea] = a.split("x").map(Number);
+                    const [lb, eb] = b.split("x").map(Number);
+                    return lb - la || eb - ea;
+                  });
+
+                  const materialTexto = produtos
+                    .map((p) => [p.material, p.tipo, p.descricao].filter(Boolean).join(" "))
+                    .join(" ")
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .toUpperCase();
+
+                  const ultra = materialTexto.includes("ULTRA");
+                  const std = /(^|[^A-Z])STD([^A-Z]|$)/.test(materialTexto);
+                  const material = ultra && std ? "ULTRA/STD" : ultra ? "ULTRA" : std ? "STD" : "-";
+                  const temUsinagem = produtos.some((p) => p.usinagemPlanilha);
+
+                  return (
+                    <tr key={pedidoNumero}>
+                      <td><b>{pedidoNumero}</b></td>
+                      <td className="num"><b>{kits}</b></td>
+                      <td>
+                        <span className={`managerFlag ${temUsinagem ? "ok" : "pending"}`}>
+                          {temUsinagem ? "SIM" : "NÃO"}
+                        </span>
+                      </td>
+                      <td>{medidasAlizar.length ? medidasAlizar.join(" / ") : "-"}</td>
+                      <td><b>{material}</b></td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
 
       <Panel
         title="Tipo de pedido / Embalagem"
