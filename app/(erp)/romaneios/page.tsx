@@ -113,6 +113,7 @@ export default function RomaneiosPage() {
     if (!pedidoFiltro) return;
     if (comUsinagem && !usinagem) return;
 
+    setResultado(null);
     setBusy(comUsinagem ? "PROCESSAR_FILTRO" : "TESTAR_FILTRO");
 
     try {
@@ -335,7 +336,7 @@ export default function RomaneiosPage() {
                       <td>{entry.tipoPedido}</td>
                       <td>
                         {pedidoFiltro === entry.numero
-                          ? <b>SELECIONADO</b>
+                          ? <b>EM EDIÇÃO</b>
                           : "Aguardando usinagem"}
                       </td>
                       <td style={{ textAlign: "right" }}>
@@ -343,8 +344,23 @@ export default function RomaneiosPage() {
                           type="button"
                           className={pedidoFiltro === entry.numero ? "primary" : "secondary"}
                           onClick={() => {
+                            const jaSelecionado = pedidoFiltro === entry.numero;
+
+                            if (jaSelecionado) {
+                              setPedidoFiltro("");
+                              setUsinagem(null);
+                              setResultado(null);
+                              return;
+                            }
+
+                            /*
+                             * Seleção exclusiva: sempre existe no máximo
+                             * UM pedido ativo no gerador de romaneios.
+                             */
                             setPedidoFiltro(entry.numero);
                             setUsinagem(null);
+                            setResultado(null);
+
                             if (entry.tipoPedido === "REVENDA") {
                               setMountType("REVENDA");
                             } else if (entry.tipoPedido === "ENGENHARIA") {
@@ -352,10 +368,9 @@ export default function RomaneiosPage() {
                             } else {
                               setMountType("MONTADO_HS");
                             }
-                            setResultado(null);
                           }}
                         >
-                          {pedidoFiltro === entry.numero ? "SELECIONADO" : "SELECIONAR"}
+                          {pedidoFiltro === entry.numero ? "DESMARCAR" : "SELECIONAR"}
                         </button>
                       </td>
                     </tr>
