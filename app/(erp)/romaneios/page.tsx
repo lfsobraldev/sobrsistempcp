@@ -7,12 +7,13 @@ import {
   RefreshCw,
   UploadCloud,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Panel } from "@/components/ui";
 import type {
   MountType,
   ProcessingResult,
 } from "@/lib/romaneio/types";
+import type { Produto } from "@/types/pcp";
 
 const MONTAGENS: Array<{
   value: MountType;
@@ -44,6 +45,9 @@ const MONTAGENS: Array<{
 export default function RomaneiosPage() {
   const [pedido, setPedido] = useState<File | null>(null);
   const [usinagem, setUsinagem] = useState<File | null>(null);
+  const [produtosFiltro, setProdutosFiltro] = useState<Produto[]>([]);
+  const [pedidoFiltro, setPedidoFiltro] = useState("");
+  const [carregandoFiltro, setCarregandoFiltro] = useState(true);
   const [mountType, setMountType] = useState<MountType>("MONTADO_HS");
   const [filtro, setFiltro] = useState("");
   const [pagina, setPagina] = useState("");
@@ -56,6 +60,99 @@ export default function RomaneiosPage() {
   const [complemento, setComplemento] = useState(false);
   const [resultado, setResultado] = useState<ProcessingResult | null>(null);
   const [busy, setBusy] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("/api/programacoes/ativa", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Falha ao carregar Filtro 51.");
+        if (!active) return;
+        const products = (data.programacao?.produtos || []) as Produto[];
+        setProdutosFiltro(products);
+        const filtroAtual = String(data.programacao?.filtro || "");
+        if (filtroAtual) setFiltro((current) => current || filtroAtual);
+      })
+      .catch(() => {
+        if (active) setProdutosFiltro([]);
+      })
+      .finally(() => {
+        if (active) setCarregandoFiltro(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const pedidosFiltro = useMemo(() => {
+    const map = new Map<string, Produto[]>();
+
+    for (const produto of produtosFiltro) {
+      const key = String(produto.pedido || "").trim();
+      if (!key) continue;
+      const list = map.get(key) || [];
+      list.push(produto);
+      map.set(key, list);
+    }
+
+    return [...map.entries()]
+      .map(([numero, produtos]) => ({
+        numero,
+        produtos,
+        pecas: produtos.reduce((sum, produto) => sum + Number(produto.quantidade || 0), 0),
+        itens: produtos.length,
+        tipoPedido: produtos.find((produto) => produto.tipoPedido && produto.tipoPedido !== "NORMAL")?.tipoPedido || "NORMAL",
+        montagem: produtos.find((produto) => produto.montagemEngenharia)?.montagemEngenharia || "MONTADO_HS",
+      }))
+      .sort((a, b) => a.numero.localeCompare(b.numero, "pt-BR", { numeric: true }));
+  }, [produtosFiltro]);
+
+  async function processarFiltro() {
+    if (!pedidoFiltro || !usinagem) return;
+
+    setBusy("PROCESSAR_FILTRO");
+
+    try {
+      const fd = new FormData();
+      fd.append("pedido", pedidoFiltro);
+      fd.append("usinagem", usinagem);
+      fd.append("mountType", mountType);
+      fd.append(
+        "orderOptions",
+        JSON.stringify({
+          mountType,
+          filtro,
+          pagina,
+          conferente,
+          separador,
+          motorista,
+          transportadora,
+          placa,
+          notaFiscal,
+          complementoObra: complemento,
+        })
+      );
+
+      const response = await fetch("/api/romaneios/processar-filtro", {
+        method: "POST",
+        body: fd,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Falha ao finalizar romaneio pelo Filtro 51.");
+      }
+
+      setResultado(data);
+    } catch (e: any) {
+      alert(e?.message || "Falha ao finalizar romaneio.");
+    } finally {
+      setBusy("");
+    }
+  }
 
   async function processar() {
     if (!pedido) return;
@@ -163,6 +260,103 @@ export default function RomaneiosPage() {
           </p>
         </div>
       </div>
+
+      <Panel
+        title="Romaneios preparados pelo Filtro 51"
+        subtitle="Os pedidos já vêm da programação. Selecione um pedido e envie somente a usinagem para finalizar o romaneio."
+      >
+        {carregandoFiltro ? (
+          <div className="warningBox">
+            <b>CARREGANDO PROGRAMAÇÃO</b>
+            <span>Lendo os pedidos da programação ativa.</span>
+          </div>
+        ) : pedidosFiltro.length ? (
+          <>
+            <div className="tableWrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>PEDIDO</th>
+                    <th>ITENS</th>
+                    <th>PEÇAS</th>
+                    <th>TIPO</th>
+                    <th>STATUS</th>
+                    <th>AÇÃO</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pedidosFiltro.map((entry) => (
+                    <tr key={entry.numero}>
+                      <td><b>{entry.numero}</b></td>
+                      <td>{entry.itens}</td>
+                      <td>{entry.pecas}</td>
+                      <td>{entry.tipoPedido}</td>
+                      <td><b>AGUARDANDO USINAGEM</b></td>
+                      <td>
+                        <button
+                          type="button"
+                          className={pedidoFiltro === entry.numero ? "primary" : "secondary"}
+                          onClick={() => {
+                            setPedidoFiltro(entry.numero);
+                            if (entry.tipoPedido === "REVENDA") {
+                              setMountType("REVENDA");
+                            } else if (entry.tipoPedido === "ENGENHARIA") {
+                              setMountType(entry.montagem as MountType);
+                            }
+                            setResultado(null);
+                          }}
+                        >
+                          {pedidoFiltro === entry.numero ? "SELECIONADO" : "SELECIONAR"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {pedidoFiltro && (
+              <div className="reviewBar">
+                <label className={`drop ${usinagem ? "ready" : ""}`} style={{ maxWidth: 520 }}>
+                  <UploadCloud />
+                  <span>
+                    <b>{usinagem?.name || `Usinagem do pedido ${pedidoFiltro}`}</b>
+                    <small>{usinagem ? "Planilha pronta para cruzamento" : ".xlsx / .xls"}</small>
+                  </span>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={(e) => setUsinagem(e.target.files?.[0] || null)}
+                  />
+                </label>
+
+                <button
+                  className="primary"
+                  disabled={!usinagem || !!busy}
+                  onClick={processarFiltro}
+                >
+                  <RefreshCw className={busy === "PROCESSAR_FILTRO" ? "spin" : ""} />
+                  {busy === "PROCESSAR_FILTRO"
+                    ? "FINALIZANDO..."
+                    : "FINALIZAR ROMANEIO COM USINAGEM"}
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="warningBox">
+            <b>SEM PROGRAMAÇÃO ATIVA</b>
+            <span>Importe e libere o Filtro 51 para os pedidos aparecerem automaticamente aqui.</span>
+          </div>
+        )}
+      </Panel>
+
+      <Panel
+        title="Modo manual"
+        subtitle="Mantido como alternativa: pedido em PDF + usinagem."
+      >
+        <small>Use somente quando o pedido ainda não estiver disponível no Filtro 51.</small>
+      </Panel>
 
       <Panel
         title="1. Arquivos do pedido"
