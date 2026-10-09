@@ -3,44 +3,73 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Factory, LayoutDashboard, UploadCloud, ClipboardCheck, History, Settings,
-  Flag, ShieldCheck, LogOut, RefreshCw, UsersRound, AlertTriangle, Boxes, Route, PackageSearch,
+  Bell,
+  Boxes,
+  ChevronDown,
+  ClipboardCheck,
+  Factory,
+  Flag,
+  HelpCircle,
+  History,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  PackageSearch,
+  PanelLeftClose,
+  PanelLeftOpen,
+  RefreshCw,
+  Route,
+  Search,
+  Settings,
+  ShieldCheck,
+  UploadCloud,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { OperationalProvider, useOps } from "@/components/operational-provider";
 
-type MenuItem={path:string;label:string;icon:LucideIcon};
-type MenuGroup={label:string;items:MenuItem[]};
+type MenuItem = { path: string; label: string; icon: LucideIcon };
+type MenuGroup = { label: string; items: MenuItem[] };
 
-const menus:MenuGroup[]=[
-  {label:"VISÃO",items:[
-    {path:"/dashboard",label:"Central de Produção",icon:LayoutDashboard},
-  ]},
-  {label:"PLANEJAMENTO",items:[
-    {path:"/programacao",label:"Programação",icon:UploadCloud},
-    {path:"/programacao-gerente",label:"Programação Gerente",icon:Route},
-  ]},
-  {label:"OPERAÇÃO",items:[
-    {path:"/lideres",label:"Líderes / Setores",icon:UsersRound},
-    {path:"/apontamentos",label:"Apontamento",icon:ClipboardCheck},
-    {path:"/excecoes",label:"Faltas e Retrabalho",icon:PackageSearch},
-  ]},
-  {label:"QUALIDADE / EXPEDIÇÃO",items:[
-    {path:"/inspecao-pallets",label:"Qualidade",icon:ShieldCheck},
-    {path:"/romaneios",label:"Romaneios",icon:Boxes},
-  ]},
-  {label:"GESTÃO",items:[
-    {path:"/prioridades",label:"Prioridades",icon:Flag},
-    {path:"/historico",label:"Histórico",icon:History},
-  ]},
-  {label:"SISTEMA",items:[
-    {path:"/configuracoes",label:"Configurações",icon:Settings},
-  ]},
+const menus: MenuGroup[] = [
+  {
+    label: "Início",
+    items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }],
+  },
+  {
+    label: "Produção",
+    items: [
+      { path: "/programacao", label: "Programação", icon: UploadCloud },
+      { path: "/programacao-gerente", label: "Programação Gerente", icon: Route },
+      { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
+      { path: "/apontamentos", label: "Apontamento", icon: ClipboardCheck },
+      { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },
+    ],
+  },
+  {
+    label: "Qualidade",
+    items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }],
+  },
+  {
+    label: "Expedição",
+    items: [{ path: "/romaneios", label: "Romaneios", icon: Boxes }],
+  },
+  {
+    label: "Relatórios",
+    items: [
+      { path: "/prioridades", label: "Prioridades", icon: Flag },
+      { path: "/historico", label: "Histórico", icon: History },
+    ],
+  },
+  {
+    label: "Configurações",
+    items: [{ path: "/configuracoes", label: "Configurações", icon: Settings }],
+  },
 ];
 
-function allowed(role:string,path:string){
-  const pcp=[
+function allowed(role: string, path: string) {
+  const pcp = [
     "/dashboard",
     "/programacao",
     "/programacao-gerente",
@@ -55,94 +84,251 @@ function allowed(role:string,path:string){
     "/configuracoes",
   ];
 
-  if(role==="PCP")return pcp.includes(path);
-  if(role==="GERENTE")return ["/dashboard","/programacao-gerente","/prioridades","/lideres","/excecoes","/inspecao-pallets","/romaneios","/historico"].includes(path);
-  if(role==="ENCARREGADO")return ["/dashboard","/programacao-gerente","/prioridades","/lideres","/excecoes","/inspecao-pallets","/romaneios"].includes(path);
-  if(role==="LIDER")return ["/lideres","/excecoes"].includes(path);
-  if(role==="APONTADOR")return ["/apontamentos"].includes(path);
-  if(role==="QUALIDADE")return ["/dashboard","/inspecao-pallets"].includes(path);
+  if (role === "PCP") return pcp.includes(path);
+  if (role === "GERENTE")
+    return ["/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico"].includes(path);
+  if (role === "ENCARREGADO")
+    return ["/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios"].includes(path);
+  if (role === "LIDER") return ["/lideres", "/excecoes"].includes(path);
+  if (role === "APONTADOR") return ["/apontamentos"].includes(path);
+  if (role === "QUALIDADE") return ["/dashboard", "/inspecao-pallets"].includes(path);
   return false;
 }
 
-function Inner({children}:{children:React.ReactNode}){
-  const{me,pg,lastSync,realtimeStatus,refresh,loading}=useOps();
-  const path=usePathname();
-  const router=useRouter();
+function Inner({ children }: { children: React.ReactNode }) {
+  const { me, pg, lastSync, realtimeStatus, refresh, loading } = useOps();
+  const path = usePathname();
+  const router = useRouter();
 
-  const visible=useMemo(()=>menus.map(g=>({...g,items:g.items.filter(i=>me&&allowed(me.perfil,i.path))})).filter(g=>g.items.length),[me]);
-  const current=useMemo(()=>{
-    for(const g of menus){const i=g.items.find(x=>x.path===path);if(i)return i.label}
-    return "Central";
-  },[path]);
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileNav, setMobileNav] = useState(false);
+  const [query, setQuery] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
 
-  useEffect(()=>{
-    if(loading)return;
-    if(!me){router.replace("/login");return}
-    if(allowed(me.perfil,path))return;
-    if(me.perfil==="LIDER"){router.replace("/lideres");return}
-    if(me.perfil==="APONTADOR"){router.replace("/apontamentos");return}
-    if(me.perfil==="QUALIDADE"){router.replace("/inspecao-pallets");return}
+  const visible = useMemo(
+    () =>
+      menus
+        .map((g) => ({ ...g, items: g.items.filter((i) => me && allowed(me.perfil, i.path)) }))
+        .filter((g) => g.items.length),
+    [me]
+  );
+
+  const current = useMemo(() => {
+    for (const g of menus) {
+      const i = g.items.find((x) => x.path === path);
+      if (i) return i.label;
+    }
+    return "Central de Produção";
+  }, [path]);
+
+  const allVisible = useMemo(() => visible.flatMap((g) => g.items), [visible]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!me) {
+      router.replace("/login");
+      return;
+    }
+    if (allowed(me.perfil, path)) return;
+    if (me.perfil === "LIDER") {
+      router.replace("/lideres");
+      return;
+    }
+    if (me.perfil === "APONTADOR") {
+      router.replace("/apontamentos");
+      return;
+    }
+    if (me.perfil === "QUALIDADE") {
+      router.replace("/inspecao-pallets");
+      return;
+    }
     router.replace("/dashboard");
-  },[me,path,router,loading]);
+  }, [me, path, router, loading]);
 
-  async function logout(){await fetch("/api/auth/logout",{method:"POST"});window.location.href="/login"}
+  useEffect(() => {
+    setMobileNav(false);
+    setProfileOpen(false);
+  }, [path]);
 
-  if(loading)return <div className="boot"><Factory/><b>SOBRAL PCP</b><span>Preparando operação...</span></div>;
-  if(!me)return null;
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
 
-  return <div className="pcpShell">
-    <header className="pcpTop">
-      <div className="pcpBrand">
-        <div className="pcpLogo"><Factory/></div>
-        <div><strong>SOBRAL PCP</strong><span>PCP INDUSTRIAL • V12</span></div>
+  function searchModule() {
+    const q = query.trim().toLocaleLowerCase("pt-BR");
+    if (!q) return;
+    const found = allVisible.find((item) => item.label.toLocaleLowerCase("pt-BR").includes(q));
+    if (found) {
+      router.push(found.path);
+      setQuery("");
+    }
+  }
+
+  if (loading)
+    return (
+      <div className="boot fioriBoot">
+        <Factory />
+        <b>SOBRAL PCP</b>
+        <span>Preparando ambiente...</span>
       </div>
+    );
+  if (!me) return null;
 
-      <div className="pcpTitleBlock">
-        <span>MÓDULO</span>
-        <b>{current}</b>
-      </div>
+  return (
+    <div className={`fioriShell ${collapsed ? "isCollapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
+      <header className="fioriShellBar">
+        <div className="fioriShellLeft">
+          <button
+            className="fioriIconButton mobileMenuButton"
+            onClick={() => setMobileNav((v) => !v)}
+            aria-label="Abrir menu"
+            title="Menu"
+          >
+            <Menu />
+          </button>
 
-      <div className="pcpTopRight">
-        {pg&&<div className="pcpRunInfo">
-          <div><span>FILTRO</span><b>{pg.filtro}</b></div>
-          <div><span>TURNO</span><b>{pg.turno}</b></div>
-          <div><span>DATA</span><b>{new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}</b></div>
-        </div>}
-        <div className={`pcpLive rt-${realtimeStatus}`}><i/><div><span>{realtimeStatus==="tempo_real"?"TEMPO REAL":realtimeStatus==="reconectando"?"RECONECTANDO":"ATUALIZAÇÃO"}</span><b>{lastSync?lastSync.toLocaleTimeString("pt-BR"):"--:--:--"}</b></div></div>
-        <button className="pcpRefresh" onClick={refresh} title="Atualizar"><RefreshCw/></button>
-        <div className="pcpProfile"><div>{me.usuario.slice(0,2).toUpperCase()}</div><span><b>{me.usuario}</b><small>{me.perfil}</small></span></div>
-        <button className="pcpExit" onClick={logout} title="Sair"><LogOut/></button>
-      </div>
-    </header>
+          <button
+            className="fioriIconButton desktopCollapseButton"
+            onClick={() => setCollapsed((v) => !v)}
+            aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+            title={collapsed ? "Expandir menu" : "Recolher menu"}
+          >
+            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+          </button>
 
-    <aside className="pcpNavigation">
-      <nav>
-        {visible.map((group)=>(
-          <section key={group.label} className="pcpNavGroup">
-            <label>{group.label}</label>
-            {group.items.map((item)=>{
-              const Icon=item.icon;
-              return (
-                <Link key={item.path} href={item.path} className={path===item.path?"active":""}>
-                  <Icon/>
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </section>
-        ))}
-      </nav>
-      <div className="pcpNavFoot">
-        <span>PROGRAMAÇÃO ATIVA</span>
-        <b>{pg?.filtro || "SEM FILTRO"}</b>
-        <small>{pg ? `Turno ${pg.turno} • ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}` : "Aguardando programação"}</small>
-      </div>
-    </aside>
+          <Link href="/dashboard" className="fioriSystemName">
+            <span className="fioriSystemMark"><Factory /></span>
+            <span>
+              <b>Sobral PCP</b>
+              <small>{current}</small>
+            </span>
+          </Link>
+        </div>
 
-    <main className="pcpMain"><div className="page">{children}</div></main>
-  </div>
+        <div className="fioriGlobalSearch" role="search">
+          <Search />
+          <input
+            aria-label="Buscar módulo"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") searchModule();
+            }}
+            placeholder="Pesquisar módulos e funções"
+          />
+          {query && (
+            <button onClick={searchModule} aria-label="Ir para resultado">
+              Ir
+            </button>
+          )}
+        </div>
+
+        <div className="fioriShellRight">
+          {pg && (
+            <div className="fioriContextMeta">
+              <span><small>Filtro</small><b>{pg.filtro || "-"}</b></span>
+              <span><small>Turno</small><b>{pg.turno || "-"}</b></span>
+              <span><small>Data</small><b>{new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}</b></span>
+            </div>
+          )}
+
+          <button className="fioriIconButton" onClick={() => void refresh()} aria-label="Atualizar" title="Atualizar">
+            <RefreshCw />
+          </button>
+
+          <button className="fioriIconButton notificationButton" aria-label="Notificações" title="Notificações">
+            <Bell />
+            <i className="notificationBadge">{realtimeStatus === "tempo_real" ? "1" : "!"}</i>
+          </button>
+
+          <button className="fioriIconButton" aria-label="Ajuda" title="Ajuda">
+            <HelpCircle />
+          </button>
+
+          <div className="fioriProfileWrap">
+            <button
+              className="fioriAvatarButton"
+              onClick={() => setProfileOpen((v) => !v)}
+              aria-expanded={profileOpen}
+            >
+              <span className="fioriAvatar">{me.usuario.slice(0, 2).toUpperCase()}</span>
+              <span className="fioriAvatarText">
+                <b>{me.usuario}</b>
+                <small>{me.perfil}</small>
+              </span>
+              <ChevronDown />
+            </button>
+
+            {profileOpen && (
+              <div className="fioriProfileMenu">
+                <div>
+                  <b>{me.usuario}</b>
+                  <span>{me.perfil}</span>
+                </div>
+                <div className="fioriLiveRow">
+                  <i className={realtimeStatus === "tempo_real" ? "online" : ""} />
+                  <span>
+                    {realtimeStatus === "tempo_real" ? "Tempo real ativo" : "Sincronização"}
+                    <small>{lastSync ? lastSync.toLocaleTimeString("pt-BR") : "--:--:--"}</small>
+                  </span>
+                </div>
+                <button onClick={logout}><LogOut /> Sair</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <aside className="fioriSideNav">
+        <nav>
+          {visible.map((group) => (
+            <section key={group.label} className="fioriNavGroup">
+              {!collapsed && <label>{group.label}</label>}
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    className={path === item.path ? "active" : ""}
+                    title={collapsed ? item.label : undefined}
+                  >
+                    <Icon />
+                    {!collapsed && <span>{item.label}</span>}
+                  </Link>
+                );
+              })}
+            </section>
+          ))}
+        </nav>
+
+        {!collapsed && (
+          <div className="fioriSideFooter">
+            <span>Programação ativa</span>
+            <b>{pg?.filtro || "Sem filtro"}</b>
+            <small>
+              {pg
+                ? `Turno ${pg.turno} · ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}`
+                : "Aguardando programação"}
+            </small>
+          </div>
+        )}
+      </aside>
+
+      {mobileNav && <button className="fioriNavBackdrop" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
+
+      <main className="fioriMain">
+        <div className="fioriPage">{children}</div>
+      </main>
+    </div>
+  );
 }
 
-export default function ErpShell({children}:{children:React.ReactNode}){
-  return <OperationalProvider><Inner>{children}</Inner></OperationalProvider>
+export default function ErpShell({ children }: { children: React.ReactNode }) {
+  return (
+    <OperationalProvider>
+      <Inner>{children}</Inner>
+    </OperationalProvider>
+  );
 }
