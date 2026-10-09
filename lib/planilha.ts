@@ -3656,6 +3656,234 @@ function montarControle(
   };
 }
 
+
+function montarProgramacaoGerente(
+  ws: Worksheet,
+  produtos: Produto[]
+) {
+  const FONT = "Arial";
+  const border = fino("FF7F7F7F");
+
+  const widths = [
+    12, 14, 14, 46, 9, 9, 28, 12, 11, 12, 11, 10, 12, 18, 14, 38, 16,
+  ];
+
+  widths.forEach((w, i) => {
+    ws.getColumn(i + 1).width = w;
+  });
+
+  ws.views = [
+    {
+      state: "frozen",
+      ySplit: 2,
+      showGridLines: false,
+    },
+  ];
+
+  const headers = [
+    "Série",
+    "Faturamento",
+    "Situação",
+    "Cliente",
+    "Dtno",
+    "Frete",
+    "Acabamento",
+    "Quant M³",
+    "",
+    "",
+    "Estoque",
+    "Kits",
+    "Planilha",
+    "Alizar",
+    "Material",
+    "Observações",
+    "Valor",
+  ];
+
+  const row1 = ws.getRow(1);
+  headers.forEach((h, i) => {
+    const cell = row1.getCell(i + 1);
+    cell.value = h;
+    cell.font = { name: FONT, size: 10, bold: true, color: { argb: "FF111111" } };
+    cell.alignment = {
+      vertical: "middle",
+      horizontal: [4, 7, 16].includes(i + 1) ? "left" : "center",
+    };
+    cell.border = { top: border, bottom: border, left: border, right: border };
+  });
+  row1.height = 24;
+
+  // Cores de referência da aba Outubro 26 NE.
+  row1.getCell(12).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF8EAADB" } };
+  row1.getCell(13).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7F7F7F" } };
+  row1.getCell(13).font = { name: FONT, size: 10, bold: true, color: { argb: "FFFFFFFF" } };
+  row1.getCell(14).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF4B183" } };
+  row1.getCell(15).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00B0F0" } };
+
+  const row2 = ws.getRow(2);
+  ["", "", "", "", "", "", "", "Total", "Cliente", "Fábrica", "", "", "", "", "", "", ""]
+    .forEach((v, i) => {
+      const cell = row2.getCell(i + 1);
+      cell.value = v;
+      cell.font = { name: FONT, size: 10, bold: i + 1 === 8 };
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+      cell.border = { top: border, bottom: border, left: border, right: border };
+      if (i + 1 === 9 || i + 1 === 10) {
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
+      }
+    });
+  row2.height = 22;
+
+  const pedidos = new Map<string, Produto[]>();
+  for (const p of produtos.filter(produtoEntraPCP)) {
+    const pedido = limpar(p.pedido);
+    if (!pedido) continue;
+    const arr = pedidos.get(pedido) || [];
+    arr.push(p);
+    pedidos.set(pedido, arr);
+  }
+
+  const linhas = [...pedidos.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0], "pt-BR", { numeric: true })
+  );
+
+  let rowNum = 3;
+
+  for (const [pedido, itens] of linhas) {
+    const row = ws.getRow(rowNum);
+
+    let totalM3 = 0;
+    let kits = 0;
+    let temUsinagem = false;
+    let ultra = false;
+    let std = false;
+    const alizares = new Set<string>();
+    const acabamentos = new Set<string>();
+
+    for (const p of itens) {
+      const [comp, larg, esp] = medidaDoItem(p);
+      totalM3 += m3(comp, larg, esp, Number(p.quantidade || 0)) || 0;
+
+      const familia = familiaIndustrial(p);
+      const categoria = limpar(p.categoria).toUpperCase();
+
+      if (familia === "KIT CORRER" && !categoria.includes("SUPORTE")) {
+        kits += Number(p.quantidade || 0);
+      }
+
+      if (p.usinagemPlanilha) temUsinagem = true;
+
+      if (familia === "ALIZARES" && larg > 0 && esp > 0) {
+        alizares.add(`${larg}x${esp}`);
+      }
+
+      const mat = [p.material, p.tipo, p.descricao]
+        .filter(Boolean)
+        .join(" ")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase();
+
+      if (mat.includes("ULTRA")) ultra = true;
+      if (/(^|[^A-Z])STD([^A-Z]|$)/.test(mat)) std = true;
+
+      const ac = [limpar(p.acabamento), limpar(p.cor)]
+        .filter(Boolean)
+        .join(" ");
+      if (ac) acabamentos.add(ac);
+    }
+
+    const medidasAlizar = [...alizares].sort((a, b) => {
+      const [la, ea] = a.split("x").map(Number);
+      const [lb, eb] = b.split("x").map(Number);
+      return lb - la || eb - ea;
+    });
+
+    const material =
+      ultra && std ? "ULTRA/STD" :
+      ultra ? "ULTRA" :
+      std ? "STD" : "";
+
+    const acabamento =
+      [...acabamentos].slice(0, 2).join(" / ");
+
+    const values: Array<string | number | null> = [
+      pedido,     // A Série
+      "",         // B Faturamento - manual
+      "",         // C Situação - manual
+      "",         // D Cliente - manual se filtro não trouxer
+      "",         // E Dtno - manual
+      "",         // F Frete - manual
+      acabamento, // G Acabamento
+      Math.round(totalM3 * 1000) / 1000, // H Quant M3
+      "",         // I Cliente
+      "",         // J Fábrica
+      "",         // K Estoque
+      kits || "", // L Kits
+      temUsinagem ? "OK" : "", // M Planilha
+      medidasAlizar.join(" / "), // N Alizar
+      material,   // O Material
+      "",         // P Observações
+      null,       // Q Valor
+    ];
+
+    values.forEach((value, i) => {
+      const cell = row.getCell(i + 1);
+      if (value !== null) cell.value = value as ExcelJS.CellValue;
+
+      cell.font = { name: FONT, size: 10, color: { argb: "FF111111" } };
+      cell.alignment = {
+        vertical: "middle",
+        horizontal: [4, 7, 16].includes(i + 1) ? "left" : "center",
+        wrapText: i + 1 === 4 || i + 1 === 7 || i + 1 === 16,
+      };
+      cell.border = { top: border, bottom: border, left: border, right: border };
+    });
+
+    // Campos automáticos com as mesmas cores visuais da referência.
+    row.getCell(12).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9E2F3" } };
+    row.getCell(13).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: temUsinagem ? "FFC6E0B4" : "FFE7E6E6" },
+    };
+    row.getCell(13).font = { name: FONT, size: 10, bold: true };
+    row.getCell(14).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFCE4D6" } };
+    row.getCell(15).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
+
+    row.getCell(8).numFmt = "#,##0.000";
+    row.getCell(17).numFmt = "#,##0.00";
+
+    row.height = 22;
+    rowNum++;
+  }
+
+  if (rowNum === 3) {
+    ws.getCell("A3").value = "Nenhum pedido disponível.";
+  }
+
+  ws.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: Math.max(3, rowNum - 1), column: 17 },
+  };
+
+  ws.pageSetup = {
+    orientation: "landscape",
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    margins: {
+      left: 0.2,
+      right: 0.2,
+      top: 0.3,
+      bottom: 0.3,
+      header: 0.1,
+      footer: 0.1,
+    },
+    printTitlesRow: "1:2",
+  };
+}
+
 function montarLeiaMe(
   wb: Workbook
 ) {
@@ -3916,7 +4144,20 @@ export function montarPlanilha(
 
   const controle =
     wb.addWorksheet(
-      "CONTROLE GERENTE",
+      "CONTROLE PRODUÇÃO",
+      {
+        views: [
+          {
+            showGridLines:
+              false,
+          },
+        ],
+      }
+    );
+
+  const gerente =
+    wb.addWorksheet(
+      "PROGRAMAÇÃO GERENTE",
       {
         views: [
           {
@@ -3970,6 +4211,11 @@ export function montarPlanilha(
   montarControle(
     controle,
     resumos,
+    produtos
+  );
+
+  montarProgramacaoGerente(
+    gerente,
     produtos
   );
 
