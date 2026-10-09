@@ -46,7 +46,15 @@ function uniqueGames(rows: PackageRow[]) {
 
 export function validateProcessing(data: ProcessingResult): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  if (!data.client?.trim()) issues.push({ severity: "ERROR", code: "CLIENT_EMPTY", message: "Cliente não informado." });
+  if (!data.client?.trim()) {
+    issues.push({
+      severity: data.sourceMode === "FILTRO_51" ? "WARNING" : "ERROR",
+      code: "CLIENT_EMPTY",
+      message: data.sourceMode === "FILTRO_51"
+        ? "Cliente não veio no Filtro 51. O romaneio pode ser usado para teste, mas confira o cabeçalho antes da emissão final."
+        : "Cliente não informado.",
+    });
+  }
   if (!data.destination?.trim()) issues.push({ severity: "WARNING", code: "DESTINATION_EMPTY", message: "Destino não informado. Confira antes de gerar etiquetas." });
   if (data.config?.requireFilter && !data.orderOptions?.filtro?.trim()) issues.push({ severity: "ERROR", code: "FILTER_REQUIRED", message: "Número do filtro é obrigatório nesta configuração." });
   if (data.sourceMode === "CONTAINER") {
