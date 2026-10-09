@@ -1,6 +1,6 @@
 "use client";
 
-import { FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Filter, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS, leaderPlanRows, leaderReleasedRows } from "@/lib/metrics";
@@ -25,6 +25,9 @@ export default function Lideres() {
     : [...PROCESSOS];
   const [proc, setProc] = useState(procs[0] || "RECOBRIDORA");
   const [busyPedido, setBusyPedido] = useState("");
+  const [busca, setBusca] = useState("");
+  const [peca, setPeca] = useState("TODAS");
+  const [medida, setMedida] = useState("TODAS");
 
   useEffect(() => {
     if (!procs.length) return;
@@ -35,7 +38,56 @@ export default function Lideres() {
 
   const plan = useMemo(() => leaderPlanRows(products, proc), [products, proc]);
   const now = useMemo(() => leaderReleasedRows(products, proc), [products, proc]);
-  const rows = tab === "PLAN" ? plan : now;
+  const baseRows = tab === "PLAN" ? plan : now;
+
+  const pecas = useMemo(
+    () =>
+      [...new Set(baseRows.map((x) => String(x.categoria || x.descricao || "").trim()).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true })),
+    [baseRows]
+  );
+
+  const medidas = useMemo(
+    () =>
+      [...new Set(baseRows.map((x) => String(x.medida || "").trim()).filter(Boolean))]
+        .sort((a, b) => {
+          const na = a.split(/[x×]/i).map(Number);
+          const nb = b.split(/[x×]/i).map(Number);
+          return (nb[1] || 0) - (na[1] || 0) || (nb[0] || 0) - (na[0] || 0);
+        }),
+    [baseRows]
+  );
+
+  const rows = useMemo(() => {
+    const q = busca.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+
+    return baseRows.filter((x) => {
+      if (peca !== "TODAS" && String(x.categoria || x.descricao || "") !== peca) return false;
+      if (medida !== "TODAS" && String(x.medida || "") !== medida) return false;
+      if (!q) return true;
+
+      const text = [
+        x.descricao,
+        x.categoria,
+        x.material,
+        x.medida,
+        x.rebaixo,
+        x.acabamento,
+        x.cor,
+        x.pedido,
+        x.of,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toUpperCase();
+
+      return text.includes(q);
+    });
+  }, [baseRows, busca, peca, medida]);
+
+  const filtrosAtivos = busca.trim() || peca !== "TODAS" || medida !== "TODAS";
 
   const pedidos = useMemo(() => {
     const map = new Map<string, { tipo: TipoPedido; montagem: MontagemEngenharia }>();
@@ -209,6 +261,75 @@ export default function Lideres() {
           LIBERADO AGORA <b>{fmt(soma(now, "quantidade"))} pçs</b>
         </button>
       </div>
+
+      <section className="leaderFilters">
+        <div className="leaderFiltersHead">
+          <div>
+            <Filter />
+            <span>
+              <b>FILTRAR PRODUÇÃO</b>
+              <small>Encontre rapidamente peça, medida, material ou OF.</small>
+            </span>
+          </div>
+          {filtrosAtivos && (
+            <button
+              type="button"
+              className="leaderClearFilters"
+              onClick={() => {
+                setBusca("");
+                setPeca("TODAS");
+                setMedida("TODAS");
+              }}
+            >
+              <X /> LIMPAR
+            </button>
+          )}
+        </div>
+
+        <div className="leaderFilterGrid">
+          <label className="leaderSearch">
+            <span>BUSCA</span>
+            <div>
+              <Search />
+              <input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Peça, material, OF, acabamento..."
+              />
+            </div>
+          </label>
+
+          <label>
+            <span>PEÇA</span>
+            <select value={peca} onChange={(e) => setPeca(e.target.value)}>
+              <option value="TODAS">Todas as peças</option>
+              {pecas.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>MEDIDA / METRAGEM</span>
+            <select value={medida} onChange={(e) => setMedida(e.target.value)}>
+              <option value="TODAS">Todas as medidas</option>
+              {medidas.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="leaderFilterResult">
+            <span>RESULTADO</span>
+            <b>{rows.length}</b>
+            <small>{rows.length === 1 ? "linha encontrada" : "linhas encontradas"}</small>
+          </div>
+        </div>
+      </section>
 
       <TableScroll className="leader">
         <table>
