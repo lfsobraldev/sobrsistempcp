@@ -2208,3 +2208,584 @@ label>span,.formRow label>span,.leaderFilterGrid label>span,.v12ExceptionForm la
   .fioriLaunchpad{grid-template-columns:1fr}
   .fioriTile{min-height:132px}
 }
+
+
+/* ==========================================================================
+   PROGRAMACAO DO DIA • FIORI CORRECTION PASS
+   ========================================================================== */
+:root{
+  --sap-blue:#0070F2;
+  --sap-blue-hover:#0064D9;
+  --sap-blue-pressed:#0058BF;
+  --sap-page:#F5F6F7;
+  --sap-surface:#FFFFFF;
+  --sap-text:#1D2D3E;
+  --sap-muted:#556B82;
+  --sap-border:#D9D9D9;
+  --sap-border-strong:#89919A;
+  --sap-success:#188918;
+  --sap-error:#D20A0A;
+  --sap-warning:#E76500;
+  --sap-selected:#EBF8FF;
+  --sap-hover:#F5F6F7;
+  --sap-shell-h:48px;
+  --sap-side-w:256px;
+  --sap-side-collapsed:48px;
+  --sap-radius-control:8px;
+  --sap-radius-card:16px;
+  --sap-page-pad:32px;
+  --sap-gap:24px;
+  --sap-card-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+
+html,body{
+  background:var(--sap-page)!important;
+  color:var(--sap-text)!important;
+  font-family:"72",Arial,Helvetica,sans-serif!important;
+  font-size:14px!important;
+  line-height:1.5!important;
+  letter-spacing:0!important;
+}
+h1,h2,h3,h4,h5,h6{line-height:1.25!important;letter-spacing:0!important}
+small{font-size:12px!important}
+
+/* Shell Bar */
+.fioriShell{
+  grid-template-columns:var(--sap-side-w) minmax(0,1fr)!important;
+  grid-template-rows:var(--sap-shell-h) minmax(0,1fr)!important;
+}
+.fioriShell.isCollapsed{
+  grid-template-columns:var(--sap-side-collapsed) minmax(0,1fr)!important;
+}
+.fioriShellBar{
+  height:48px!important;
+  min-height:48px!important;
+  padding:0 8px!important;
+  background:#fff!important;
+  border-bottom:1px solid var(--sap-border)!important;
+  box-shadow:none!important;
+}
+.fioriGlobalSearch{
+  height:36px!important;
+  max-width:560px!important;
+  width:100%!important;
+  margin:0 auto!important;
+  border:1px solid var(--sap-border-strong)!important;
+  border-radius:18px!important;
+  background:var(--sap-page)!important;
+  box-shadow:none!important;
+  padding:0 12px!important;
+}
+.fioriGlobalSearch:focus-within{
+  background:#fff!important;
+  border-color:var(--sap-blue)!important;
+  box-shadow:0 0 0 1px var(--sap-blue)!important;
+}
+.fioriGlobalSearch input{
+  height:34px!important;
+  min-height:34px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.fioriContextMeta{
+  gap:0!important;
+  margin-right:12px!important;
+}
+.fioriContextMeta>span{
+  min-width:0!important;
+  padding:0 24px!important;
+  border-right:1px solid var(--sap-border)!important;
+}
+.fioriContextMeta>span:first-child{padding-left:0!important}
+.fioriContextMeta>span:last-child{padding-right:0!important;border-right:0!important}
+.fioriContextMeta small{
+  font-size:11px!important;
+  color:var(--sap-muted)!important;
+  line-height:1.1!important;
+}
+.fioriContextMeta b{
+  font-size:14px!important;
+  font-weight:700!important;
+  color:var(--sap-text)!important;
+  line-height:1.15!important;
+  margin-top:2px!important;
+}
+.notificationBadge{
+  min-width:14px!important;
+  height:14px!important;
+  border-radius:7px!important;
+  background:var(--sap-error)!important;
+  color:#fff!important;
+  font-size:8px!important;
+  top:1px!important;
+  right:1px!important;
+}
+.fioriAvatar{
+  background:var(--sap-blue)!important;
+  color:#fff!important;
+}
+.fioriAvatarText b{font-size:14px!important;font-weight:600!important}
+.fioriAvatarText small{font-size:12px!important;color:var(--sap-muted)!important}
+
+/* Side Navigation */
+.fioriSideNav{
+  width:var(--sap-side-w)!important;
+  top:48px!important;
+  height:calc(100vh - 48px)!important;
+  background:#fff!important;
+  border-right:1px solid var(--sap-border)!important;
+}
+.fioriSideNav nav{
+  scrollbar-width:thin;
+  scrollbar-color:transparent transparent;
+}
+.fioriSideNav nav::-webkit-scrollbar{width:8px}
+.fioriSideNav nav::-webkit-scrollbar-track{background:transparent}
+.fioriSideNav nav::-webkit-scrollbar-thumb{
+  background:transparent;
+  border-radius:4px;
+}
+.fioriSideNav nav:hover{
+  scrollbar-color:#C4C9CF transparent;
+}
+.fioriSideNav nav:hover::-webkit-scrollbar-thumb{background:#C4C9CF}
+.fioriNavGroup{margin-bottom:0!important}
+.fioriNavGroup>label{
+  padding:16px 16px 8px!important;
+  font-size:12px!important;
+  font-weight:600!important;
+  color:var(--sap-muted)!important;
+  text-transform:uppercase!important;
+  letter-spacing:.5px!important;
+}
+.fioriNavGroup a{
+  height:40px!important;
+  min-height:40px!important;
+  margin:0 8px 4px!important;
+  padding:0 16px!important;
+  gap:12px!important;
+  border-radius:8px!important;
+  font-size:14px!important;
+  color:var(--sap-text)!important;
+}
+.fioriNavGroup a svg{
+  width:18px!important;
+  height:18px!important;
+  color:var(--sap-muted)!important;
+}
+.fioriNavGroup a:hover{background:var(--sap-hover)!important}
+.fioriNavGroup a.active{
+  background:var(--sap-selected)!important;
+  color:var(--sap-blue)!important;
+  font-weight:600!important;
+}
+.fioriNavGroup a.active:before{
+  left:-8px!important;
+  width:3px!important;
+  background:var(--sap-blue)!important;
+}
+.fioriNavGroup a.active svg{color:var(--sap-blue)!important}
+.fioriSideFooter{
+  position:sticky!important;
+  bottom:0!important;
+  background:#fff!important;
+  border-top:1px solid var(--sap-border)!important;
+  padding:16px!important;
+}
+.fioriSideFooter span{
+  font-size:12px!important;
+  color:var(--sap-muted)!important;
+}
+.fioriSideFooter b{
+  font-size:18px!important;
+  font-weight:700!important;
+  color:var(--sap-text)!important;
+  margin-top:2px!important;
+}
+.fioriSideFooter small{
+  font-size:12px!important;
+  color:var(--sap-muted)!important;
+  margin-top:2px!important;
+}
+
+/* General page width */
+.fioriPage{
+  max-width:1440px!important;
+  padding:32px!important;
+}
+.programmingPageTitle{
+  padding-bottom:16px!important;
+  margin-bottom:24px!important;
+}
+.programmingPageTitle>div>span{
+  color:var(--sap-muted)!important;
+  font-size:12px!important;
+  font-weight:600!important;
+  letter-spacing:.5px!important;
+}
+.programmingPageTitle h1{
+  margin:0 0 8px!important;
+  font-size:28px!important;
+  font-weight:700!important;
+  color:var(--sap-text)!important;
+  line-height:1.25!important;
+}
+.programmingPageTitle p{
+  margin:0!important;
+  font-size:14px!important;
+  color:var(--sap-muted)!important;
+  line-height:1.5!important;
+}
+
+/* Main two-column programming layout */
+.programmingLayout{
+  display:grid!important;
+  grid-template-columns:minmax(0,2fr) minmax(320px,1fr)!important;
+  gap:24px!important;
+  align-items:stretch!important;
+}
+.programmingLayout>.panel{
+  height:100%!important;
+  display:flex!important;
+  flex-direction:column!important;
+  border:1px solid var(--sap-border)!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:var(--sap-card-shadow)!important;
+  overflow:visible!important;
+}
+.programmingLayout>.panel>header{
+  min-height:auto!important;
+  padding:24px 24px 16px!important;
+  margin:0 24px!important;
+  border-bottom:1px solid var(--sap-border)!important;
+  background:#fff!important;
+}
+.programmingLayout>.panel>header h3{
+  margin:0!important;
+  font-size:16px!important;
+  font-weight:700!important;
+  color:var(--sap-text)!important;
+  line-height:1.25!important;
+}
+.programmingLayout>.panel>header p{
+  margin:4px 0 0!important;
+  font-size:13px!important;
+  color:var(--sap-muted)!important;
+  line-height:1.5!important;
+}
+.programmingCardBody{
+  flex:1!important;
+  padding:24px!important;
+}
+
+/* Segmented tabs */
+.programmingSourceTabs{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:8px!important;
+  height:auto!important;
+  min-height:56px!important;
+  margin:0 0 24px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  overflow:visible!important;
+}
+.programmingSourceTabs button{
+  min-height:56px!important;
+  height:auto!important;
+  padding:12px 16px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:12px!important;
+  overflow:visible!important;
+  border:1px solid var(--sap-border)!important;
+  border-bottom:3px solid var(--sap-border)!important;
+  border-radius:8px 8px 0 0!important;
+  background:#fff!important;
+  color:var(--sap-text)!important;
+  text-align:left!important;
+}
+.programmingSourceTabs button:hover{background:var(--sap-hover)!important}
+.programmingSourceTabs button.active{
+  background:var(--sap-selected)!important;
+  color:var(--sap-blue)!important;
+  border-color:#A8D6FF!important;
+  border-bottom-color:var(--sap-blue)!important;
+}
+.programmingSourceTabs button>svg{
+  width:20px!important;
+  height:20px!important;
+  flex:0 0 auto!important;
+  color:var(--sap-muted)!important;
+}
+.programmingSourceTabs button.active>svg{color:var(--sap-blue)!important}
+.programmingSourceTabs button>span{
+  min-width:0!important;
+  overflow:visible!important;
+}
+.programmingSourceTabs button b,
+.programmingSourceTabs button small{
+  display:block!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+}
+.programmingSourceTabs button b{
+  font-size:14px!important;
+  font-weight:600!important;
+  line-height:1.25!important;
+  color:inherit!important;
+}
+.programmingSourceTabs button small{
+  margin-top:2px!important;
+  font-size:12px!important;
+  font-weight:400!important;
+  line-height:1.3!important;
+  color:var(--sap-muted)!important;
+}
+
+/* Upload areas */
+.programmingDoubleDrop{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:24px!important;
+}
+.programmingDrop{
+  position:relative!important;
+  width:100%!important;
+  height:112px!important;
+  min-height:112px!important;
+  padding:16px 20px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:16px!important;
+  border:1.5px dashed var(--sap-border-strong)!important;
+  border-radius:12px!important;
+  background:#FAFBFC!important;
+  color:var(--sap-text)!important;
+  overflow:hidden!important;
+  transition:border-color .15s ease,background .15s ease!important;
+}
+.programmingDrop:hover{
+  border-color:var(--sap-blue)!important;
+  background:var(--sap-selected)!important;
+}
+.programmingDrop>svg{
+  width:28px!important;
+  height:28px!important;
+  flex:0 0 auto!important;
+  color:var(--sap-muted)!important;
+}
+.programmingDrop.ready>svg{color:var(--sap-muted)!important}
+.programmingDrop>span{
+  min-width:0!important;
+  flex:1!important;
+}
+.programmingDrop>span b,
+.programmingDrop>span small{
+  display:block!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+}
+.programmingDrop>span b{
+  font-size:14px!important;
+  font-weight:600!important;
+  color:var(--sap-text)!important;
+  line-height:1.3!important;
+}
+.programmingDrop>span small{
+  margin-top:4px!important;
+  font-size:12px!important;
+  color:var(--sap-muted)!important;
+  line-height:1.3!important;
+}
+.programmingDrop>input[type="file"]{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  opacity:0!important;
+  cursor:pointer!important;
+}
+.programmingRemoveFile{
+  position:relative!important;
+  z-index:3!important;
+  height:32px!important;
+  min-height:32px!important;
+  padding:0 12px!important;
+  border:1px solid var(--sap-blue)!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  color:var(--sap-blue)!important;
+  font-size:12px!important;
+  font-weight:600!important;
+}
+.programmingRemoveFile:hover{background:#F0F7FF!important}
+
+/* Date / shift / process */
+.programmingSchedule{margin-top:24px!important}
+.programmingFields{
+  display:grid!important;
+  grid-template-columns:1fr 1fr!important;
+  gap:24px!important;
+  align-items:start!important;
+}
+.programmingFields label{
+  display:block!important;
+  margin:0!important;
+  color:var(--sap-text)!important;
+}
+.programmingFields label>span{
+  display:block!important;
+  margin:0 0 6px!important;
+  font-size:13px!important;
+  font-weight:600!important;
+  color:var(--sap-text)!important;
+  line-height:1.25!important;
+}
+.programmingFields input,
+.programmingFields select{
+  width:100%!important;
+  height:36px!important;
+  min-height:36px!important;
+  border:1px solid var(--sap-border-strong)!important;
+  border-radius:8px!important;
+  background:#fff!important;
+  padding:0 12px!important;
+  color:var(--sap-text)!important;
+  font-size:14px!important;
+  line-height:36px!important;
+}
+.programmingFields input:focus,
+.programmingFields select:focus{
+  border-color:var(--sap-blue)!important;
+  box-shadow:0 0 0 1px var(--sap-blue)!important;
+  outline:0!important;
+}
+.programmingFields select{
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  background-image:
+    linear-gradient(45deg,transparent 50%,#556B82 50%),
+    linear-gradient(135deg,#556B82 50%,transparent 50%)!important;
+  background-position:
+    calc(100% - 17px) 15px,
+    calc(100% - 12px) 15px!important;
+  background-size:5px 5px,5px 5px!important;
+  background-repeat:no-repeat!important;
+  padding-right:32px!important;
+}
+.programmingProcessAction{
+  margin-top:24px!important;
+  display:flex!important;
+  justify-content:flex-end!important;
+}
+.programmingProcessButton{
+  height:36px!important;
+  min-height:36px!important;
+  padding:0 16px!important;
+  border:1px solid var(--sap-blue)!important;
+  border-radius:8px!important;
+  background:var(--sap-blue)!important;
+  color:#fff!important;
+  font-size:14px!important;
+  font-weight:600!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
+}
+.programmingProcessButton:hover{
+  background:var(--sap-blue-hover)!important;
+  border-color:var(--sap-blue-hover)!important;
+}
+.programmingProcessButton:active{
+  background:var(--sap-blue-pressed)!important;
+  border-color:var(--sap-blue-pressed)!important;
+}
+
+/* Validation list */
+.programmingChecks{
+  margin:0!important;
+  padding:0!important;
+  list-style:none!important;
+  display:grid!important;
+  gap:12px!important;
+}
+.programmingChecks li{
+  position:relative!important;
+  margin:0!important;
+  padding-left:20px!important;
+  font-size:14px!important;
+  line-height:1.6!important;
+  color:var(--sap-text)!important;
+}
+.programmingChecks li:before{
+  content:""!important;
+  position:absolute!important;
+  left:0!important;
+  top:.7em!important;
+  width:6px!important;
+  height:6px!important;
+  border-radius:50%!important;
+  background:var(--sap-muted)!important;
+  transform:translateY(-50%)!important;
+}
+
+/* Remove legacy green from Programacao page */
+.programmingLayout .primary,
+.programmingLayout .sourceTabs button.active,
+.programmingLayout svg,
+.programmingLayout .drop,
+.programmingLayout .ready{
+  --green:var(--sap-blue)!important;
+  --green2:var(--sap-blue)!important;
+}
+.programmingLayout .status.s-concluido,
+.programmingLayout .status.s-concluida,
+.programmingLayout .managerFlag.ok{
+  color:var(--sap-success)!important;
+}
+
+/* Accessibility */
+.programmingLayout button:focus-visible,
+.programmingLayout input:focus-visible,
+.programmingLayout select:focus-visible,
+.fioriShellBar button:focus-visible,
+.fioriSideNav a:focus-visible{
+  outline:2px solid var(--sap-blue)!important;
+  outline-offset:2px!important;
+}
+
+/* Responsive */
+@media(max-width:1024px){
+  .fioriPage{
+    max-width:none!important;
+    padding:24px!important;
+  }
+  .programmingLayout{
+    grid-template-columns:1fr!important;
+  }
+  .fioriShell{
+    grid-template-columns:var(--sap-side-collapsed) minmax(0,1fr)!important;
+  }
+}
+@media(max-width:760px){
+  .fioriPage{padding:16px!important}
+  .programmingPageTitle h1{font-size:24px!important}
+  .programmingSourceTabs{grid-template-columns:1fr!important}
+  .programmingDoubleDrop{grid-template-columns:1fr!important;gap:16px!important}
+  .programmingFields{grid-template-columns:1fr!important;gap:16px!important}
+  .programmingLayout>.panel>header{
+    margin:0 16px!important;
+    padding:20px 0 16px!important;
+  }
+  .programmingCardBody{padding:16px!important}
+}
