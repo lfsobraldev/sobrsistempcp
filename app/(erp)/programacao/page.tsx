@@ -291,280 +291,141 @@ export default function Programacao() {
 
   return (
     <>
-      <div className="pageTitle">
+      <div className="pageTitle programmingPageTitle">
         <div>
-          <span>
-            PLANEJAMENTO
-          </span>
-
-          <h1>
-            Programação
-            do Dia
-          </h1>
-
-          <p>
-            Importação
-            revisada antes
-            da liberação
-            para o chão
-            de fábrica.
-          </p>
+          <span>PLANEJAMENTO</span>
+          <h1>Programação do Dia</h1>
+          <p>Importação revisada antes da liberação para o chão de fábrica.</p>
         </div>
       </div>
 
       {!draft ? (
-        <div className="planning">
+        <div className="planning programmingLayout">
           <Panel
             title="Fonte da programação"
-            subtitle="Filtro do Consistem é a fonte principal"
+            subtitle="Escolha a origem dos dados que serão processados."
+            className="programmingSourceCard"
           >
-            <div className="sourceTabs">
-              <button
-                className={
-                  mode ===
-                  "FILTRO"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  setMode(
-                    "FILTRO"
-                  )
-                }
-              >
-                <FileSpreadsheet />
-
-                <span>
-                  <b>
-                    Filtro
-                    do
-                    Consistem
-                  </b>
-
-                  <small>
-                    RECOMENDADO
-                    • rota
-                    real
-                  </small>
-                </span>
-              </button>
-
-              <button
-                className={
-                  mode ===
-                  "PEDIDO"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  setMode(
-                    "PEDIDO"
-                  )
-                }
-              >
-                <FileText />
-
-                <span>
-                  <b>
-                    Pedido
-                    +
-                    Usinagem
-                  </b>
-
-                  <small>
-                    modo
-                    secundário
-                  </small>
-                </span>
-              </button>
-            </div>
-
-            {mode ===
-            "FILTRO" ? (
-              <Drop
-                file={
-                  filter
-                }
-                set={
-                  setFilter
-                }
-                accept=".csv,.txt,.xls,.xlsx"
-                title="Filtro diário do Consistem"
-              />
-            ) : (
-              <div className="doubleDrop">
-                <Drop
-                  file={
-                    pedido
-                  }
-                  set={
-                    setPedido
-                  }
-                  accept=".pdf"
-                  title="Pedido desmembrado"
-                />
-
-                <Drop
-                  file={
-                    usinagem
-                  }
-                  set={
-                    setUsinagem
-                  }
-                  accept=".xls,.xlsx"
-                  title="Usinagem"
-                />
-              </div>
-            )}
-
-            <div className="formRow">
-              <label>
-                Data
-
-                <input
-                  type="date"
-                  value={
-                    data
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    setData(
-                      e.target
-                        .value
-                    )
-                  }
-                />
-              </label>
-
-              <label>
-                Turno
-
-                <select
-                  value={
-                    turno
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    setTurno(
-                      e.target
-                        .value
-                    )
-                  }
+            <div className="programmingCardBody">
+              <div className="sourceTabs programmingSourceTabs" role="tablist" aria-label="Fonte da programação">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === "FILTRO"}
+                  className={mode === "FILTRO" ? "active" : ""}
+                  onClick={() => setMode("FILTRO")}
                 >
-                  <option>
-                    A
-                  </option>
+                  <FileSpreadsheet />
+                  <span>
+                    <b>Filtro do Consistem</b>
+                    <small>Recomendado • rota real</small>
+                  </span>
+                </button>
 
-                  <option>
-                    B
-                  </option>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === "PEDIDO"}
+                  className={mode === "PEDIDO" ? "active" : ""}
+                  onClick={() => setMode("PEDIDO")}
+                >
+                  <FileText />
+                  <span>
+                    <b>Pedido + Usinagem</b>
+                    <small>Modo secundário</small>
+                  </span>
+                </button>
+              </div>
 
-                  <option>
-                    A + B
-                  </option>
-                </select>
-              </label>
-            </div>
+              {mode === "FILTRO" ? (
+                <Drop
+                  file={filter}
+                  set={setFilter}
+                  accept=".csv,.txt,.xls,.xlsx"
+                  title="Filtro diário do Consistem"
+                />
+              ) : (
+                <div className="doubleDrop programmingDoubleDrop">
+                  <Drop
+                    file={pedido}
+                    set={setPedido}
+                    accept=".pdf"
+                    title="Pedido desmembrado"
+                  />
+                  <Drop
+                    file={usinagem}
+                    set={setUsinagem}
+                    accept=".xls,.xlsx"
+                    title="Usinagem"
+                  />
+                </div>
+              )}
 
-            <div className="panelActions">
-              <button
-                className="primary"
-                disabled={
-                  busy
-                }
-                onClick={
-                  process
-                }
-              >
-                {busy ? (
-                  "PROCESSANDO..."
-                ) : (
-                  <>
-                    PROCESSAR
+              <div className="programmingSchedule">
+                <div className="programmingFields">
+                  <label>
+                    <span>Data</span>
+                    <input
+                      type="date"
+                      value={data}
+                      onChange={(e) => setData(e.target.value)}
+                    />
+                  </label>
 
-                    <ChevronRight />
-                  </>
-                )}
-              </button>
+                  <label>
+                    <span>Turno</span>
+                    <select
+                      value={turno}
+                      onChange={(e) => setTurno(e.target.value)}
+                    >
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="A + B">A + B</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="programmingProcessAction">
+                  <button
+                    type="button"
+                    className="primary programmingProcessButton"
+                    disabled={busy}
+                    onClick={process}
+                  >
+                    {busy ? "Processando..." : (
+                      <>
+                        Processar
+                        <ChevronRight />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </Panel>
 
           <Panel
             title="Validações da importação"
-            subtitle="As divergências ficam visíveis antes da liberação"
+            subtitle="As divergências ficam visíveis antes da liberação."
+            className="programmingValidationCard"
           >
-            <ul className="checks">
-              <li>
-                N/A,
-                vazio,
-                hífen
-                e N/D
-                não
-                pertencem
-                à rota.
-              </li>
-
-              <li>
-                0 =
-                pendente;
-                1–99,99 =
-                parcial;
-                100 =
-                concluído.
-              </li>
-
-              <li>
-                O conteúdo
-                do filtro
-                pode mudar
-                diariamente
-                com novos
-                pedidos,
-                reposições
-                e
-                alterações
-                de
-                produção.
-              </li>
-
-              <li>
-                Itens sem
-                rota e
-                inconsistências
-                ficam
-                visíveis
-                para
-                revisão,
-                sem
-                bloquear
-                automaticamente
-                a
-                programação.
-              </li>
-            </ul>
+            <div className="programmingCardBody">
+              <ul className="checks programmingChecks">
+                <li>N/A, vazio, hífen e N/D não pertencem à rota.</li>
+                <li>0 = pendente; 1–99,99 = parcial; 100 = concluído.</li>
+                <li>O conteúdo do filtro pode mudar diariamente com novos pedidos, reposições e alterações de produção.</li>
+                <li>Itens sem rota e inconsistências ficam visíveis para revisão, sem bloquear automaticamente a programação.</li>
+              </ul>
+            </div>
           </Panel>
         </div>
       ) : (
         <Review
-          d={
-            draft
-          }
-          busy={
-            busy
-          }
-          back={() =>
-            setDraft(
-              null
-            )
-          }
-          release={
-            release
-          }
-          setTipoPedido={
-            definirTipoPedido
-          }
+          d={draft}
+          busy={busy}
+          back={() => setDraft(null)}
+          release={release}
+          setTipoPedido={definirTipoPedido}
         />
       )}
     </>
@@ -576,50 +437,45 @@ function Drop({
   set,
   accept,
   title,
-}: any) {
+}: {
+  file: File | null;
+  set: (file: File | null) => void;
+  accept: string;
+  title: string;
+}) {
   return (
-    <label
-      className={`drop ${
-        file
-          ? "ready"
-          : ""
-      }`}
-    >
+    <label className={`drop programmingDrop ${file ? "ready" : ""}`}>
       <UploadCloud />
 
       <span>
-        <b>
-          {file?.name ||
-            title}
-        </b>
-
+        <b>{file?.name || title}</b>
         <small>
           {file
-            ? `${(
-                file.size /
-                1024 /
-                1024
-              ).toFixed(
-                2
-              )} MB`
+            ? `${(file.size / 1024 / 1024).toFixed(2)} MB`
             : accept}
         </small>
       </span>
 
+      {file && (
+        <button
+          type="button"
+          className="programmingRemoveFile"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            set(null);
+          }}
+          aria-label={`Remover ${file.name}`}
+        >
+          Remover
+        </button>
+      )}
+
       <input
         type="file"
-        accept={
-          accept
-        }
-        onChange={(
-          e
-        ) =>
-          set(
-            e.target
-              .files?.[0] ||
-              null
-          )
-        }
+        accept={accept}
+        aria-label={title}
+        onChange={(e) => set(e.target.files?.[0] || null)}
       />
     </label>
   );
