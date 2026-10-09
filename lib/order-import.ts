@@ -1,5 +1,10 @@
 import { getDocument } from "pdfjs-serverless";
-import * as XLSX from "xlsx";
+import {
+  cleanImportText,
+  findImportKey,
+  loadRobustTables,
+  parseImportNumber,
+} from "@/lib/import-reader";
 
 import type {
   ImportResult,
@@ -38,20 +43,34 @@ const up = (
 function measure(
   t: string
 ) {
-  const d =
-    up(t).replace(
-      /\s*[X×]\s*/g,
-      "X"
-    );
+  const d = up(t)
+    .replace(/\b(MM|MILIMETROS?|MILIMETRO)\b/g, " ")
+    .replace(/\s*[X×*]\s*/g, "X");
 
-  const m =
-    d.match(
-      /(\d{3,4})X(\d{2,4})X(\d{1,3})/
-    );
+  const triple = d.match(
+    /(^|[^0-9])(\d{2,4}(?:[.,]\d+)?)X(\d{2,4}(?:[.,]\d+)?)X(\d{1,4}(?:[.,]\d+)?)(?=$|[^0-9])/
+  );
+  if (triple) {
+    return [triple[2], triple[3], triple[4]]
+      .map((v) => String(Number(v.replace(",", "."))))
+      .join("x");
+  }
 
-  return m
-    ? `${m[1]}x${m[2]}x${m[3]}`
-    : "";
+  const separated = d.match(
+    /(?:^|\b)(\d{3,4})\s*[\/;-]\s*(\d{2,4})\s*[\/;-]\s*(\d{1,3})(?:\b|$)/
+  );
+  if (separated) return `${separated[1]}x${separated[2]}x${separated[3]}`;
+
+  const pair = d.match(
+    /(^|[^0-9])(\d{2,4}(?:[.,]\d+)?)X(\d{2,4}(?:[.,]\d+)?)(?=$|[^0-9X])/
+  );
+  if (pair) {
+    return [pair[2], pair[3]]
+      .map((v) => String(Number(v.replace(",", "."))))
+      .join("x");
+  }
+
+  return "";
 }
 
 function category(
@@ -412,7 +431,7 @@ async function parsePdf(
 
       const id =
         left.match(
-          /^(\d+(?:\.\d+)?)\s+(\d{5,})\b/
+          /^(\d+(?:\.\d+)?)\s+([A-Z0-9.-]{4,})\b/i
         );
 
       if (
@@ -474,9 +493,7 @@ async function parsePdf(
             (
               v: string
             ) =>
-              /^\d{1,9}(?:[.,]\d{3})?$/.test(
-                v
-              )
+              parseImportNumber(v) !== null
           );
 
       if (
@@ -493,17 +510,7 @@ async function parsePdf(
             id[2],
 
           q:
-            Number(
-              q
-                .replace(
-                  /\./g,
-                  ""
-                )
-                .replace(
-                  ",",
-                  "."
-                )
-            ),
+            parseImportNumber(q) ?? 0,
         });
       }
     }
@@ -662,177 +669,122 @@ async function parsePdf(
   };
 }
 
-function readUsinagem(
+type UsinagemRow = {
+  of: string;
+  pedido: string;
+  item: string;
+  codigo: string;
+  descricao: string;
+  quantidade: number | null;
+  sheetName: string;
+};
+
+const USINAGEM_ALIASES: Record<string, string[]> = {
+  OF: ["OF", "OF's", "OFs", "Ordem Fabricação", "Ordem de Fabricação", "Ordem Fabricacao", "Nº OF", "Numero OF"],
+  Pedido: ["Pedido", "Nº Pedido", "Numero Pedido", "Pedido Venda", "Pedido de Venda", "Ped"],
+  Item: ["Item", "Nº Item", "Numero Item", "Item Pedido", "Seq Item"],
+  Codigo: ["Código", "Codigo", "Produto", "Código Produto", "Codigo Produto", "Cod Produto"],
+  Descricao: ["Descrição", "Descricao", "Descrição Produto", "Descricao Produto", "Produto / Descrição"],
+  Quantidade: ["Quantidade", "Qtd", "Qtde", "Quantidade Peças", "Quantidade Pecas", "Qtd Peças", "Qtd Pecas"],
+};
+
+async function readUsinagem(
   file: File
-) {
-  return file
-    .arrayBuffer()
-    .then(
-      (
-        buf
-      ) => {
-        const wb =
-          XLSX.read(
-            buf,
-            {
-              type:
-                "array",
-            }
-          );
+): Promise<UsinagemRow[]> {
+  const tables = await loadRobustTables(file, USINAGEM_ALIASES, {
+    forwardFillFields: ["Pedido"],
+  });
 
-        const rows:
-          any[] = [];
+  const rows: UsinagemRow[] = [];
 
-        for (
-          const sn
-          of wb.SheetNames
-        ) {
-          const matrix =
-            XLSX.utils.sheet_to_json<
-              any[]
-            >(
-              wb.Sheets[
-                sn
-              ],
-              {
-                header:
-                  1,
+  for (const table of tables) {
+    for (const r of table.rows) {
+      const get = (name: keyof typeof USINAGEM_ALIASES) => {
+        const key = findImportKey(r, USINAGEM_ALIASES[name]);
+        return key ? cleanImportText(r[key]) : "";
+      };
 
-                defval:
-                  "",
-              }
-            );
+      const of = get("OF");
+      const descricao = get("Descricao");
+      const codigo = get("Codigo");
+      const item = get("Item");
+      const pedido = get("Pedido");
+      const quantidade = parseImportNumber(get("Quantidade"));
 
-          let h =
-            -1;
+      if (!of && !descricao && !codigo) continue;
 
-          for (
-            let i = 0;
-            i <
-            Math.min(
-              matrix.length,
-              50
-            );
-            i++
-          ) {
-            const line =
-              matrix[i].map(
-                (
-                  v: any
-                ) =>
-                  up(v).replace(
-                    /[^A-Z0-9]/g,
-                    ""
-                  )
-              );
+      rows.push({
+        of,
+        pedido,
+        item,
+        codigo,
+        descricao,
+        quantidade,
+        sheetName: table.sheetName,
+      });
+    }
+  }
 
-            if (
-              line.some(
-                (
-                  x: string
-                ) =>
-                  [
-                    "OF",
-                    "ORDEMFABRICACAO",
-                    "ORDEM",
-                  ].includes(
-                    x
-                  )
-              )
-            ) {
-              h =
-                i;
+  return rows;
+}
 
-              break;
-            }
-          }
+function normalizedCode(value: unknown) {
+  return clean(value).replace(/\.0+$/, "").replace(/\s+/g, "");
+}
 
-          if (
-            h <
-            0
-          ) {
-            continue;
-          }
+function descriptionTokens(value: unknown) {
+  return new Set(
+    up(value)
+      .replace(/[^A-Z0-9]+/g, " ")
+      .split(" ")
+      .filter((token) => token.length >= 3)
+  );
+}
 
-          const head =
-            matrix[
-              h
-            ].map(
-              (
-                v: any
-              ) =>
-                up(v).replace(
-                  /[^A-Z0-9]/g,
-                  ""
-                )
-            );
+function descriptionSimilarity(a: unknown, b: unknown) {
+  const aa = descriptionTokens(a);
+  const bb = descriptionTokens(b);
+  if (!aa.size || !bb.size) return 0;
+  const common = [...aa].filter((token) => bb.has(token)).length;
+  return common / Math.max(aa.size, bb.size);
+}
 
-          const idx = (
-            a: string[]
-          ) =>
-            head.findIndex(
-              (
-                x: string
-              ) =>
-                a.includes(
-                  x
-                )
-            );
+function matchUsinagem(raw: Raw, pedido: string, candidates: UsinagemRow[]) {
+  let best: UsinagemRow | undefined;
+  let bestScore = 0;
 
-          const io =
-            idx([
-              "OF",
-              "ORDEMFABRICACAO",
-              "ORDEM",
-            ]);
+  for (const row of candidates) {
+    let score = 0;
 
-          const id =
-            idx([
-              "DESCRICAO",
-              "PRODUTO",
-              "DESCRICAOPRODUTO",
-            ]);
+    if (row.pedido && pedido && normalizedCode(row.pedido) === normalizedCode(pedido)) score += 2;
+    if (row.codigo && normalizedCode(row.codigo) === normalizedCode(raw.codigo)) score += 7;
+    if (row.item && normalizedCode(row.item) === normalizedCode(raw.item)) score += 5;
 
-          for (
-            const r
-            of matrix.slice(
-              h +
-                1
-            )
-          ) {
-            const of =
-              io >=
-              0
-                ? clean(
-                    r[
-                      io
-                    ]
-                  )
-                : "";
+    const aMeasure = measure(raw.descricao);
+    const bMeasure = measure(row.descricao);
+    if (aMeasure && bMeasure && aMeasure === bMeasure) score += 4;
 
-            if (
-              of
-            ) {
-              rows.push({
-                of,
+    const similarity = descriptionSimilarity(raw.descricao, row.descricao);
+    if (similarity >= 0.8) score += 4;
+    else if (similarity >= 0.55) score += 2;
 
-                descricao:
-                  id >=
-                  0
-                    ? clean(
-                        r[
-                          id
-                        ]
-                      )
-                    : "",
-              });
-            }
-          }
-        }
+    if (
+      row.quantidade != null &&
+      raw.quantidade > 0 &&
+      Math.abs(row.quantidade - raw.quantidade) < 0.0001
+    ) {
+      score += 1;
+    }
 
-        return rows;
-      }
-    );
+    if (row.of) score += 1;
+
+    if (score > bestScore) {
+      bestScore = score;
+      best = row;
+    }
+  }
+
+  return bestScore >= 5 ? best : undefined;
 }
 
 export async function parsePedidoUsinagem(
@@ -884,22 +836,10 @@ export async function parsePedidoUsinagem(
           );
 
         const matched =
-          usinagem.find(
-            (
-              u: any
-            ) => {
-              const medidaUsinagem =
-                measure(
-                  u.descricao
-                );
-
-              return (
-                medidaUsinagem &&
-                medidaPedido &&
-                medidaUsinagem ===
-                  medidaPedido
-              );
-            }
+          matchUsinagem(
+            r,
+            pedido,
+            usinagem
           );
 
         const ops:
