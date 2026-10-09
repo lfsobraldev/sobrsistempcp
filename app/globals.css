@@ -453,3 +453,90 @@ button:disabled{
     grid-template-columns:1fr;
   }
 }
+
+
+/* Programação Gerente */
+.managerPageTitle{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.managerTopActions{display:flex;gap:8px;flex-wrap:wrap}
+.managerHero{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.managerHero>div{background:#fff;border:1px solid var(--line);padding:12px 14px}
+.managerHero span,.managerKpis span{display:block;font-size:10px;font-weight:900;letter-spacing:.45px;color:var(--muted)}
+.managerHero b{display:block;font-size:18px;margin-top:3px}
+.managerHero small{display:block;margin-top:3px;color:var(--muted);font-size:11px}
+.managerKpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.managerKpis article{background:#fff;border:1px solid var(--line);border-top:3px solid #74857b;padding:12px 14px;min-width:0}
+.managerKpis b{display:block;font-size:25px;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.managerKpis small{color:var(--muted);font-size:10px}
+.managerToolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}
+.managerViewTabs{display:flex;gap:6px;flex-wrap:wrap}
+.managerViewTabs button{height:40px;border:1px solid var(--line);background:#fff;padding:0 12px;display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:850}
+.managerViewTabs button svg{width:15px}
+.managerViewTabs button.active{background:var(--green);border-color:var(--green);color:#fff}
+.managerFilters{display:flex;gap:7px;min-width:min(520px,100%)}
+.managerFilters label{height:40px;border:1px solid var(--line);background:#fff;display:flex;align-items:center;gap:7px;padding:0 9px;flex:1;min-width:0}
+.managerFilters label svg{width:15px;color:var(--muted);flex:0 0 auto}
+.managerFilters input,.managerFilters select{border:0;outline:0;background:transparent;width:100%;min-width:0;height:100%;font:inherit;color:var(--text)}
+.managerOrdersTable table{min-width:1450px}
+.managerOrderSelected td{background:#f4f8f5}
+.managerExpand{width:34px;height:34px;border:1px solid var(--line);background:#fff;display:inline-flex;align-items:center;justify-content:center}
+.managerExpand svg{width:15px}
+.managerDetailRow>td{padding:0!important;background:#f7f9f8!important}
+.managerOrderDetail{padding:12px;display:grid;gap:10px}
+.managerOrderRoute{background:#fff;border:1px solid var(--line)}
+.managerOrderRoute>header{padding:10px 12px;border-bottom:1px solid var(--line)}
+.managerOrderRoute>header span{display:block;font-size:9px;color:var(--muted);font-weight:900}
+.managerOrderRoute>header b{display:block;font-size:13px;margin-top:2px}
+.managerOrderRoute>div{display:flex;gap:0;overflow:auto;padding:10px 12px}
+.managerRouteStep{display:flex;align-items:center;gap:8px;min-width:max-content}
+.managerRouteStep>i{width:26px;height:26px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-style:normal;font-size:10px;font-weight:900;background:#f3f5f4}
+.managerRouteStep>span{min-width:130px}
+.managerRouteStep b,.managerRouteStep small{display:block}
+.managerRouteStep b{font-size:11px}
+.managerRouteStep small{font-size:9px;color:var(--muted);margin-top:2px}
+.managerRouteStep>svg{width:15px;margin:0 8px;color:#8c9992}
+.managerPieceTable table{min-width:1100px}
+.managerProgress{display:flex;align-items:center;gap:7px;min-width:110px}
+.managerProgress i{display:block;height:6px;background:#e6ebe8;flex:1}
+.managerProgress i em{display:block;height:100%;background:var(--green2)}
+.managerProgress span{font-size:10px;font-weight:850;min-width:30px;text-align:right}
+.managerStatus{display:inline-flex;align-items:center;min-height:27px;padding:0 8px;border:1px solid var(--line);font-size:9px;font-weight:900;white-space:nowrap}
+.managerStatus.done{background:#edf6f0;border-color:#b4d4c0;color:#275e42}
+.managerStatus.running{background:#eef5f8;border-color:#b9d3df;color:#2d6078}
+.managerStatus.alert{background:#fff2f2;border-color:#e0b9b9;color:#8f3838}
+.managerStatus.planned{background:#f4f5f4;color:#56645c}
+.managerMachineGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.managerMachineCard{background:#fff;border:1px solid var(--line);min-width:0}
+.managerMachineCard>header{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:12px 14px;border-bottom:1px solid var(--line)}
+.managerMachineCard>header span{display:block;font-size:9px;color:var(--muted);font-weight:900}
+.managerMachineCard>header h3{margin:3px 0 0;font-size:15px}
+.managerMachineCard>header>b{font-size:22px;color:var(--green2)}
+.managerMachineStats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}
+.managerMachineStats>div{padding:9px 11px;border-right:1px solid var(--line)}
+.managerMachineStats>div:last-child{border-right:0}
+.managerMachineStats small{display:block;font-size:8px;color:var(--muted);font-weight:900}
+.managerMachineStats b{display:block;font-size:18px;margin-top:2px}
+.managerMachineQueue{padding:6px 12px 12px}
+.managerMachineQueue>div{display:grid;grid-template-columns:30px 1fr auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line2)}
+.managerMachineQueue>div>i{width:26px;height:26px;background:#f1f4f2;border:1px solid var(--line);font-style:normal;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900}
+.managerMachineQueue span{min-width:0}
+.managerMachineQueue span b,.managerMachineQueue span small{display:block}
+.managerMachineQueue span b{font-size:11px}
+.managerMachineQueue span small{font-size:9px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.managerMachineQueue strong{font-size:13px}
+.managerQueueEmpty{display:block!important;color:var(--muted);font-size:11px;padding:14px 0!important}
+.managerSequenceTable table{min-width:1350px}
+@media(max-width:1200px){
+  .managerKpis{grid-template-columns:repeat(3,1fr)}
+  .managerMachineGrid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:820px){
+  .managerPageTitle,.managerToolbar{align-items:stretch;flex-direction:column}
+  .managerTopActions,.managerFilters{width:100%}
+  .managerHero{grid-template-columns:1fr}
+  .managerMachineGrid{grid-template-columns:1fr}
+}
+@media(max-width:620px){
+  .managerKpis{grid-template-columns:1fr 1fr}
+  .managerFilters{flex-direction:column}
+  .managerViewTabs button{flex:1 1 150px;justify-content:center}
+}
