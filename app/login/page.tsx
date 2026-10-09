@@ -1,47 +1,147 @@
 "use client";
+
 import { useState } from "react";
-import { Factory, ArrowRight, Gauge, Workflow, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Boxes,
+  Factory,
+  Gauge,
+  ShieldCheck,
+  Workflow,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
-export default function Login(){
-  const r=useRouter(),[u,setU]=useState(""),[p,setP]=useState(""),[e,setE]=useState(""),[busy,setBusy]=useState(false);
-  async function go(ev:React.FormEvent){
-    ev.preventDefault();setE("");setBusy(true);
-    try{
-      const x=await fetch("/api/auth/login",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({usuario:u,senha:p})});
-      const j=await x.json();if(!x.ok)throw new Error(j.error);r.replace("/dashboard");
-    }catch(err:any){setE(err.message)}finally{setBusy(false)}
-  }
-  return <main className="pcpLogin">
-    <div className="pcpLoginTop">
-      <div className="pcpLoginBrand"><span><Factory/></span><div><b>SOBRAL PCP</b><small>CONTROLE INDUSTRIAL DE PRODUÇÃO</small></div></div>
-      <span>FAMOSSUL · UNIDADE NORDESTE</span>
-    </div>
+export default function Login() {
+  const router = useRouter();
+  const [usuario, setUsuario] = useState("");
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState("");
+  const [busy, setBusy] = useState(false);
 
-    <div className="pcpLoginStage">
-      <section className="pcpLoginIntro">
-        <span className="pcpEyebrow">PLANEJAMENTO E EXECUÇÃO</span>
-        <h1>Produção organizada.<br/>Decisão mais rápida.</h1>
-        <p>Programação, sequência, apontamento e acompanhamento da fábrica em uma única operação.</p>
-        <div className="pcpLoginModules">
-          <article><Gauge/><div><b>Visão do turno</b><span>Metas, saldo e andamento por processo.</span></div></article>
-          <article><Workflow/><div><b>Fluxo produtivo</b><span>Fila e sequência conforme a rota real.</span></div></article>
-          <article><ShieldCheck/><div><b>Qualidade integrada</b><span>Pallets, bloqueios e inspeções no mesmo fluxo.</span></div></article>
+  async function entrar(evento: React.FormEvent) {
+    evento.preventDefault();
+    setErro("");
+    setBusy(true);
+
+    try {
+      const resposta = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ usuario, senha }),
+      });
+
+      const json = await resposta.json();
+      if (!resposta.ok) throw new Error(json.error || "Falha ao entrar.");
+
+      router.replace("/dashboard");
+    } catch (e: any) {
+      setErro(e?.message || "Falha ao entrar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <main className="fioriLogin">
+      <section className="fioriLoginBrandPanel">
+        <div className="fioriLoginLogo">
+          <span><Factory /></span>
+          <div>
+            <b>Sobral PCP</b>
+            <small>ERP Industrial</small>
+          </div>
         </div>
+
+        <div className="fioriLoginIntro">
+          <span>OPERAÇÃO INDUSTRIAL</span>
+          <h1>Produção, programação e controle em uma única plataforma.</h1>
+          <p>
+            Acompanhe o fluxo produtivo, prioridades, apontamentos, qualidade,
+            romaneios e exceções com atualização em tempo real.
+          </p>
+
+          <div className="fioriLoginFeatures">
+            <article>
+              <Gauge />
+              <div>
+                <b>Visão em tempo real</b>
+                <span>Indicadores, filas, gargalos e progresso do turno.</span>
+              </div>
+            </article>
+            <article>
+              <Workflow />
+              <div>
+                <b>Sequenciamento industrial</b>
+                <span>Pedidos e peças organizados por setor e máquina.</span>
+              </div>
+            </article>
+            <article>
+              <ShieldCheck />
+              <div>
+                <b>Qualidade integrada</b>
+                <span>Inspeções, bloqueios e não conformidades no mesmo fluxo.</span>
+              </div>
+            </article>
+            <article>
+              <Boxes />
+              <div>
+                <b>Expedição conectada</b>
+                <span>Romaneios e acompanhamento de pedidos sem retrabalho manual.</span>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <footer>
+          <span>Unidade Nordeste</span>
+          <small>Ambiente corporativo · acesso autorizado</small>
+        </footer>
       </section>
 
-      <form className="pcpLoginCard" onSubmit={go}>
-        <div className="pcpLoginCardHead">
-          <span>ACESSO AO PCP</span>
-          <h2>Bem-vindo</h2>
-          <p>Entre com seu usuário operacional.</p>
-        </div>
-        <label>Usuário<input value={u} onChange={x=>setU(x.target.value)} autoComplete="username" placeholder="Digite seu usuário"/></label>
-        <label>Senha<input type="password" value={p} onChange={x=>setP(x.target.value)} autoComplete="current-password" placeholder="Digite sua senha"/></label>
-        {e&&<div className="loginErr">{e}</div>}
-        <button disabled={busy}>{busy?"VALIDANDO...":<>ENTRAR NO PCP <ArrowRight/></>}</button>
-        <small className="pcpLoginFoot">Acesso restrito à operação autorizada.</small>
-      </form>
-    </div>
-  </main>
+      <section className="fioriLoginFormPanel">
+        <form className="fioriLoginCard" onSubmit={entrar}>
+          <div className="fioriLoginCardHead">
+            <span>Acesso ao sistema</span>
+            <h2>Entrar</h2>
+            <p>Use suas credenciais operacionais.</p>
+          </div>
+
+          <label>
+            <span>Usuário</span>
+            <input
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
+              autoComplete="username"
+              placeholder="Digite seu usuário"
+              aria-label="Usuário"
+              required
+            />
+          </label>
+
+          <label>
+            <span>Senha</span>
+            <input
+              type="password"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              autoComplete="current-password"
+              placeholder="Digite sua senha"
+              aria-label="Senha"
+              required
+            />
+          </label>
+
+          {erro && <div className="fioriMessageStrip error">{erro}</div>}
+
+          <button className="fioriPrimaryButton" disabled={busy}>
+            {busy ? "Validando..." : <>Entrar <ArrowRight /></>}
+          </button>
+
+          <small className="fioriLoginHelp">
+            Em caso de bloqueio de acesso, procure o responsável pelo PCP.
+          </small>
+        </form>
+      </section>
+    </main>
+  );
 }
