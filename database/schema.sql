@@ -180,3 +180,40 @@ create index if not exists ix_pcp_pallet_nc_pallet on pcp_pallet_nao_conformidad
 create index if not exists ix_pcp_pallet_nc_status on pcp_pallet_nao_conformidades(status,prazo);
 create index if not exists ix_pcp_pallet_medicoes_pallet on pcp_pallet_medicoes(pallet_id,criado_em desc);
 create index if not exists ix_pcp_pallet_fotos_nc on pcp_pallet_fotos(nc_id,tipo,criado_em desc);
+
+
+-- V12 • Gestão de pedidos, prazo e exceções de produção
+create table if not exists pcp_pedido_controle(
+  id uuid primary key default gen_random_uuid(),
+  programacao_id uuid not null references pcp_programacoes(id) on delete cascade,
+  pedido varchar(80) not null,
+  cliente varchar(240) not null default '',
+  data_entrega date,
+  status_entrega varchar(30) not null default 'SEM_DATA',
+  observacao text not null default '',
+  atualizado_por varchar(120) not null default '',
+  atualizado_em timestamptz not null default now(),
+  unique(programacao_id,pedido)
+);
+create index if not exists ix_pcp_pedido_controle_data on pcp_pedido_controle(programacao_id,data_entrega);
+create index if not exists ix_pcp_pedido_controle_pedido on pcp_pedido_controle(pedido);
+
+create table if not exists pcp_excecoes_peca(
+  id uuid primary key default gen_random_uuid(),
+  programacao_id uuid not null references pcp_programacoes(id) on delete cascade,
+  produto_id uuid references pcp_produtos(id) on delete set null,
+  pedido varchar(80) not null,
+  of varchar(80) not null default '',
+  tipo varchar(30) not null,
+  quantidade numeric(16,3) not null default 0,
+  motivo varchar(240) not null default '',
+  processo_retorno varchar(80) not null default '',
+  observacao text not null default '',
+  status varchar(30) not null default 'ABERTA',
+  criado_por varchar(120) not null default '',
+  criado_em timestamptz not null default now(),
+  resolvido_por varchar(120) not null default '',
+  resolvido_em timestamptz
+);
+create index if not exists ix_pcp_excecoes_status on pcp_excecoes_peca(programacao_id,status,criado_em desc);
+create index if not exists ix_pcp_excecoes_pedido on pcp_excecoes_peca(pedido,status);
