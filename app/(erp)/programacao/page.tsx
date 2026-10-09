@@ -10,6 +10,7 @@ import {
 
 import type {
   ImportResult,
+  TipoPedido,
 } from "@/types/pcp";
 
 import {
@@ -159,7 +160,13 @@ export default function Programacao() {
         );
       }
 
-      setDraft(j);
+      setDraft({
+        ...j,
+        produtos: (j.produtos || []).map((p: any) => ({
+          ...p,
+          tipoPedido: p.tipoPedido || "NORMAL",
+        })),
+      });
 
       toast(
         "success",
@@ -173,6 +180,21 @@ export default function Programacao() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function definirTipoPedido(pedidoNumero: string, tipoPedido: TipoPedido) {
+    setDraft((atual) => {
+      if (!atual) return atual;
+
+      return {
+        ...atual,
+        produtos: atual.produtos.map((produto) =>
+          produto.pedido === pedidoNumero
+            ? { ...produto, tipoPedido }
+            : produto
+        ),
+      };
+    });
   }
 
   async function release() {
@@ -540,6 +562,9 @@ export default function Programacao() {
           release={
             release
           }
+          setTipoPedido={
+            definirTipoPedido
+          }
         />
       )}
     </>
@@ -605,11 +630,13 @@ function Review({
   busy,
   back,
   release,
+  setTipoPedido,
 }: {
   d: ImportResult;
   busy: boolean;
   back: () => void;
   release: () => void;
+  setTipoPedido: (pedido: string, tipo: TipoPedido) => void;
 }) {
   const hasWarnings =
     d.semRota > 0 ||
@@ -735,6 +762,59 @@ function Review({
           </span>
         </div>
       )}
+
+      <Panel
+        title="Tipo de pedido / Embalagem"
+        subtitle="Marque somente os pedidos especiais. Os demais continuam com a regra normal."
+      >
+        <div className="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>PEDIDO</th>
+                <th>TIPO</th>
+                <th>REGRA DE EMBALAGEM</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...new Set(d.produtos.map((p) => p.pedido))]
+                .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }))
+                .map((pedidoNumero) => {
+                  const produto = d.produtos.find((p) => p.pedido === pedidoNumero);
+                  const tipo = (produto?.tipoPedido || "NORMAL") as TipoPedido;
+
+                  return (
+                    <tr key={pedidoNumero}>
+                      <td><b>{pedidoNumero}</b></td>
+                      <td>
+                        <select
+                          value={tipo}
+                          onChange={(e) =>
+                            setTipoPedido(
+                              pedidoNumero,
+                              e.target.value as TipoPedido
+                            )
+                          }
+                        >
+                          <option value="NORMAL">NORMAL</option>
+                          <option value="REVENDA">REVENDA</option>
+                          <option value="ENGENHARIA">ENGENHARIA</option>
+                        </select>
+                      </td>
+                      <td>
+                        {tipo === "REVENDA"
+                          ? "Embalagem Revenda • separada da produção normal"
+                          : tipo === "ENGENHARIA"
+                          ? "Embalagem Engenharia • separada da produção normal"
+                          : "Embalagens normais por componente"}
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
 
       <div className="reviewBar">
         <button
