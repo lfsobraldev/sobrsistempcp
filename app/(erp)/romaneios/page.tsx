@@ -153,6 +153,37 @@ export default function RomaneiosPage() {
       }
 
       setResultado(data);
+
+      if (!comUsinagem) {
+        const download = await fetch("/api/romaneios/gerar", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(data),
+        });
+
+        if (!download.ok) {
+          const errorData = await download.json().catch(() => ({}));
+          throw new Error(
+            errorData.error || "Falha ao gerar o romaneio de teste."
+          );
+        }
+
+        const blob = await download.blob();
+        const disposition = download.headers.get("content-disposition") || "";
+        const match = disposition.match(/filename="?([^"]+)"?/i);
+        const nome =
+          match?.[1] ||
+          `Romaneio_Teste_${pedidoFiltro || "Filtro51"}.xlsx`;
+
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = nome;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }
     } catch (e: any) {
       alert(
         e?.message ||
