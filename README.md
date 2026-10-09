@@ -55,3 +55,5 @@ npm run build
 Novo módulo `/inspecao-pallets` com cadastro e inspeção de pallets, evidência fotográfica, bloqueio, liberação em duas etapas (Qualidade -> MSAC), rastreabilidade e impressão de etiqueta. Antes do deploy, execute `database/migrations/2026-10-02_pallet_quality_msac.sql` no Neon. Não há nova variável de ambiente no Vercel.
 
 <!-- deploy retry 2026-10-08 15:36 BRT -->
+
+<!-- redeploy mobile photos 2026-10-09T10:34:40.784Z -->
