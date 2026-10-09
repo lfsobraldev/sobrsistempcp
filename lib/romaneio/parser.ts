@@ -4,6 +4,7 @@ import { applyLogistics, rowVolume } from "./logistics";
 import { DEFAULT_LOGISTICS_CONFIG } from "./settings";
 import { buildSourceCatalog, classifyProduct, clean, compactItemIds, dimensionsFromText, itemsText, norm, packagingFromText, sourceParent, toNumber } from "./domain";
 import { parseOrderHeader, parseOrderItems, physicalOrderItems, type OrderPdfItem } from "./order-parser";
+import { categoriaIndustrial, tipoPeca } from "@/lib/domain/industrial";
 
 type PdfItem = OrderPdfItem;
 
@@ -627,6 +628,9 @@ export type FilterRomaneioProduct = {
   produto?: string;
   descricao?: string;
   categoria?: string;
+  tipo?: string;
+  canal?: string;
+  codigoModelo?: string;
   quantidade?: number;
   medida?: string;
   acabamento?: string;
@@ -679,13 +683,83 @@ function filterProductDescription(product: FilterRomaneioProduct) {
 }
 
 function categoryFromFilterProduct(product: FilterRomaneioProduct): ProductCategory {
-  const value = norm(product.categoria);
-  if (value.startsWith("PORTA") || value.startsWith("BANDEIRA")) return "PORTA";
-  if (value.startsWith("BATENTE") || value.startsWith("MARCO")) return "MARCO";
-  if (value.startsWith("ALIZAR") || value.startsWith("BAGUETE")) return "ALIZAR";
-  if (value.startsWith("KIT") || value.startsWith("SUPORTE TRILHO")) return "KIT";
-  if (value.startsWith("FERRAGEM")) return "FERRAGEM";
-  return classifyProduct(filterProductDescription(product));
+  /*
+   * Usa a MESMA classificação central do PCP/Filtro 51.
+   * Não mantemos uma segunda lógica concorrente dentro do romaneio.
+   */
+  const categoria = categoriaIndustrial({
+    categoria: product.categoria,
+    descricao: product.descricao,
+    descricaoModelo: product.descricaoModelo,
+    outrasCaracteristicas: product.outrasCaracteristicas,
+    produto: product.produto,
+    tipo: product.tipo,
+    canal: product.canal,
+    material: product.material,
+    acabamento: product.acabamento,
+    cor: product.cor,
+    rebaixo: product.rebaixo,
+    medida: product.medida,
+  });
+
+  if (categoria === "PORTA" || categoria === "BANDEIRA") return "PORTA";
+  if (categoria.startsWith("BATENTE")) return "MARCO";
+  if (categoria.startsWith("ALIZAR")) return "ALIZAR";
+  if (categoria === "KIT CORRER" || categoria === "SUPORTE TRILHO") return "KIT";
+  if (categoria === "FERRAGEM") return "FERRAGEM";
+
+  // Baguete e demais complementos ficam depois de alizares/kits,
+  // nunca são promovidos a porta.
+  return "OUTRO";
+}
+
+function roleFromFilterProduct(
+  product: FilterRomaneioProduct,
+  category: ProductCategory
+): PackageRow["role"] {
+  if (category === "PORTA") return "PORTA";
+  if (category === "FERRAGEM") return "FERRAGEM";
+  if (category === "KIT") return "KIT";
+
+  if (category === "MARCO") {
+    const tipo = tipoPeca({
+      categoria: product.categoria,
+      descricao: product.descricao,
+      descricaoModelo: product.descricaoModelo,
+      outrasCaracteristicas: product.outrasCaracteristicas,
+      produto: product.produto,
+      tipo: product.tipo,
+      canal: product.canal,
+      material: product.material,
+      acabamento: product.acabamento,
+      cor: product.cor,
+      rebaixo: product.rebaixo,
+      medida: product.medida,
+    });
+    return tipo === "TRAVESSA" ? "MARCO_TRAVESSA" : "MARCO_PERNA_SEM_MAO";
+  }
+
+  if (category === "ALIZAR") {
+    const tipo = tipoPeca({
+      categoria: product.categoria,
+      descricao: product.descricao,
+      descricaoModelo: product.descricaoModelo,
+      outrasCaracteristicas: product.outrasCaracteristicas,
+      produto: product.produto,
+      tipo: product.tipo,
+      canal: product.canal,
+      material: product.material,
+      acabamento: product.acabamento,
+      cor: product.cor,
+      rebaixo: product.rebaixo,
+      medida: product.medida,
+    });
+    return tipo === "TRAVESSA"
+      ? "ALIZAR_MAIOR_TRAVESSA"
+      : "ALIZAR_MAIOR_PERNA";
+  }
+
+  return "OUTRO";
 }
 
 export function buildProcessingFromFilterProducts(
@@ -722,6 +796,7 @@ export function buildProcessingFromFilterProducts(
         unit: "UN",
         quantity: Math.max(0, Math.round(Number(product.quantidade || 0))),
         category: categoryFromFilterProduct(product),
+        role: roleFromFilterProduct(product, categoryFromFilterProduct(product)),
       };
     })
     .filter((item) => item.quantity > 0 && !!item.description);
@@ -747,8 +822,13 @@ export function buildProcessingFromFilterProducts(
   const categoryByItem = new Map(
     sourceRows.map((row) => [row.item, row.category] as const)
   );
+  const roleByItem = new Map(
+    sourceRows.map((row) => [row.item, row.role] as const)
+  );
   const itemCategory = (item: PdfItem) =>
     categoryByItem.get(item.item) || classifyProduct(item.description);
+  const itemRole = (item: PdfItem) =>
+    roleByItem.get(item.item);
 
   rows.push(...buildMachinedDoors(machining, items));
   rows.push(...buildMachinedFrames(machining, items));
@@ -784,18 +864,15 @@ export function buildProcessingFromFilterProducts(
     const category = itemCategory(item);
     fallback.category = category;
     fallback.groupType = category;
-    fallback.role =
+    fallback.role = itemRole(item) || (
       category === "PORTA"
         ? "PORTA"
-        : category === "MARCO"
-        ? "MARCO_PERNA_SEM_MAO"
-        : category === "ALIZAR"
-        ? "ALIZAR_MAIOR_PERNA"
         : category === "KIT"
         ? "KIT"
         : category === "FERRAGEM"
         ? "FERRAGEM"
-        : "OUTRO";
+        : "OUTRO"
+    );
     rows.push(fallback);
   }
 
