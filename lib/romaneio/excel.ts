@@ -116,6 +116,24 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
   clearData(ws, positions.lastData);
   applyDocumentStyle(ws, data, positions.lastData);
 
+  /*
+   * O modelo oficial trabalha com a tabela centralizada.
+   * Forçamos o alinhamento em toda a área de dados para impedir
+   * que estilos herdados/duplicados do Excel deixem algumas células
+   * à esquerda ou desalinhadas após inserção de linhas.
+   */
+  for (let row = 12; row <= positions.lastData; row++) {
+    for (let col = 1; col <= 11; col++) {
+      const cell = ws.getCell(row, col);
+      cell.alignment = {
+        ...(cell.alignment || {}),
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: col === 10 || col === 11,
+      };
+    }
+  }
+
   set(ws, "B7", new Date()); ws.getCell("B7").numFmt = "dd/mm/yyyy";
   set(ws, "B8", data.client); set(ws, "B9", data.destination); set(ws, "B10", data.orderNumber); set(ws, "B11", data.delivery || "");
   set(ws, "I7", data.orderOptions?.motorista || "");
