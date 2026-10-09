@@ -1,0 +1,3 @@
+Redeploy completo Sobral PCP V12
+Commit de disparo para reconstrução integral na Vercel.
+Inclui todas as alterações presentes no branch main até 2026-10-09T16:45:00-03:00.
