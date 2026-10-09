@@ -620,3 +620,225 @@ export function buildProcessing(pdfText:string,machiningBuffer?:Buffer,options?:
   return result;
 }
 
+
+
+export type FilterRomaneioProduct = {
+  item?: string;
+  produto?: string;
+  descricao?: string;
+  quantidade?: number;
+  medida?: string;
+  acabamento?: string;
+  cor?: string;
+  rebaixo?: string;
+  material?: string;
+  descricaoModelo?: string;
+  outrasCaracteristicas?: string;
+};
+
+function filterProductDescription(product: FilterRomaneioProduct) {
+  const base = clean(product.descricao || "");
+  const extras = [
+    product.medida,
+    product.material,
+    product.acabamento,
+    product.cor,
+    product.rebaixo,
+    product.descricaoModelo,
+    product.outrasCaracteristicas,
+  ]
+    .map(clean)
+    .filter(Boolean)
+    .filter((value, index, all) =>
+      all.findIndex((other) => norm(other) === norm(value)) === index
+    )
+    .filter((value) => !norm(base).includes(norm(value)));
+
+  return clean([base, ...extras].filter(Boolean).join(" "));
+}
+
+export function buildProcessingFromFilterProducts(
+  input: {
+    orderNumber: string;
+    client?: string;
+    destination?: string;
+    delivery?: string;
+    products: FilterRomaneioProduct[];
+  },
+  machiningBuffer?: Buffer,
+  options?: {
+    mountType?: MountType;
+    config?: LogisticsConfig;
+    mixedOrder?: boolean;
+    orderOptions?: OrderOptions;
+  }
+): ProcessingResult {
+  const allItems: PdfItem[] = input.products
+    .map((product, index) => ({
+      item: clean(product.item || String(index + 1)),
+      code: clean(product.produto || ""),
+      description: filterProductDescription(product),
+      unit: "UN",
+      quantity: Math.max(0, Math.round(Number(product.quantidade || 0))),
+    }))
+    .filter((item) => item.quantity > 0 && !!item.description);
+
+  const items = physicalOrderItems(allItems);
+  const machining = parseMachining(machiningBuffer);
+  const warnings: string[] = [];
+  const rows: PackageRow[] = [];
+
+  rows.push(...buildMachinedDoors(machining, items));
+  rows.push(...buildMachinedFrames(machining, items));
+
+  const already = () => new Set(rows.flatMap((row) => row.sourceItems || []));
+
+  for (const item of items.filter((x) =>
+    classifyProduct(x.description) === "PORTA" && !already().has(x.item)
+  )) {
+    rows.push(buildSimpleDoor(item));
+  }
+
+  const unmatchedFrames = items.filter((x) =>
+    classifyProduct(x.description) === "MARCO" && !already().has(x.item)
+  );
+  for (const item of unmatchedFrames) rows.push(...buildSimpleFrame(item));
+
+  rows.push(...buildTrimRows(items.filter((x) =>
+    classifyProduct(x.description) === "ALIZAR" && !already().has(x.item)
+  )));
+  rows.push(...buildKitRows(items.filter((x) =>
+    classifyProduct(x.description) === "KIT" && !already().has(x.item)
+  )));
+  rows.push(...buildHardwareRows(items.filter((x) =>
+    classifyProduct(x.description) === "FERRAGEM" && !already().has(x.item)
+  )));
+
+  const after = already();
+  for (const item of items) {
+    if (!after.has(item.item)) rows.push(buildFallback(item));
+  }
+
+  if (!machiningBuffer) {
+    warnings.push("Pedido preparado pelo Filtro 51. Aguardando planilha de usinagem para finalizar mãos, aplicações e itens usinados.");
+  } else if (!machining.length) {
+    warnings.push("A planilha de usinagem foi recebida, mas nenhuma linha utilizável foi identificada.");
+  }
+
+  const usedBy = new Map<string, string[]>();
+  for (const row of rows) {
+    for (const item of row.sourceItems || []) {
+      const arr = usedBy.get(item) || [];
+      arr.push(row.groupId || row.role || row.product);
+      usedBy.set(item, arr);
+    }
+  }
+
+  const catalogRaw = items.map((item) => {
+    const d = dimensionsFromText(item.description);
+    return {
+      item: item.item,
+      code: item.code,
+      description: item.description,
+      unit: item.unit,
+      quantity: item.quantity,
+      volume: item.volume,
+      category: classifyProduct(item.description),
+      lengthMm: d?.[0],
+      widthMm: d?.[1],
+      thicknessMm: d?.[2],
+      packaging: packagingFromText(item.description),
+      finish: finishFromText(item.description),
+    };
+  });
+
+  const sourceCatalog = buildSourceCatalog(catalogRaw, usedBy);
+  const unmappedItems = sourceCatalog.filter((item) => !item.used && !item.isParent);
+  if (unmappedItems.length) {
+    warnings.push(`${unmappedItems.length} item(ns) físico(s) ainda não foram associados a uma linha do romaneio.`);
+  }
+
+  const sourceCategories = countSourceCategories(items);
+  const mappedCategories = countMappedSourceCategories(items, rows);
+  const generatedCategories = countGeneratedCategories(rows);
+  const diagnosticNotes: string[] = [];
+
+  for (const category of ["PORTA", "MARCO", "ALIZAR", "FERRAGEM", "KIT"] as ProductCategory[]) {
+    const source = sourceCategories[category] || 0;
+    const mapped = mappedCategories[category] || 0;
+    if (source > 0 && mapped === 0) {
+      diagnosticNotes.push(`${category}: ${source} item(ns) no filtro e nenhum item representado no romaneio.`);
+    } else if (source > mapped) {
+      diagnosticNotes.push(`${category}: ${source - mapped} de ${source} item(ns) ainda sem vínculo.`);
+    }
+  }
+
+  const handEntries = machining
+    .map((entry) => parseHand(entry.notes.join(" ")))
+    .filter((entry) => entry.right || entry.left);
+
+  const handSplit = handEntries.length
+    ? {
+        right: handEntries.reduce((sum, entry) => sum + entry.right, 0),
+        left: handEntries.reduce((sum, entry) => sum + entry.left, 0),
+      }
+    : undefined;
+
+  const mountType = options?.mountType || "MONTADO_HS";
+  const config = options?.config || DEFAULT_LOGISTICS_CONFIG;
+
+  const base: ProcessingResult = {
+    orderNumber: clean(input.orderNumber),
+    client: clean(input.client || ""),
+    destination: clean(input.destination || ""),
+    delivery: clean(input.delivery || ""),
+    hasMachining: Boolean(machiningBuffer?.length && machining.length),
+    handSplit,
+    mountType,
+    mixedOrder: Boolean(options?.mixedOrder),
+    packages: [{
+      number: 1,
+      rows,
+      totalVolume: rows.reduce((sum, row) => sum + rowVolume(row), 0),
+    }],
+    warnings,
+    config,
+    orderOptions: options?.orderOptions || { mountType },
+    complementoObra: Boolean(options?.orderOptions?.complementoObra),
+    sourceItemCount: items.length,
+    sourceItems: items.map((item) => item.item),
+    sourceCatalog,
+    unmappedItems,
+    reconciliation: {
+      found: sourceCatalog.length,
+      mapped: sourceCatalog.filter((item) => item.used).length,
+      unmapped: unmappedItems.length,
+      parentItemsIgnored: allItems.length - items.length,
+    },
+    parserDiagnostics: {
+      allItems: allItems.length,
+      physicalItems: items.length,
+      machiningEntries: machining.length,
+      generatedRows: rows.length,
+      sourceCategories,
+      mappedCategories,
+      generatedCategories,
+      suspicious: false,
+      notes: diagnosticNotes,
+    },
+    sourceMode: "PEDIDO",
+    sourceFileName: "FILTRO_51",
+    specialInstructions: [],
+    trimAsResale: false,
+    romaneioStyle: config.romaneioStyle,
+    labelStyle: config.labelStyle,
+  };
+
+  const result = applyLogistics(base, mountType, config);
+
+  if (!machiningBuffer) {
+    result.parserDiagnostics!.notes.unshift("Romaneio base criado pelo Filtro 51; falta usinagem para finalização.");
+  }
+
+  return result;
+}
