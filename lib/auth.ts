@@ -296,6 +296,14 @@ export async function session():
         "EMBALAGEM-7"
       );
 
+      processos.add(
+        "EMBALAGEM-REVENDA"
+      );
+
+      processos.add(
+        "EMBALAGEM-ENGENHARIA"
+      );
+
       continue;
     }
 
