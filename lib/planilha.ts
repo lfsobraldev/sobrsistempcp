@@ -108,7 +108,27 @@ export const SETORES:
 
   [
     "EMBALAGEM-3",
-    "EMBALAGEM 3 - ALIZAR / KIT / BAGUETE",
+    "EMBALAGEM 3 - PERNA DE ALIZAR",
+  ],
+
+  [
+    "EMBALAGEM-4",
+    "EMBALAGEM 4 - TRAVESSA DE ALIZAR",
+  ],
+
+  [
+    "EMBALAGEM-5",
+    "EMBALAGEM 5 - KIT DE CORRER",
+  ],
+
+  [
+    "EMBALAGEM-6",
+    "EMBALAGEM 6 - BAGUETE",
+  ],
+
+  [
+    "EMBALAGEM-7",
+    "EMBALAGEM 7 - SUPORTE DE TRILHO",
   ],
 
   [
