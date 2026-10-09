@@ -29,46 +29,211 @@ function parseHand(text: string): HandInfo {
   return { right, left, application: application ? clean(application) : undefined };
 }
 
+function machiningHeaderKey(value: unknown) {
+  return clean(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Z0-9]+/gi, "")
+    .toUpperCase();
+}
+
+function machiningHeaderIndex(row: string[], aliases: string[]) {
+  const normalized = row.map(machiningHeaderKey);
+  const wanted = aliases.map(machiningHeaderKey);
+  const exact = normalized.findIndex((value) => wanted.includes(value));
+  if (exact >= 0) return exact;
+
+  return normalized.findIndex((value) =>
+    wanted.some((alias) =>
+      value.length >= 4 &&
+      alias.length >= 4 &&
+      (value.includes(alias) || alias.includes(value))
+    )
+  );
+}
+
+function detectMachiningHeader(rows: string[][]) {
+  const aliases = {
+    qty: ["QTD", "QTDE", "QUANTIDADE", "QUANT"],
+    unit: ["UN", "UND", "UNIDADE"],
+    desc: ["DESCRICAO", "DESCRICAOPRODUTO", "PRODUTO", "ITEM"],
+    length: ["COMPRIMENTO", "COMP", "COMPR", "ALTURA"],
+    width: ["LARGURA", "LARG"],
+    thickness: ["ESPESSURA", "ESP"],
+    volume: ["VOLUME", "M3", "M³", "VOLUMETOTAL"],
+  };
+
+  let best: { row: number; score: number; idx: Record<string, number> } | undefined;
+
+  for (let r = 0; r < Math.min(rows.length, 80); r++) {
+    const row = rows[r];
+    const idx = {
+      qty: machiningHeaderIndex(row, aliases.qty),
+      unit: machiningHeaderIndex(row, aliases.unit),
+      desc: machiningHeaderIndex(row, aliases.desc),
+      length: machiningHeaderIndex(row, aliases.length),
+      width: machiningHeaderIndex(row, aliases.width),
+      thickness: machiningHeaderIndex(row, aliases.thickness),
+      volume: machiningHeaderIndex(row, aliases.volume),
+    };
+    let score = 0;
+    if (idx.qty >= 0) score += 3;
+    if (idx.desc >= 0) score += 5;
+    if (idx.length >= 0) score += 2;
+    if (idx.width >= 0) score += 2;
+    if (idx.thickness >= 0) score += 2;
+    if (idx.unit >= 0) score += 1;
+    if (idx.volume >= 0) score += 1;
+    if (!best || score > best.score) best = { row: r, score, idx };
+  }
+
+  return best && best.score >= 8 ? best : undefined;
+}
+
+function likelyMachiningDescription(cells: string[]) {
+  const candidates = cells
+    .map((value, index) => ({ value: clean(value), index }))
+    .filter(({ value }) =>
+      value.length >= 3 &&
+      /[A-Za-zÀ-ÿ]/.test(value) &&
+      !/^(UN|UND|CJ|PC|PCS|PÇ|PÇS|JG)$/i.test(value) &&
+      !/^\d+(?:[.,]\d+)?$/.test(value)
+    );
+
+  const preferred = candidates.find(({ value }) =>
+    /PORTA|BATENTE|MARCO|ALIZAR|FERRAGEM|DOBRAD|FECHAD|KIT|TRAVESSA|PERNA/i.test(value)
+  );
+
+  return preferred || candidates.sort((a, b) => b.value.length - a.value.length)[0];
+}
+
 function parseMachining(buffer?: Buffer): MachiningEntry[] {
   if (!buffer?.length) return [];
-  const wb = XLSX.read(buffer, { type: "buffer", cellDates: true });
+
+  const wb = XLSX.read(buffer, {
+    type: "buffer",
+    cellDates: true,
+    raw: false,
+  });
+
   const entries: MachiningEntry[] = [];
+
   for (const sheetName of wb.SheetNames) {
     const ws = wb.Sheets[sheetName];
     if (!ws) continue;
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "" }) as unknown[][];
+
+    const rawRows = XLSX.utils.sheet_to_json(ws, {
+      header: 1,
+      raw: false,
+      defval: "",
+      blankrows: true,
+    }) as unknown[][];
+
+    const rows = rawRows.map((row) => row.map((value) => clean(value)));
+    const header = detectMachiningHeader(rows);
+    const startRow = header ? header.row + 1 : 0;
+
     let current: MachiningEntry | undefined;
     let hardwareSection = false;
-    for (const rawRow of rows) {
-      const cells = rawRow.map(v => clean(v));
-      const desc = cells[2] || cells.find((v, i) => i > 0 && /[A-Za-zÀ-ÿ]/.test(v)) || "";
-      if (!desc && !cells.some(Boolean)) { current = undefined; continue; }
-      if (/FERRAGENS\s+PARA\s+USINAGEM/i.test(desc)) { hardwareSection = true; current = undefined; continue; }
-      const qty = toNumber(cells[0]);
-      if (qty !== undefined && desc) {
+
+    for (let rowIndex = startRow; rowIndex < rows.length; rowIndex++) {
+      const cells = rows[rowIndex];
+      if (!cells.some(Boolean)) {
+        current = undefined;
+        continue;
+      }
+
+      const headerLike = detectMachiningHeader([cells]);
+      if (headerLike?.score && headerLike.score >= 8) {
+        current = undefined;
+        continue;
+      }
+
+      const get = (index: number) => index >= 0 ? clean(cells[index]) : "";
+      const descCandidate = header?.idx.desc != null && header.idx.desc >= 0
+        ? { value: get(header.idx.desc), index: header.idx.desc }
+        : likelyMachiningDescription(cells);
+      const desc = descCandidate?.value || "";
+
+      if (/FERRAGENS?\s+PARA\s+USINAGEM/i.test(desc) || /FERRAGENS?\s+USINAGEM/i.test(desc)) {
+        hardwareSection = true;
+        current = undefined;
+        continue;
+      }
+
+      if (/^(TOTAL|SUBTOTAL|OBSERVA[CÇ][AÃ]O|OBS\.?|PAGINA|CLIENTE|PEDIDO)\b/i.test(desc)) {
+        current = undefined;
+        continue;
+      }
+
+      const qtyIndex = header?.idx.qty ?? 0;
+      const unitIndex = header?.idx.unit ?? 1;
+      const qty = toNumber(get(qtyIndex));
+
+      const dimensions = dimensionsFromText(desc);
+      const length = toNumber(get(header?.idx.length ?? -1)) ?? dimensions?.[0];
+      const width = toNumber(get(header?.idx.width ?? -1)) ?? dimensions?.[1];
+      const thickness = toNumber(get(header?.idx.thickness ?? -1)) ?? dimensions?.[2];
+      const volume = toNumber(get(header?.idx.volume ?? -1));
+
+      const isDataRow =
+        qty !== undefined &&
+        qty >= 0 &&
+        !!desc &&
+        !/^(QTD|QTDE|QUANTIDADE|DESCRICAO|PRODUTO)$/i.test(desc);
+
+      if (isDataRow) {
         current = {
           quantity: Math.max(0, Math.round(qty)),
-          unit: cells[1] || undefined,
+          unit: get(unitIndex) || undefined,
           description: desc,
-          lengthMm: toNumber(cells[7]),
-          widthMm: toNumber(cells[8]),
-          thicknessMm: toNumber(cells[9]),
-          totalVolume: toNumber(cells[10]),
+          lengthMm: length,
+          widthMm: width,
+          thicknessMm: thickness,
+          totalVolume: volume,
           notes: [],
           hardware: hardwareSection,
         };
         entries.push(current);
         continue;
       }
-      if (hardwareSection && desc) {
-        entries.push({ quantity: 0, description: desc, unit: cells[1] || undefined, notes: [], hardware: true });
+
+      if (hardwareSection && desc && /[A-Za-zÀ-ÿ]/.test(desc)) {
+        entries.push({
+          quantity: 0,
+          description: desc,
+          unit: get(unitIndex) || undefined,
+          notes: [],
+          hardware: true,
+        });
         current = undefined;
         continue;
       }
-      if (current && desc) current.notes.push(desc);
+
+      /*
+       * Só anexa observação quando a linha tem conteúdo descritivo real.
+       * Isso evita que números, totais, cabeçalhos e células vizinhas
+       * sejam incorporados à usinagem e depois apareçam no romaneio.
+       */
+      if (
+        current &&
+        desc &&
+        /[A-Za-zÀ-ÿ]/.test(desc) &&
+        !/^(TOTAL|SUBTOTAL|QTD|QTDE|QUANTIDADE|M3|M³|VOLUME)$/i.test(desc)
+      ) {
+        current.notes.push(desc);
+      }
     }
   }
-  return entries;
+
+  return entries.filter((entry) =>
+    !!clean(entry.description) &&
+    (
+      entry.quantity > 0 ||
+      entry.hardware ||
+      /PORTA|BATENTE|MARCO|ALIZAR|FERRAGEM|DOBRAD|FECHAD|KIT/i.test(entry.description)
+    )
+  );
 }
 
 function normalizeTitle(text:string){
