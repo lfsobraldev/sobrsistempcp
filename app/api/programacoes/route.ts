@@ -14,6 +14,11 @@ export async function POST(req: Request) {
       add column if not exists tipo_pedido varchar(20) not null default 'NORMAL'
     `;
 
+    await db`
+      alter table pcp_produtos
+      add column if not exists montagem_engenharia varchar(30) not null default 'MONTADO_HS'
+    `;
+
     /*
       IMPORTANTE:
       A programação NÃO é mais bloqueada porque o Filtro 51 mudou
@@ -101,7 +106,8 @@ export async function POST(req: Request) {
           material,
           medida,
           prioridade,
-          tipo_pedido
+          tipo_pedido,
+          montagem_engenharia
         )
         values(
           ${pg.id},
@@ -127,7 +133,8 @@ export async function POST(req: Request) {
           ${String(p.material || "")},
           ${String(p.medida || "")},
           ${String(p.prioridade || "NORMAL")},
-          ${["REVENDA","ENGENHARIA"].includes(String(p.tipoPedido || "").toUpperCase()) ? String(p.tipoPedido).toUpperCase() : "NORMAL"}
+          ${["REVENDA","ENGENHARIA"].includes(String(p.tipoPedido || "").toUpperCase()) ? String(p.tipoPedido).toUpperCase() : "NORMAL"},
+          ${["MONTADO_HS","MONTADO_TIMADEL","MONTADO_ESTANCIA"].includes(String(p.montagemEngenharia || "").toUpperCase()) ? String(p.montagemEngenharia).toUpperCase() : "MONTADO_HS"}
         )
         returning id
       `;
