@@ -146,6 +146,7 @@ export async function POST(req: Request) {
           item: row.item,
           produto: row.produto,
           descricao: row.descricao,
+          categoria: row.categoria,
           quantidade: Number(row.quantidade || 0),
           medida: row.medida,
           acabamento: row.acabamento,
