@@ -7,6 +7,12 @@ import {
 } from "@/lib/sort";
 
 import {
+  findImportKey,
+  loadRobustTable,
+  parseImportNumber,
+} from "@/lib/import-reader";
+
+import {
   categoriaIndustrial,
   ehFerragem,
   processoEmbalagemDoItem,
@@ -278,23 +284,7 @@ function findKey(
   r: Record<string, string>,
   aliases: string[]
 ) {
-  const wanted =
-    new Set(
-      aliases.map(
-        headerKey
-      )
-    );
-
-  return Object.keys(
-    r
-  ).find(
-    (
-      key
-    ) =>
-      wanted.has(
-        headerKey(key)
-      )
-  );
+  return findImportKey(r, aliases);
 }
 
 function field(
@@ -353,65 +343,7 @@ const up = (
 function num(
   v: unknown
 ) {
-  let s =
-    clean(v)
-      .replace(
-        /%/g,
-        ""
-      )
-      .replace(
-        /\s/g,
-        ""
-      );
-
-  if (!s) {
-    return 0;
-  }
-
-  /*
-   * Aceita números do Consistem nos formatos:
-   * 100
-   * 100,00
-   * 1.234,50
-   * 1234.50
-   * 100%
-   */
-  if (
-    /^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(
-      s
-    )
-  ) {
-    s =
-      s
-        .replace(
-          /\./g,
-          ""
-        )
-        .replace(
-          ",",
-          "."
-        );
-  } else if (
-    s.includes(",")
-  ) {
-    s =
-      s
-        .replace(
-          /\./g,
-          ""
-        )
-        .replace(
-          ",",
-          "."
-        );
-  }
-
-  const n =
-    Number(s);
-
-  return Number.isFinite(n)
-    ? n
-    : 0;
+  return parseImportNumber(v) ?? 0;
 }
 
 const ROUTE_EMPTY =
@@ -844,161 +776,45 @@ function regression() {
 export async function parseFiltro(
   file: File
 ): Promise<ImportResult> {
-  const bytes =
-    new Uint8Array(
-      await file.arrayBuffer()
-    );
+  const aliases = {
+    ...FIELD_ALIAS,
+    ...PROCESS_ALIAS,
+  };
 
-  /*
-   * O Consistem normalmente exporta Windows-1252, mas alguns
-   * arquivos chegam em UTF-8. Tentamos UTF-8 estrito primeiro
-   * para não corromper acentos; se falhar, usamos Windows-1252.
-   */
-  let text = "";
+  const loaded = await loadRobustTable(file, aliases, {
+    forwardFillFields: ["Filtro", "Pedido"],
+  });
 
-  try {
-    text =
-      new TextDecoder(
-        "utf-8",
-        {
-          fatal: true,
-        }
-      ).decode(
-        bytes
-      );
-  } catch {
-    text =
-      new TextDecoder(
-        "windows-1252"
-      ).decode(
-        bytes
-      );
+  const rows = loaded.rows;
+
+  if (!rows.length) {
+    throw new Error("O arquivo não possui linhas de dados.");
   }
 
-  const primeiraLinha =
-    text
-      .replace(
-        /^\uFEFF/,
-        ""
-      )
-      .split(
-        /\r?\n/,
-        1
-      )[0] ||
-    "";
+  const primeiro = rows[0] || {};
+  const essential = ["Pedido", "Descrição", "Quantidade Pecas"];
 
-  const delimitador =
-    primeiraLinha.includes(
-      ";"
-    )
-      ? ";"
-      : primeiraLinha.includes(
-          "\t"
-        )
-      ? "\t"
-      : ",";
+  const missing = essential.filter(
+    (nome) => !findKey(primeiro, FIELD_ALIAS[nome] || [nome])
+  );
 
-  const rows =
-    parse(
-      text,
-      {
-        delimiter:
-          delimitador,
-
-        columns:
-          true,
-
-        skip_empty_lines:
-          true,
-
-        relax_column_count:
-          true,
-
-        relax_quotes:
-          true,
-
-        bom:
-          true,
-
-        trim:
-          false,
-
-        ltrim:
-          false,
-
-        rtrim:
-          false,
-      }
-    ) as Record<
-      string,
-      string
-    >[];
-
-  if (
-    !rows.length
-  ) {
+  if (missing.length) {
     throw new Error(
-      "O CSV está vazio."
+      `Não foi possível identificar as colunas essenciais: ${missing.join(", ")}. Cabeçalho detectado na linha ${loaded.headerRow}.`
     );
   }
 
-  const primeiro =
-    rows[
-      0
-    ] ||
-    {};
+  const valid = rows.filter((r) => {
+    const pedido = clean(field(r, "Pedido"));
+    const descricao = clean(field(r, "Descrição"));
+    const quantidade = num(field(r, "Quantidade Pecas"));
+    const of = clean(field(r, "OF's"));
 
-  const missing =
-    REQUIRED.filter(
-      (
-        nome
-      ) => {
-        if (
-          PROCESSOS_FONTE.includes(
-            nome as any
-          )
-        ) {
-          return !findKey(
-            primeiro,
-            PROCESS_ALIAS[nome] ||
-            [nome]
-          );
-        }
+    return !!pedido && !!descricao && (quantidade > 0 || !!of);
+  });
 
-        return !findKey(
-          primeiro,
-          FIELD_ALIAS[nome] ||
-          [nome]
-        );
-      }
-    );
-
-  if (
-    missing.length
-  ) {
-    throw new Error(
-      `Colunas obrigatórias ausentes: ${missing.join(
-        ", "
-      )}`
-    );
-  }
-
-  const valid =
-    rows.filter(
-      (
-        r
-      ) =>
-        clean(field(r, "Filtro")) &&
-        clean(field(r, "Pedido")) &&
-        clean(field(r, "Descrição"))
-    );
-
-  if (
-    !valid.length
-  ) {
-    throw new Error(
-      "Nenhuma linha válida encontrada."
-    );
+  if (!valid.length) {
+    throw new Error("Nenhuma linha produtiva válida encontrada após a leitura.");
   }
 
   let inconsistenciasRota =
