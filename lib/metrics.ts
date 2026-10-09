@@ -59,7 +59,19 @@ export const LABELS:
     "Embalagem 2 • Travessa de batente",
 
   "EMBALAGEM-3":
-    "Embalagem 3 • Alizar / Kit / Baguete",
+    "Embalagem 3 • Perna de alizar",
+
+  "EMBALAGEM-4":
+    "Embalagem 4 • Travessa de alizar",
+
+  "EMBALAGEM-5":
+    "Embalagem 5 • Kit de correr",
+
+  "EMBALAGEM-6":
+    "Embalagem 6 • Baguete",
+
+  "EMBALAGEM-7":
+    "Embalagem 7 • Suporte de trilho",
 
   EXPEDICAO:
     "Expedição",
