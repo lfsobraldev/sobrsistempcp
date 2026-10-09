@@ -73,6 +73,12 @@ export const LABELS:
   "EMBALAGEM-7":
     "Embalagem 7 • Suporte de trilho",
 
+  "EMBALAGEM-REVENDA":
+    "Embalagem • Revenda",
+
+  "EMBALAGEM-ENGENHARIA":
+    "Embalagem • Engenharia",
+
   EXPEDICAO:
     "Expedição",
 };
