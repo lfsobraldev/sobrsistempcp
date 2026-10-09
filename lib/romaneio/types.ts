@@ -1,7 +1,7 @@
 export type MountType = "MONTADO_HS" | "MONTADO_TIMADEL" | "REVENDA" | "MONTADO_ESTANCIA";
 export type PackageStatus = "VALIDO" | "ATENCAO" | "INVALIDO";
 export type ProductCategory = "PORTA" | "MARCO" | "ALIZAR" | "FERRAGEM" | "KIT" | "OUTRO";
-export type SourceMode = "PEDIDO" | "ROMANEIO_PRONTO" | "CONTAINER";
+export type SourceMode = "PEDIDO" | "FILTRO_51" | "ROMANEIO_PRONTO" | "CONTAINER";
 export type RowRole =
   | "PORTA"
   | "MARCO_DOBRADICA_DIREITA"
