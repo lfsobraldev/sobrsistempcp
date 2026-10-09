@@ -756,6 +756,11 @@ export async function GET() {
 
     const pg: any = pgs[0];
 
+    await db`
+      alter table pcp_produtos
+      add column if not exists usinagem_planilha boolean not null default false
+    `;
+
     const products = await db`
       select *
       from pcp_produtos
@@ -797,6 +802,7 @@ export async function GET() {
       prioridade: p.prioridade,
       tipoPedido: p.tipo_pedido || "NORMAL",
       montagemEngenharia: p.montagem_engenharia || "MONTADO_HS",
+      usinagemPlanilha: Boolean(p.usinagem_planilha),
       operacoes: ops
         .filter((o: any) => o.produto_id === p.id)
         .map((o: any) => ({
