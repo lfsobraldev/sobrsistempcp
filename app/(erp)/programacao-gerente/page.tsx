@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Boxes,
   ChevronDown,
@@ -13,6 +13,8 @@ import {
   RefreshCw,
   Route,
   Search,
+  CalendarClock,
+  AlertTriangle,
 } from "lucide-react";
 import { useOps } from "@/components/operational-provider";
 import { Panel } from "@/components/ui";
@@ -24,6 +26,22 @@ import {
   medidaDoItem,
 } from "@/lib/domain/industrial";
 import { familiaProduto } from "@/lib/sort";
+
+type ControlePedido = {
+  pedido: string;
+  cliente: string;
+  dataEntrega: string | null;
+  statusEntrega: string;
+  observacao: string;
+};
+
+type ExcecaoPeca = {
+  id: string;
+  pedido: string;
+  tipo: string;
+  quantidade: number;
+  status: string;
+};
 
 type ViewMode = "PEDIDOS" | "SETORES" | "SEQUENCIAMENTO";
 
@@ -110,6 +128,28 @@ export default function ProgramacaoGerentePage() {
   const [processo, setProcesso] = useState("TODOS");
   const [pedidoAberto, setPedidoAberto] = useState("");
   const [busy, setBusy] = useState(false);
+  const [gestao, setGestao] = useState<{ controles: ControlePedido[]; excecoes: ExcecaoPeca[] }>({
+    controles: [],
+    excecoes: [],
+  });
+  const [savingPrazo, setSavingPrazo] = useState("");
+
+  useEffect(() => {
+    let ativo = true;
+    fetch("/api/gestao-producao", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { controles: [], excecoes: [] }))
+      .then((j) => {
+        if (ativo) {
+          setGestao({
+            controles: j.controles || [],
+            excecoes: j.excecoes || [],
+          });
+        }
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [pg?.id, lastSync?.getTime()]);
 
   const pedidos = useMemo(() => {
     const map = new Map<string, Produto[]>();
@@ -139,6 +179,9 @@ export default function ProgramacaoGerentePage() {
           itens.find((p) => p.tipoPedido && p.tipoPedido !== "NORMAL")
             ?.tipoPedido || "NORMAL";
 
+        const controle = gestao.controles.find((c) => c.pedido === pedido);
+        const excecoes = gestao.excecoes.filter((e) => e.pedido === pedido && e.status === "ABERTA");
+
         return {
           pedido,
           itens,
@@ -160,12 +203,16 @@ export default function ProgramacaoGerentePage() {
               : itens.some((p) => p.prioridade === "ALTA")
               ? "ALTA"
               : "NORMAL",
+          dataEntrega: controle?.dataEntrega || "",
+          statusEntrega: controle?.statusEntrega || "SEM_DATA",
+          clienteControle: controle?.cliente || "",
+          excecoes,
         };
       })
       .sort((a, b) =>
         a.pedido.localeCompare(b.pedido, "pt-BR", { numeric: true })
       );
-  }, [produtos]);
+  }, [produtos, gestao]);
 
   const processos = useMemo(
     () => [...new Set(produtos.flatMap((p) => p.operacoes.map((o) => o.processo)))],
@@ -221,6 +268,39 @@ export default function ProgramacaoGerentePage() {
       await exportarCompleto(produtos);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function salvarPrazo(pedido: string, dataEntrega: string) {
+    setSavingPrazo(pedido);
+    try {
+      const r = await fetch("/api/gestao-producao", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pedido, dataEntrega }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Falha ao salvar prazo.");
+
+      setGestao((atual) => {
+        const existente = atual.controles.find((x) => x.pedido === pedido);
+        const proximo = {
+          pedido,
+          cliente: existente?.cliente || "",
+          dataEntrega: dataEntrega || null,
+          statusEntrega: j.controle?.status_entrega || (dataEntrega ? "NO_PRAZO" : "SEM_DATA"),
+          observacao: existente?.observacao || "",
+        };
+        return {
+          ...atual,
+          controles: [
+            ...atual.controles.filter((x) => x.pedido !== pedido),
+            proximo,
+          ],
+        };
+      });
+    } finally {
+      setSavingPrazo("");
     }
   }
 
@@ -311,6 +391,16 @@ export default function ProgramacaoGerentePage() {
           <b>{pendUsinagem}</b>
           <small>pedido(s)</small>
         </article>
+        <article className={pedidos.some((p) => p.statusEntrega === "ATRASADO") ? "attention" : ""}>
+          <span>PRAZOS CRÍTICOS</span>
+          <b>{pedidos.filter((p) => ["ATRASADO", "URGENTE"].includes(p.statusEntrega)).length}</b>
+          <small>atrasados ou próximos</small>
+        </article>
+        <article className={gestao.excecoes.some((e) => e.status === "ABERTA") ? "attention" : ""}>
+          <span>FALTAS / EXCEÇÕES</span>
+          <b>{gestao.excecoes.filter((e) => e.status === "ABERTA").length}</b>
+          <small>abertas na produção</small>
+        </article>
         <article>
           <span>VOLUME</span>
           <b>{volume.toFixed(3)}</b>
@@ -382,6 +472,8 @@ export default function ProgramacaoGerentePage() {
                   <th>USINAGEM</th>
                   <th>ALIZAR</th>
                   <th>MATERIAL</th>
+                  <th>PRAZO ENTREGA</th>
+                  <th>EXCEÇÕES</th>
                   <th>ANDAMENTO</th>
                   <th>STATUS</th>
                   <th></th>
@@ -413,6 +505,33 @@ export default function ProgramacaoGerentePage() {
                       <td>{pedido.alizares.length ? pedido.alizares.join(" / ") : "-"}</td>
                       <td><b>{pedido.material}</b></td>
                       <td>
+                        <div className="managerDueCell">
+                          <CalendarClock />
+                          <input
+                            type="date"
+                            value={pedido.dataEntrega}
+                            disabled={savingPrazo === pedido.pedido}
+                            onChange={(e) => salvarPrazo(pedido.pedido, e.target.value)}
+                          />
+                          <span className={`managerDueStatus ${String(pedido.statusEntrega).toLowerCase()}`}>
+                            {pedido.statusEntrega === "ATRASADO"
+                              ? "ATRASADO"
+                              : pedido.statusEntrega === "URGENTE"
+                              ? "PRÓXIMO"
+                              : pedido.statusEntrega === "NO_PRAZO"
+                              ? "NO PRAZO"
+                              : "SEM DATA"}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
+                        {pedido.excecoes.length ? (
+                          <span className="managerExceptionCount"><AlertTriangle /> {pedido.excecoes.length}</span>
+                        ) : (
+                          <span className="managerExceptionNone">-</span>
+                        )}
+                      </td>
+                      <td>
                         <div className="managerProgress">
                           <i><em style={{ width: `${pedido.andamento}%` }} /></i>
                           <span>{pedido.andamento.toFixed(0)}%</span>
@@ -440,7 +559,7 @@ export default function ProgramacaoGerentePage() {
 
                     {pedidoAberto === pedido.pedido && (
                       <tr key={`${pedido.pedido}-detail`} className="managerDetailRow">
-                        <td colSpan={13}>
+                        <td colSpan={15}>
                           <div className="managerOrderDetail">
                             <div className="managerOrderRoute">
                               <header>
