@@ -13,6 +13,11 @@ async function migrarProcessosLegados(
   db: ReturnType<typeof sql>,
   programacaoId: string
 ) {
+  await db`
+    alter table pcp_produtos
+    add column if not exists tipo_pedido varchar(20) not null default 'NORMAL'
+  `;
+
   const legacy = await db`
     select count(*)::int as total
     from pcp_operacoes o
@@ -147,12 +152,18 @@ async function migrarProcessosLegados(
     update pcp_operacoes o
     set
       processo = case
+        when upper(coalesce(p.tipo_pedido, 'NORMAL')) = 'REVENDA'
+          then 'EMBALAGEM-REVENDA'
+        when upper(coalesce(p.tipo_pedido, 'NORMAL')) = 'ENGENHARIA'
+          then 'EMBALAGEM-ENGENHARIA'
         when upper(coalesce(p.categoria, '')) like 'PORTA%' then 'USINAGEM-PORTAS'
         when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%' then 'USINAGEM-TRAVESSAS'
         when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%' then 'USINAGEM-CONTRATESTA'
         else o.processo
       end,
       sequencia = case
+        when upper(coalesce(p.tipo_pedido, 'NORMAL')) in ('REVENDA','ENGENHARIA')
+          then 20
         when upper(coalesce(p.categoria, '')) like 'PORTA%' then 2
         when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%' then 3
         when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%' then 6
@@ -287,7 +298,9 @@ async function migrarProcessosLegados(
         'EMBALAGEM-4',
         'EMBALAGEM-5',
         'EMBALAGEM-6',
-        'EMBALAGEM-7'
+        'EMBALAGEM-7',
+        'EMBALAGEM-REVENDA',
+        'EMBALAGEM-ENGENHARIA'
       )
   `;
 
@@ -453,6 +466,10 @@ async function migrarProcessosLegados(
       p.id,
 
       case
+        when upper(coalesce(p.tipo_pedido, 'NORMAL')) = 'REVENDA'
+          then 'EMBALAGEM-REVENDA'
+        when upper(coalesce(p.tipo_pedido, 'NORMAL')) = 'ENGENHARIA'
+          then 'EMBALAGEM-ENGENHARIA'
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 'EMBALAGEM-PORTAS'
@@ -490,6 +507,8 @@ async function migrarProcessosLegados(
       end,
 
       case
+        when upper(coalesce(p.tipo_pedido, 'NORMAL')) in ('REVENDA','ENGENHARIA')
+          then 20
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 12
@@ -558,6 +577,10 @@ async function migrarProcessosLegados(
         from pcp_operacoes x
         where x.produto_id = p.id
           and x.processo = case
+            when upper(coalesce(p.tipo_pedido, 'NORMAL')) = 'REVENDA'
+              then 'EMBALAGEM-REVENDA'
+            when upper(coalesce(p.tipo_pedido, 'NORMAL')) = 'ENGENHARIA'
+              then 'EMBALAGEM-ENGENHARIA'
             when upper(coalesce(p.categoria, '')) like 'PORTA%'
               or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
               then 'EMBALAGEM-PORTAS'
@@ -762,6 +785,7 @@ export async function GET() {
       material: p.material,
       medida: p.medida,
       prioridade: p.prioridade,
+      tipoPedido: p.tipo_pedido || "NORMAL",
       operacoes: ops
         .filter((o: any) => o.produto_id === p.id)
         .map((o: any) => ({
