@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Factory, LayoutDashboard, UploadCloud, ClipboardCheck, History, Settings,
-  Flag, ShieldCheck, LogOut, RefreshCw, UsersRound, AlertTriangle, Boxes,
+  Flag, ShieldCheck, LogOut, RefreshCw, UsersRound, AlertTriangle, Boxes, Route,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -19,6 +19,7 @@ const menus:MenuGroup[]=[
   ]},
   {label:"PLANEJAR",items:[
     {path:"/programacao",label:"Programação",icon:UploadCloud},
+    {path:"/programacao-gerente",label:"Programação Gerente",icon:Route},
     {path:"/prioridades",label:"Prioridades",icon:Flag},
     {path:"/criticos",label:"Pedidos em Risco",icon:AlertTriangle},
   ]},
@@ -44,6 +45,7 @@ function allowed(role:string,path:string){
   const pcp=[
     "/dashboard",
     "/programacao",
+    "/programacao-gerente",
     "/prioridades",
     "/criticos",
     "/lideres",
@@ -55,8 +57,8 @@ function allowed(role:string,path:string){
   ];
 
   if(role==="PCP")return pcp.includes(path);
-  if(role==="GERENTE")return ["/dashboard","/prioridades","/criticos","/lideres","/inspecao-pallets","/romaneios","/historico"].includes(path);
-  if(role==="ENCARREGADO")return ["/dashboard","/prioridades","/criticos","/lideres","/inspecao-pallets","/romaneios"].includes(path);
+  if(role==="GERENTE")return ["/dashboard","/programacao-gerente","/prioridades","/criticos","/lideres","/inspecao-pallets","/romaneios","/historico"].includes(path);
+  if(role==="ENCARREGADO")return ["/dashboard","/programacao-gerente","/prioridades","/criticos","/lideres","/inspecao-pallets","/romaneios"].includes(path);
   if(role==="LIDER")return ["/lideres"].includes(path);
   if(role==="APONTADOR")return ["/apontamentos"].includes(path);
   if(role==="QUALIDADE")return ["/dashboard","/inspecao-pallets"].includes(path);
