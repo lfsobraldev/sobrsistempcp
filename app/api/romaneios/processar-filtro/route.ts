@@ -97,6 +97,11 @@ export async function POST(req: Request) {
 
     const programacaoId = String(ativa[0].id);
 
+    await db`
+      alter table pcp_produtos
+      add column if not exists usinagem_planilha boolean not null default false
+    `;
+
     const rows = await db`
       select
         pedido,
@@ -170,6 +175,15 @@ export async function POST(req: Request) {
         orderOptions,
       }
     );
+
+    if (mach instanceof File) {
+      await db`
+        update pcp_produtos
+        set usinagem_planilha = true
+        where programacao_id = ${programacaoId}
+          and pedido = ${pedido}
+      `;
+    }
 
     result.orderOptions = orderOptions;
     result.complementoObra = Boolean(orderOptions.complementoObra);
