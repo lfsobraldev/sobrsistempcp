@@ -109,15 +109,16 @@ export default function RomaneiosPage() {
       .sort((a, b) => a.numero.localeCompare(b.numero, "pt-BR", { numeric: true }));
   }, [produtosFiltro]);
 
-  async function processarFiltro() {
-    if (!pedidoFiltro || !usinagem) return;
+  async function processarFiltro(comUsinagem: boolean) {
+    if (!pedidoFiltro) return;
+    if (comUsinagem && !usinagem) return;
 
-    setBusy("PROCESSAR_FILTRO");
+    setBusy(comUsinagem ? "PROCESSAR_FILTRO" : "TESTAR_FILTRO");
 
     try {
       const fd = new FormData();
       fd.append("pedido", pedidoFiltro);
-      fd.append("usinagem", usinagem);
+      if (comUsinagem && usinagem) fd.append("usinagem", usinagem);
       fd.append("mountType", mountType);
       fd.append(
         "orderOptions",
@@ -143,12 +144,22 @@ export default function RomaneiosPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Falha ao finalizar romaneio pelo Filtro 51.");
+        throw new Error(
+          data.error ||
+            (comUsinagem
+              ? "Falha ao finalizar romaneio pelo Filtro 51."
+              : "Falha ao testar romaneio sem usinagem.")
+        );
       }
 
       setResultado(data);
     } catch (e: any) {
-      alert(e?.message || "Falha ao finalizar romaneio.");
+      alert(
+        e?.message ||
+          (comUsinagem
+            ? "Falha ao finalizar romaneio."
+            : "Falha ao testar romaneio.")
+      );
     } finally {
       setBusy("");
     }
@@ -262,8 +273,8 @@ export default function RomaneiosPage() {
       </div>
 
       <Panel
-        title="Romaneios preparados pelo Filtro 51"
-        subtitle="Os pedidos já vêm da programação. Selecione um pedido e envie somente a usinagem para finalizar o romaneio."
+        title="Romaneios do Filtro 51"
+        subtitle="Selecione um pedido da programação. Você pode testar o romaneio sem usinagem ou finalizar com a planilha quando ela chegar."
       >
         {carregandoFiltro ? (
           <div className="warningBox">
@@ -281,7 +292,7 @@ export default function RomaneiosPage() {
                     <th>PEÇAS</th>
                     <th>TIPO</th>
                     <th>STATUS</th>
-                    <th>AÇÃO</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -291,17 +302,24 @@ export default function RomaneiosPage() {
                       <td>{entry.itens}</td>
                       <td>{entry.pecas}</td>
                       <td>{entry.tipoPedido}</td>
-                      <td><b>AGUARDANDO USINAGEM</b></td>
                       <td>
+                        {pedidoFiltro === entry.numero
+                          ? <b>SELECIONADO</b>
+                          : "Aguardando usinagem"}
+                      </td>
+                      <td style={{ textAlign: "right" }}>
                         <button
                           type="button"
                           className={pedidoFiltro === entry.numero ? "primary" : "secondary"}
                           onClick={() => {
                             setPedidoFiltro(entry.numero);
+                            setUsinagem(null);
                             if (entry.tipoPedido === "REVENDA") {
                               setMountType("REVENDA");
                             } else if (entry.tipoPedido === "ENGENHARIA") {
                               setMountType(entry.montagem as MountType);
+                            } else {
+                              setMountType("MONTADO_HS");
                             }
                             setResultado(null);
                           }}
@@ -316,51 +334,133 @@ export default function RomaneiosPage() {
             </div>
 
             {pedidoFiltro && (
-              <div className="reviewBar">
-                <label className={`drop ${usinagem ? "ready" : ""}`} style={{ maxWidth: 520 }}>
-                  <UploadCloud />
-                  <span>
-                    <b>{usinagem?.name || `Usinagem do pedido ${pedidoFiltro}`}</b>
-                    <small>{usinagem ? "Planilha pronta para cruzamento" : ".xlsx / .xls"}</small>
-                  </span>
-                  <input
-                    type="file"
-                    accept=".xlsx,.xls"
-                    onChange={(e) => setUsinagem(e.target.files?.[0] || null)}
-                  />
-                </label>
-
-                <button
-                  className="primary"
-                  disabled={!usinagem || !!busy}
-                  onClick={processarFiltro}
+              <div
+                style={{
+                  marginTop: 18,
+                  display: "grid",
+                  gridTemplateColumns: "minmax(0, 1fr)",
+                  gap: 14,
+                }}
+              >
+                <div
+                  style={{
+                    padding: 16,
+                    border: "1px solid var(--border, #d9dfdc)",
+                    borderRadius: 12,
+                  }}
                 >
-                  <RefreshCw className={busy === "PROCESSAR_FILTRO" ? "spin" : ""} />
-                  {busy === "PROCESSAR_FILTRO"
-                    ? "FINALIZANDO..."
-                    : "FINALIZAR ROMANEIO COM USINAGEM"}
-                </button>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 12,
+                      flexWrap: "wrap",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <div>
+                      <small>PEDIDO SELECIONADO</small>
+                      <div style={{ fontSize: 20, fontWeight: 700 }}>
+                        {pedidoFiltro}
+                      </div>
+                    </div>
+                    <div>
+                      <small>MONTAGEM</small>
+                      <div style={{ fontWeight: 700 }}>
+                        {mountType.replaceAll("_", " ")}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                      gap: 12,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      className="secondary"
+                      disabled={!!busy}
+                      onClick={() => processarFiltro(false)}
+                      style={{ minHeight: 52 }}
+                    >
+                      <FileSpreadsheet />
+                      {busy === "TESTAR_FILTRO"
+                        ? "MONTANDO TESTE..."
+                        : "TESTAR SEM USINAGEM"}
+                    </button>
+
+                    <label
+                      className={`drop ${usinagem ? "ready" : ""}`}
+                      style={{ margin: 0, minHeight: 52 }}
+                    >
+                      <UploadCloud />
+                      <span>
+                        <b>{usinagem?.name || "Adicionar usinagem"}</b>
+                        <small>
+                          {usinagem
+                            ? "Planilha selecionada"
+                            : ".xlsx / .xls"}
+                        </small>
+                      </span>
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls"
+                        onChange={(e) =>
+                          setUsinagem(e.target.files?.[0] || null)
+                        }
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      className="primary"
+                      disabled={!usinagem || !!busy}
+                      onClick={() => processarFiltro(true)}
+                      style={{ minHeight: 52 }}
+                    >
+                      <RefreshCw
+                        className={
+                          busy === "PROCESSAR_FILTRO" ? "spin" : ""
+                        }
+                      />
+                      {busy === "PROCESSAR_FILTRO"
+                        ? "FINALIZANDO..."
+                        : "FINALIZAR COM USINAGEM"}
+                    </button>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 10,
+                      fontSize: 12,
+                      opacity: 0.75,
+                    }}
+                  >
+                    O teste sem usinagem usa somente os dados do Filtro 51.
+                    Ele serve para validar itens, quantidades, medidas,
+                    separação e montagem antes da planilha de usinagem chegar.
+                  </div>
+                </div>
               </div>
             )}
           </>
         ) : (
           <div className="warningBox">
             <b>SEM PROGRAMAÇÃO ATIVA</b>
-            <span>Importe e libere o Filtro 51 para os pedidos aparecerem automaticamente aqui.</span>
+            <span>
+              Importe e libere o Filtro 51 para os pedidos aparecerem aqui.
+            </span>
           </div>
         )}
       </Panel>
 
       <Panel
         title="Modo manual"
-        subtitle="Mantido como alternativa: pedido em PDF + usinagem."
-      >
-        <small>Use somente quando o pedido ainda não estiver disponível no Filtro 51.</small>
-      </Panel>
-
-      <Panel
-        title="1. Arquivos do pedido"
-        subtitle="Envie o pedido em PDF e, quando houver, a planilha de usinagem."
+        subtitle="Use somente para pedidos que ainda não estejam no Filtro 51."
       >
         <div className="doubleDrop">
           <label className={`drop ${pedido ? "ready" : ""}`}>
@@ -389,11 +489,22 @@ export default function RomaneiosPage() {
             />
           </label>
         </div>
+
+        <div className="reviewBar">
+          <button
+            className="primary"
+            disabled={!pedido || !!busy}
+            onClick={processar}
+          >
+            <RefreshCw className={busy === "PROCESSAR" ? "spin" : ""} />
+            {busy === "PROCESSAR" ? "PROCESSANDO..." : "PROCESSAR MODO MANUAL"}
+          </button>
+        </div>
       </Panel>
 
       <Panel
-        title="2. Tipo de montagem"
-        subtitle="Revenda usa a regra Revenda. Engenharia usa HS, Timadel ou Estância."
+        title="Configuração do romaneio"
+        subtitle="Defina a montagem e os dados complementares antes de gerar."
       >
         <div className="sourceTabs">
           {MONTAGENS.map((item) => (
@@ -480,16 +591,6 @@ export default function RomaneiosPage() {
           </label>
         </div>
 
-        <div className="reviewBar">
-          <button
-            className="primary"
-            disabled={!pedido || !!busy}
-            onClick={processar}
-          >
-            <RefreshCw className={busy === "PROCESSAR" ? "spin" : ""} />
-            {busy === "PROCESSAR" ? "PROCESSANDO..." : "PROCESSAR ROMANEIO"}
-          </button>
-        </div>
       </Panel>
 
       {resultado && (
