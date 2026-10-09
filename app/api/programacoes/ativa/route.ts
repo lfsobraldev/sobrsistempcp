@@ -18,6 +18,16 @@ async function migrarProcessosLegados(
     add column if not exists tipo_pedido varchar(20) not null default 'NORMAL'
   `;
 
+  await db`
+    alter table pcp_produtos
+    add column if not exists montagem_engenharia varchar(30) not null default 'MONTADO_HS'
+  `;
+
+  await db`
+    alter table pcp_produtos
+    add column if not exists tipo_pedido varchar(20) not null default 'NORMAL'
+  `;
+
   const legacy = await db`
     select count(*)::int as total
     from pcp_operacoes o
