@@ -36,13 +36,6 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!(mach instanceof File)) {
-      return NextResponse.json(
-        { error: "Envie a planilha de usinagem para finalizar este romaneio." },
-        { status: 400 }
-      );
-    }
-
     const mountRaw = String(fd.get("mountType") || "MONTADO_HS") as MountType;
     const mountType: MountType = allowedMounts.has(mountRaw)
       ? mountRaw
@@ -135,7 +128,10 @@ export async function POST(req: Request) {
     }
 
     const first: any = rows[0];
-    const machBuf = Buffer.from(await mach.arrayBuffer());
+    const machBuf =
+      mach instanceof File
+        ? Buffer.from(await mach.arrayBuffer())
+        : undefined;
 
     if (!orderOptions.filtro) {
       orderOptions.filtro = String(ativa[0].filtro || "");
