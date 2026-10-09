@@ -2,7 +2,8 @@
 
 type Foto = {
   id: string;
-  dataUrl: string;
+  dataUrl?: string | null;
+  url?: string;
   legenda?: string;
   area?: string;
   tipo?: string;
@@ -125,7 +126,26 @@ function valor(ws: any, address: string, value: string | number) {
   cell.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
 }
 
-async function imagemCompativel(dataUrl: string) {
+async function imagemCompativel(origem?: string | null) {
+  if (!origem) return null;
+
+  let dataUrl = origem;
+
+  if (!String(dataUrl).startsWith("data:image/")) {
+    const response = await fetch(String(dataUrl), { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error("Não foi possível carregar uma foto.");
+    }
+
+    const blob = await response.blob();
+    dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ""));
+      reader.onerror = () => reject(new Error("Não foi possível converter uma foto."));
+      reader.readAsDataURL(blob);
+    });
+  }
+
   const m = String(dataUrl || "").match(
     /^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/i
   );
@@ -253,7 +273,9 @@ async function adicionarFotos(
       if (!item.foto) continue;
 
       try {
-        const imagem = await imagemCompativel(item.foto.dataUrl);
+        const imagem = await imagemCompativel(
+          item.foto.dataUrl || item.foto.url || null
+        );
         if (imagem) {
           const id = wb.addImage({
             base64: imagem.base64,
