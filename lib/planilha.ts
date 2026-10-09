@@ -9,6 +9,7 @@ import {
 } from "@/lib/sort";
 
 import {
+  familiaIndustrial,
   medidaDoItem,
   tipoPeca,
 } from "@/lib/domain/industrial";
@@ -3207,6 +3208,435 @@ function montarControle(
     ).width =
       15;
   }
+
+  /**
+   * RESUMO AUTOMÁTICO POR PEDIDO
+   *
+   * Substitui o preenchimento manual da planilha gerencial:
+   * - Quantidade de kits/conjuntos
+   * - Se a planilha de usinagem já foi recebida
+   * - Medidas de alizar por pedido
+   * - Material ULTRA / STD / ULTRA/STD
+   */
+  const pedidosResumo =
+    new Map<
+      string,
+      {
+        pedido: string;
+        kits: number;
+        usinagem: boolean;
+        alizares: Set<string>;
+        ultra: boolean;
+        std: boolean;
+      }
+    >();
+
+  for (const p of validos) {
+    const pedido =
+      limpar(
+        p.pedido
+      );
+
+    if (!pedido) {
+      continue;
+    }
+
+    const atual =
+      pedidosResumo.get(
+        pedido
+      ) || {
+        pedido,
+        kits: 0,
+        usinagem: false,
+        alizares:
+          new Set<string>(),
+        ultra: false,
+        std: false,
+      };
+
+    const familia =
+      familiaIndustrial(
+        p
+      );
+
+    const categoria =
+      limpar(
+        p.categoria
+      ).toUpperCase();
+
+    /*
+     * KIT = conjunto.
+     * Não soma suporte/trilho como se fosse outro kit.
+     */
+    if (
+      familia ===
+        "KIT CORRER" &&
+      !categoria.includes(
+        "SUPORTE"
+      )
+    ) {
+      atual.kits +=
+        Number(
+          p.quantidade ||
+            0
+        );
+    }
+
+    if (
+      p.usinagemPlanilha
+    ) {
+      atual.usinagem =
+        true;
+    }
+
+    if (
+      familia ===
+      "ALIZARES"
+    ) {
+      const [
+        ,
+        largura,
+        espessura,
+      ] =
+        medidaDoItem(
+          p
+        );
+
+      if (
+        largura >
+          0 &&
+        espessura >
+          0
+      ) {
+        atual.alizares.add(
+          `${largura}x${espessura}`
+        );
+      }
+    }
+
+    const materialTexto =
+      [
+        p.material,
+        p.tipo,
+        p.descricao,
+      ]
+        .filter(
+          Boolean
+        )
+        .join(
+          " "
+        )
+        .normalize(
+          "NFD"
+        )
+        .replace(
+          /[\u0300-\u036f]/g,
+          ""
+        )
+        .toUpperCase();
+
+    if (
+      materialTexto.includes(
+        "ULTRA"
+      )
+    ) {
+      atual.ultra =
+        true;
+    }
+
+    if (
+      /(^|[^A-Z])STD([^A-Z]|$)/.test(
+        materialTexto
+      )
+    ) {
+      atual.std =
+        true;
+    }
+
+    pedidosResumo.set(
+      pedido,
+      atual
+    );
+  }
+
+  const linhasPedido =
+    [
+      ...pedidosResumo.values(),
+    ].sort(
+      (
+        a,
+        b
+      ) =>
+        a.pedido.localeCompare(
+          b.pedido,
+          "pt-BR",
+          {
+            numeric:
+              true,
+          }
+        )
+    );
+
+  const resumoPedidoStart =
+    L1 +
+    1 +
+    famOrdem.length +
+    4;
+
+  ws.mergeCells(
+    resumoPedidoStart,
+    1,
+    resumoPedidoStart,
+    5
+  );
+
+  const tituloPedidos =
+    ws.getCell(
+      resumoPedidoStart,
+      1
+    );
+
+  tituloPedidos.value =
+    "RESUMO AUTOMÁTICO POR PEDIDO";
+
+  tituloPedidos.font = {
+    name:
+      FONTE,
+    size:
+      13,
+    bold:
+      true,
+    color: {
+      argb:
+        COR.texto,
+    },
+  };
+
+  tituloPedidos.border = {
+    bottom: {
+      style:
+        "medium",
+      color: {
+        argb:
+          COR.cabecalho,
+      },
+    },
+  };
+
+  cabecalho(
+    resumoPedidoStart +
+      1,
+    [
+      "Pedido",
+      "Qtd. Kits",
+      "Planilha Usinagem",
+      "Medidas de Alizar",
+      "Material",
+    ]
+  );
+
+  linhasPedido.forEach(
+    (
+      item,
+      index
+    ) => {
+      const row =
+        resumoPedidoStart +
+        2 +
+        index;
+
+      const medidas =
+        [
+          ...item.alizares,
+        ].sort(
+          (
+            a,
+            b
+          ) => {
+            const [
+              la,
+              ea,
+            ] =
+              a
+                .split(
+                  "x"
+                )
+                .map(
+                  Number
+                );
+
+            const [
+              lb,
+              eb,
+            ] =
+              b
+                .split(
+                  "x"
+                )
+                .map(
+                  Number
+                );
+
+            return (
+              lb -
+                la ||
+              eb -
+                ea
+            );
+          }
+        );
+
+      const material =
+        item.ultra &&
+        item.std
+          ? "ULTRA/STD"
+          : item.ultra
+          ? "ULTRA"
+          : item.std
+          ? "STD"
+          : "-";
+
+      celula(
+        row,
+        1,
+        item.pedido,
+        undefined,
+        true,
+        true
+      );
+
+      celula(
+        row,
+        2,
+        item.kits,
+        "#,##0"
+      );
+
+      const usinagemCell =
+        celula(
+          row,
+          3,
+          item.usinagem
+            ? "SIM"
+            : "NÃO",
+          undefined,
+          true
+        );
+
+      usinagemCell.alignment = {
+        horizontal:
+          "center",
+        vertical:
+          "middle",
+      };
+
+      if (
+        item.usinagem
+      ) {
+        usinagemCell.fill = {
+          type:
+            "pattern",
+          pattern:
+            "solid",
+          fgColor: {
+            argb:
+              "FFEAF4EC",
+          },
+        };
+      }
+
+      celula(
+        row,
+        4,
+        medidas.length
+          ? medidas.join(
+              " / "
+            )
+          : "-",
+        undefined,
+        false,
+        true
+      );
+
+      celula(
+        row,
+        5,
+        material,
+        undefined,
+        true
+      );
+
+      ws.getRow(
+        row
+      ).height =
+        26;
+    }
+  );
+
+  ws.getColumn(
+    1
+  ).width =
+    Math.max(
+      Number(
+        ws.getColumn(
+          1
+        ).width ||
+          0
+      ),
+      18
+    );
+
+  ws.getColumn(
+    2
+  ).width =
+    Math.max(
+      Number(
+        ws.getColumn(
+          2
+        ).width ||
+          0
+      ),
+      14
+    );
+
+  ws.getColumn(
+    3
+  ).width =
+    Math.max(
+      Number(
+        ws.getColumn(
+          3
+        ).width ||
+          0
+      ),
+      20
+    );
+
+  ws.getColumn(
+    4
+  ).width =
+    Math.max(
+      Number(
+        ws.getColumn(
+          4
+        ).width ||
+          0
+      ),
+      30
+    );
+
+  ws.getColumn(
+    5
+  ).width =
+    Math.max(
+      Number(
+        ws.getColumn(
+          5
+        ).width ||
+          0
+      ),
+      18
+    );
 
   ws.pageSetup = {
     orientation:
