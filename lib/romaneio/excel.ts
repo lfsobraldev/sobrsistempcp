@@ -121,6 +121,14 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
   applyDocumentStyle(ws, data, positions.lastData);
 
   /*
+   * Legibilidade do modelo oficial:
+   * mantém colunas numéricas compactas, mas dá espaço real para Produto/Obs.
+   * Não reduzimos larguras configuradas; apenas garantimos um mínimo legível.
+   */
+  ws.getColumn(10).width = Math.max(Number(ws.getColumn(10).width || 0), 72);
+  ws.getColumn(11).width = Math.max(Number(ws.getColumn(11).width || 0), 24);
+
+  /*
    * O modelo oficial trabalha com a tabela centralizada.
    * Forçamos o alinhamento em toda a área de dados para impedir
    * que estilos herdados/duplicados do Excel deixem algumas células
@@ -167,8 +175,28 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
       set(ws, `${COL.obs}${cursor}`, "");
       ws.getCell(`${COL.product}${cursor}`).alignment = { ...(ws.getCell(`${COL.product}${cursor}`).alignment || {}), vertical:"middle", horizontal:"center", wrapText:true };
       ws.getCell(`${COL.obs}${cursor}`).alignment = { ...(ws.getCell(`${COL.obs}${cursor}`).alignment || {}), vertical:"middle", horizontal:"center", wrapText:true };
-      const longest = Math.max((row.product || "").length, (row.observation || row.itemText || "").length);
-      if (!data.romaneioStyle?.rowHeight) ws.getRow(cursor).height = longest > 120 ? 30 : longest > 70 ? 24 : 18;
+
+      if (!data.romaneioStyle?.productFontSize) {
+        ws.getCell(`${COL.product}${cursor}`).font = {
+          ...(ws.getCell(`${COL.product}${cursor}`).font || {}),
+          size: 10,
+        };
+      }
+      if (!data.romaneioStyle?.observationFontSize) {
+        ws.getCell(`${COL.obs}${cursor}`).font = {
+          ...(ws.getCell(`${COL.obs}${cursor}`).font || {}),
+          size: 10,
+        };
+      }
+      const productLength = (row.product || "").length;
+      const obsLength = (row.observation || row.itemText || "").length;
+      const estimatedProductLines = Math.max(1, Math.ceil(productLength / 55));
+      const estimatedObsLines = Math.max(1, Math.ceil(obsLength / 20));
+      const estimatedLines = Math.max(estimatedProductLines, estimatedObsLines);
+
+      if (!data.romaneioStyle?.rowHeight) {
+        ws.getRow(cursor).height = Math.min(54, Math.max(22, 18 + (estimatedLines - 1) * 8));
+      }
       applyRowStyle(ws, cursor, row);
       written.push({ excelRow:cursor, row });
       cursor++;
