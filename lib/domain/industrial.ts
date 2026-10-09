@@ -637,6 +637,9 @@ export function processoEmbalagemDoItem(
   const familia =
     familiaIndustrial(item);
 
+  const text =
+    textoItem(item);
+
   if (
     familia === "PORTAS" ||
     familia === "BANDEIRA"
@@ -653,27 +656,67 @@ export function processoEmbalagemDoItem(
   }
 
   if (
-    familia === "ALIZARES" ||
-    familia === "BAGUETE" ||
+    familia === "ALIZARES"
+  ) {
+    return tipoPeca(item) === "TRAVESSA"
+      ? "EMBALAGEM-4"
+      : "EMBALAGEM-3";
+  }
+
+  /*
+   * SUPORTE DE TRILHO precisa ser separado do KIT DE CORRER.
+   * Como ambos pertencem à mesma família industrial em alguns filtros,
+   * a identificação do suporte vem antes da regra do KIT.
+   */
+  if (
+    /\bSUP(?:ORTE)?(?: DE)? TRILHO\b/.test(text) ||
+    /\bSUP(?: DE)? TRILHO\b/.test(text) ||
+    /\bSUPORTE TRILHO\b/.test(text)
+  ) {
+    return "EMBALAGEM-7";
+  }
+
+  if (
     familia === "KIT CORRER"
   ) {
-    return "EMBALAGEM-3";
+    return "EMBALAGEM-5";
+  }
+
+  if (
+    familia === "BAGUETE"
+  ) {
+    return "EMBALAGEM-6";
   }
 
   if (
     incluirOutroComRota &&
     familia === "OUTROS"
   ) {
-    const text = textoItem(item);
-
     if (
       /\bSUP(?:ORTE)?(?: DE)? TRILHO\b/.test(text) ||
-      /\bSUP(?:ORTE)? KIT\b/.test(text) ||
-      /\bKIT(?: DE)? CORRER\b/.test(text) ||
-      /\bBAGUETE\b/.test(text) ||
+      /\bSUP(?: DE)? TRILHO\b/.test(text)
+    ) {
+      return "EMBALAGEM-7";
+    }
+
+    if (
+      /\bKIT(?: DE)? CORRER\b/.test(text)
+    ) {
+      return "EMBALAGEM-5";
+    }
+
+    if (
+      /\bBAGUETE\b/.test(text)
+    ) {
+      return "EMBALAGEM-6";
+    }
+
+    if (
       /\bALIZAR\b/.test(text)
     ) {
-      return "EMBALAGEM-3";
+      return tipoPeca(item) === "TRAVESSA"
+        ? "EMBALAGEM-4"
+        : "EMBALAGEM-3";
     }
   }
 
