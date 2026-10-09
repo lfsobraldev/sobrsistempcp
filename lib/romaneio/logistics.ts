@@ -10,7 +10,15 @@ export function rowVolume(row: PackageRow): number {
 }
 export function packageVolume(rows: PackageRow[]): number { return rows.reduce((s,r)=>s+rowVolume(r),0); }
 
-function category(row:PackageRow):ProductCategory{return row.category||classifyProduct(row.product)}
+function category(row:PackageRow):ProductCategory{
+  const inferred=classifyProduct(row.product);
+  /*
+   * Se o próprio texto identifica claramente a família, ele tem prioridade.
+   * Isso impede uma porta que chegou com categoria antiga/incorreta de cair
+   * no meio de batentes/alizares.
+   */
+  return inferred!=="OUTRO" ? inferred : (row.category||"OUTRO");
+}
 function isDoor(r:PackageRow){return category(r)==="PORTA"}
 function isFrame(r:PackageRow){return category(r)==="MARCO"}
 function isTrim(r:PackageRow){return category(r)==="ALIZAR"}
@@ -27,6 +35,39 @@ function electronicRank(r:PackageRow){return /ELETR/i.test(`${r.product} ${r.app
 function frameLegSort(a:PackageRow,b:PackageRow){return frameRank(a)-frameRank(b)||Number(b.widthMm||0)-Number(a.widthMm||0)||electronicRank(a)-electronicRank(b)||Number(b.lengthMm||0)-Number(a.lengthMm||0)}
 function frameTravSort(a:PackageRow,b:PackageRow){return Number(b.lengthMm||0)-Number(a.lengthMm||0)||Number(b.widthMm||0)-Number(a.widthMm||0)}
 function trimSort(a:PackageRow,b:PackageRow){const ar=/L MAIOR\s*(\d+)/i.exec(a.product)?.[1],br=/L MAIOR\s*(\d+)/i.exec(b.product)?.[1];return Number(br||0)-Number(ar||0)||Number(a.lengthMm||0)-Number(b.lengthMm||0)}
+
+function industrialRank(row:PackageRow){
+  const c=category(row);
+  if(c==="PORTA")return 10;
+  if(c==="MARCO"){
+    return rowRole(row)==="MARCO_TRAVESSA"?30:20;
+  }
+  if(c==="ALIZAR")return 40;
+  if(c==="KIT")return 50;
+  if(c==="OUTRO")return 60;
+  if(c==="FERRAGEM")return 90;
+  return 70;
+}
+
+function finalRowSort(a:PackageRow,b:PackageRow){
+  const rank=industrialRank(a)-industrialRank(b);
+  if(rank)return rank;
+
+  if(category(a)==="PORTA"&&category(b)==="PORTA")return doorSort(a,b);
+  if(category(a)==="MARCO"&&category(b)==="MARCO"){
+    const ar=rowRole(a), br=rowRole(b);
+    if(ar==="MARCO_TRAVESSA"||br==="MARCO_TRAVESSA")return frameRank(a)-frameRank(b);
+    return frameLegSort(a,b);
+  }
+  if(category(a)==="ALIZAR"&&category(b)==="ALIZAR")return trimSort(a,b);
+
+  return norm(a.product).localeCompare(norm(b.product));
+}
+
+function packageIndustrialRank(pkg:PackageData){
+  if(!pkg.rows.length)return 999;
+  return Math.min(...pkg.rows.map(industrialRank));
+}
 
 function doorLimit(row:PackageRow,mount:MountType,cfg:LogisticsConfig){let cap=cfg[mount].maxDoors;if(mount==="REVENDA"){if(isCardboard(row))cap=Math.min(cap,cfg.REVENDA.maxDoorsCardboard);if(row.thicknessMm===41)cap=Math.min(cap,cfg.REVENDA.maxDoorsThickness41)}return Math.max(1,cap)}
 function maxM3For(mount:MountType,cfg:LogisticsConfig,mixed:boolean){return mixed?Math.min(cfg[mount].maxM3,cfg.mixedMaxM3):cfg[mount].maxM3}
@@ -105,6 +146,24 @@ export function applyLogistics(input:ProcessingResult,mountType:MountType,rawCon
   if(kits.length)out.push(...packGameGroups(kits,cfg[mountType].maxFrameGames,maxM3,"Kits","KIT"));
   if(others.length)out.push(...packRowsByM3(others,maxM3,`${MOUNT_LABELS[mountType]} | itens complementares`,"OUTRO"));
   if(hardware.length){out.push({number:0,rows:hardware,totalVolume:packageVolume(hardware),status:"VALIDO",ruleApplied:"Ferragens em pallet exclusivo e por último",packageType:"FERRAGEM",warnings:["Ferragens separadas dos demais produtos."]})}
+
+  /*
+   * REGRA FINAL OBRIGATÓRIA DO ROMANEIO:
+   * 1. PORTAS
+   * 2. PERNAS DE BATENTE
+   * 3. TRAVESSAS DE BATENTE
+   * 4. ALIZARES
+   * 5. KITS / OUTROS
+   * 6. FERRAGENS
+   *
+   * Essa ordenação é aplicada no fim, depois de toda palletização.
+   * Portanto nenhuma porta pode aparecer no meio ou depois de batentes.
+   */
+  out.sort((a,b)=>packageIndustrialRank(a)-packageIndustrialRank(b));
+  for(const pkg of out){
+    pkg.rows.sort(finalRowSort);
+  }
+
   out.forEach((p,i)=>{p.number=i+1;p.totalVolume=packageVolume(p.rows);p.rows=p.rows.map((r,ri)=>({...r,id:r.id||`P${i+1}-R${ri+1}`}))});
   const warnings=[...input.warnings];if(mixed)warnings.unshift(`Pedido misto: limite máximo de ${cfg.mixedMaxM3.toFixed(3).replace(".",",")} m³ por pallet.`);const invalid=out.filter(p=>p.status==="INVALIDO").length;if(invalid)warnings.unshift(`${invalid} pallet(s) excedem as regras logísticas.`);
   return{...input,mountType,mixedOrder:mixed,packages:out,warnings,config:cfg,orderOptions:{...(input.orderOptions||{mountType}),mountType}};
