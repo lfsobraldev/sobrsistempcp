@@ -786,6 +786,7 @@ export async function GET() {
       medida: p.medida,
       prioridade: p.prioridade,
       tipoPedido: p.tipo_pedido || "NORMAL",
+      montagemEngenharia: p.montagem_engenharia || "MONTADO_HS",
       operacoes: ops
         .filter((o: any) => o.produto_id === p.id)
         .map((o: any) => ({
