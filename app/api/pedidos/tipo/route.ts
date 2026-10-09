@@ -11,7 +11,7 @@ const MONTAGENS_ENGENHARIA = new Set([
 
 export async function PATCH(req: Request) {
   try {
-    const s = await requireRoles(["PCP", "GERENTE", "ENCARREGADO"]);
+    const s = await requireRoles(["PCP", "GERENTE", "ENCARREGADO", "LIDER"]);
     const b = await req.json();
 
     const pedido = String(b.pedido || "").trim();
