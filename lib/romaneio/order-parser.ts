@@ -68,8 +68,43 @@ function sanitizeDescription(value: string, item: string, code: string) {
   let text = clean(value);
   text = text.replace(new RegExp(String.raw`(?:^|\s)${item.replace(".", "\\.")}\s+${code}\b`, "i"), " ");
   text = text.replace(/\b(?:CJ|PC|UN|JG|PÇ|PÇS|PCS|PEÇA|PEÇAS|PAR|MT|M²?|M³?)\b\s+(?:[\d.,]+\s*){1,5}$/i, " ");
-  text = text.replace(/\s+/g, " ").trim();
+
+  /*
+   * Limpeza defensiva: PDFs podem repetir cabeçalhos/rodapés no meio do
+   * bloco do item. Esses textos nunca fazem parte da descrição industrial.
+   */
+  text = text
+    .replace(/FAMOSSUL MADEIRAS NORDESTE.*?(?=(?:PORTA|BATENTE|MARCO|ALIZAR|KIT|FERRAGEM|\d{3,4}\s*[Xx])|$)/gi, " ")
+    .replace(/\b(?:CNPJ|INSCR\.?\s*ESTADUAL|P[AÁ]GINA|PEDIDO|CLIENTE|ENDERE[CÇ]O|BAIRRO|CIDADE|DATA EMISS[AÃ]O|DATA PREVIS[AÃ]O)\s*:[^|]{0,120}/gi, " ")
+    .replace(/\bITEM\s+C[OÓ]DIGO\b.*?\bQUANTIDADE\b/gi, " ")
+    .replace(/\bTOTAL\s+(?:PESO|VOLUME).*$/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
   return text;
+}
+
+function descriptionQuality(description: string) {
+  const text = clean(description);
+  if (!text) return -1000;
+
+  let score = 0;
+  if (/PORTA|BATENTE|MARCO|ALIZAR|KIT|FERRAGEM|BAGUETE|TRAVESSA|PERNA/i.test(text)) score += 8;
+  if (/\d{3,4}\s*[Xx×]\s*\d{2,4}/.test(text)) score += 5;
+  if (/PET|MDF|HDF|ULTRA|STD|REBAIXO|RB\s*\d+/i.test(text)) score += 2;
+
+  if (HEADER_OR_FOOTER.test(text)) score -= 20;
+  if (/\bITEM\s+C[OÓ]DIGO\b|\bTOTAL\s+(?:PESO|VOLUME)\b/i.test(text)) score -= 20;
+
+  // Mais de uma âncora Item + Código indica mistura de registros vizinhos.
+  const anchors = text.match(/\b\d{1,4}(?:\.\d+)?\s+\d{4,12}\b/g)?.length || 0;
+  if (anchors > 1) score -= anchors * 12;
+
+  if (text.length > 500) score -= 18;
+  else if (text.length > 300) score -= 8;
+  else if (text.length >= 20 && text.length <= 220) score += 3;
+
+  return score;
 }
 
 function meaningfulLine(line: string) {
@@ -250,9 +285,32 @@ export function parseOrderItems(pdfText: string): OrderPdfItem[] {
   const found = new Map<string, OrderPdfItem>();
   const put = (item: OrderPdfItem) => {
     if (!item.item || !item.code || !item.description || !(item.quantity > 0)) return;
+
+    const description = sanitizeDescription(item.description, item.item, item.code);
+    if (!description || !/[A-Za-zÀ-ÿ]/.test(description)) return;
+
     const key = `${item.item}|${item.code}`;
     const previous = found.get(key);
-    if (!previous || item.description.length > previous.description.length) found.set(key, { ...item, description: clean(item.description) });
+
+    if (!previous) {
+      found.set(key, { ...item, description });
+      return;
+    }
+
+    const currentScore = descriptionQuality(description);
+    const previousScore = descriptionQuality(previous.description);
+
+    /*
+     * Não escolhemos mais simplesmente a descrição mais longa.
+     * Uma leitura contaminada por item vizinho quase sempre é maior,
+     * e era exatamente isso que fazia o parser "embolar" os produtos.
+     */
+    if (
+      currentScore > previousScore ||
+      (currentScore === previousScore && description.length < previous.description.length)
+    ) {
+      found.set(key, { ...item, description });
+    }
   };
 
   const pages = pdfText.replace(/\r/g, "").split(/\f+/).filter((page) => page.trim());
@@ -260,7 +318,14 @@ export function parseOrderItems(pdfText: string): OrderPdfItem[] {
     parseFixedLayoutLines(page).forEach(put);
     parsePage(page).forEach(put);
   }
-  parseGlobalFallback(pdfText, new Set(found.keys())).forEach(put);
+  /*
+   * Fallback global apenas completa itens ausentes. Ele não deve sobrescrever
+   * uma leitura estruturada já encontrada nas páginas.
+   */
+  parseGlobalFallback(pdfText, new Set(found.keys())).forEach((item) => {
+    const key = `${item.item}|${item.code}`;
+    if (!found.has(key)) put(item);
+  });
 
   return [...found.values()].sort((a, b) => {
     const left = a.item.split(".").map(Number);
