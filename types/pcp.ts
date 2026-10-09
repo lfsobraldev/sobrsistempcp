@@ -13,7 +13,7 @@ export type Produto = {
   id:string; filtro:string; pedido:string; item:string; produto:string; descricao:string; tipo:string; canal:string;
   rebaixo:string; acabamento:string; cor:string; quantidade:number; pedidoCliente:string; statusEngenharia:string;
   of:string; percentualProduto:number; codigoModelo:string; descricaoModelo:string; outrasCaracteristicas:string;
-  categoria:string; material:string; medida:string; prioridade:Prioridade; tipoPedido?:TipoPedido; montagemEngenharia?:MontagemEngenharia; operacoes:Operacao[];
+  categoria:string; material:string; medida:string; prioridade:Prioridade; tipoPedido?:TipoPedido; montagemEngenharia?:MontagemEngenharia; usinagemPlanilha?:boolean; operacoes:Operacao[];
 };
 export type DiagnosticoImportacao = {
   linhas:number; pedidos:number; ofs:number; pecas:number; operacoes:number; semRota:number; inconsistenciasRota:number;
