@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Factory, LayoutDashboard, UploadCloud, ClipboardCheck, History, Settings,
-  Flag, ShieldCheck, LogOut, RefreshCw, UsersRound, AlertTriangle, Boxes, Route,
+  Flag, ShieldCheck, LogOut, RefreshCw, UsersRound, AlertTriangle, Boxes, Route, PackageSearch,
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo } from "react";
@@ -14,21 +14,25 @@ type MenuItem={path:string;label:string;icon:LucideIcon};
 type MenuGroup={label:string;items:MenuItem[]};
 
 const menus:MenuGroup[]=[
-  {label:"OPERAÇÃO",items:[
-    {path:"/dashboard",label:"Central",icon:LayoutDashboard},
+  {label:"VISÃO",items:[
+    {path:"/dashboard",label:"Central de Produção",icon:LayoutDashboard},
+  ]},
+  {label:"PLANEJAMENTO",items:[
     {path:"/programacao",label:"Programação",icon:UploadCloud},
     {path:"/programacao-gerente",label:"Programação Gerente",icon:Route},
-    {path:"/lideres",label:"Líderes",icon:UsersRound},
-    {path:"/apontamentos",label:"Apontamento",icon:ClipboardCheck},
   ]},
-  {label:"CONTROLE",items:[
-    {path:"/prioridades",label:"Prioridades",icon:Flag},
-    {path:"/criticos",label:"Pendências",icon:AlertTriangle},
-    {path:"/historico",label:"Histórico",icon:History},
+  {label:"OPERAÇÃO",items:[
+    {path:"/lideres",label:"Líderes / Setores",icon:UsersRound},
+    {path:"/apontamentos",label:"Apontamento",icon:ClipboardCheck},
+    {path:"/excecoes",label:"Faltas e Retrabalho",icon:PackageSearch},
   ]},
   {label:"QUALIDADE / EXPEDIÇÃO",items:[
     {path:"/inspecao-pallets",label:"Qualidade",icon:ShieldCheck},
     {path:"/romaneios",label:"Romaneios",icon:Boxes},
+  ]},
+  {label:"GESTÃO",items:[
+    {path:"/prioridades",label:"Prioridades",icon:Flag},
+    {path:"/historico",label:"Histórico",icon:History},
   ]},
   {label:"SISTEMA",items:[
     {path:"/configuracoes",label:"Configurações",icon:Settings},
@@ -44,6 +48,7 @@ function allowed(role:string,path:string){
     "/criticos",
     "/lideres",
     "/apontamentos",
+    "/excecoes",
     "/inspecao-pallets",
     "/romaneios",
     "/historico",
@@ -51,9 +56,9 @@ function allowed(role:string,path:string){
   ];
 
   if(role==="PCP")return pcp.includes(path);
-  if(role==="GERENTE")return ["/dashboard","/programacao-gerente","/prioridades","/criticos","/lideres","/inspecao-pallets","/romaneios","/historico"].includes(path);
-  if(role==="ENCARREGADO")return ["/dashboard","/programacao-gerente","/prioridades","/criticos","/lideres","/inspecao-pallets","/romaneios"].includes(path);
-  if(role==="LIDER")return ["/lideres"].includes(path);
+  if(role==="GERENTE")return ["/dashboard","/programacao-gerente","/prioridades","/lideres","/excecoes","/inspecao-pallets","/romaneios","/historico"].includes(path);
+  if(role==="ENCARREGADO")return ["/dashboard","/programacao-gerente","/prioridades","/lideres","/excecoes","/inspecao-pallets","/romaneios"].includes(path);
+  if(role==="LIDER")return ["/lideres","/excecoes"].includes(path);
   if(role==="APONTADOR")return ["/apontamentos"].includes(path);
   if(role==="QUALIDADE")return ["/dashboard","/inspecao-pallets"].includes(path);
   return false;
@@ -89,7 +94,7 @@ function Inner({children}:{children:React.ReactNode}){
     <header className="pcpTop">
       <div className="pcpBrand">
         <div className="pcpLogo"><Factory/></div>
-        <div><strong>SOBRAL PCP</strong><span>ERP INDUSTRIAL • V11</span></div>
+        <div><strong>SOBRAL PCP</strong><span>PCP INDUSTRIAL • V12</span></div>
       </div>
 
       <div className="pcpTitleBlock">
