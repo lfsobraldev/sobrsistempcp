@@ -187,10 +187,13 @@ async function migrarProcessosLegados(
    * - EMBALAGEM-PORTAS: portas e bandeiras
    * - EMBALAGEM-1: pernas de batente
    * - EMBALAGEM-2: travessas de batente
-   * - EMBALAGEM-3: alizares, travessas de alizar, kit, baguete e suporte trilho
+   * - EMBALAGEM-3: pernas de alizar
+   * - EMBALAGEM-4: travessas de alizar
+   * - EMBALAGEM-5: kit de correr
+   * - EMBALAGEM-6: baguete
+   * - EMBALAGEM-7: suporte de trilho
    *
-   * Também corrige programações antigas que estavam concentradas
-   * em EMBALAGEM ou EMBALAGEM-1.
+   * Corrige também programações antigas já salvas.
    */
   await db`
     update pcp_operacoes o
@@ -199,42 +202,80 @@ async function migrarProcessosLegados(
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 'EMBALAGEM-PORTAS'
+
         when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
           then 'EMBALAGEM-1'
+
         when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
           then 'EMBALAGEM-2'
+
+        when upper(coalesce(p.categoria, '')) like 'ALIZAR%TRAVESSA%'
+          or (
+            upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+            and upper(coalesce(p.descricao, '')) like '%TRAVESSA%'
+          )
+          then 'EMBALAGEM-4'
+
         when upper(coalesce(p.categoria, '')) like 'ALIZAR%'
-          or upper(coalesce(p.categoria, '')) like 'BAGUETE%'
-          or upper(coalesce(p.categoria, '')) like 'KIT%'
-          or upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
+          then 'EMBALAGEM-3'
+
+        when upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
           or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
           or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+          then 'EMBALAGEM-7'
+
+        when upper(coalesce(p.categoria, '')) like 'KIT%'
           or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+          then 'EMBALAGEM-5'
+
+        when upper(coalesce(p.categoria, '')) like 'BAGUETE%'
           or upper(coalesce(p.descricao, '')) like '%BAGUETE%'
-          then 'EMBALAGEM-3'
+          then 'EMBALAGEM-6'
+
         else o.processo
       end,
+
       sequencia = case
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 12
+
         when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
           then 13
+
         when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
           then 14
+
+        when upper(coalesce(p.categoria, '')) like 'ALIZAR%TRAVESSA%'
+          or (
+            upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+            and upper(coalesce(p.descricao, '')) like '%TRAVESSA%'
+          )
+          then 16
+
         when upper(coalesce(p.categoria, '')) like 'ALIZAR%'
-          or upper(coalesce(p.categoria, '')) like 'BAGUETE%'
-          or upper(coalesce(p.categoria, '')) like 'KIT%'
-          or upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
+          then 15
+
+        when upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
           or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
           or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+          then 19
+
+        when upper(coalesce(p.categoria, '')) like 'KIT%'
           or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+          then 17
+
+        when upper(coalesce(p.categoria, '')) like 'BAGUETE%'
           or upper(coalesce(p.descricao, '')) like '%BAGUETE%'
-          then 15
+          then 18
+
         else o.sequencia
       end,
+
       atualizado_em = now()
+
     from pcp_produtos p
+
     where p.id = o.produto_id
       and p.programacao_id = ${programacaoId}
       and o.processo in (
@@ -242,7 +283,11 @@ async function migrarProcessosLegados(
         'EMBALAGEM-PORTAS',
         'EMBALAGEM-1',
         'EMBALAGEM-2',
-        'EMBALAGEM-3'
+        'EMBALAGEM-3',
+        'EMBALAGEM-4',
+        'EMBALAGEM-5',
+        'EMBALAGEM-6',
+        'EMBALAGEM-7'
       )
   `;
 
@@ -406,26 +451,81 @@ async function migrarProcessosLegados(
     )
     select
       p.id,
+
       case
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 'EMBALAGEM-PORTAS'
+
         when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
           then 'EMBALAGEM-1'
+
         when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
           then 'EMBALAGEM-2'
-        else 'EMBALAGEM-3'
+
+        when upper(coalesce(p.categoria, '')) like 'ALIZAR%TRAVESSA%'
+          or (
+            upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+            and upper(coalesce(p.descricao, '')) like '%TRAVESSA%'
+          )
+          then 'EMBALAGEM-4'
+
+        when upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+          then 'EMBALAGEM-3'
+
+        when upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
+          or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
+          or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+          then 'EMBALAGEM-7'
+
+        when upper(coalesce(p.categoria, '')) like 'KIT%'
+          or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+          then 'EMBALAGEM-5'
+
+        when upper(coalesce(p.categoria, '')) like 'BAGUETE%'
+          or upper(coalesce(p.descricao, '')) like '%BAGUETE%'
+          then 'EMBALAGEM-6'
+
+        else null
       end,
+
       case
         when upper(coalesce(p.categoria, '')) like 'PORTA%'
           or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
           then 12
+
         when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
           then 13
+
         when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
           then 14
-        else 15
+
+        when upper(coalesce(p.categoria, '')) like 'ALIZAR%TRAVESSA%'
+          or (
+            upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+            and upper(coalesce(p.descricao, '')) like '%TRAVESSA%'
+          )
+          then 16
+
+        when upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+          then 15
+
+        when upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
+          or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
+          or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+          then 19
+
+        when upper(coalesce(p.categoria, '')) like 'KIT%'
+          or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+          then 17
+
+        when upper(coalesce(p.categoria, '')) like 'BAGUETE%'
+          or upper(coalesce(p.descricao, '')) like '%BAGUETE%'
+          then 18
+
+        else 99
       end,
+
       0,
       'PENDENTE',
       0,
@@ -434,8 +534,11 @@ async function migrarProcessosLegados(
       0,
       0,
       now()
+
     from pcp_produtos p
+
     where p.programacao_id = ${programacaoId}
+      and upper(coalesce(p.categoria, '')) not like 'FERRAGEM%'
       and (
         upper(coalesce(p.categoria, '')) like 'PORTA%'
         or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
@@ -450,7 +553,6 @@ async function migrarProcessosLegados(
         or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
         or upper(coalesce(p.descricao, '')) like '%BAGUETE%'
       )
-      and upper(coalesce(p.categoria, '')) not like 'FERRAGEM%'
       and not exists (
         select 1
         from pcp_operacoes x
@@ -459,11 +561,37 @@ async function migrarProcessosLegados(
             when upper(coalesce(p.categoria, '')) like 'PORTA%'
               or upper(coalesce(p.categoria, '')) like 'BANDEIRA%'
               then 'EMBALAGEM-PORTAS'
+
             when upper(coalesce(p.categoria, '')) like 'BATENTE%PERNA%'
               then 'EMBALAGEM-1'
+
             when upper(coalesce(p.categoria, '')) like 'BATENTE%TRAVESSA%'
               then 'EMBALAGEM-2'
-            else 'EMBALAGEM-3'
+
+            when upper(coalesce(p.categoria, '')) like 'ALIZAR%TRAVESSA%'
+              or (
+                upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+                and upper(coalesce(p.descricao, '')) like '%TRAVESSA%'
+              )
+              then 'EMBALAGEM-4'
+
+            when upper(coalesce(p.categoria, '')) like 'ALIZAR%'
+              then 'EMBALAGEM-3'
+
+            when upper(coalesce(p.categoria, '')) like 'SUPORTE TRILHO%'
+              or upper(coalesce(p.descricao, '')) like '%SUPORTE DE TRILHO%'
+              or upper(coalesce(p.descricao, '')) like '%SUP TRILHO%'
+              then 'EMBALAGEM-7'
+
+            when upper(coalesce(p.categoria, '')) like 'KIT%'
+              or upper(coalesce(p.descricao, '')) like '%KIT DE CORRER%'
+              then 'EMBALAGEM-5'
+
+            when upper(coalesce(p.categoria, '')) like 'BAGUETE%'
+              or upper(coalesce(p.descricao, '')) like '%BAGUETE%'
+              then 'EMBALAGEM-6'
+
+            else null
           end
       )
   `;
