@@ -68,7 +68,12 @@ export async function GET() {
         pedido,
         cliente,
         to_char(data_entrega,'YYYY-MM-DD') data_entrega,
-        status_entrega,
+        case
+          when data_entrega is null then 'SEM_DATA'
+          when data_entrega < current_date then 'ATRASADO'
+          when data_entrega <= current_date + 2 then 'URGENTE'
+          else 'NO_PRAZO'
+        end status_entrega,
         observacao,
         atualizado_por,
         atualizado_em
