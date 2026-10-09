@@ -14,6 +14,7 @@ export type SeqItem = {
   medida?: string;
   pedido?: string;
   of?: string;
+  tipoPedido?: string;
 };
 
 export type FamiliaIndustrial =
@@ -639,6 +640,17 @@ export function processoEmbalagemDoItem(
 
   const text =
     textoItem(item);
+
+  const tipoPedido =
+    norm(item.tipoPedido);
+
+  if (tipoPedido === "REVENDA") {
+    return "EMBALAGEM-REVENDA";
+  }
+
+  if (tipoPedido === "ENGENHARIA") {
+    return "EMBALAGEM-ENGENHARIA";
+  }
 
   if (
     familia === "PORTAS" ||
