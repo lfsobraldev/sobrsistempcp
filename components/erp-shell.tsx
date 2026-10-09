@@ -14,29 +14,23 @@ type MenuItem={path:string;label:string;icon:LucideIcon};
 type MenuGroup={label:string;items:MenuItem[]};
 
 const menus:MenuGroup[]=[
-  {label:"VISÃO",items:[
+  {label:"OPERAÇÃO",items:[
     {path:"/dashboard",label:"Central",icon:LayoutDashboard},
-  ]},
-  {label:"PLANEJAR",items:[
     {path:"/programacao",label:"Programação",icon:UploadCloud},
     {path:"/programacao-gerente",label:"Programação Gerente",icon:Route},
-    {path:"/prioridades",label:"Prioridades",icon:Flag},
-    {path:"/criticos",label:"Pedidos em Risco",icon:AlertTriangle},
-  ]},
-  {label:"EXECUTAR",items:[
     {path:"/lideres",label:"Líderes",icon:UsersRound},
-    {path:"/apontamentos",label:"Apontamentos",icon:ClipboardCheck},
-  ]},
-  {label:"QUALIDADE",items:[
-    {path:"/inspecao-pallets",label:"Pallets",icon:ShieldCheck},
-  ]},
-  {label:"EXPEDIÇÃO",items:[
-    {path:"/romaneios",label:"Romaneios",icon:Boxes},
+    {path:"/apontamentos",label:"Apontamento",icon:ClipboardCheck},
   ]},
   {label:"CONTROLE",items:[
+    {path:"/prioridades",label:"Prioridades",icon:Flag},
+    {path:"/criticos",label:"Pendências",icon:AlertTriangle},
     {path:"/historico",label:"Histórico",icon:History},
   ]},
-  {label:"AJUSTES",items:[
+  {label:"QUALIDADE / EXPEDIÇÃO",items:[
+    {path:"/inspecao-pallets",label:"Qualidade",icon:ShieldCheck},
+    {path:"/romaneios",label:"Romaneios",icon:Boxes},
+  ]},
+  {label:"SISTEMA",items:[
     {path:"/configuracoes",label:"Configurações",icon:Settings},
   ]},
 ];
