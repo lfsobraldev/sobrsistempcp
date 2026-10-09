@@ -65,6 +65,23 @@ function finalRowSort(a:PackageRow,b:PackageRow){
 }
 
 function packageIndustrialRank(pkg:PackageData){
+  /*
+   * O tipo do pallet gerado pela própria palletização é a fonte principal
+   * da ordem final. Isso evita que uma descrição ambígua rebaixe um pallet
+   * de portas para o meio do romaneio.
+   */
+  const typeRank:Record<string,number>={
+    PORTA:10,
+    MARCO:20,
+    ALIZAR:40,
+    KIT:50,
+    MISTO:60,
+    CONTAINER:60,
+    FERRAGEM:90,
+  };
+
+  const explicit=typeRank[String(pkg.packageType||"")];
+  if(explicit!==undefined)return explicit;
   if(!pkg.rows.length)return 999;
   return Math.min(...pkg.rows.map(industrialRank));
 }
