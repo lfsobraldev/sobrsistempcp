@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   AlertTriangle,
   Boxes,
@@ -13,6 +14,10 @@ import {
   RefreshCw,
   Route,
   Wrench,
+  ClipboardCheck,
+  ShieldCheck,
+  UploadCloud,
+  MoreVertical,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
@@ -200,6 +205,62 @@ export default function Dashboard() {
         </div>
       </section>
 
+      <section className="fioriLaunchpad" aria-label="Acessos rápidos">
+        <Link href="/programacao" className="fioriTile">
+          <span className="fioriTileIcon"><UploadCloud /></span>
+          <div>
+            <span>Programação</span>
+            <b>{pedidos.length}</b>
+            <small>pedidos no filtro ativo</small>
+          </div>
+        </Link>
+
+        <Link href="/programacao-gerente" className="fioriTile">
+          <span className="fioriTileIcon"><Route /></span>
+          <div>
+            <span>Programação Gerente</span>
+            <b>{atrasados + proximos}</b>
+            <small>prazo exige atenção</small>
+          </div>
+        </Link>
+
+        <Link href="/lideres" className="fioriTile">
+          <span className="fioriTileIcon"><Factory /></span>
+          <div>
+            <span>Líderes / Setores</span>
+            <b>{maquinas.length}</b>
+            <small>setores com carga</small>
+          </div>
+        </Link>
+
+        <Link href="/apontamentos" className="fioriTile">
+          <span className="fioriTileIcon"><ClipboardCheck /></span>
+          <div>
+            <span>Apontamento</span>
+            <b>{fmt(produzido)}</b>
+            <small>peças produzidas</small>
+          </div>
+        </Link>
+
+        <Link href="/excecoes" className="fioriTile">
+          <span className="fioriTileIcon"><PackageSearch /></span>
+          <div>
+            <span>Faltas e Retrabalho</span>
+            <b>{excecoesAbertas.length}</b>
+            <small>ocorrências abertas</small>
+          </div>
+        </Link>
+
+        <Link href="/inspecao-pallets" className="fioriTile">
+          <span className="fioriTileIcon"><ShieldCheck /></span>
+          <div>
+            <span>Qualidade</span>
+            <b>{fmt(refugo)}</b>
+            <small>refugo registrado</small>
+          </div>
+        </Link>
+      </section>
+
       <section className="v12Kpis">
         <article>
           <div className="v12KpiIcon"><Boxes /></div>
@@ -231,7 +292,7 @@ export default function Dashboard() {
         <article className="v12Card v12Wide">
           <header>
             <div><span>FLUXO DA FÁBRICA</span><h2>Carga por setor / máquina</h2></div>
-            <small>fila restante por processo</small>
+            <div className="fioriCardHeaderActions"><small>fila restante por processo</small><button aria-label="Mais opções"><MoreVertical /></button></div>
           </header>
           <div className="v12MachineChart">
             {topMaquinas.map((m: any) => (
@@ -253,6 +314,7 @@ export default function Dashboard() {
         <article className="v12Card">
           <header>
             <div><span>EXECUÇÃO GERAL</span><h2>Progresso do turno</h2></div>
+            <div className="fioriCardHeaderActions"><button aria-label="Mais opções"><MoreVertical /></button></div>
           </header>
           <div className="v12Execution">
             <div
@@ -275,7 +337,7 @@ export default function Dashboard() {
         <article className="v12Card v12Wide">
           <header>
             <div><span>ATENÇÃO DO GERENTE</span><h2>Pedidos que podem comprometer entrega</h2></div>
-            <small>{criticos.length} prioridade(s)</small>
+            <div className="fioriCardHeaderActions"><small>{criticos.length} prioridade(s)</small><button aria-label="Mais opções"><MoreVertical /></button></div>
           </header>
           <div className="v12RiskTable">
             <div className="v12RiskHead">
@@ -312,6 +374,7 @@ export default function Dashboard() {
         <article className="v12Card">
           <header>
             <div><span>EXCEÇÕES</span><h2>Faltas, reposições e retrabalho</h2></div>
+            <div className="fioriCardHeaderActions"><button aria-label="Mais opções"><MoreVertical /></button></div>
           </header>
           <div className="v12ExceptionList">
             {excecoesAbertas.slice(0, 7).map((x) => (
