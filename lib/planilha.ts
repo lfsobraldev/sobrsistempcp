@@ -132,6 +132,16 @@ export const SETORES:
   ],
 
   [
+    "EMBALAGEM-REVENDA",
+    "EMBALAGEM - REVENDA",
+  ],
+
+  [
+    "EMBALAGEM-ENGENHARIA",
+    "EMBALAGEM - ENGENHARIA",
+  ],
+
+  [
     "EXPEDICAO",
     "EXPEDIÇÃO",
   ],
