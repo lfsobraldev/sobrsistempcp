@@ -280,6 +280,22 @@ export async function session():
         "EMBALAGEM-3"
       );
 
+      processos.add(
+        "EMBALAGEM-4"
+      );
+
+      processos.add(
+        "EMBALAGEM-5"
+      );
+
+      processos.add(
+        "EMBALAGEM-6"
+      );
+
+      processos.add(
+        "EMBALAGEM-7"
+      );
+
       continue;
     }
 
