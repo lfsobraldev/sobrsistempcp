@@ -213,6 +213,8 @@ const FIELD_ALIAS:
   ],
 
   "Descrição Modelo": [
+    "Descrição Máscara",
+    "Descricao Mascara",
     "Descrição Modelo",
     "Descricao Modelo",
   ],
@@ -509,9 +511,23 @@ function medida(
   return "";
 }
 
+function dimensoesDaFonte(r: Record<string, string>) {
+  // Colunas estruturadas oficiais do Consistem têm prioridade sobre o texto.
+  const valores = ["Comprimento", "Largura", "Espessura"].map((nome) => {
+    const chave = findKey(r, [nome]);
+    const raw = chave ? clean(r[chave]) : "";
+    if (!raw) return 0;
+    const valor = parseImportNumber(raw);
+    return valor !== null && Number.isFinite(valor) && valor > 0 ? valor : 0;
+  });
+  return valores.every((v) => v > 0) ? valores.join("x") : "";
+}
+
 function medidaLinha(
   r: Record<string, string>
 ) {
+  const dimensoes = dimensoesDaFonte(r);
+  if (dimensoes) return dimensoes;
   const prioritarios = [
     field(
       r,
@@ -558,86 +574,38 @@ function medidaLinha(
   );
 }
 
-function material(
-  r: any
-) {
-  const tipo =
-    up(
-      field(r, "Tipo")
-    );
-
-  const d =
-    up(
-      field(r, "Descrição")
-    );
-
-  if (
-    tipo.includes(
-      "PINUS"
-    )
-  ) {
-    return "PINUS";
+function material(r: Record<string, string>) {
+  const tipo = up(field(r, "Tipo"));
+  const descricao = up(field(r, "Descrição"));
+  const mascara = up(field(r, "Descrição Modelo"));
+  const caracteristicas = up(field(r, "Outras Características"));
+  const produto = up(field(r, "Produto"));
+  // Tipo pode significar REGULAGEM, LISA, COLMEIA etc. Não é sempre material.
+  const fonte = [descricao, mascara, caracteristicas, produto];
+  const detectar = (d: string) => {
+    if (/\bPINUS\b/.test(d)) return "PINUS";
+    if (/\bULTRA\b/.test(d) || /(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)(]|$)/.test(d)) return "MDF ULTRA";
+    if (/\bSTD\b/.test(d)) return "MDF STD";
+    if (/\bHDF\b/.test(d)) return "HDF";
+    if (/\bMDF\b/.test(d)) return "MDF";
+    if (/\bRU\b/.test(d)) return "RU";
+    return "";
+  };
+  const materialTipo = detectar(tipo);
+  // Um valor descritivo de tipo não deve ser armazenado como material.
+  const inferencias = fonte.map(detectar).filter(Boolean);
+  if (materialTipo && inferencias.some((m) => m !== materialTipo)) return "";
+  if (materialTipo) return materialTipo;
+  const unicos = [...new Set(inferencias)];
+  // Dados contraditórios da MESMA linha exigem revisão; nunca escolher silenciosamente.
+  if (unicos.length > 1) {
+    if (unicos.length === 2 && unicos.includes("MDF") && unicos.includes("MDF ULTRA"))
+      return "MDF ULTRA";
+    if (unicos.length === 2 && unicos.includes("MDF") && unicos.includes("MDF STD"))
+      return "MDF STD";
+    return "";
   }
-
-  if (
-    tipo.includes(
-      "ULTRA"
-    )
-  ) {
-    return "MDF ULTRA";
-  }
-
-  if (
-    tipo.includes(
-      "STD"
-    )
-  ) {
-    return "MDF STD";
-  }
-
-  if (
-    tipo &&
-    tipo !==
-      "N/A"
-  ) {
-    return clean(
-      field(r, "Tipo")
-    );
-  }
-
-  if (
-    d.includes(
-      "ULTRA"
-    )
-  ) {
-    return "MDF ULTRA";
-  }
-
-  if (
-    d.includes(
-      "PINUS"
-    )
-  ) {
-    return "PINUS";
-  }
-
-  if (
-    d.includes(
-      "MDF"
-    )
-  ) {
-    return "MDF";
-  }
-
-  if (
-    d.includes(
-      "HDF"
-    )
-  ) {
-    return "HDF";
-  }
-
-  return "";
+  return unicos[0] || materialTipo || "";
 }
 
 function fallbackAcab(
@@ -955,6 +923,15 @@ export async function parseFiltro(
       categoriaIndustrial(
         base
       );
+    // Colunas de tipo vazias: preencher apenas quando o material é inequívoco.
+    // A classificação já foi feita usando a descrição original da própria linha.
+    if (!base.tipo && base.material) {
+      const familia = base.categoria.toUpperCase();
+      if (/ALIZAR|BATENTE|BAGUETE|SUPORTE|KIT|CORRER/.test(familia)) {
+        base.tipo = base.material === "MDF ULTRA" ? "ULTRA"
+          : base.material === "MDF STD" ? "STD" : base.material;
+      }
+    }
 
     // Guarda a linha física completa antes de excluir ferragens do chão de fábrica.
     romaneioProdutos.push({ ...base, operacoes: [] });
