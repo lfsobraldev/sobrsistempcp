@@ -157,7 +157,7 @@ export default function Lideres() {
         actions={<button onClick={exportar}><FileSpreadsheet /> Exportar Excel</button>}
       />
 
-      <div style={{ marginBottom: "var(--sp-4)", overflowX: "auto" }}>
+      <div className="leader-process-tabs">
         <Segmented value={proc} onChange={setProc} options={procs.map((p) => ({ value: p, label: LABELS[p] || p }))} />
       </div>
 
@@ -215,7 +215,7 @@ export default function Lideres() {
         />
       </div>
 
-      <section className="card mb">
+      <section className="card mb leader-filter-card">
         <div className="card-head">
           <div className="row">
             <span className="stat-icon"><Filter /></span>
