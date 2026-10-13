@@ -88,6 +88,91 @@ function applyDocumentStyle(ws:ExcelJS.Worksheet,data:ProcessingResult,lastData:
     }
   }
 }
+function referenceBorder(edge: "thin" | "medium") {
+  return { style: edge, color: { argb: "FF000000" } } as any;
+}
+
+function applyReferenceRomaneioStyle(
+  ws: ExcelJS.Worksheet,
+  data: ProcessingResult,
+  lastData: number
+) {
+  // Medidas e tipografia copiadas do romaneio de referência 26750.
+  const widths = [9.7, 8.85, 8.85, 8.7, 10.56, 10.71, 10.71, 10.71, 10.71, 191.99, 27.42];
+  widths.forEach((width, index) => {
+    ws.getColumn(index + 1).width = width;
+  });
+
+  ws.getRow(1).height = 20.25;
+  for (const row of [2, 3, 5, 7, 8, 9, 10, 12]) ws.getRow(row).height = 15.95;
+  ws.getRow(11).height = 26.25;
+
+  safeMerge(ws, "A5:K5");
+  const title = ws.getCell("A5");
+  title.value = "ROMANEIO DE SAIDA DE PRODUTOS - MERCADO INTERNO";
+  title.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00FF00" } };
+  title.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF000000" } };
+  title.alignment = { horizontal: "center", vertical: "middle", wrapText: false };
+
+  const headers = ["N º pacote", "Pedido", "Jogos", "Qtde", "Compr.", "Largura", "Espessura", "m³", "m³ pallet", "Produto", "Obs:"];
+  headers.forEach((value, index) => {
+    const cell = ws.getCell(12, index + 1);
+    cell.value = value;
+    cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF000000" } };
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: false };
+    cell.border = {
+      top: referenceBorder("medium"),
+      bottom: referenceBorder("thin"),
+      left: index === 0 ? referenceBorder("medium") : referenceBorder("thin"),
+      right: index === 10 ? referenceBorder("medium") : referenceBorder("thin"),
+    };
+  });
+
+  for (let row = START_ROW; row <= lastData; row++) {
+    ws.getRow(row).height = 20.1;
+    for (let col = 1; col <= 11; col++) {
+      const cell = ws.getCell(row, col);
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
+      cell.font = {
+        name: "Arial",
+        size: col === 11 ? 10 : 14,
+        bold: col === 11,
+        italic: col === 10,
+        color: { argb: "FF000000" },
+      };
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: false,
+      };
+      cell.border = {
+        top: row === START_ROW ? referenceBorder("medium") : referenceBorder("thin"),
+        bottom: referenceBorder("thin"),
+        left: col === 1 ? referenceBorder("medium") : referenceBorder("thin"),
+        right: col === 11 ? referenceBorder("medium") : referenceBorder("thin"),
+      };
+    }
+    ws.getCell(row, 8).numFmt = "0.000";
+    ws.getCell(row, 9).numFmt = "0.000";
+  }
+
+  for (const row of [7, 8, 9, 10, 11]) {
+    ws.getCell(row, 1).font = { name: "Arial", size: 10, bold: true };
+    ws.getCell(row, 2).font = { name: "Arial", size: 12 };
+  }
+  for (const address of ["H7", "H8", "H9", "G11"]) {
+    ws.getCell(address).font = { name: "Arial", size: 10, bold: true };
+  }
+  for (const address of ["I7", "I8", "I9", "K11"]) {
+    ws.getCell(address).font = { name: "Arial", size: 12 };
+  }
+
+  if (!data.hasMachining) {
+    ws.getCell("A5").note = "Romaneio base gerado pelo Filtro 51 sem inferência de usinagem.";
+  }
+}
+
 function cleanObservation(value: string) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
