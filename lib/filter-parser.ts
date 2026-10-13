@@ -213,6 +213,8 @@ const FIELD_ALIAS:
   ],
 
   "Descrição Modelo": [
+    "Descrição Máscara",
+    "Descricao Mascara",
     "Descrição Modelo",
     "Descricao Modelo",
   ],
@@ -509,9 +511,23 @@ function medida(
   return "";
 }
 
+function dimensoesDaFonte(r: Record<string, string>) {
+  // Colunas estruturadas oficiais do Consistem têm prioridade sobre o texto.
+  const valores = ["Comprimento", "Largura", "Espessura"].map((nome) => {
+    const chave = findKey(r, [nome]);
+    const raw = chave ? clean(r[chave]) : "";
+    if (!raw) return 0;
+    const valor = parseImportNumber(raw);
+    return valor !== null && Number.isFinite(valor) && valor > 0 ? valor : 0;
+  });
+  return valores.every((v) => v > 0) ? valores.join("x") : "";
+}
+
 function medidaLinha(
   r: Record<string, string>
 ) {
+  const dimensoes = dimensoesDaFonte(r);
+  if (dimensoes) return dimensoes;
   const prioritarios = [
     field(
       r,
