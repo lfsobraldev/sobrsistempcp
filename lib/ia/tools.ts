@@ -9,7 +9,8 @@ export type Attachment =
   | { type: "navigate"; path: string; label: string }
   | { type: "confirm"; label: string; token: string }
   | { type: "romaneio"; data: unknown; alertas: unknown; resumo: unknown }
-  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string; pedido?: string };
+  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string; pedido?: string }
+  | { type: "planilha_programacao"; arquivo: string; label: string; setores?: string[] };
 
 export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 
@@ -25,6 +26,7 @@ export const TOOL_META = {
   navegar: "Leva o usuário para uma tela do sistema.",
   gerar_romaneio: "Extrai e valida um romaneio a partir de texto de pedido/lista colado pelo usuário. Retorna prévia com alertas.",
   gerar_planilha_usinagem: "Gera uma planilha Excel de usinagem usando os dados reais da programação ativa. Pode gerar todas as usinagens ou apenas um processo específico, e filtrar por pedido.",
+  gerar_planilha_programacao: "Gera a planilha Excel completa da programação da fábrica usando a programação ativa e as regras reais por setor.",
   analisar_riscos: "Calcula risco operacional de pedidos com base em prazo, progresso, bloqueios, faltas/retrabalhos, Andons, qualidade e gargalos de capacidade.",
   planejar_fabrica: "Sugere a sequência de produção por processo usando prioridade, prazo, saldo, fila fixada e capacidade cadastrada. Não altera dados.",
   consultar_capacidade: "Compara saldo de produção por processo com a capacidade cadastrada do turno e identifica gargalos.",
@@ -119,6 +121,24 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<s
         ctx.attachments.push({ type: "romaneio", data, alertas, resumo });
         return j({ itens: data.itens.length, cliente: data.cliente, pedido: data.pedido, alertas, resumo: { ...resumo, cargas: resumo.cargas.length } });
       }
+      case "gerar_planilha_programacao": {
+        if (!["PCP", "GERENTE", "ENCARREGADO", "LIDER"].includes(ctx.user.perfil)) {
+          return j({ erro: "Sem permissão para gerar programação." });
+        }
+        const { pg } = await programacaoAtiva();
+        if (!pg) return j({ erro: "Nenhuma programação ativa." });
+        ctx.attachments.push({
+          type: "planilha_programacao",
+          arquivo: "Programacao_Producao_IA",
+          label: "Gerar programação completa",
+        });
+        return j({
+          ok: true,
+          programacao: pg,
+          mensagem: "Botão para gerar a programação Excel completa foi exibido ao usuário.",
+        });
+      }
+
       case "gerar_planilha_usinagem": {
         if (!["PCP", "GERENTE", "ENCARREGADO", "LIDER"].includes(ctx.user.perfil)) {
           return j({ erro: "Sem permissão para gerar planilha de usinagem." });
