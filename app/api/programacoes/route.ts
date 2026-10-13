@@ -46,6 +46,39 @@ export async function POST(req: Request) {
       })
       .map((a: any) => ({ id: a.id, campo: a.campo, valor: a.valor, evidencia: a.evidencia, metodo: a.metodo }));
     const db = sql();
+    // Identificador único por tentativa de liberação; protege contra cliques repetidos
+    // e reenvios de rede sem depender de dados de outros pedidos.
+    const requisicaoId = String(entrada.requisicaoId || "");
+    if (!/^[a-f0-9-]{36}$/i.test(requisicaoId)) {
+      return NextResponse.json({ error: "Identificador da liberação inválido." }, { status: 400 });
+    }
+    await db`
+      create table if not exists pcp_liberacao_solicitacoes (
+        chave uuid primary key,
+        status varchar(20) not null,
+        programacao_id uuid,
+        criado_em timestamptz not null default now(),
+        atualizado_em timestamptz not null default now()
+      )
+    `;
+    const reserva = await db`
+      insert into pcp_liberacao_solicitacoes (chave,status)
+      values (${requisicaoId}::uuid,'PROCESSANDO')
+      on conflict (chave) do nothing
+      returning chave
+    `;
+    if (!reserva.length) {
+      const anterior = await db`
+        select status, programacao_id from pcp_liberacao_solicitacoes
+        where chave = ${requisicaoId}::uuid
+      `;
+      if (anterior[0]?.status === "CONCLUIDA" && anterior[0]?.programacao_id) {
+        return NextResponse.json({ ok: true, id: anterior[0].programacao_id, repetida: true });
+      }
+      return NextResponse.json({
+        error: "Esta liberação já está em processamento ou requer revisão por falha anterior. Não tente novamente com um novo identificador sem conferir a situação da fábrica."
+      }, { status: 409 });
+    }
 
     await db`
       alter table pcp_produtos
@@ -338,6 +371,12 @@ export async function POST(req: Request) {
       returning id
     `;
     if (ativadas.length !== 1) throw new Error("Falha na ativação da programação.");
+
+    await db`
+      update pcp_liberacao_solicitacoes
+      set status = 'CONCLUIDA', programacao_id = ${pg.id}::uuid, atualizado_em = now()
+      where chave = ${requisicaoId}::uuid and status = 'PROCESSANDO'
+    `;
 
     return NextResponse.json({
       ok: true,
