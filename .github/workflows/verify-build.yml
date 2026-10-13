@@ -8,6 +8,12 @@ on:
       - 'app/api/ia/**'
       - 'lib/ia/**'
       - 'components/ai-assistant.tsx'
+      - 'lib/romaneio/**'
+      - 'app/api/romaneios/**'
+      - 'app/(erp)/romaneios/**'
+      - 'app/api/programacoes/route.ts'
+      - 'app/(erp)/programacao/page.tsx'
+      - 'database/schema.sql'
       - '.github/workflows/verify-build.yml'
 permissions:
   contents: write
