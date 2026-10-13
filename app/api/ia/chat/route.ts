@@ -123,6 +123,12 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
         }),
         execute: async (input) => runTool("gerar_romaneio", input, { user: s, attachments }),
       }),
+      gerar_planilha_programacao: tool({
+        description: TOOL_META.gerar_planilha_programacao,
+        inputSchema: z.object({}),
+        execute: async (input) =>
+          runTool("gerar_planilha_programacao", input, { user: s, attachments }),
+      }),
       gerar_planilha_usinagem: tool({
         description: TOOL_META.gerar_planilha_usinagem,
         inputSchema: z.object({
