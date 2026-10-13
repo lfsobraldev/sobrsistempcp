@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Trash2 } from "lucide-react";
+import { useOps } from "@/components/operational-provider";
 import { Badge, DataTable, Card, PageHeader, Empty, type Tone } from "@/components/ui";
 
 type Programacao = { id: string; filtro: string; data: string; turno: string; origem: string; import_pedidos: number; import_ofs: number; import_pecas: number; status: string };
@@ -9,8 +11,11 @@ type Evento = { id: string; criado_em: string; usuario: string; tipo: string; of
 const tone = (s: string): Tone => (s === "ATIVA" ? "success" : s === "ARQUIVADA" ? "neutral" : "info");
 
 export default function Historico() {
+  const { toast } = useOps();
   const [h, setH] = useState<Programacao[]>([]);
   const [a, setA] = useState<Evento[]>([]);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -22,9 +27,46 @@ export default function Historico() {
     });
   }, []);
 
+  async function apagarHistorico() {
+    if (!confirmClear) {
+      setConfirmClear(true);
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const r = await fetch("/api/programacoes/historico", { method: "DELETE" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Falha ao apagar histórico.");
+      setConfirmClear(false);
+      setH((atual) => atual.filter((x) => x.status === "ATIVA"));
+      setA([]);
+      toast("success", j.mensagem || "Histórico apagado.");
+    } catch (e: any) {
+      toast("error", e.message || "Falha ao apagar histórico.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <>
-      <PageHeader eyebrow="Análise" title="Histórico e Auditoria" description="Programações anteriores e trilha de ações operacionais." />
+      <PageHeader
+        eyebrow="Análise"
+        title="Histórico e Auditoria"
+        description="Programações anteriores e trilha de ações operacionais."
+        actions={
+          <button
+            type="button"
+            className={confirmClear ? "danger" : ""}
+            disabled={busy}
+            onClick={() => void apagarHistorico()}
+          >
+            <Trash2 />
+            {confirmClear ? "Confirmar exclusão do histórico" : "Apagar histórico"}
+          </button>
+        }
+      />
 
       <Card subtitle="Últimas 50 liberações" title="Programações" className="mb">
         {h.length ? (
