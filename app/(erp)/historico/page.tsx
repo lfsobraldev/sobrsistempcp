@@ -11,7 +11,7 @@ type Evento = { id: string; criado_em: string; usuario: string; tipo: string; of
 const tone = (s: string): Tone => (s === "ATIVA" ? "success" : s === "ARQUIVADA" ? "neutral" : "info");
 
 export default function Historico() {
-  const { toast } = useOps();
+  const { toast, me } = useOps();
   const [h, setH] = useState<Programacao[]>([]);
   const [a, setA] = useState<Evento[]>([]);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -55,7 +55,7 @@ export default function Historico() {
         eyebrow="Análise"
         title="Histórico e Auditoria"
         description="Programações anteriores e trilha de ações operacionais."
-        actions={
+        actions={me?.perfil === "PCP" ? (
           <button
             type="button"
             className={confirmClear ? "danger" : ""}
@@ -65,7 +65,7 @@ export default function Historico() {
             <Trash2 />
             {confirmClear ? "Confirmar exclusão do histórico" : "Apagar histórico"}
           </button>
-        }
+        ) : undefined}
       />
 
       <Card subtitle="Últimas 50 liberações" title="Programações" className="mb">
