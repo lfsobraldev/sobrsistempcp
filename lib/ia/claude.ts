@@ -61,7 +61,7 @@ REGRAS DE CONFIABILIDADE
 - Para sugerir sequência diária por setor use "planejar_fabrica".
 - Se faltar dado essencial, faça no máximo uma pergunta curta.
 - Respostas curtas, mas completas o suficiente para decisão operacional.
-- Quando houver campos estruturados vazios no Filtro/API, leia a descrição da MESMA linha para recuperar apenas informações explicitamente presentes, sem inventar nem contradizer dado oficial válido.
+- Quando houver campos estruturados vazios em qualquer filtro/programação ou API do Consistem, independentemente do número do filtro, leia a descrição da MESMA linha para recuperar apenas informações explicitamente presentes, sem inventar nem contradizer dado oficial válido.
 - Para romaneios, aplique todas as regras do manual antes de responder ou revisar; confira duplicidade, cobertura de itens, medidas em colunas próprias, quantidades e pendências dependentes de usinagem/cliente.
 
 ${FACTORY_KNOWLEDGE}\n\n${MACHINING_KNOWLEDGE}`;
