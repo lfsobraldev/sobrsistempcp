@@ -823,6 +823,10 @@ export async function parseFiltro(
   const produtos:
     Produto[] = [];
 
+  // Fonte completa do romaneio: inclui também ferragens e linhas que não entram no PCP operacional.
+  const romaneioProdutos:
+    Produto[] = [];
+
   for (
     const r
     of valid
@@ -951,6 +955,9 @@ export async function parseFiltro(
       categoriaIndustrial(
         base
       );
+
+    // Guarda a linha física completa antes de excluir ferragens do chão de fábrica.
+    romaneioProdutos.push({ ...base, operacoes: [] });
 
     /*
      * Ferragens não fazem parte deste PCP.
@@ -1387,6 +1394,7 @@ export async function parseFiltro(
     processos,
 
     produtos,
+    romaneioProdutos,
   };
 
   return {
