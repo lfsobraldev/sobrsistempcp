@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Bell, Boxes, ChevronDown, ClipboardCheck, Factory, Flag, History, LayoutDashboard, LogOut, Menu,
+  Bell, Boxes, ChevronDown, ClipboardCheck, Flag, History, LayoutDashboard, LogOut, Menu,
   PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
   UploadCloud, UsersRound, type LucideIcon,
 } from "lucide-react";
@@ -12,6 +12,7 @@ import { OperationalProvider, useOps } from "@/components/operational-provider";
 import AiAssistant from "@/components/ai-assistant";
 import RomaneioAIModal from "@/components/romaneio-ai";
 import { allowedPath } from "@/lib/permissions";
+import { BrandLogo } from "@/components/brand-logo";
 
 type MenuItem = { path: string; label: string; icon: LucideIcon };
 type MenuGroup = { label: string; items: MenuItem[] };
@@ -77,14 +78,14 @@ function Inner({ children }: { children: React.ReactNode }) {
     if (found) { router.push(found.path); setQuery(""); }
   }
 
-  if (loading) return <div className="boot"><Factory /><b>Sobral PCP</b><span>Preparando ambiente...</span></div>;
+  if (loading) return <div className="boot"><BrandLogo size={42} /><b>Sobral PCP</b><span>Preparando ambiente...</span></div>;
   if (!me) return null;
 
   const live = realtimeStatus === "tempo_real";
   return (
     <div className={`shell ${collapsed ? "collapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
       <aside className="sidenav">
-        <div className="brand"><span className="brand-mark"><Factory size={18} /></span><span>Sobral PCP</span></div>
+        <div className="brand"><BrandLogo size={34} /><span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span></div>
         <nav>
           {visible.map((g) => (
             <section key={g.label} className="navgroup">
