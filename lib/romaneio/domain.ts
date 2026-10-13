@@ -57,22 +57,51 @@ export function rowRole(row:Pick<PackageRow,"product"|"category"|"role">):RowRol
   return "OUTRO";
 }
 
+export function normalizeItemId(value: unknown): string {
+  let id = clean(value)
+    .replace(/^ITEM\s*[:#-]?\s*/i, "")
+    .replace(/,/g, ".")
+    .replace(/\s+/g, "");
+  // Excel às vezes entrega item numérico como 10.10/10.20 ou com zeros finais.
+  const numeric = id.match(/^(\d+)(?:\.(\d+))?$/);
+  if (!numeric) return id;
+  const parent = String(Number(numeric[1]));
+  if (!numeric[2]) return parent;
+  const suffix = numeric[2].replace(/0+$/g, "") || "0";
+  return `${parent}.${suffix}`;
+}
+
 export function compactItemIds(ids:string[]):string{
-  const unique=[...new Set(ids.map(clean).filter(Boolean))];
+  const unique=[...new Set(ids.map(normalizeItemId).filter(Boolean))];
   const parsed=unique.map(id=>({id,m:id.match(/^(\d+)\.(\d+)$/)}));
   const loose=parsed.filter(x=>!x.m).map(x=>x.id);
   const bySuffix=new Map<string,number[]>();
-  for(const x of parsed){if(!x.m)continue;const arr=bySuffix.get(x.m[2])||[];arr.push(Number(x.m[1]));bySuffix.set(x.m[2],arr)}
+  for(const x of parsed){
+    if(!x.m)continue;
+    const arr=bySuffix.get(x.m[2])||[];
+    arr.push(Number(x.m[1]));
+    bySuffix.set(x.m[2],arr);
+  }
   const parts:string[]=[];
   for(const [suffix,nums0] of [...bySuffix.entries()].sort((a,b)=>Number(a[0])-Number(b[0]))){
-    const nums=[...new Set(nums0)].sort((a,b)=>a-b); if(!nums.length)continue;
+    const nums=[...new Set(nums0)].sort((a,b)=>a-b);
+    if(!nums.length)continue;
     let start=nums[0],prev=nums[0];
     const push=()=>parts.push(start===prev?`${start}.${suffix}`:`${start}.${suffix} ao ${prev}.${suffix}`);
-    for(let i=1;i<nums.length;i++){if(nums[i]===prev+1){prev=nums[i];continue}push();start=prev=nums[i]} push();
+    for(let i=1;i<nums.length;i++){
+      if(nums[i]===prev+1){prev=nums[i];continue}
+      push();start=prev=nums[i];
+    }
+    push();
   }
-  parts.push(...loose); return parts.join(" / ");
+  parts.push(...loose);
+  return parts.join(" / ");
 }
-export function itemsText(ids:string[]):string|undefined{const c=compactItemIds(ids);return c?(ids.length===1?`Item ${c}`:`Itens ${c}`):undefined}
+export function itemsText(ids:string[]):string|undefined{
+  const unique=[...new Set(ids.map(normalizeItemId).filter(Boolean))];
+  const c=compactItemIds(unique);
+  return c?(unique.length===1?`Item ${c}`:`Itens ${c}`):undefined;
+}
 
 export function sourceParent(item:string){return item.includes(".")?item.split(".")[0]:undefined}
 export function buildSourceCatalog(raw:Array<Omit<SourceCatalogItem,"used">>, usedBy:Map<string,string[]>):SourceCatalogItem[]{
