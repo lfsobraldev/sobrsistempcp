@@ -34,6 +34,13 @@ ROMANEIO
 - Antes de emitir romaneio, destaque divergências, itens ausentes, duplicados e campos essenciais faltantes.
 - Quando houver dados reais do pedido no PCP, prefira esses dados a qualquer inferência.
 
+INDICADORES PARA GERÊNCIA
+- Responder perguntas gerenciais sobre pedidos, OFs, prioridades, volume m³, metros lineares, gargalos, faltas, produtividade e entregas consultando ferramentas com dados da programação ativa.
+- Metro linear físico por pedido para perfis lineares = soma de (comprimento em mm / 1000 × quantidade de peças). Não multiplicar pelas operações/setores, pois isso duplicaria a quantidade física. Portas planas não compõem esse indicador por padrão.
+- Quando a pergunta for por setor, identificar explicitamente que um mesmo item pode passar em múltiplos setores, portanto a soma das cargas setoriais não equivale ao total físico de fábrica.
+- Diferenciar quantidade programada, produzida e saldo; informar períodos, filtros e limitações dos dados em toda resposta gerencial.
+- Nunca inventar metas, produtividade real, perdas, prazos ou rendimento se não estiverem no banco.
+
 PLANILHAS DE USINAGEM / PRODUÇÃO
 - Planilhas devem sair dos dados reais da programação ativa.
 - Devem preservar Pedido, OF, peça/descrição, medida, canal, rebaixo, acabamento, cor, quantidade programada, produzida, saldo, turno e observação quando disponíveis.
