@@ -288,3 +288,22 @@ create table if not exists pcp_romaneio_source_items(
 );
 create index if not exists ix_pcp_romaneio_source_items_prog_pedido
  on pcp_romaneio_source_items(programacao_id,pedido);
+
+
+-- Sobral IA • conhecimento treinável pela equipe
+create table if not exists pcp_ia_conhecimento(
+  id uuid primary key default gen_random_uuid(),
+  titulo varchar(180) not null,
+  area varchar(60) not null default 'GERAL',
+  situacao text not null default '',
+  regra text not null,
+  exemplo text not null default '',
+  observacao text not null default '',
+  ativo boolean not null default true,
+  prioridade int not null default 50,
+  criado_por varchar(120) not null default '',
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+create index if not exists ix_pcp_ia_conhecimento_area
+  on pcp_ia_conhecimento(ativo,area,prioridade desc,atualizado_em desc);
