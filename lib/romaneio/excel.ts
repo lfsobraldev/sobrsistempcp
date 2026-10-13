@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { PackageRow, ProcessingResult } from "./types";
 import { rowVolume } from "./logistics";
-import { compactItemIds } from "./domain";
+import { compactItemIds, normalizeItemId } from "./domain";
 
 const START_ROW = 13;
 const FALLBACK_TOTAL_ROW = 109;
@@ -299,7 +299,7 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
 
   for (const entry of written) {
     const row = entry.row;
-    const freshItems = [...new Set(row.sourceItems || [])]
+    const freshItems = [...new Set((row.sourceItems || []).map(normalizeItemId).filter(Boolean))]
       .filter((item) => {
         if (seenSourceItems.has(item)) return false;
         seenSourceItems.add(item);
