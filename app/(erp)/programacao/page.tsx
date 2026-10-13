@@ -88,7 +88,8 @@ export default function Programacao() {
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
-      toast("success", "Programação liberada para a fábrica.");
+      const preparados = Number(j.romaneios?.preparados || 0);
+      toast("success", preparados > 0 ? `Programação liberada. ${preparados} romaneio(s) pré-pronto(s) gerado(s).` : "Programação liberada para a fábrica.");
       setDraft(null);
       await refresh();
     } catch (e: any) {
