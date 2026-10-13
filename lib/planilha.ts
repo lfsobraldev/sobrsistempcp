@@ -3665,7 +3665,7 @@ function montarProgramacaoGerente(
   const border = fino("FF7F7F7F");
 
   const widths = [
-    12, 14, 14, 46, 9, 9, 28, 12, 11, 12, 11, 10, 12, 18, 14, 38, 16,
+    12, 14, 14, 46, 9, 9, 28, 12, 11, 12, 11, 10, 12, 25, 25, 15, 38, 16,
   ];
 
   widths.forEach((w, i) => {
@@ -3695,6 +3695,7 @@ function montarProgramacaoGerente(
     "Kits",
     "Planilha",
     "Alizar",
+    "Batentes",
     "Material",
     "Observações",
     "Valor",
@@ -3707,7 +3708,7 @@ function montarProgramacaoGerente(
     cell.font = { name: FONT, size: 10, bold: true, color: { argb: "FF111111" } };
     cell.alignment = {
       vertical: "middle",
-      horizontal: [4, 7, 16].includes(i + 1) ? "left" : "center",
+      horizontal: [4, 7, 17].includes(i + 1) ? "left" : "center",
     };
     cell.border = { top: border, bottom: border, left: border, right: border };
   });
@@ -3718,10 +3719,10 @@ function montarProgramacaoGerente(
   row1.getCell(13).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF7F7F7F" } };
   row1.getCell(13).font = { name: FONT, size: 10, bold: true, color: { argb: "FFFFFFFF" } };
   row1.getCell(14).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF4B183" } };
-  row1.getCell(15).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00B0F0" } };
+  row1.getCell(16).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00B0F0" } };
 
   const row2 = ws.getRow(2);
-  ["", "", "", "", "", "", "", "Total", "Cliente", "Fábrica", "", "", "", "", "", "", ""]
+  ["", "", "", "", "", "", "", "Total", "Cliente", "Fábrica", "", "", "", "", "", "", "", "", ""]
     .forEach((v, i) => {
       const cell = row2.getCell(i + 1);
       cell.value = v;
@@ -3758,6 +3759,7 @@ function montarProgramacaoGerente(
     let ultra = false;
     let std = false;
     const alizares = new Set<string>();
+    const batentes = new Set<string>();
     const acabamentos = new Set<string>();
 
     for (const p of itens) {
@@ -3773,19 +3775,18 @@ function montarProgramacaoGerente(
 
       if (p.usinagemPlanilha) temUsinagem = true;
 
-      if (familia === "ALIZARES" && larg > 0 && esp > 0) {
-        alizares.add(`${larg}x${esp}`);
+      if (familia === "ALIZARES" && comp > 0 && larg > 0 && esp > 0) {
+        alizares.add([comp, larg, esp].join("x"));
+      }
+      if (familia === "BATENTES" && comp > 0 && larg > 0 && esp > 0) {
+        batentes.add([comp, larg, esp].join("x"));
       }
 
-      const mat = [p.material, p.tipo, p.descricao]
-        .filter(Boolean)
-        .join(" ")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase();
-
-      if (mat.includes("ULTRA")) ultra = true;
-      if (/(^|[^A-Z])STD([^A-Z]|$)/.test(mat)) std = true;
+      const mat = [p.material, p.tipo, p.descricao, p.descricaoModelo, p.outrasCaracteristicas]
+        .filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+      if (/\bULTRA\b/.test(mat) || (["ALIZARES", "BATENTES", "BAGUETE"].includes(familia) &&
+          /(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(mat))) ultra = true;
+      if (/\bSTD\b/.test(mat)) std = true;
 
       const ac = [limpar(p.acabamento), limpar(p.cor)]
         .filter(Boolean)
@@ -3793,11 +3794,13 @@ function montarProgramacaoGerente(
       if (ac) acabamentos.add(ac);
     }
 
-    const medidasAlizar = [...alizares].sort((a, b) => {
-      const [la, ea] = a.split("x").map(Number);
-      const [lb, eb] = b.split("x").map(Number);
-      return lb - la || eb - ea;
-    });
+    const ordenarMedidas = (a: string, b: string) => {
+      const aa = a.split("x").map(Number);
+      const bb = b.split("x").map(Number);
+      return bb[0] - aa[0] || bb[1] - aa[1] || bb[2] - aa[2];
+    };
+    const medidasAlizar = [...alizares].sort(ordenarMedidas);
+    const medidasBatente = [...batentes].sort(ordenarMedidas);
 
     const material =
       ultra && std ? "ULTRA/STD" :
@@ -3822,9 +3825,10 @@ function montarProgramacaoGerente(
       kits || "", // L Kits
       temUsinagem ? "OK" : "", // M Planilha
       medidasAlizar.join(" / "), // N Alizar
-      material,   // O Material
-      "",         // P Observações
-      null,       // Q Valor
+      medidasBatente.join(" / "), // O Batentes
+      material,   // P Material
+      "",         // Q Observações
+      null,       // R Valor
     ];
 
     values.forEach((value, i) => {
@@ -3835,7 +3839,7 @@ function montarProgramacaoGerente(
       cell.alignment = {
         vertical: "middle",
         horizontal: [4, 7, 16].includes(i + 1) ? "left" : "center",
-        wrapText: i + 1 === 4 || i + 1 === 7 || i + 1 === 16,
+        wrapText: [4, 7, 14, 15, 17].includes(i + 1),
       };
       cell.border = { top: border, bottom: border, left: border, right: border };
     });
@@ -3849,12 +3853,12 @@ function montarProgramacaoGerente(
     };
     row.getCell(13).font = { name: FONT, size: 10, bold: true };
     row.getCell(14).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFCE4D6" } };
-    row.getCell(15).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
+    row.getCell(16).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFDDEBF7" } };
 
     row.getCell(8).numFmt = "#,##0.000";
-    row.getCell(17).numFmt = "#,##0.00";
+    row.getCell(18).numFmt = "#,##0.00";
 
-    row.height = 22;
+    row.height = medidasAlizar.length + medidasBatente.length > 3 ? 40 : 28;
     rowNum++;
   }
 
@@ -3864,7 +3868,7 @@ function montarProgramacaoGerente(
 
   ws.autoFilter = {
     from: { row: 1, column: 1 },
-    to: { row: Math.max(3, rowNum - 1), column: 17 },
+    to: { row: Math.max(3, rowNum - 1), column: 18 },
   };
 
   ws.pageSetup = {

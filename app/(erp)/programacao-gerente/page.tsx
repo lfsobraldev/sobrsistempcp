@@ -100,6 +100,20 @@ function alizaresPedido(produtos: Produto[]) {
   });
 }
 
+function batentesPedido(produtos: Produto[]) {
+  return [...new Set(
+    produtos.filter((p) => familiaIndustrial(p) === "BATENTES")
+      .map((p) => {
+        const [c, l, e] = medidaDoItem(p);
+        return c > 0 && l > 0 && e > 0 ? [c, l, e].join("x") : "";
+      }).filter(Boolean)
+  )].sort((a, b) => {
+    const ma = a.split("x").map(Number);
+    const mb = b.split("x").map(Number);
+    return mb[0] - ma[0] || mb[1] - ma[1] || mb[2] - ma[2];
+  });
+}
+
 function kitsPedido(produtos: Produto[]) {
   return produtos
     .filter((p) => {
@@ -203,6 +217,7 @@ export default function ProgramacaoGerentePage() {
           kits: kitsPedido(itens),
           usinagem: itens.some((p) => p.usinagemPlanilha),
           alizares: alizaresPedido(itens),
+          batentes: batentesPedido(itens),
           material: materialPedido(itens),
           status: statusPedido(itens),
           andamento: planejado > 0 ? Math.min(100, (produzido / planejado) * 100) : 0,
@@ -488,6 +503,7 @@ export default function ProgramacaoGerentePage() {
                   <th className="num">KITS</th>
                   <th>USINAGEM</th>
                   <th>ALIZAR</th>
+                  <th>BATENTES</th>
                   <th>MATERIAL</th>
                   <th>PRAZO ENTREGA</th>
                   <th>EXCEÇÕES</th>
@@ -521,6 +537,7 @@ export default function ProgramacaoGerentePage() {
                         </span>
                       </td>
                       <td>{pedido.alizares.length ? pedido.alizares.join(" / ") : "-"}</td>
+                      <td>{pedido.batentes.length ? pedido.batentes.join(" / ") : "-"}</td>
                       <td><b>{pedido.material}</b></td>
                       <td>
                         <div className="managerDueCell">
@@ -577,7 +594,7 @@ export default function ProgramacaoGerentePage() {
 
                     {pedidoAberto === pedido.pedido && (
                       <tr key={`${pedido.pedido}-detail`} className="managerDetailRow">
-                        <td colSpan={16}>
+                        <td colSpan={17}>
                           <div className="managerOrderDetail">
                             <div className="managerOrderRoute">
                               <header>
