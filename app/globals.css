@@ -562,3 +562,6 @@ tbody tr:hover{background:var(--primary-soft)}
   .ph h1{font-size:23px}
   .ai-fab{right:12px;bottom:12px}
 }
+
+.shell.collapsed .brand .sobral-logo{display:grid}
+.shell.collapsed .brand .brand-copy{display:none}
