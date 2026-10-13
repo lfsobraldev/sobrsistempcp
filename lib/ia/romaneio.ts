@@ -1,4 +1,4 @@
-import { generateObject } from "ai";
+import { generateText, tool } from "ai";
 import { z } from "zod";
 import { assertGatewayConfigured, MODEL } from "@/lib/ia/claude";
 
@@ -43,17 +43,26 @@ export async function extrairRomaneio(
     ? `\n\nHistórico recente do sistema (padrões da empresa):\n${historico.join("\n")}`
     : "";
 
-  const { object } = await generateObject({
+  const { toolCalls } = await generateText({
     model: MODEL,
-    schema: RomaneioIASchema,
     system: SYSTEM,
     prompt: `Texto de origem:
 """
 ${texto.slice(0, 120_000)}
 """${ctx}`,
+    tools: {
+      salvar_romaneio: tool({
+        description: "Retorna o romaneio extraído em formato estruturado.",
+        inputSchema: RomaneioIASchema,
+      }),
+    },
+    toolChoice: { type: "tool", toolName: "salvar_romaneio" },
+    maxOutputTokens: 8000,
   });
 
-  return RomaneioIASchema.parse(object);
+  const call = toolCalls.find((c) => c.toolName === "salvar_romaneio");
+  if (!call) throw new Error("A IA não retornou dados estruturados.");
+  return RomaneioIASchema.parse(call.input);
 }
 
 /** Validação determinística — roda SEMPRE depois da IA, antes de emitir. */
@@ -93,3 +102,4 @@ export function agruparPorCarga(r: RomaneioIA, maxVolumesPorCarga = 0) {
   } else cargas.push({ carga: 1, itens: r.itens.map((_, i) => i) });
   return { total, pesoTotal, volumesTotal, cargas };
 }
+
