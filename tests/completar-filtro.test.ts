@@ -139,3 +139,14 @@ test("Filtro 53: alizar, baguete e ferragens não recebem rebaixo nem material e
   assert.equal(ferragem.rebaixo, "");
   assert.equal(ferragem.material, "");
 });
+
+test("alizar reconhece U UL ULT e ULTR isolados como Ultra", () => {
+  for (const sigla of ["U", "UL", "ULT", "ULTR"]) {
+    const p = completarPorRegras(produto("sigla-"+sigla, "T A 1200X70X09 RTO RL55 PET CAPUC ("+sigla, { categoria: "ALIZARES" })).produto;
+    assert.equal(p.tipo, "ULTRA", sigla);
+    assert.equal(p.material, "MDF ULTRA", sigla);
+    assert.equal(p.rebaixo, "", sigla);
+  }
+  const p = completarPorRegras(produto("outro", "FERRAGEM COD U300", { categoria: "FERRAGEM" })).produto;
+  assert.equal(p.material, "");
+});
