@@ -113,3 +113,29 @@ test("nao preencher rebaixo nos alizares e preservar a OF", () => {
   assert.equal(a.produto.tipo, "ULTRA");
   assert.equal(a.produto.rebaixo, "");
 });
+
+test("Filtro 53: rebaixos de batente e material são extraídos somente da descrição correspondente", () => {
+  const amostras = [
+    ["M P MDF STD PET TXT BCO 2110X80X30 42X10", "C/REB 42X10", "MDF STD"],
+    ["M T ULTRA PET TUR 1000X230X30 42X10 R2L", "C/REB 42X10", "MDF ULTRA"],
+    ["1000x130x30 S/RB R1L (MA) PET BC (UL)", "S/REB", "MDF ULTRA"],
+    ["2130x150x30 S/REB R2L R1 PET BRC (UL)", "S/REB", "MDF ULTRA"],
+    ["CJ M ULTRA PET BCO CAR 2110X90X30 42X10", "C/REB 42X10", "MDF ULTRA"],
+  ];
+  for (const [descricao, esperado, material] of amostras) {
+    const lido = completarPorRegras(produto(descricao, descricao, { categoria: "BATENTE" })).produto;
+    assert.equal(lido.rebaixo, esperado, descricao);
+    assert.equal(lido.material, material, descricao);
+  }
+});
+
+test("Filtro 53: alizar, baguete e ferragens não recebem rebaixo nem material emprestado", () => {
+  const alizar = completarPorRegras(produto("al", "T A 1200X70X09 RTO RL55 RC PET CAPUC ULT", { categoria: "ALIZARES" })).produto;
+  const baguete = completarPorRegras(produto("bg", "BAGUETE 1000X35X10 RTO 42X10", { categoria: "BAGUETE" })).produto;
+  const ferragem = completarPorRegras(produto("fer", "FECHADURA BANHEIRO PALI 4053-PY-R23", { categoria: "FERRAGEM" })).produto;
+  assert.equal(alizar.tipo, "ULTRA");
+  assert.equal(alizar.rebaixo, "");
+  assert.equal(baguete.rebaixo, "");
+  assert.equal(ferragem.rebaixo, "");
+  assert.equal(ferragem.material, "");
+});
