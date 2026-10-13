@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import { FACTORY_KNOWLEDGE } from "@/lib/ia/factory-knowledge";
+import { MACHINING_KNOWLEDGE } from "@/lib/ia/machining-knowledge";
 
 export const MODEL = process.env.AI_GATEWAY_MODEL || "openai/gpt-5.4";
 export const HEAVY_MODEL = process.env.AI_GATEWAY_HEAVY_MODEL || "openai/gpt-5.4";
@@ -61,4 +62,4 @@ REGRAS DE CONFIABILIDADE
 - Se faltar dado essencial, faça no máximo uma pergunta curta.
 - Respostas curtas, mas completas o suficiente para decisão operacional.
 
-${FACTORY_KNOWLEDGE}`;
+${FACTORY_KNOWLEDGE}\n\n${MACHINING_KNOWLEDGE}`;
