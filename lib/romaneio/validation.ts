@@ -46,11 +46,15 @@ function uniqueGames(rows: PackageRow[]) {
 
 export function validateProcessing(data: ProcessingResult): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  const isConsistemSource =
+    data.sourceMode === "FILTRO_CONSISTEM" ||
+    data.sourceMode === "FILTRO_51";
+
   if (!data.client?.trim()) {
     issues.push({
-      severity: ["FILTRO_CONSISTEM","FILTRO_51"].includes(data.sourceMode) ? "WARNING" : "ERROR",
+      severity: isConsistemSource ? "WARNING" : "ERROR",
       code: "CLIENT_EMPTY",
-      message: ["FILTRO_CONSISTEM","FILTRO_51"].includes(data.sourceMode)
+      message: isConsistemSource
         ? "Cliente não veio na programação do Consistem. O romaneio pode ser usado para teste, mas confira o cabeçalho antes da emissão final."
         : "Cliente não informado.",
     });
