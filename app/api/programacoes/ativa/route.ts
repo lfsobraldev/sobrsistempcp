@@ -864,3 +864,55 @@ export async function GET() {
     );
   }
 }
+
+
+export async function DELETE() {
+  try {
+    const s = await session();
+    if (!s) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    }
+    if (s.perfil !== "PCP") {
+      return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+    }
+
+    const db = sql();
+    const [ativa] = await db`
+      select id,filtro
+      from pcp_programacoes
+      where status='ATIVA'
+      order by criado_em desc
+      limit 1
+    `;
+
+    if (!ativa) {
+      return NextResponse.json({ error: "Não existe programação ativa para excluir." }, { status: 404 });
+    }
+
+    await db`
+      delete from pcp_programacoes
+      where id=${ativa.id}
+    `;
+
+    await db`
+      insert into pcp_eventos(usuario,tipo,descricao,depois)
+      values(
+        ${s.usuario},
+        'PROGRAMACAO_EXCLUIDA',
+        ${`Programação/filtro ${String(ativa.filtro || "")} excluído`},
+        ${JSON.stringify({ filtro: ativa.filtro })}::jsonb
+      )
+    `;
+
+    return NextResponse.json({
+      ok:true,
+      filtro:String(ativa.filtro || ""),
+      mensagem:"Programação ativa excluída. Já é possível importar outro filtro."
+    });
+  } catch (e:any) {
+    return NextResponse.json(
+      { error:e?.message || "Falha ao excluir programação ativa." },
+      { status:500 }
+    );
+  }
+}
