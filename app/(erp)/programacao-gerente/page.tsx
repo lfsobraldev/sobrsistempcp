@@ -316,7 +316,7 @@ export default function ProgramacaoGerentePage() {
         </div>
         <Panel
           title="Sem programação ativa"
-          subtitle="Importe e libere o Filtro 51 para montar a programação gerencial."
+          subtitle="Importe e libere um filtro do Consistem para montar a programação gerencial."
         >
           <div className="empty">
             <Factory />
