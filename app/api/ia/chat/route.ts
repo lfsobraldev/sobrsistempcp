@@ -87,6 +87,12 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
         execute: async (input) =>
           runTool("consultar_capacidade", input, { user: s, attachments }),
       }),
+      diagnosticar_usinagem: tool({
+        description: TOOL_META.diagnosticar_usinagem,
+        inputSchema: z.object({ pedido: z.string().optional() }),
+        execute: async (input) =>
+          runTool("diagnosticar_usinagem", input, { user: s, attachments }),
+      }),
       listar_andon: tool({
         description: TOOL_META.listar_andon,
         inputSchema: z.object({}),
