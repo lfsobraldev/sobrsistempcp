@@ -15,7 +15,7 @@ const materialConflitante = (p: Produto) => {
   const texto = normal([p.descricao,p.descricaoModelo,p.outrasCaracteristicas,p.tipo].filter(Boolean).join(" "));
   const tipos = [
     /\bPINUS\b/.test(texto),
-    /\bULTRA\b|(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(texto),
+    /\bULTRA\b|(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)(]|$)/.test(texto),
     /\bSTD\b/.test(texto),
     /\bHDF\b/.test(texto),
   ];
@@ -97,7 +97,7 @@ export async function completarFiltro(
   const candidatos = produtos.filter((p) => {
     if (materialConflitante(p)) return false;
     const fonte = [p.descricao, p.descricaoModelo, p.outrasCaracteristicas].join(" ");
-    const temMaterial = /\b(?:MDF|ULTRA|STD|RU|HDF|PINUS)\b|(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/i.test(fonte);
+    const temMaterial = /\b(?:MDF|ULTRA|STD|RU|HDF|PINUS)\b|(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)(]|$)/i.test(fonte);
     const temMedida = /\d{3,4}\s*[xX×]\s*\d{2,4}/i.test(fonte);
     return (vazio(p.material) && temMaterial) || (vazio(p.medida) && temMedida);
   });
