@@ -7,7 +7,8 @@ import { agruparPorCarga, extrairRomaneio, validarRomaneio } from "@/lib/ia/roma
 export type Attachment =
   | { type: "navigate"; path: string; label: string }
   | { type: "confirm"; label: string; token: string }
-  | { type: "romaneio"; data: unknown; alertas: unknown; resumo: unknown };
+  | { type: "romaneio"; data: unknown; alertas: unknown; resumo: unknown }
+  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string };
 
 export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 
@@ -22,6 +23,7 @@ export const TOOL_META = {
   historico_romaneios: "Romaneios gerados anteriormente. Filtra por pedido ou cliente.",
   navegar: "Leva o usuário para uma tela do sistema.",
   gerar_romaneio: "Extrai e valida um romaneio a partir de texto de pedido/lista colado pelo usuário. Retorna prévia com alertas.",
+  gerar_planilha_usinagem: "Gera uma planilha Excel de usinagem usando os dados reais da programação ativa. Pode gerar todas as usinagens ou apenas um processo específico.",
   propor_prioridade: "Propõe alterar a prioridade de um pedido (NORMAL, ALTA, URGENTE). O usuário precisa confirmar.",
 } as const;
 
@@ -88,6 +90,63 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<s
         ctx.attachments.push({ type: "romaneio", data, alertas, resumo });
         return j({ itens: data.itens.length, cliente: data.cliente, pedido: data.pedido, alertas, resumo: { ...resumo, cargas: resumo.cargas.length } });
       }
+      case "gerar_planilha_usinagem": {
+        if (!["PCP", "GERENTE", "ENCARREGADO", "LIDER"].includes(ctx.user.perfil)) {
+          return j({ erro: "Sem permissão para gerar planilha de usinagem." });
+        }
+
+        const todos = [
+          "USINAGEM-PORTAS",
+          "USINAGEM-TRAVESSAS",
+          "USINAGEM-CONTRATESTA",
+          "USINAGEM-DOBRADICAS",
+          "USINAGEM-TUPIA",
+        ];
+
+        const solicitado = String(input.processo || "").trim().toUpperCase();
+        const setores = solicitado && solicitado !== "TODAS"
+          ? todos.filter((x) => x === solicitado)
+          : todos;
+
+        if (!setores.length) {
+          return j({ erro: "Processo de usinagem inválido.", processos: todos });
+        }
+
+        const { db, pg } = await programacaoAtiva();
+        if (!pg) return j({ erro: "Nenhuma programação ativa." });
+
+        const rows = await db`
+          select distinct o.processo
+          from pcp_operacoes o
+          join pcp_produtos p on p.id=o.produto_id
+          where p.programacao_id=${pg.id}
+            and o.processo = any(${setores})
+        `;
+
+        const existentes = rows.map((r: any) => String(r.processo));
+        if (!existentes.length) {
+          return j({ erro: "A programação ativa não possui itens de usinagem para os setores solicitados." });
+        }
+
+        const arquivo = existentes.length === 1
+          ? `Usinagem_${existentes[0].replace(/[^A-Z0-9]+/gi, "_")}`
+          : "Planilha_Usinagem";
+
+        ctx.attachments.push({
+          type: "planilha_usinagem",
+          setores: existentes,
+          arquivo,
+          label: existentes.length === 1 ? `Gerar ${existentes[0]}` : "Gerar planilha de usinagem",
+        });
+
+        return j({
+          ok: true,
+          programacao: pg,
+          setores: existentes,
+          mensagem: "Botão para gerar a planilha Excel foi exibido ao usuário.",
+        });
+      }
+
       case "propor_prioridade": {
         if (!WRITE_ROLES.includes(ctx.user.perfil)) return j({ erro: "Seu perfil não pode alterar prioridades." });
         const pedido = String(input.pedido || "").trim();
