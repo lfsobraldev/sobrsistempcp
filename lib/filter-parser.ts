@@ -558,85 +558,28 @@ function medidaLinha(
   );
 }
 
-function material(
-  r: any
-) {
-  const tipo =
-    up(
-      field(r, "Tipo")
-    );
-
-  const d =
-    up(
-      field(r, "Descrição")
-    );
-
-  if (
-    tipo.includes(
-      "PINUS"
-    )
-  ) {
-    return "PINUS";
+function material(r: Record<string, string>) {
+  const tipo = up(field(r, "Tipo"));
+  const fontes = [
+    field(r, "Descrição"), field(r, "Descrição Modelo"),
+    field(r, "Outras Características"), field(r, "Produto"),
+  ].map(up);
+  // O Tipo preenchido no Consistem tem prioridade, sem substituir o valor original.
+  if (tipo && tipo !== "N/A" && tipo !== "-") {
+    if (/\bULTRA\b/.test(tipo)) return "MDF ULTRA";
+    if (/\bSTD\b/.test(tipo)) return "MDF STD";
+    return clean(field(r, "Tipo"));
   }
-
-  if (
-    tipo.includes(
-      "ULTRA"
-    )
-  ) {
-    return "MDF ULTRA";
+  // Não usar outras linhas, pedidos ou exemplos para completar este material.
+  // Siglas curtas são aceitas apenas como tokens isolados.
+  for (const d of fontes) {
+    if (/\bULTRA\b/.test(d) || /(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(d)) return "MDF ULTRA";
+    if (/\bSTD\b/.test(d)) return "MDF STD";
+    if (/\bPINUS\b/.test(d)) return "PINUS";
+    if (/\bHDF\b/.test(d)) return "HDF";
+    if (/\bMDF\b/.test(d)) return "MDF";
+    if (/\bRU\b/.test(d)) return "RU";
   }
-
-  if (
-    tipo.includes(
-      "STD"
-    )
-  ) {
-    return "MDF STD";
-  }
-
-  if (
-    tipo &&
-    tipo !==
-      "N/A"
-  ) {
-    return clean(
-      field(r, "Tipo")
-    );
-  }
-
-  if (
-    d.includes(
-      "ULTRA"
-    )
-  ) {
-    return "MDF ULTRA";
-  }
-
-  if (
-    d.includes(
-      "PINUS"
-    )
-  ) {
-    return "PINUS";
-  }
-
-  if (
-    d.includes(
-      "MDF"
-    )
-  ) {
-    return "MDF";
-  }
-
-  if (
-    d.includes(
-      "HDF"
-    )
-  ) {
-    return "HDF";
-  }
-
   return "";
 }
 
@@ -955,6 +898,15 @@ export async function parseFiltro(
       categoriaIndustrial(
         base
       );
+    // Colunas de tipo vazias: preencher apenas quando o material é inequívoco.
+    // A classificação já foi feita usando a descrição original da própria linha.
+    if (!base.tipo && base.material) {
+      const familia = base.categoria.toUpperCase();
+      if (/ALIZAR|BATENTE|BAGUETE|SUPORTE|KIT|CORRER/.test(familia)) {
+        base.tipo = base.material === "MDF ULTRA" ? "ULTRA"
+          : base.material === "MDF STD" ? "STD" : base.material;
+      }
+    }
 
     // Guarda a linha física completa antes de excluir ferragens do chão de fábrica.
     romaneioProdutos.push({ ...base, operacoes: [] });
