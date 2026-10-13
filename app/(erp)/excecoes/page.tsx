@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useOps } from "@/components/operational-provider";
 import { LABELS } from "@/lib/metrics";
+import { Badge, Card, DataTable, Empty, Field, PageHeader, Segmented, StatCard } from "@/components/ui";
 
 type Excecao = {
   id: string;
@@ -186,183 +187,98 @@ export default function ExcecoesPage() {
 
   return (
     <>
-      <div className="pageTitle v12PageTitle">
-        <div>
-          <span>CONTROLE DE EXCEÇÕES</span>
-          <h1>Faltas, reposições e retrabalho</h1>
-          <p>Registre a exceção em poucos campos e mantenha a peça vinculada ao pedido e à rota.</p>
-        </div>
-        <button className="secondary" onClick={() => void load()}>
-          <RefreshCw /> Atualizar
-        </button>
+      <PageHeader
+        eyebrow="Controle de exceções"
+        title="Faltas, reposições e retrabalho"
+        description="Registre a exceção em poucos campos e mantenha a peça vinculada ao pedido e à rota."
+        actions={<button onClick={() => void load()}><RefreshCw /> Atualizar</button>}
+      />
+
+      <div className="stats">
+        <StatCard icon={<PackageSearch />} label="Abertas" value={abertas.length} tone={abertas.length ? "warning" : "neutral"} />
+        <StatCard icon={<AlertTriangle />} label="Falta de peça" value={abertas.filter((x) => x.tipo === "FALTA_PECA").length} />
+        <StatCard icon={<Layers3 />} label="Reposições" value={abertas.filter((x) => x.tipo === "REPOSICAO").length} />
+        <StatCard icon={<Wrench />} label="Retrabalhos" value={abertas.filter((x) => x.tipo === "RETRABALHO").length} />
       </div>
 
-      <section className="v12ExceptionKpis">
-        <article><PackageSearch /><div><span>ABERTAS</span><b>{abertas.length}</b></div></article>
-        <article><AlertTriangle /><div><span>FALTA DE PEÇA</span><b>{abertas.filter((x) => x.tipo === "FALTA_PECA").length}</b></div></article>
-        <article><Layers3 /><div><span>REPOSIÇÕES</span><b>{abertas.filter((x) => x.tipo === "REPOSICAO").length}</b></div></article>
-        <article><Wrench /><div><span>RETRABALHOS</span><b>{abertas.filter((x) => x.tipo === "RETRABALHO").length}</b></div></article>
-      </section>
-
-      <section className="v12ExceptionLayout">
-        <article className="v12Card">
-          <header>
-            <div><span>NOVA OCORRÊNCIA</span><h2>Registrar em menos de 1 minuto</h2></div>
-          </header>
-
-          <div className="v12ExceptionForm">
-            <label>
-              <span>TIPO</span>
-              <div className="v12TypeButtons">
-                {TIPOS.map((x) => {
-                  const Icon = x.icon;
-                  return (
-                    <button
-                      key={x.value}
-                      className={tipo === x.value ? "active" : ""}
-                      type="button"
-                      onClick={() => setTipo(x.value)}
-                    >
-                      <Icon /> {x.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </label>
-
-            <label>
-              <span>PEDIDO</span>
-              <select
-                value={pedido}
-                onChange={(e) => {
-                  setPedido(e.target.value);
-                  setProdutoId("");
-                }}
-              >
+      <div className="split-form">
+        <Card subtitle="Nova ocorrência" title="Registrar em menos de 1 minuto">
+          <div className="stack">
+            <Field label="Tipo">
+              <Segmented value={tipo} onChange={setTipo} options={TIPOS.map((x) => ({ value: x.value, label: x.label }))} />
+            </Field>
+            <Field label="Pedido">
+              <select value={pedido} onChange={(e) => { setPedido(e.target.value); setProdutoId(""); }}>
                 <option value="">Selecione o pedido</option>
                 {pedidos.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
-            </label>
-
-            <label>
-              <span>PEÇA / OF</span>
+            </Field>
+            <Field label="Peça / OF">
               <select value={produtoId} onChange={(e) => setProdutoId(e.target.value)}>
                 <option value="">Peça não especificada</option>
                 {pecasPedido.slice(0, 500).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.of ? `${p.of} • ` : ""}{p.categoria} • {p.medida || "-"} • {p.descricao}
-                  </option>
+                  <option key={p.id} value={p.id}>{p.of ? `${p.of} · ` : ""}{p.categoria} · {p.medida || "-"} · {p.descricao}</option>
                 ))}
               </select>
-            </label>
-
-            <div className="v12FormSplit">
-              <label>
-                <span>QUANTIDADE</span>
-                <input
-                  type="number"
-                  min="0.001"
-                  step="1"
-                  value={quantidade}
-                  onChange={(e) => setQuantidade(e.target.value)}
-                />
-              </label>
-
-              <label>
-                <span>RETORNAR PARA</span>
+            </Field>
+            <div className="form-grid">
+              <Field label="Quantidade">
+                <input type="number" min="0.001" step="1" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} />
+              </Field>
+              <Field label="Retornar para">
                 <select value={processoRetorno} onChange={(e) => setProcessoRetorno(e.target.value)}>
                   <option value="">Sem retorno definido</option>
-                  {processos.map((p) => (
-                    <option key={p} value={p}>{LABELS[p] || p}</option>
-                  ))}
+                  {processos.map((p) => <option key={p} value={p}>{LABELS[p] || p}</option>)}
                 </select>
-              </label>
+              </Field>
             </div>
-
-            <label>
-              <span>MOTIVO</span>
-              <input
-                value={motivo}
-                onChange={(e) => setMotivo(e.target.value)}
-                placeholder="Ex.: quebra, medida incorreta, acabamento, peça faltante..."
-              />
-            </label>
-
-            <label>
-              <span>OBSERVAÇÃO</span>
-              <textarea
-                value={observacao}
-                onChange={(e) => setObservacao(e.target.value)}
-                placeholder="Informação complementar, se necessário."
-              />
-            </label>
-
-            <button className="primary v12FullButton" disabled={busy} onClick={registrar}>
-              {busy ? "REGISTRANDO..." : "REGISTRAR OCORRÊNCIA"}
+            <Field label="Motivo">
+              <input value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: quebra, medida incorreta, acabamento, peça faltante..." />
+            </Field>
+            <Field label="Observação">
+              <textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Informação complementar, se necessário." />
+            </Field>
+            <button className="primary" style={{ minHeight: 44 }} disabled={busy} onClick={registrar}>
+              {busy ? "Registrando…" : "Registrar ocorrência"}
             </button>
           </div>
-        </article>
+        </Card>
 
-        <article className="v12Card v12Wide">
-          <header>
-            <div><span>CONTROLE</span><h2>Ocorrências da programação</h2></div>
-            <label className="v12InlineSearch">
+        <Card
+          subtitle="Controle"
+          title="Ocorrências da programação"
+          actions={
+            <div className="search" style={{ width: 260 }}>
               <Search />
               <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar pedido, OF, peça..." />
-            </label>
-          </header>
-
-          <div className="tableWrap v12ExceptionsTable">
-            <table>
-              <thead>
-                <tr>
-                  <th>STATUS</th>
-                  <th>TIPO</th>
-                  <th>PEDIDO</th>
-                  <th>OF</th>
-                  <th>PEÇA</th>
-                  <th>MEDIDA</th>
-                  <th className="num">QTD.</th>
-                  <th>MOTIVO</th>
-                  <th>RETORNO</th>
-                  <th>ABERTO POR</th>
-                  <th>AÇÃO</th>
+            </div>
+          }
+        >
+          {filtradas.length ? (
+            <DataTable head={["Status", "Tipo", "Pedido", "OF", "Peça", "Medida", "Qtd.", "Motivo", "Retorno", "Aberto por", "Ação"]}>
+              {filtradas.map((x) => (
+                <tr key={x.id} className={x.status === "ABERTA" ? "critRow" : ""}>
+                  <td><Badge tone={x.status === "ABERTA" ? "warning" : "success"}>{x.status}</Badge></td>
+                  <td><b>{labelTipo(x.tipo)}</b></td>
+                  <td><b>{x.pedido}</b></td>
+                  <td>{x.of || "-"}</td>
+                  <td>{x.descricao || x.categoria || "-"}</td>
+                  <td className="mono">{x.medida || "-"}</td>
+                  <td className="num"><b>{fmt(x.quantidade)}</b></td>
+                  <td>{x.motivo || "-"}</td>
+                  <td>{x.processoRetorno ? LABELS[x.processoRetorno] || x.processoRetorno : "-"}</td>
+                  <td>{x.criadoPor || "-"}</td>
+                  <td>
+                    {x.status === "ABERTA" ? (
+                      <button className="success" disabled={busy} onClick={() => resolver(x.id)}><CheckCircle2 /> Resolver</button>
+                    ) : <Badge tone="success">Resolvida</Badge>}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtradas.map((x) => (
-                  <tr key={x.id} className={x.status === "ABERTA" ? "v12OpenException" : ""}>
-                    <td>
-                      <span className={`managerStatus ${x.status === "ABERTA" ? "alert" : "done"}`}>
-                        {x.status}
-                      </span>
-                    </td>
-                    <td><b>{labelTipo(x.tipo)}</b></td>
-                    <td><b>{x.pedido}</b></td>
-                    <td>{x.of || "-"}</td>
-                    <td>{x.descricao || x.categoria || "-"}</td>
-                    <td>{x.medida || "-"}</td>
-                    <td className="num"><b>{fmt(x.quantidade)}</b></td>
-                    <td>{x.motivo || "-"}</td>
-                    <td>{x.processoRetorno ? LABELS[x.processoRetorno] || x.processoRetorno : "-"}</td>
-                    <td>{x.criadoPor || "-"}</td>
-                    <td>
-                      {x.status === "ABERTA" ? (
-                        <button className="v12Resolve" disabled={busy} onClick={() => resolver(x.id)}>
-                          <CheckCircle2 /> Resolver
-                        </button>
-                      ) : (
-                        <span className="v12Resolved">Resolvida</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {!filtradas.length && <div className="empty"><span>Nenhuma ocorrência registrada.</span></div>}
-          </div>
-        </article>
-      </section>
+              ))}
+            </DataTable>
+          ) : <Empty title="Nenhuma ocorrência registrada." />}
+        </Card>
+      </div>
     </>
   );
 }

@@ -8,7 +8,8 @@ import {
   UploadCloud,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Panel } from "@/components/ui";
+import { Badge, Card, DataTable, Field, PageHeader, StatCard } from "@/components/ui";
+import { GerarComIABotao } from "@/components/romaneio-ai";
 import type {
   MountType,
   ProcessingResult,
@@ -293,435 +294,186 @@ export default function RomaneiosPage() {
 
   return (
     <>
-      <div className="pageTitle">
-        <div>
-          <span>EXPEDIÇÃO</span>
-          <h1>Gerador de Romaneios</h1>
-          <p>
-            Gerador nativo do PCP com as regras de montagem do romaneio.
-            Sem outro sistema e sem outra tela de login.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        eyebrow="Expedição"
+        title="Gerador de Romaneios"
+        description="Gerador nativo do PCP com as regras de montagem do romaneio. Use a IA para pedidos fora do padrão."
+        actions={<GerarComIABotao />}
+      />
 
-      <Panel
-        title="Romaneios do Filtro 51"
-        subtitle="Selecione um pedido da programação. Você pode testar o romaneio sem usinagem ou finalizar com a planilha quando ela chegar."
-      >
+      <Card subtitle="Passo 1" title="Romaneios do Filtro 51" className="mb">
+        <p className="muted" style={{ marginBottom: "var(--sp-4)" }}>
+          Selecione um pedido da programação. Teste sem usinagem ou finalize com a planilha quando ela chegar.
+        </p>
         {carregandoFiltro ? (
-          <div className="warningBox">
-            <b>CARREGANDO PROGRAMAÇÃO</b>
-            <span>Lendo os pedidos da programação ativa.</span>
-          </div>
+          <div className="warningBox"><b>Carregando programação…</b><span>Lendo os pedidos da programação ativa.</span></div>
         ) : pedidosFiltro.length ? (
           <>
-            <div className="tableWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>PEDIDO</th>
-                    <th>ITENS</th>
-                    <th>PEÇAS</th>
-                    <th>TIPO</th>
-                    <th>STATUS</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pedidosFiltro.map((entry) => (
-                    <tr key={entry.numero}>
-                      <td><b>{entry.numero}</b></td>
-                      <td>{entry.itens}</td>
-                      <td>{entry.pecas}</td>
-                      <td>{entry.tipoPedido}</td>
-                      <td>
-                        {pedidoFiltro === entry.numero
-                          ? <b>EM EDIÇÃO</b>
-                          : "Aguardando usinagem"}
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        <button
-                          type="button"
-                          className={pedidoFiltro === entry.numero ? "primary" : "secondary"}
-                          onClick={() => {
-                            const jaSelecionado = pedidoFiltro === entry.numero;
-
-                            if (jaSelecionado) {
-                              setPedidoFiltro("");
-                              setUsinagem(null);
-                              setResultado(null);
-                              return;
-                            }
-
-                            /*
-                             * Seleção exclusiva: sempre existe no máximo
-                             * UM pedido ativo no gerador de romaneios.
-                             */
-                            setPedidoFiltro(entry.numero);
+            <DataTable head={["Pedido", "Itens", "Peças", "Tipo", "Status", ""]}>
+              {pedidosFiltro.map((entry) => {
+                const ativo = pedidoFiltro === entry.numero;
+                return (
+                  <tr key={entry.numero}>
+                    <td><b>{entry.numero}</b></td>
+                    <td>{entry.itens}</td>
+                    <td>{entry.pecas}</td>
+                    <td><Badge>{entry.tipoPedido}</Badge></td>
+                    <td>{ativo ? <Badge tone="info">Em edição</Badge> : <span className="muted">Aguardando usinagem</span>}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        type="button"
+                        className={ativo ? "primary" : ""}
+                        onClick={() => {
+                          if (ativo) {
+                            setPedidoFiltro("");
                             setUsinagem(null);
                             setResultado(null);
-
-                            if (entry.tipoPedido === "REVENDA") {
-                              setMountType("REVENDA");
-                            } else if (entry.tipoPedido === "ENGENHARIA") {
-                              setMountType(entry.montagem as MountType);
-                            } else {
-                              setMountType("MONTADO_HS");
-                            }
-                          }}
-                        >
-                          {pedidoFiltro === entry.numero ? "DESMARCAR" : "SELECIONAR"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                            return;
+                          }
+                          // Seleção exclusiva: no máximo UM pedido ativo no gerador.
+                          setPedidoFiltro(entry.numero);
+                          setUsinagem(null);
+                          setResultado(null);
+                          if (entry.tipoPedido === "REVENDA") setMountType("REVENDA");
+                          else if (entry.tipoPedido === "ENGENHARIA") setMountType(entry.montagem as MountType);
+                          else setMountType("MONTADO_HS");
+                        }}
+                      >
+                        {ativo ? "Desmarcar" : "Selecionar"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </DataTable>
 
             {pedidoFiltro && (
-              <div
-                style={{
-                  marginTop: 18,
-                  display: "grid",
-                  gridTemplateColumns: "minmax(0, 1fr)",
-                  gap: 14,
-                }}
-              >
-                <div
-                  style={{
-                    padding: 16,
-                    border: "1px solid var(--border, #d9dfdc)",
-                    borderRadius: 12,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      flexWrap: "wrap",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <div>
-                      <small>PEDIDO SELECIONADO</small>
-                      <div style={{ fontSize: 20, fontWeight: 700 }}>
-                        {pedidoFiltro}
-                      </div>
-                    </div>
-                    <div>
-                      <small>MONTAGEM</small>
-                      <div style={{ fontWeight: 700 }}>
-                        {mountType.replaceAll("_", " ")}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-                      gap: 12,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="secondary"
-                      disabled={!!busy}
-                      onClick={() => processarFiltro(false)}
-                      style={{ minHeight: 52 }}
-                    >
-                      <FileSpreadsheet />
-                      {busy === "TESTAR_FILTRO"
-                        ? "MONTANDO TESTE..."
-                        : "TESTAR SEM USINAGEM"}
-                    </button>
-
-                    <label
-                      className={`drop ${usinagem ? "ready" : ""}`}
-                      style={{ margin: 0, minHeight: 52 }}
-                    >
-                      <UploadCloud />
-                      <span>
-                        <b>{usinagem?.name || "Adicionar usinagem"}</b>
-                        <small>
-                          {usinagem
-                            ? "Planilha selecionada"
-                            : ".xlsx / .xls"}
-                        </small>
-                      </span>
-                      <input
-                        type="file"
-                        accept=".xlsx,.xls"
-                        onChange={(e) =>
-                          setUsinagem(e.target.files?.[0] || null)
-                        }
-                      />
-                    </label>
-
-                    <button
-                      type="button"
-                      className="primary"
-                      disabled={!usinagem || !!busy}
-                      onClick={() => processarFiltro(true)}
-                      style={{ minHeight: 52 }}
-                    >
-                      <RefreshCw
-                        className={
-                          busy === "PROCESSAR_FILTRO" ? "spin" : ""
-                        }
-                      />
-                      {busy === "PROCESSAR_FILTRO"
-                        ? "FINALIZANDO..."
-                        : "FINALIZAR COM USINAGEM"}
-                    </button>
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 10,
-                      fontSize: 12,
-                      opacity: 0.75,
-                    }}
-                  >
-                    O teste sem usinagem usa somente os dados do Filtro 51.
-                    Ele serve para validar itens, quantidades, medidas,
-                    separação e montagem antes da planilha de usinagem chegar.
-                  </div>
+              <div className="selected-order">
+                <div className="row between" style={{ flexWrap: "wrap" }}>
+                  <div><small>Pedido selecionado</small><div className="big-value">{pedidoFiltro}</div></div>
+                  <div><small>Montagem</small><div><b>{mountType.replaceAll("_", " ")}</b></div></div>
                 </div>
+                <div className="actions-grid">
+                  <button type="button" disabled={!!busy} onClick={() => processarFiltro(false)}>
+                    <FileSpreadsheet />
+                    {busy === "TESTAR_FILTRO" ? "Montando teste…" : "Testar sem usinagem"}
+                  </button>
+                  <label className={`drop ${usinagem ? "ready" : ""}`}>
+                    <UploadCloud />
+                    <span>
+                      <b>{usinagem?.name || "Adicionar usinagem"}</b>
+                      <small>{usinagem ? "Planilha selecionada" : ".xlsx / .xls"}</small>
+                    </span>
+                    <input type="file" accept=".xlsx,.xls" onChange={(e) => setUsinagem(e.target.files?.[0] || null)} />
+                  </label>
+                  <button type="button" className="primary" disabled={!usinagem || !!busy} onClick={() => processarFiltro(true)}>
+                    <RefreshCw className={busy === "PROCESSAR_FILTRO" ? "spin" : ""} />
+                    {busy === "PROCESSAR_FILTRO" ? "Finalizando…" : "Finalizar com usinagem"}
+                  </button>
+                </div>
+                <small>O teste sem usinagem usa somente os dados do Filtro 51 e serve para validar itens, quantidades, medidas, separação e montagem.</small>
               </div>
             )}
           </>
         ) : (
-          <div className="warningBox">
-            <b>SEM PROGRAMAÇÃO ATIVA</b>
-            <span>
-              Importe e libere o Filtro 51 para os pedidos aparecerem aqui.
-            </span>
-          </div>
+          <div className="warningBox"><b>Sem programação ativa</b><span>Importe e libere o Filtro 51 para os pedidos aparecerem aqui.</span></div>
         )}
-      </Panel>
+      </Card>
 
-      <Panel
-        title="Modo manual"
-        subtitle="Use somente para pedidos que ainda não estejam no Filtro 51."
-      >
-        <div className="doubleDrop">
+      <Card subtitle="Alternativa" title="Modo manual" className="mb">
+        <p className="muted" style={{ marginBottom: "var(--sp-4)" }}>Use somente para pedidos que ainda não estejam no Filtro 51.</p>
+        <div className="form-grid">
           <label className={`drop ${pedido ? "ready" : ""}`}>
             <UploadCloud />
-            <span>
-              <b>{pedido?.name || "Pedido em PDF"}</b>
-              <small>{pedido ? "Arquivo selecionado" : ".pdf"}</small>
-            </span>
-            <input
-              type="file"
-              accept=".pdf"
-              onChange={(e) => setPedido(e.target.files?.[0] || null)}
-            />
+            <span><b>{pedido?.name || "Pedido em PDF"}</b><small>{pedido ? "Arquivo selecionado" : ".pdf"}</small></span>
+            <input type="file" accept=".pdf" onChange={(e) => setPedido(e.target.files?.[0] || null)} />
           </label>
-
           <label className={`drop ${usinagem ? "ready" : ""}`}>
             <UploadCloud />
-            <span>
-              <b>{usinagem?.name || "Usinagem (opcional)"}</b>
-              <small>{usinagem ? "Arquivo selecionado" : ".xlsx / .xls"}</small>
-            </span>
-            <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={(e) => setUsinagem(e.target.files?.[0] || null)}
-            />
+            <span><b>{usinagem?.name || "Usinagem (opcional)"}</b><small>{usinagem ? "Arquivo selecionado" : ".xlsx / .xls"}</small></span>
+            <input type="file" accept=".xlsx,.xls" onChange={(e) => setUsinagem(e.target.files?.[0] || null)} />
           </label>
         </div>
-
-        <div className="reviewBar">
-          <button
-            className="primary"
-            disabled={!pedido || !!busy}
-            onClick={processar}
-          >
+        <div className="row" style={{ justifyContent: "flex-end", marginTop: "var(--sp-4)" }}>
+          <button className="primary" disabled={!pedido || !!busy} onClick={processar}>
             <RefreshCw className={busy === "PROCESSAR" ? "spin" : ""} />
-            {busy === "PROCESSAR" ? "PROCESSANDO..." : "PROCESSAR MODO MANUAL"}
+            {busy === "PROCESSAR" ? "Processando…" : "Processar modo manual"}
           </button>
         </div>
-      </Panel>
+      </Card>
 
-      <Panel
-        title="Configuração do romaneio"
-        subtitle="Defina a montagem e os dados complementares antes de gerar."
-      >
-        <div className="sourceTabs">
+      <Card subtitle="Passo 2" title="Configuração do romaneio" className="mb">
+        <div className="mount-options">
           {MONTAGENS.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              className={mountType === item.value ? "active" : ""}
-              onClick={() => setMountType(item.value)}
-            >
+            <button key={item.value} type="button" className={mountType === item.value ? "active" : ""} onClick={() => setMountType(item.value)}>
               <Boxes />
-              <span>
-                <b>{item.label}</b>
-                <small>{item.detalhe}</small>
-              </span>
+              <span><b>{item.label}</b><small>{item.detalhe}</small></span>
             </button>
           ))}
         </div>
-
-        <div className="formRow">
-          <label>
-            Filtro
-            <input value={filtro} onChange={(e) => setFiltro(e.target.value)} />
-          </label>
-
-          <label>
-            Página
-            <input value={pagina} onChange={(e) => setPagina(e.target.value)} />
-          </label>
-
-          <label>
-            Conferente
-            <input
-              value={conferente}
-              onChange={(e) => setConferente(e.target.value)}
-            />
-          </label>
-
-          <label>
-            Separado por
-            <input
-              value={separador}
-              onChange={(e) => setSeparador(e.target.value)}
-            />
-          </label>
-
-          <label>
-            Motorista
-            <input
-              value={motorista}
-              onChange={(e) => setMotorista(e.target.value)}
-            />
-          </label>
-
-          <label>
-            Transportadora
-            <input
-              value={transportadora}
-              onChange={(e) => setTransportadora(e.target.value)}
-            />
-          </label>
-
-          <label>
-            Placa
-            <input value={placa} onChange={(e) => setPlaca(e.target.value)} />
-          </label>
-
-          <label>
-            Nota fiscal
-            <input
-              value={notaFiscal}
-              onChange={(e) => setNotaFiscal(e.target.value)}
-            />
-          </label>
-
-          <label>
-            Complemento de obra
-            <select
-              value={complemento ? "SIM" : "NAO"}
-              onChange={(e) => setComplemento(e.target.value === "SIM")}
-            >
-              <option value="NAO">NÃO</option>
-              <option value="SIM">SIM</option>
+        <div className="form-grid" style={{ marginTop: "var(--sp-4)" }}>
+          <Field label="Filtro"><input value={filtro} onChange={(e) => setFiltro(e.target.value)} /></Field>
+          <Field label="Página"><input value={pagina} onChange={(e) => setPagina(e.target.value)} /></Field>
+          <Field label="Conferente"><input value={conferente} onChange={(e) => setConferente(e.target.value)} /></Field>
+          <Field label="Separado por"><input value={separador} onChange={(e) => setSeparador(e.target.value)} /></Field>
+          <Field label="Motorista"><input value={motorista} onChange={(e) => setMotorista(e.target.value)} /></Field>
+          <Field label="Transportadora"><input value={transportadora} onChange={(e) => setTransportadora(e.target.value)} /></Field>
+          <Field label="Placa"><input value={placa} onChange={(e) => setPlaca(e.target.value)} /></Field>
+          <Field label="Nota fiscal"><input value={notaFiscal} onChange={(e) => setNotaFiscal(e.target.value)} /></Field>
+          <Field label="Complemento de obra">
+            <select value={complemento ? "SIM" : "NAO"} onChange={(e) => setComplemento(e.target.value === "SIM")}>
+              <option value="NAO">Não</option>
+              <option value="SIM">Sim</option>
             </select>
-          </label>
+          </Field>
         </div>
-
-      </Panel>
+      </Card>
 
       {resultado && (
         <>
-          <Panel
-            title="3. Resultado"
-            subtitle="Confira a montagem antes de gerar os arquivos."
-          >
-            <section className="pcpMetricStrip">
-              <article>
-                <span>PEDIDO</span>
-                <b>{resultado.orderNumber || "-"}</b>
-                <small>{resultado.client || "Cliente não identificado"}</small>
-              </article>
-              <article>
-                <span>PALLETS</span>
-                <b>{resultado.packages.length}</b>
-                <small>gerados pela regra selecionada</small>
-              </article>
-              <article>
-                <span>MONTAGEM</span>
-                <b>{resultado.mountType.replaceAll("_", " ")}</b>
-                <small>{resultado.destination || "Destino não informado"}</small>
-              </article>
-              <article>
-                <span>AVISOS</span>
-                <b>{resultado.warnings?.length || 0}</b>
-                <small>itens para conferência</small>
-              </article>
-            </section>
+          <Card subtitle="Passo 3" title="Resultado" className="mb">
+            <div className="stats">
+              <StatCard label="Pedido" value={resultado.orderNumber || "-"} hint={resultado.client || "Cliente não identificado"} />
+              <StatCard label="Pallets" value={resultado.packages.length} hint="gerados pela regra selecionada" />
+              <StatCard label="Montagem" value={resultado.mountType.replaceAll("_", " ")} hint={resultado.destination || "Destino não informado"} />
+              <StatCard label="Avisos" value={resultado.warnings?.length || 0} hint="itens para conferência" tone={resultado.warnings?.length ? "warning" : "neutral"} />
+              {resultado.orderAudit && (
+                <StatCard
+                  label="Confiança da leitura"
+                  value={`${resultado.orderAudit.confidence}%`}
+                  hint={`${resultado.orderAudit.foundItems}/${resultado.orderAudit.expectedItems} itens lidos`}
+                  tone={resultado.orderAudit.confidence >= 90 ? "success" : resultado.orderAudit.confidence >= 60 ? "warning" : "danger"}
+                />
+              )}
+            </div>
 
             {!!resultado.warnings?.length && (
-              <div className="warningBox">
-                <b>CONFERIR ANTES DE GERAR</b>
-                {resultado.warnings.map((w, i) => (
-                  <span key={i}>{w}</span>
-                ))}
+              <div className="warningBox" style={{ flexDirection: "column", marginBottom: "var(--sp-4)" }}>
+                <b>Conferir antes de gerar</b>
+                {resultado.warnings.map((w, i) => <span key={i}>{w}</span>)}
               </div>
             )}
 
-            <div className="tableWrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>PALLET</th>
-                    <th>TIPO</th>
-                    <th>JOGOS</th>
-                    <th>LINHAS</th>
-                    <th>m³</th>
-                    <th>REGRA</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resultado.packages.map((pkg) => (
-                    <tr key={pkg.number}>
-                      <td><b>{pkg.number}</b></td>
-                      <td>{pkg.packageType || "-"}</td>
-                      <td>{pkg.games || "-"}</td>
-                      <td>{pkg.rows.length}</td>
-                      <td>{Number(pkg.totalVolume || 0).toFixed(3)}</td>
-                      <td>{pkg.ruleApplied || "-"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Panel>
+            <DataTable head={["Pallet", "Tipo", "Jogos", "Linhas", "m³", "Regra"]}>
+              {resultado.packages.map((pkg) => (
+                <tr key={pkg.number}>
+                  <td><b>{pkg.number}</b></td>
+                  <td>{pkg.packageType || "-"}</td>
+                  <td>{pkg.games || "-"}</td>
+                  <td>{pkg.rows.length}</td>
+                  <td className="num">{Number(pkg.totalVolume || 0).toFixed(3)}</td>
+                  <td>{pkg.ruleApplied || "-"}</td>
+                </tr>
+              ))}
+            </DataTable>
+          </Card>
 
-          <div className="reviewBar">
-            <button
-              className="primary"
-              disabled={!!busy}
-              onClick={() => baixar("ROMANEIO")}
-            >
-              <FileSpreadsheet />
-              {busy === "ROMANEIO" ? "GERANDO..." : "GERAR ROMANEIO"}
+          <div className="row" style={{ justifyContent: "flex-end" }}>
+            <button disabled={!!busy} onClick={() => baixar("ETIQUETAS")}>
+              <PackageCheck /> {busy === "ETIQUETAS" ? "Gerando…" : "Gerar etiquetas"}
             </button>
-
-            <button
-              className="secondary"
-              disabled={!!busy}
-              onClick={() => baixar("ETIQUETAS")}
-            >
-              <PackageCheck />
-              {busy === "ETIQUETAS" ? "GERANDO..." : "GERAR ETIQUETAS"}
+            <button className="primary" disabled={!!busy} onClick={() => baixar("ROMANEIO")}>
+              <FileSpreadsheet /> {busy === "ROMANEIO" ? "Gerando…" : "Gerar romaneio"}
             </button>
           </div>
         </>

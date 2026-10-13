@@ -262,6 +262,7 @@ export type ProcessingResult = {
   parserDiagnostics?: ParserDiagnostics;
   sourceMode?: SourceMode;
   sourceFileName?: string;
+  orderAudit?: { confidence: number; expectedItems: number; foundItems: number; missingItems: string[]; issues: string[]; recoveredByAI?: string[] };
   specialInstructions?: string[];
   trimAsResale?: boolean;
   romaneioStyle?: RomaneioStyle;

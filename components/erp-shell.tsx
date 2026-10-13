@@ -3,40 +3,21 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Bell,
-  Boxes,
-  ChevronDown,
-  ClipboardCheck,
-  Factory,
-  Flag,
-  HelpCircle,
-  History,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  PackageSearch,
-  PanelLeftClose,
-  PanelLeftOpen,
-  RefreshCw,
-  Route,
-  Search,
-  Settings,
-  ShieldCheck,
-  UploadCloud,
-  UsersRound,
-  type LucideIcon,
+  Bell, Boxes, ChevronDown, ClipboardCheck, Factory, Flag, History, LayoutDashboard, LogOut, Menu,
+  PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
+  UploadCloud, UsersRound, type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { OperationalProvider, useOps } from "@/components/operational-provider";
+import AiAssistant from "@/components/ai-assistant";
+import RomaneioAIModal from "@/components/romaneio-ai";
+import { allowedPath } from "@/lib/permissions";
 
 type MenuItem = { path: string; label: string; icon: LucideIcon };
 type MenuGroup = { label: string; items: MenuItem[] };
 
 const menus: MenuGroup[] = [
-  {
-    label: "Início",
-    items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }],
-  },
+  { label: "Início", items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }] },
   {
     label: "Produção",
     items: [
@@ -47,14 +28,8 @@ const menus: MenuGroup[] = [
       { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },
     ],
   },
-  {
-    label: "Qualidade",
-    items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }],
-  },
-  {
-    label: "Expedição",
-    items: [{ path: "/romaneios", label: "Romaneios", icon: Boxes }],
-  },
+  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }] },
+  { label: "Expedição", items: [{ path: "/romaneios", label: "Romaneios", icon: Boxes }] },
   {
     label: "Relatórios",
     items: [
@@ -62,265 +37,117 @@ const menus: MenuGroup[] = [
       { path: "/historico", label: "Histórico", icon: History },
     ],
   },
-  {
-    label: "Configurações",
-    items: [{ path: "/configuracoes", label: "Configurações", icon: Settings }],
-  },
+  { label: "Sistema", items: [{ path: "/configuracoes", label: "Configurações", icon: Settings }] },
 ];
 
-function allowed(role: string, path: string) {
-  const pcp = [
-    "/dashboard",
-    "/programacao",
-    "/programacao-gerente",
-    "/prioridades",
-    "/criticos",
-    "/lideres",
-    "/apontamentos",
-    "/excecoes",
-    "/inspecao-pallets",
-    "/romaneios",
-    "/historico",
-    "/configuracoes",
-  ];
-
-  if (role === "PCP") return pcp.includes(path);
-  if (role === "GERENTE")
-    return ["/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico"].includes(path);
-  if (role === "ENCARREGADO")
-    return ["/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios"].includes(path);
-  if (role === "LIDER") return ["/lideres", "/excecoes"].includes(path);
-  if (role === "APONTADOR") return ["/apontamentos"].includes(path);
-  if (role === "QUALIDADE") return ["/dashboard", "/inspecao-pallets"].includes(path);
-  return false;
-}
+const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/apontamentos", QUALIDADE: "/inspecao-pallets" };
 
 function Inner({ children }: { children: React.ReactNode }) {
   const { me, pg, lastSync, realtimeStatus, refresh, loading } = useOps();
   const path = usePathname();
   const router = useRouter();
-
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNav, setMobileNav] = useState(false);
   const [query, setQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
 
   const visible = useMemo(
-    () =>
-      menus
-        .map((g) => ({ ...g, items: g.items.filter((i) => me && allowed(me.perfil, i.path)) }))
-        .filter((g) => g.items.length),
+    () => menus.map((g) => ({ ...g, items: g.items.filter((i) => me && allowedPath(me.perfil, i.path)) })).filter((g) => g.items.length),
     [me]
   );
-
-  const current = useMemo(() => {
-    for (const g of menus) {
-      const i = g.items.find((x) => x.path === path);
-      if (i) return i.label;
-    }
-    return "Central de Produção";
-  }, [path]);
-
   const allVisible = useMemo(() => visible.flatMap((g) => g.items), [visible]);
+  const current = allVisible.find((i) => i.path === path)?.label || "Central de Produção";
 
   useEffect(() => {
     if (loading) return;
-    if (!me) {
-      router.replace("/login");
-      return;
-    }
-    if (allowed(me.perfil, path)) return;
-    if (me.perfil === "LIDER") {
-      router.replace("/lideres");
-      return;
-    }
-    if (me.perfil === "APONTADOR") {
-      router.replace("/apontamentos");
-      return;
-    }
-    if (me.perfil === "QUALIDADE") {
-      router.replace("/inspecao-pallets");
-      return;
-    }
-    router.replace("/dashboard");
+    if (!me) { router.replace("/login"); return; }
+    if (allowedPath(me.perfil, path)) return;
+    router.replace(HOME[me.perfil] || "/dashboard");
   }, [me, path, router, loading]);
 
-  useEffect(() => {
-    setMobileNav(false);
-    setProfileOpen(false);
-  }, [path]);
+  useEffect(() => { setMobileNav(false); setProfileOpen(false); }, [path]);
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.href = "/login";
   }
-
   function searchModule() {
     const q = query.trim().toLocaleLowerCase("pt-BR");
-    if (!q) return;
-    const found = allVisible.find((item) => item.label.toLocaleLowerCase("pt-BR").includes(q));
-    if (found) {
-      router.push(found.path);
-      setQuery("");
-    }
+    const found = q && allVisible.find((i) => i.label.toLocaleLowerCase("pt-BR").includes(q));
+    if (found) { router.push(found.path); setQuery(""); }
   }
 
-  if (loading)
-    return (
-      <div className="boot fioriBoot">
-        <Factory />
-        <b>SOBRAL PCP</b>
-        <span>Preparando ambiente...</span>
-      </div>
-    );
+  if (loading) return <div className="boot"><Factory /><b>Sobral PCP</b><span>Preparando ambiente...</span></div>;
   if (!me) return null;
 
+  const live = realtimeStatus === "tempo_real";
   return (
-    <div className={`fioriShell ${collapsed ? "isCollapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
-      <header className="fioriShellBar">
-        <div className="fioriShellLeft">
-          <button
-            className="fioriIconButton mobileMenuButton"
-            onClick={() => setMobileNav((v) => !v)}
-            aria-label="Abrir menu"
-            title="Menu"
-          >
-            <Menu />
-          </button>
-
-          <button
-            className="fioriIconButton desktopCollapseButton"
-            onClick={() => setCollapsed((v) => !v)}
-            aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
-            title={collapsed ? "Expandir menu" : "Recolher menu"}
-          >
-            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-          </button>
-
-          <Link href="/dashboard" className="fioriSystemName">
-            <span className="fioriSystemMark"><Factory /></span>
-            <span>
-              <b>Sobral PCP</b>
-              <small>{current}</small>
-            </span>
-          </Link>
-        </div>
-
-        <div className="fioriGlobalSearch" role="search">
-          <Search />
-          <input
-            aria-label="Buscar módulo"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") searchModule();
-            }}
-            placeholder="Pesquisar módulos e funções"
-          />
-          {query && (
-            <button onClick={searchModule} aria-label="Ir para resultado">
-              Ir
-            </button>
-          )}
-        </div>
-
-        <div className="fioriShellRight">
-          {pg && (
-            <div className="fioriContextMeta">
-              <span><small>Filtro</small><b>{pg.filtro || "-"}</b></span>
-              <span><small>Turno</small><b>{pg.turno || "-"}</b></span>
-              <span><small>Data</small><b>{new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}</b></span>
-            </div>
-          )}
-
-          <button className="fioriIconButton" onClick={() => void refresh()} aria-label="Atualizar" title="Atualizar">
-            <RefreshCw />
-          </button>
-
-          <button className="fioriIconButton notificationButton" aria-label="Notificações" title="Notificações">
-            <Bell />
-            <i className="notificationBadge">{realtimeStatus === "tempo_real" ? "1" : "!"}</i>
-          </button>
-
-          <button className="fioriIconButton" aria-label="Ajuda" title="Ajuda">
-            <HelpCircle />
-          </button>
-
-          <div className="fioriProfileWrap">
-            <button
-              className="fioriAvatarButton"
-              onClick={() => setProfileOpen((v) => !v)}
-              aria-expanded={profileOpen}
-            >
-              <span className="fioriAvatar">{me.usuario.slice(0, 2).toUpperCase()}</span>
-              <span className="fioriAvatarText">
-                <b>{me.usuario}</b>
-                <small>{me.perfil}</small>
-              </span>
-              <ChevronDown />
-            </button>
-
-            {profileOpen && (
-              <div className="fioriProfileMenu">
-                <div>
-                  <b>{me.usuario}</b>
-                  <span>{me.perfil}</span>
-                </div>
-                <div className="fioriLiveRow">
-                  <i className={realtimeStatus === "tempo_real" ? "online" : ""} />
-                  <span>
-                    {realtimeStatus === "tempo_real" ? "Tempo real ativo" : "Sincronização"}
-                    <small>{lastSync ? lastSync.toLocaleTimeString("pt-BR") : "--:--:--"}</small>
-                  </span>
-                </div>
-                <button onClick={logout}><LogOut /> Sair</button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <aside className="fioriSideNav">
+    <div className={`shell ${collapsed ? "collapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
+      <aside className="sidenav">
+        <div className="brand"><span className="brand-mark"><Factory size={18} /></span><span>Sobral PCP</span></div>
         <nav>
-          {visible.map((group) => (
-            <section key={group.label} className="fioriNavGroup">
-              {!collapsed && <label>{group.label}</label>}
-              {group.items.map((item) => {
+          {visible.map((g) => (
+            <section key={g.label} className="navgroup">
+              <label>{g.label}</label>
+              {g.items.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link
-                    key={item.path}
-                    href={item.path}
-                    className={path === item.path ? "active" : ""}
-                    title={collapsed ? item.label : undefined}
-                  >
-                    <Icon />
-                    {!collapsed && <span>{item.label}</span>}
+                  <Link key={item.path} href={item.path} className={`navlink ${path === item.path ? "active" : ""}`} title={collapsed ? item.label : undefined}>
+                    <Icon /><span>{item.label}</span>
                   </Link>
                 );
               })}
             </section>
           ))}
         </nav>
-
-        {!collapsed && (
-          <div className="fioriSideFooter">
-            <span>Programação ativa</span>
-            <b>{pg?.filtro || "Sem filtro"}</b>
-            <small>
-              {pg
-                ? `Turno ${pg.turno} · ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}`
-                : "Aguardando programação"}
-            </small>
-          </div>
-        )}
+        <div className="sidefoot">
+          Programação ativa
+          <b>{pg?.filtro || "Sem filtro"}</b>
+          {pg ? `Turno ${pg.turno} · ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}` : "Aguardando programação"}
+        </div>
       </aside>
 
-      {mobileNav && <button className="fioriNavBackdrop" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
+      {mobileNav && <button className="backdrop" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
 
-      <main className="fioriMain">
-        <div className="fioriPage">{children}</div>
-      </main>
+      <header className="topbar2">
+        <button className="ghost iconBtn menubtn" onClick={() => setMobileNav(true)} aria-label="Abrir menu"><Menu /></button>
+        <button className="ghost iconBtn" onClick={() => setCollapsed((v) => !v)} aria-label="Recolher menu" style={{ display: undefined }}>
+          {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+        </button>
+        <h2>{current}</h2>
+        <div className="search" role="search">
+          <Search />
+          <input aria-label="Buscar módulo" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") searchModule(); }} placeholder="Ir para módulo…" />
+        </div>
+        <div className="spacer" />
+        {pg && (
+          <div className="ctxmeta">
+            <span>Filtro<b>{pg.filtro || "-"}</b></span>
+            <span>Turno<b>{pg.turno || "-"}</b></span>
+            <span>Data<b>{new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}</b></span>
+          </div>
+        )}
+        <span className={`livedot ${live ? "on" : ""}`} title={live ? "Tempo real ativo" : "Sincronizando"} />
+        <button className="ghost iconBtn" onClick={() => void refresh()} aria-label="Atualizar" title="Atualizar"><RefreshCw /></button>
+        <button className="ghost iconBtn" aria-label="Notificações" title="Notificações"><Bell /></button>
+        <div style={{ position: "relative" }}>
+          <button className="userchip" onClick={() => setProfileOpen((v) => !v)} aria-expanded={profileOpen}>
+            <span className="avatar">{me.usuario.slice(0, 2).toUpperCase()}</span>
+            <ChevronDown size={14} />
+          </button>
+          {profileOpen && (
+            <div className="menu">
+              <div><b>{me.usuario}</b><br /><small>{me.perfil}</small></div>
+              <div><small>Última sincronização: {lastSync ? lastSync.toLocaleTimeString("pt-BR") : "--:--:--"}</small></div>
+              <button onClick={logout}><LogOut /> Sair</button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <main className="main"><div className="page">{children}</div></main>
+      <AiAssistant />
+      <RomaneioAIModal />
     </div>
   );
 }

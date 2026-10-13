@@ -10,6 +10,7 @@ import { modeloProduto } from "@/lib/presentation";
 import { fmt } from "@/lib/format";
 import { exportarExcel, linhaOp } from "@/lib/export";
 import { FamiliaTabs, TableScroll } from "@/components/table-scroll";
+import { Badge, PageHeader, Segmented, type Tone } from "@/components/ui";
 
 export default function Sequenciamento() {
   const { pg, refresh, toast } = useOps();
@@ -97,50 +98,23 @@ export default function Sequenciamento() {
     );
   }
 
+  const tomPrio = (p: string): Tone => (/URGENTE/i.test(p) ? "danger" : /ALTA/i.test(p) ? "warning" : "neutral");
+
   return (
     <>
-      <div className="pageTitle">
-        <div>
-          <span>APS</span>
-
-          <h1>Sequenciamento</h1>
-
-          <p>
-            Prioridade, agrupamento de setup e
-            intervenção manual controlada.
-          </p>
-        </div>
-
-        <button
-          className="secondary"
-          onClick={() =>
-            exportarExcel(
-              [{ nome: LABELS[proc] || proc, linhas: rows.map((x) => linhaOp(x.p, x.o)) }],
-              `Sequenciamento_${LABELS[proc] || proc}`
-            )
-          }
-        >
-          <FileSpreadsheet />
-          Exportar Excel
-        </button>
-      </div>
-
-      <div className="processTabs">
-        {procs.map((p) => (
-          <button
-            key={p}
-            className={
-              proc === p
-                ? "active"
-                : ""
-            }
-            onClick={() =>
-              setProc(p)
-            }
-          >
-            {LABELS[p] || p}
+      <PageHeader
+        eyebrow="APS"
+        title="Sequenciamento"
+        description="Prioridade, agrupamento de setup e intervenção manual controlada. Arraste as linhas para reordenar."
+        actions={
+          <button onClick={() => exportarExcel([{ nome: LABELS[proc] || proc, linhas: rows.map((x) => linhaOp(x.p, x.o)) }], `Sequenciamento_${LABELS[proc] || proc}`)}>
+            <FileSpreadsheet /> Exportar Excel
           </button>
-        ))}
+        }
+      />
+
+      <div style={{ marginBottom: "var(--sp-3)", overflowX: "auto" }}>
+        <Segmented value={proc} onChange={setProc} options={procs.map((p) => ({ value: p, label: LABELS[p] || p }))} />
       </div>
 
       <FamiliaTabs value={fam} onChange={setFam} familias={FAMILIAS} />
@@ -149,39 +123,29 @@ export default function Sequenciamento() {
         <table>
           <thead>
             <tr>
-              <th>SEQ.</th><th>FIXA</th><th>PEDIDO</th><th>ITEM</th><th>OF</th><th>PRODUTO</th><th>FAMÍLIA</th><th>DESCRIÇÃO</th>
-              <th>TIPO</th><th>REBAIXO</th><th>ACABAMENTO</th><th>COR</th><th className="num">QTD PROGRAMADA</th>
-              <th className="num">COMP.</th><th className="num">LARG.</th><th className="num">ESP.</th><th>STATUS</th><th>PRIORIDADE</th><th>AÇÕES</th>
+              <th>Seq.</th><th>Fixa</th><th>Pedido</th><th>Item</th><th>OF</th><th>Produto</th><th>Família</th><th>Descrição</th>
+              <th>Tipo</th><th>Rebaixo</th><th>Acabamento</th><th>Cor</th><th className="num">Qtd programada</th>
+              <th className="num">Comp.</th><th className="num">Larg.</th><th className="num">Esp.</th><th>Status</th><th>Prioridade</th><th>Ações</th>
             </tr>
           </thead>
-
           <tbody>
             {rows.map(({ p, o }, i) => {
               const m = modeloProduto(p, o, pg?.turno || "");
               return (
-                <tr
-                  key={o.id}
-                  draggable
-                  onDragStart={() => setDragged(o.id)}
-                  onDragEnd={() => setDragged(null)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => dropOn(i + 1, o.id)}
-                >
+                <tr key={o.id} draggable onDragStart={() => setDragged(o.id)} onDragEnd={() => setDragged(null)} onDragOver={(event) => event.preventDefault()} onDrop={() => dropOn(i + 1, o.id)} className={dragged === o.id ? "dragging" : ""}>
                   <td className="mono"><b>{o.ordemFila}</b></td>
                   <td>{o.fixada ? <Pin size={16} /> : ""}</td>
                   <td>{m.pedido}</td><td>{m.item}</td><td><b>{m.of}</b></td><td>{m.produto}</td>
-                  <td><em className="tag">{m.familia}</em></td><td className="descCell"><b>{m.descricao}</b></td>
+                  <td><Badge>{m.familia}</Badge></td><td className="descCell"><b>{m.descricao}</b></td>
                   <td>{m.tipo}</td><td>{m.rebaixo}</td><td>{m.acabamento}</td><td>{m.cor}</td>
                   <td className="num">{fmt(m.planejado)}</td><td className="num mono">{fmt(m.comprimento)}</td>
                   <td className="num mono">{fmt(m.largura)}</td><td className="num mono">{fmt(m.espessura)}</td>
-                  <td>{m.status}</td><td><span className={`priority p-${String(m.prioridade).toLowerCase()}`}>{m.prioridade}</span></td>
+                  <td>{m.status}</td><td><Badge tone={tomPrio(String(m.prioridade))}>{m.prioridade}</Badge></td>
                   <td>
                     <div className="rowActions">
                       <button type="button" title="Subir" onClick={() => patch(o.id, "MOVER", { ordem: Math.max(1, o.ordemFila - 1) })}><ArrowUp /></button>
                       <button type="button" title="Descer" onClick={() => patch(o.id, "MOVER", { ordem: o.ordemFila + 1 })}><ArrowDown /></button>
-                      <button type="button" title={o.fixada ? "Desafixar" : "Fixar"} onClick={() => patch(o.id, "FIXAR", { value: !o.fixada })}>
-                        {o.fixada ? <PinOff /> : <Pin />}
-                      </button>
+                      <button type="button" title={o.fixada ? "Desafixar" : "Fixar"} onClick={() => patch(o.id, "FIXAR", { value: !o.fixada })}>{o.fixada ? <PinOff /> : <Pin />}</button>
                     </div>
                   </td>
                 </tr>

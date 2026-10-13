@@ -30,11 +30,16 @@ export const normalizeImportHeader = (value: unknown) =>
     .trim()
     .toUpperCase();
 
+/**
+ * Converte número em formato brasileiro (padrão) ou internacional.
+ * Regras: "0,125"/"0.125" = decimal; "1.234" = milhar (BR); "1,234" = decimal (BR);
+ * "1.234,56" e "1,234.56" = o último separador é o decimal; "1,234,567" = milhares.
+ */
 export function parseImportNumber(value: unknown): number | null {
   let s = cleanImportText(value)
     .replace(/%/g, "")
     .replace(/\s+/g, "")
-    .replace(/(?:UN|UNID|UNIDADE|UNIDADES|PC|PCS|PÇ|PÇS|JG|CJ)$/i, "");
+    .replace(/(?:UNIDADES?|UNID|UN|PCS|PC|PÇS|PÇ|JG|CJ|KG|M[23²³]|MM|CM|M|G|L)$/i, "");
 
   if (!s || /^(?:-|—|N\/?A|ND|N\/D)$/i.test(s)) return null;
 
@@ -44,17 +49,19 @@ export function parseImportNumber(value: unknown): number | null {
 
   const comma = s.lastIndexOf(",");
   const dot = s.lastIndexOf(".");
+  const commas = (s.match(/,/g) || []).length;
+  const dots = (s.match(/\./g) || []).length;
 
   if (comma >= 0 && dot >= 0) {
     if (comma > dot) s = s.replace(/\./g, "").replace(",", ".");
     else s = s.replace(/,/g, "");
   } else if (comma >= 0) {
-    const decimals = s.length - comma - 1;
-    if (decimals === 3 && /^\d{1,3}(,\d{3})+$/.test(s)) s = s.replace(/,/g, "");
-    else s = s.replace(",", ".");
+    // várias vírgulas = milhares ("1,234,567"); uma só = decimal (padrão BR)
+    s = commas > 1 ? s.replace(/,/g, "") : s.replace(",", ".");
   } else if (dot >= 0) {
     const decimals = s.length - dot - 1;
-    if (decimals === 3 && /^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, "");
+    const milhar = /^[1-9]\d{0,2}(\.\d{3})+$/.test(s); // não começa com 0
+    if (dots > 1 || (decimals === 3 && milhar)) s = s.replace(/\./g, "");
   }
 
   const n = Number(sign + s);

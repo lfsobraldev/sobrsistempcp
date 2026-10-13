@@ -5,7 +5,7 @@ import {
   Camera, CheckCircle2, ClipboardCheck, FileSpreadsheet, ImagePlus, LockKeyhole, PackageCheck, Plus,
   Printer, RefreshCw, Search, ShieldCheck, Truck, UnlockKeyhole, XCircle
 } from "lucide-react";
-import { Modal, Panel } from "@/components/ui";
+import { Badge, Card, Drawer, Empty, Field, Modal, PageHeader, StatCard, type Tone } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
 
 type Foto = { id:string; dataUrl?:string|null; url?:string; legenda:string; area:string; usuario:string; criadoEm:string; tipo?:string; ncId?:string|null };
@@ -194,36 +194,160 @@ export default function InspecaoPallets(){
     }
   }
 
+  const tomStatus = (v: string): Tone => (v === "LIBERADO" ? "success" : v === "BLOQUEADO" ? "danger" : v === "EM_LIBERACAO" ? "info" : "warning");
+  const tomCard: Record<string, Tone> = { warn: "warning", info: "info", danger: "danger", success: "success", "": "neutral" };
+  const fluxo = (st: string) => (st === "LIBERADO" ? "done" : st === "BLOQUEADO" ? "blocked" : "");
+
   return <>
-    <div className="pageTitle"><div><span>QUALIDADE / MSAC</span><h1>Inspeção e Liberação de Pallets</h1><p>Inspeção com fotos, bloqueio, dupla liberação e etiqueta rastreável.</p></div><div className="palletTopActions"><button className="secondary" disabled={busy||!itens.length} onClick={exportarRelatorioExcel}><FileSpreadsheet/>Exportar relatório Excel</button><button className="secondary" onClick={load}><RefreshCw/>Atualizar</button>{!isQuality&&<button className="primary" onClick={()=>setCreateOpen(true)}><Plus/>Novo pallet</button>}</div></div>
+    <PageHeader
+      eyebrow="Qualidade / MSAC"
+      title="Inspeção e Liberação de Pallets"
+      description="Inspeção com fotos, bloqueio, dupla liberação e etiqueta rastreável."
+      actions={<>
+        <button disabled={busy || !itens.length} onClick={exportarRelatorioExcel}><FileSpreadsheet /> Exportar relatório Excel</button>
+        <button onClick={load}><RefreshCw className={busy ? "spin" : ""} /> Atualizar</button>
+        {!isQuality && <button className="primary" onClick={() => setCreateOpen(true)}><Plus /> Novo pallet</button>}
+      </>}
+    />
 
-    <div className="palletKpis">{cards.map(([a,b,t])=><div key={String(a)} className={`palletKpi ${t}`}><span>{a}</span><b>{b}</b></div>)}</div>
+    <div className="stats">
+      {cards.map(([a, b, t]) => <StatCard key={String(a)} label={a as string} value={b as number} tone={tomCard[String(t)] || "neutral"} />)}
+    </div>
 
-    <Panel title="Controle de pallets" subtitle="Qualidade libera primeiro; MSAC confirma a liberação final.">
-      <div className="palletFilters"><label><Search/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Buscar pedido, pallet, filtro ou cliente..."/></label><select value={status} onChange={e=>setStatus(e.target.value)}><option value="">Todos os status</option><option>AGUARDANDO_INSPECAO</option><option>EM_LIBERACAO</option><option>BLOQUEADO</option><option>LIBERADO</option></select></div>
-      <div className="tableWrap palletTable"><table><thead><tr><th>Pallet</th><th>Pedido</th><th>Cliente</th><th>Filtro</th><th>Tipo</th><th className="num">Qtd</th><th className="num">Jogos</th><th>Qualidade</th><th>MSAC</th><th>Status</th><th>Fotos</th><th>Atualizado</th><th>Ações</th></tr></thead><tbody>
-        {itens.map(p=><tr key={p.id} className={p.status==="BLOQUEADO"?"critRow":""} onClick={()=>openPallet(p.id)}><td><b>{p.pallet}</b><small className="palletCode">{p.codigo}</small></td><td>{p.pedido}</td><td>{p.cliente||"-"}</td><td>{p.filtro||"-"}</td><td>{p.tipo_produto||"-"}</td><td className="num">{fmt(p.quantidade)}</td><td className="num">{fmt(p.jogos)}</td><td><span className={`palletStage s-${p.qualidade_status.toLowerCase()}`}>{statusLabel(p.qualidade_status)}</span></td><td><span className={`palletStage s-${p.msac_status.toLowerCase()}`}>{statusLabel(p.msac_status)}</span></td><td><span className={`palletGlobal g-${p.status.toLowerCase()}`}>{statusLabel(p.status)}</span></td><td>{p.fotos_count||0}</td><td>{date(p.atualizado_em)}</td><td><div className="rowActions" onClick={e=>e.stopPropagation()}><button title="Abrir" onClick={()=>openPallet(p.id)}><ClipboardCheck/></button><button title="Relatório completo" onClick={()=>exportarPalletCompleto(p)}><FileSpreadsheet/></button><button title="Etiqueta" onClick={()=>printLabel(p)}><Printer/></button></div></td></tr>)}
-        {!itens.length&&!busy&&<tr><td colSpan={13}><div className="empty"><b>Nenhum pallet encontrado.</b><span>Cadastre o primeiro pallet ou altere os filtros.</span></div></td></tr>}
-      </tbody></table></div>
-    </Panel>
+    <Card subtitle="Qualidade libera primeiro; MSAC confirma a liberação final" title="Controle de pallets" className="mb"
+      actions={
+        <div className="row">
+          <div className="search" style={{ width: 280 }}><Search /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar pedido, pallet, filtro ou cliente..." /></div>
+          <select value={status} onChange={(e) => setStatus(e.target.value)} style={{ width: 200 }}>
+            <option value="">Todos os status</option>
+            <option value="AGUARDANDO_INSPECAO">Aguardando inspeção</option>
+            <option value="EM_LIBERACAO">Em liberação</option>
+            <option value="BLOQUEADO">Bloqueado</option>
+            <option value="LIBERADO">Liberado</option>
+          </select>
+        </div>
+      }>
+      <div className="tableScroll"><div className="tableWrap">
+        <table>
+          <thead><tr><th>Pallet</th><th>Pedido</th><th>Cliente</th><th>Filtro</th><th>Tipo</th><th className="num">Qtd</th><th className="num">Jogos</th><th>Qualidade</th><th>MSAC</th><th>Status</th><th>Fotos</th><th>Atualizado</th><th>Ações</th></tr></thead>
+          <tbody>
+            {itens.map((p) => (
+              <tr key={p.id} className={`clickRow ${p.status === "BLOQUEADO" ? "critRow" : ""}`} onClick={() => openPallet(p.id)}>
+                <td><b>{p.pallet}</b><small className="palletCode" style={{ display: "block" }}>{p.codigo}</small></td>
+                <td>{p.pedido}</td><td>{p.cliente || "-"}</td><td>{p.filtro || "-"}</td><td>{p.tipo_produto || "-"}</td>
+                <td className="num">{fmt(p.quantidade)}</td><td className="num">{fmt(p.jogos)}</td>
+                <td><Badge tone={tomStatus(p.qualidade_status)}>{statusLabel(p.qualidade_status)}</Badge></td>
+                <td><Badge tone={tomStatus(p.msac_status)}>{statusLabel(p.msac_status)}</Badge></td>
+                <td><Badge tone={tomStatus(p.status)}>{statusLabel(p.status)}</Badge></td>
+                <td>{p.fotos_count || 0}</td><td>{date(p.atualizado_em)}</td>
+                <td><div className="rowActions" onClick={(e) => e.stopPropagation()}>
+                  <button title="Abrir" onClick={() => openPallet(p.id)}><ClipboardCheck /></button>
+                  <button title="Relatório completo" onClick={() => exportarPalletCompleto(p)}><FileSpreadsheet /></button>
+                  <button title="Etiqueta" onClick={() => printLabel(p)}><Printer /></button>
+                </div></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!itens.length && !busy && <Empty title="Nenhum pallet encontrado." sub="Cadastre o primeiro pallet ou altere os filtros." />}
+      </div></div>
+    </Card>
 
-    {selected&&<div className="palletDetail"><div className="palletDetailHead"><div><span>{selected.codigo}</span><h2>Pallet {selected.pallet} • Pedido {selected.pedido}</h2><p>{selected.cliente||"Cliente não informado"} {selected.destino?`• ${selected.destino}`:""}</p></div><button onClick={()=>setSelected(null)}><XCircle/></button></div>
-      <div className="releaseFlow"><div className={selected.qualidade_status==="LIBERADO"?"done":selected.qualidade_status==="BLOQUEADO"?"blocked":""}><ShieldCheck/><span>QUALIDADE</span><b>{statusLabel(selected.qualidade_status)}</b><small>{selected.qualidade_usuario||"Aguardando"}</small></div><i>→</i><div className={selected.msac_status==="LIBERADO"?"done":selected.msac_status==="BLOQUEADO"?"blocked":""}><Truck/><span>MSAC</span><b>{statusLabel(selected.msac_status)}</b><small>{selected.msac_usuario||"Aguardando"}</small></div><i>→</i><div className={selected.status==="LIBERADO"?"done":selected.status==="BLOQUEADO"?"blocked":""}><PackageCheck/><span>PALLET</span><b>{statusLabel(selected.status)}</b><small>{selected.status==="LIBERADO"?"Pronto para seguir":"Controle ativo"}</small></div></div>
-      {selected.status==="BLOQUEADO"&&<div className="palletBlockAlert"><LockKeyhole/><div><b>PALLET BLOQUEADO</b><span>{selected.bloqueio_motivo||"Motivo não informado"}</span></div></div>}
-      <div className="palletMeta"><div><small>Quantidade</small><b>{fmt(selected.quantidade)}</b></div><div><small>Jogos</small><b>{fmt(selected.jogos)}</b></div><div><small>Turno</small><b>{selected.turno||"-"}</b></div><div><small>Tipo</small><b>{selected.tipo_produto||"-"}</b></div><div><small>Montador</small><b>{selected.montador||"-"}</b></div><div><small>Conferente</small><b>{selected.conferente||"-"}</b></div></div>
-      <div className="palletActionGrid"><button onClick={()=>{setArea("QUALIDADE");setInspectionOpen(true)}}><ClipboardCheck/>Inspecionar Qualidade</button>{!isQuality&&<button onClick={()=>{setArea("MSAC");setInspectionOpen(true)}}><Truck/>Inspecionar MSAC</button>}<button onClick={()=>photoRef.current?.click()}><ImagePlus/>Adicionar foto</button><button onClick={()=>exportarPalletCompleto(selected)}><FileSpreadsheet/>Relatório completo</button><button onClick={()=>printLabel(selected)}><Printer/>Gerar etiqueta</button></div>
-      <input ref={photoRef} type="file" accept="image/*" capture="environment" hidden onChange={e=>addPhoto(e.target.files?.[0])}/>
-      <div className="palletDecisionGrid"><button className="release" onClick={()=>openDecision("QUALIDADE_LIBERAR","Liberar pela Qualidade")}><CheckCircle2/>Liberar Qualidade</button><button className="block" onClick={()=>openDecision("QUALIDADE_BLOQUEAR","Bloquear pela Qualidade")}><LockKeyhole/>Bloquear Qualidade</button>{!isQuality&&<><button className="release" disabled={selected.qualidade_status!=="LIBERADO"} onClick={()=>openDecision("MSAC_LIBERAR","Liberar pelo MSAC")}><CheckCircle2/>Liberar MSAC</button><button className="block" onClick={()=>openDecision("MSAC_BLOQUEAR","Bloquear pelo MSAC")}><LockKeyhole/>Bloquear MSAC</button></>}{["PCP","GERENTE","ENCARREGADO"].includes(String(me?.perfil))&&<button className="reopen" onClick={()=>openDecision("REABRIR","Reabrir pallet")}><UnlockKeyhole/>Reabrir</button>}</div>
-      <div className="photoSection"><div className="sectionTitle"><Camera/><b>Evidências fotográficas</b><span>{selected.fotos?.length||0} foto(s)</span></div>{selected.fotos?.length?<div className="photoGrid">{selected.fotos.map(f=><figure key={f.id}><img src={f.url||f.dataUrl||""} loading="lazy" decoding="async" alt={f.legenda||"Foto do pallet"}/><figcaption><b>{f.area}</b><span>{f.usuario} • {date(f.criadoEm)}</span></figcaption></figure>)}</div>:<div className="empty"><b>Nenhuma foto adicionada.</b><span>Use “Adicionar foto” para registrar a condição do pallet.</span></div>}</div>
-      <div className="palletHistory"><div><div className="sectionTitle"><ClipboardCheck/><b>Inspeções</b><span>{selected.inspecoes?.length||0}</span></div>{selected.inspecoes?.length?<div className="historyList">{selected.inspecoes.slice(0,8).map(i=><article key={i.id}><b>{i.area} • {i.resultado}</b><span>{i.usuario} • {date(i.criadoEm)}</span>{i.observacao&&<p>{i.observacao}</p>}</article>)}</div>:<div className="empty"><span>Sem inspeções registradas.</span></div>}</div><div><div className="sectionTitle"><RefreshCw/><b>Rastreabilidade</b><span>{selected.eventos?.length||0}</span></div>{selected.eventos?.length?<div className="historyList">{selected.eventos.slice(0,10).map(e=><article key={e.id}><b>{e.descricao}</b><span>{e.usuario} • {date(e.criadoEm)}</span></article>)}</div>:<div className="empty"><span>Sem eventos registrados.</span></div>}</div></div>
-    </div>}
+    <Drawer open={!!selected} title={selected ? `Pallet ${selected.pallet} · Pedido ${selected.pedido}` : "Pallet"} onClose={() => setSelected(null)}>
+      {selected && (
+        <div className="pallet-detail">
+          <p className="muted">{selected.codigo} · {selected.cliente || "Cliente não informado"}{selected.destino ? ` · ${selected.destino}` : ""}</p>
 
-    <Modal open={createOpen} title="Cadastrar pallet" onClose={()=>setCreateOpen(false)} footer={<><button className="secondary" onClick={()=>setCreateOpen(false)}>Cancelar</button><button className="primary" disabled={busy} onClick={create}>Cadastrar pallet</button></>}><div className="palletForm">{[["Pedido","pedido"],["Cliente","cliente"],["Filtro","filtro"],["Pallet","pallet"],["Tipo de produto","tipoProduto"],["Quantidade","quantidade"],["Jogos","jogos"],["Turno","turno"],["Destino","destino"],["Montador","montador"],["Conferente","conferente"]].map(([label,key])=><label key={key}>{label}<input value={(form as any)[key]} onChange={e=>setForm({...form,[key]:e.target.value})}/></label>)}<label className="wide">Observação<textarea value={form.observacao} onChange={e=>setForm({...form,observacao:e.target.value})}/></label></div></Modal>
+          <div className="release-flow">
+            <div className={fluxo(selected.qualidade_status)}><ShieldCheck /><span>Qualidade</span><b>{statusLabel(selected.qualidade_status)}</b><small>{selected.qualidade_usuario || "Aguardando"}</small></div>
+            <i>→</i>
+            <div className={fluxo(selected.msac_status)}><Truck /><span>MSAC</span><b>{statusLabel(selected.msac_status)}</b><small>{selected.msac_usuario || "Aguardando"}</small></div>
+            <i>→</i>
+            <div className={fluxo(selected.status)}><PackageCheck /><span>Pallet</span><b>{statusLabel(selected.status)}</b><small>{selected.status === "LIBERADO" ? "Pronto para seguir" : "Controle ativo"}</small></div>
+          </div>
 
-    <Modal open={inspectionOpen} title={`Inspeção • ${area}`} onClose={()=>setInspectionOpen(false)} footer={<><button className="secondary" onClick={()=>setInspectionOpen(false)}>Cancelar</button><button className="primary" disabled={busy} onClick={saveInspection}>Salvar inspeção</button></>}><div className="inspectionChecks">{CHECKS.map(([key,label])=><label key={key} className={checklist[key]?"ok":""}><input type="checkbox" checked={!!checklist[key]} onChange={e=>setChecklist({...checklist,[key]:e.target.checked})}/><span><CheckCircle2/>{label}</span></label>)}</div><label className="modalText">Observação<textarea value={inspectionObs} onChange={e=>setInspectionObs(e.target.value)} placeholder="Descreva avarias, correções, reinspeção ou qualquer condição relevante."/></label></Modal>
+          {selected.status === "BLOQUEADO" && (
+            <div className="messageStrip error"><LockKeyhole /><div><b>Pallet bloqueado</b><br />{selected.bloqueio_motivo || "Motivo não informado"}</div></div>
+          )}
 
-    <Modal open={decisionOpen} title={decision?.title||"Decisão"} onClose={()=>setDecisionOpen(false)} footer={<><button className="secondary" onClick={()=>setDecisionOpen(false)}>Cancelar</button><button className={decision?.action.endsWith("BLOQUEAR")?"danger":"primary"} disabled={busy} onClick={executeDecision}>Confirmar</button></>}><div className="decisionForm">{decision?.action.endsWith("BLOQUEAR")&&<label>Motivo do bloqueio<textarea value={motivo} onChange={e=>setMotivo(e.target.value)} placeholder="Ex.: pallet desalinhado, amarração incorreta, avaria, quantidade divergente..."/></label>}<label>Observação<textarea value={obs} onChange={e=>setObs(e.target.value)} placeholder="Observação da decisão"/></label></div></Modal>
+          <dl className="kv kv-3">
+            {[["Quantidade", fmt(selected.quantidade)], ["Jogos", fmt(selected.jogos)], ["Turno", selected.turno || "-"], ["Tipo", selected.tipo_produto || "-"], ["Montador", selected.montador || "-"], ["Conferente", selected.conferente || "-"]].map(([a, b]) => (
+              <div key={a}><dt>{a}</dt><dd>{b}</dd></div>
+            ))}
+          </dl>
 
-    {selected&&<section id="pallet-label-print" className="palletLabelPrint"><header><b>FAMOSSUL • CONTROLE DE PALLET</b><span>{selected.codigo}</span></header><main><div className="labelBig"><small>PALLET</small><b>{selected.pallet}</b></div><div className="labelBig"><small>PEDIDO</small><b>{selected.pedido}</b></div><dl><div><dt>Cliente</dt><dd>{selected.cliente||"-"}</dd></div><div><dt>Filtro</dt><dd>{selected.filtro||"-"}</dd></div><div><dt>Tipo</dt><dd>{selected.tipo_produto||"-"}</dd></div><div><dt>Quantidade</dt><dd>{fmt(selected.quantidade)}</dd></div><div><dt>Jogos</dt><dd>{fmt(selected.jogos)}</dd></div><div><dt>Destino</dt><dd>{selected.destino||"-"}</dd></div></dl><div className={`labelStatus ${selected.status.toLowerCase()}`}>{statusLabel(selected.status)}</div><div className="labelSign"><span>QUALIDADE: {statusLabel(selected.qualidade_status)} • {selected.qualidade_usuario||"-"}</span><span>MSAC: {statusLabel(selected.msac_status)} • {selected.msac_usuario||"-"}</span></div></main><footer>Gerado em {new Date().toLocaleString("pt-BR")}</footer></section>}
+          <div className="op-actions">
+            <button onClick={() => { setArea("QUALIDADE"); setInspectionOpen(true); }}><ClipboardCheck /> Inspecionar Qualidade</button>
+            {!isQuality && <button onClick={() => { setArea("MSAC"); setInspectionOpen(true); }}><Truck /> Inspecionar MSAC</button>}
+            <button onClick={() => photoRef.current?.click()}><ImagePlus /> Adicionar foto</button>
+            <button onClick={() => exportarPalletCompleto(selected)}><FileSpreadsheet /> Relatório completo</button>
+            <button onClick={() => printLabel(selected)}><Printer /> Gerar etiqueta</button>
+          </div>
+          <input ref={photoRef} type="file" accept="image/*" capture="environment" hidden onChange={(e) => addPhoto(e.target.files?.[0])} />
+
+          <div className="op-actions">
+            <button className="success" onClick={() => openDecision("QUALIDADE_LIBERAR", "Liberar pela Qualidade")}><CheckCircle2 /> Liberar Qualidade</button>
+            <button className="danger" onClick={() => openDecision("QUALIDADE_BLOQUEAR", "Bloquear pela Qualidade")}><LockKeyhole /> Bloquear Qualidade</button>
+            {!isQuality && <>
+              <button className="success" disabled={selected.qualidade_status !== "LIBERADO"} onClick={() => openDecision("MSAC_LIBERAR", "Liberar pelo MSAC")}><CheckCircle2 /> Liberar MSAC</button>
+              <button className="danger" onClick={() => openDecision("MSAC_BLOQUEAR", "Bloquear pelo MSAC")}><LockKeyhole /> Bloquear MSAC</button>
+            </>}
+            {["PCP", "GERENTE", "ENCARREGADO"].includes(String(me?.perfil)) && <button className="reopen" onClick={() => openDecision("REABRIR", "Reabrir pallet")}><UnlockKeyhole /> Reabrir</button>}
+          </div>
+
+          <h3 className="sectionTitle"><Camera size={16} /> Evidências fotográficas <small>({selected.fotos?.length || 0})</small></h3>
+          {selected.fotos?.length ? (
+            <div className="photo-grid">
+              {selected.fotos.map((f) => (
+                <figure key={f.id}>
+                  <img src={f.url || f.dataUrl || ""} loading="lazy" decoding="async" alt={f.legenda || "Foto do pallet"} />
+                  <figcaption><b>{f.area}</b><small>{f.usuario} · {date(f.criadoEm)}</small></figcaption>
+                </figure>
+              ))}
+            </div>
+          ) : <Empty title="Nenhuma foto adicionada." sub="Use “Adicionar foto” para registrar a condição do pallet." />}
+
+          <h3 className="sectionTitle"><ClipboardCheck size={16} /> Inspeções <small>({selected.inspecoes?.length || 0})</small></h3>
+          {selected.inspecoes?.length ? selected.inspecoes.slice(0, 8).map((i) => (
+            <div className="list-item" key={i.id}><div><b>{i.area} · {i.resultado}</b><small>{i.usuario} · {date(i.criadoEm)}</small>{i.observacao && <span>{i.observacao}</span>}</div></div>
+          )) : <span className="muted">Sem inspeções registradas.</span>}
+
+          <h3 className="sectionTitle"><RefreshCw size={16} /> Rastreabilidade <small>({selected.eventos?.length || 0})</small></h3>
+          {selected.eventos?.length ? selected.eventos.slice(0, 10).map((e) => (
+            <div className="list-item" key={e.id}><div><b>{e.descricao}</b><small>{e.usuario} · {date(e.criadoEm)}</small></div></div>
+          )) : <span className="muted">Sem eventos registrados.</span>}
+        </div>
+      )}
+    </Drawer>
+
+    <Modal open={createOpen} title="Cadastrar pallet" onClose={() => setCreateOpen(false)} footer={<><button onClick={() => setCreateOpen(false)}>Cancelar</button><button className="primary" disabled={busy} onClick={create}>Cadastrar pallet</button></>}>
+      <div className="form-grid">
+        {[["Pedido", "pedido"], ["Cliente", "cliente"], ["Filtro", "filtro"], ["Pallet", "pallet"], ["Tipo de produto", "tipoProduto"], ["Quantidade", "quantidade"], ["Jogos", "jogos"], ["Turno", "turno"], ["Destino", "destino"], ["Montador", "montador"], ["Conferente", "conferente"]].map(([label, key]) => (
+          <Field key={key} label={label}><input value={(form as any)[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} /></Field>
+        ))}
+        <Field label="Observação" className="span-all"><textarea value={form.observacao} onChange={(e) => setForm({ ...form, observacao: e.target.value })} /></Field>
+      </div>
+    </Modal>
+
+    <Modal open={inspectionOpen} title={`Inspeção · ${area}`} onClose={() => setInspectionOpen(false)} footer={<><button onClick={() => setInspectionOpen(false)}>Cancelar</button><button className="primary" disabled={busy} onClick={saveInspection}>Salvar inspeção</button></>}>
+      <div className="checks">
+        {CHECKS.map(([key, label]) => (
+          <label key={key} className={checklist[key] ? "on" : ""}>
+            <input type="checkbox" checked={!!checklist[key]} onChange={(e) => setChecklist({ ...checklist, [key]: e.target.checked })} />
+            <span>{label}</span>
+          </label>
+        ))}
+      </div>
+      <Field label="Observação"><textarea value={inspectionObs} onChange={(e) => setInspectionObs(e.target.value)} placeholder="Descreva avarias, correções, reinspeção ou qualquer condição relevante." /></Field>
+    </Modal>
+
+    <Modal open={decisionOpen} title={decision?.title || "Decisão"} onClose={() => setDecisionOpen(false)} footer={<><button onClick={() => setDecisionOpen(false)}>Cancelar</button><button className={decision?.action.endsWith("BLOQUEAR") ? "danger" : "primary"} disabled={busy} onClick={executeDecision}>Confirmar</button></>}>
+      {decision?.action.endsWith("BLOQUEAR") && (
+        <Field label="Motivo do bloqueio"><textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: pallet desalinhado, amarração incorreta, avaria, quantidade divergente..." /></Field>
+      )}
+      <Field label="Observação"><textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Observação da decisão" /></Field>
+    </Modal>
+
+    {selected && <section id="pallet-label-print" className="palletLabelPrint"><header><b>FAMOSSUL • CONTROLE DE PALLET</b><span>{selected.codigo}</span></header><main><div className="labelBig"><small>PALLET</small><b>{selected.pallet}</b></div><div className="labelBig"><small>PEDIDO</small><b>{selected.pedido}</b></div><dl><div><dt>Cliente</dt><dd>{selected.cliente || "-"}</dd></div><div><dt>Filtro</dt><dd>{selected.filtro || "-"}</dd></div><div><dt>Tipo</dt><dd>{selected.tipo_produto || "-"}</dd></div><div><dt>Quantidade</dt><dd>{fmt(selected.quantidade)}</dd></div><div><dt>Jogos</dt><dd>{fmt(selected.jogos)}</dd></div><div><dt>Destino</dt><dd>{selected.destino || "-"}</dd></div></dl><div className={`labelStatus ${selected.status.toLowerCase()}`}>{statusLabel(selected.status)}</div><div className="labelSign"><span>QUALIDADE: {statusLabel(selected.qualidade_status)} • {selected.qualidade_usuario || "-"}</span><span>MSAC: {statusLabel(selected.msac_status)} • {selected.msac_usuario || "-"}</span></div></main><footer>Gerado em {new Date().toLocaleString("pt-BR")}</footer></section>}
   </>;
 }

@@ -6,6 +6,7 @@ import { useOps } from "@/components/operational-provider";
 import { LABELS } from "@/lib/metrics";
 import { exportarExcel } from "@/lib/export";
 import { fmt } from "@/lib/format";
+import { Badge, DataTable, Empty, PageHeader, StatCard, type Tone } from "@/components/ui";
 
 type Nivel = "NORMAL" | "ALTA" | "URGENTE";
 
@@ -135,107 +136,52 @@ export default function Prioridades() {
     (x) => x.prioridade !== "NORMAL" || x.alertas.size > 0
   );
 
+  const tomPrioridade = (n: Nivel): Tone => (n === "URGENTE" ? "danger" : n === "ALTA" ? "warning" : "neutral");
+
   return (
     <>
-      <div className="pageTitle">
-        <div>
-          <span>CONTROLE DO TURNO</span>
-          <h1>Prioridades</h1>
-          <p>Defina somente exceções que realmente precisam passar na frente.</p>
-        </div>
+      <PageHeader
+        eyebrow="Controle do turno"
+        title="Prioridades"
+        description="Defina somente exceções que realmente precisam passar na frente."
+        actions={
+          <>
+            <button onClick={refresh}><RefreshCw /> Atualizar</button>
+            <button className="primary" onClick={exportar}><FileSpreadsheet /> Exportar prioridades</button>
+          </>
+        }
+      />
 
-        <div className="priorityTopActions">
-          <button className="secondary" onClick={refresh}>
-            <RefreshCw /> Atualizar
-          </button>
-
-          <button className="primary" onClick={exportar}>
-            <FileSpreadsheet /> Exportar prioridades
-          </button>
-        </div>
+      <div className="stats">
+        <StatCard label="Pedidos ativos" value={pedidos.length} hint="na programação" />
+        <StatCard label="Com prioridade" value={importantes.length} hint="para orientar os líderes" tone={importantes.length ? "warning" : "neutral"} />
+        <StatCard label="Urgentes" value={pedidos.filter((x) => x.prioridade === "URGENTE").length} hint="passam na frente" tone="danger" />
       </div>
 
-      <div className="pcpMetricStrip">
-        <article>
-          <span>PEDIDOS ATIVOS</span>
-          <b>{pedidos.length}</b>
-          <small>na programação</small>
-        </article>
-
-        <article className={importantes.length ? "attention" : ""}>
-          <span>COM PRIORIDADE</span>
-          <b>{importantes.length}</b>
-          <small>para orientar os líderes</small>
-        </article>
-
-        <article>
-          <span>URGENTES</span>
-          <b>{pedidos.filter((x) => x.prioridade === "URGENTE").length}</b>
-          <small>passam na frente</small>
-        </article>
-      </div>
-
-      <div className="tableWrap">
-        <table>
-          <thead>
-            <tr>
-              <th>PRIORIDADE</th>
-              <th>PEDIDO</th>
-              <th>OFs</th>
-              <th>PROCESSO ATUAL</th>
-              <th className="num">SALDO</th>
-              <th>ALERTA</th>
-              <th>DEFINIR</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {pedidos.map((x) => (
-              <tr key={x.pedido}>
-                <td>
-                  <span className={`priority p-${x.prioridade.toLowerCase()}`}>
-                    {x.prioridade}
-                  </span>
-                </td>
-
-                <td><b>{x.pedido}</b></td>
-                <td>{[...x.ofs].join(", ") || "-"}</td>
-                <td>
-                  {[...x.processos]
-                    .map((proc) => LABELS[proc] || proc)
-                    .join(" / ")}
-                </td>
-                <td className="num"><b>{fmt(x.saldo)}</b></td>
-                <td>{[...x.alertas].join(" / ") || "-"}</td>
-
-                <td className="priorityCell">
-                  <select
-                    className={`prioritySelect prioritySelect-${x.prioridade.toLowerCase()}`}
-                    value={x.prioridade}
-                    disabled={busy === x.pedido}
-                    onChange={(e) => alterar(x.pedido, e.target.value as Nivel)}
-                    aria-label={`Prioridade do pedido ${x.pedido}`}
-                  >
-                    <option value="NORMAL">NORMAL</option>
-                    <option value="ALTA">ALTA</option>
-                    <option value="URGENTE">URGENTE</option>
-                  </select>
-                </td>
-              </tr>
-            ))}
-
-            {!pedidos.length && (
-              <tr>
-                <td colSpan={7}>
-                  <div className="empty">
-                    <b>Nenhum pedido ativo.</b>
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable head={["Prioridade", "Pedido", "OFs", "Processo atual", "Saldo", "Alerta", "Definir"]} empty={!pedidos.length && <Empty title="Nenhum pedido ativo." />}>
+        {pedidos.map((x) => (
+          <tr key={x.pedido}>
+            <td><Badge tone={tomPrioridade(x.prioridade)}>{x.prioridade}</Badge></td>
+            <td><b>{x.pedido}</b></td>
+            <td>{[...x.ofs].join(", ") || "-"}</td>
+            <td>{[...x.processos].map((proc) => LABELS[proc] || proc).join(" / ")}</td>
+            <td className="num"><b>{fmt(x.saldo)}</b></td>
+            <td>{x.alertas.size ? [...x.alertas].map((a) => <Badge key={a} tone="danger">{a}</Badge>) : "-"}</td>
+            <td style={{ width: 150 }}>
+              <select
+                value={x.prioridade}
+                disabled={busy === x.pedido}
+                onChange={(e) => alterar(x.pedido, e.target.value as Nivel)}
+                aria-label={`Prioridade do pedido ${x.pedido}`}
+              >
+                <option value="NORMAL">Normal</option>
+                <option value="ALTA">Alta</option>
+                <option value="URGENTE">Urgente</option>
+              </select>
+            </td>
+          </tr>
+        ))}
+      </DataTable>
     </>
   );
 }

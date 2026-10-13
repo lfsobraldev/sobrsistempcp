@@ -11,7 +11,7 @@ import { fmt, fmtPct, pct } from "@/lib/format";
 import { exportarExcel, linhaOp } from "@/lib/export";
 import { calcularCriticos } from "@/lib/criticos";
 import type { Produto, Operacao } from "@/types/pcp";
-import { Drawer, Modal, Status } from "@/components/ui";
+import { Badge, Drawer, Empty, Field, Modal, PageHeader, Progress, Segmented, Status, type Tone } from "@/components/ui";
 import { FamiliaTabs, TableScroll } from "@/components/table-scroll";
 
 const MOTIVOS = ["Falta material", "Quebra máquina", "Manutenção", "Setup", "Aguardando peça", "Aguardando OF", "Qualidade", "Falta operador", "Outro"];
@@ -92,26 +92,31 @@ export default function Apontamentos() {
   const emProd = todas.filter((x) => x.o.status === "EM_ANDAMENTO").length;
   const aguard = todas.filter((x) => x.o.status === "LIBERADA").length;
 
+  const tomPrio = (v: string): Tone => (/URGENTE/i.test(v) ? "danger" : /ALTA/i.test(v) ? "warning" : "neutral");
+  const podeApontar = sel && (sel.o.status === "LIBERADA" || sel.o.status === "EM_ANDAMENTO");
+
   return (
     <>
-      <div className="pageTitle">
+      <PageHeader
+        eyebrow="Chão de fábrica"
+        title="Apontamentos"
+        description="Toque na linha para apontar. Fila da maior medida para a menor."
+        actions={<button onClick={exportar}><FileSpreadsheet /> Exportar Excel</button>}
+      />
+
+      <div className="op-procs">
+        <Segmented value={proc} onChange={escolher} options={procs.map((p) => ({ value: p, label: LABELS[p] || p }))} />
+      </div>
+
+      <section className="op-toolbar">
         <div>
-          <span>CHÃO DE FÁBRICA</span>
-          <h1>Apontamentos</h1>
-          <p>Toque na linha para apontar. Fila da maior medida para a menor.</p>
+          <b>{LABELS[proc] || proc}</b>
+          <span className="muted">{aguard} aguardando · {emProd} em produção</span>
         </div>
-        <button className="secondary" onClick={exportar}><FileSpreadsheet />Exportar Excel</button>
-      </div>
-
-      <div className="processTabs big">
-        {procs.map((p) => (
-          <button key={p} className={proc === p ? "active" : ""} onClick={() => escolher(p)}>{LABELS[p] || p}</button>
-        ))}
-      </div>
-
-      <section className="operatorBar">
-        <div><b>{LABELS[proc] || proc}</b><span>{aguard} aguardando • {emProd} em produção</span></div>
-        <label><Search /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar OF, pedido, medida ou peça" autoFocus /></label>
+        <div className="search">
+          <Search />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar OF, pedido, medida ou peça" autoFocus />
+        </div>
       </section>
 
       <FamiliaTabs value={fam} onChange={setFam} familias={FAMILIAS} />
@@ -120,10 +125,10 @@ export default function Apontamentos() {
         <table>
           <thead>
             <tr>
-              <th>SEQ.</th><th>PEDIDO</th><th>ITEM</th><th>OF</th><th>PRODUTO</th><th>FAMÍLIA</th><th>DESCRIÇÃO</th>
-              <th>TIPO</th><th>REBAIXO</th><th>ACABAMENTO</th><th>COR</th><th className="num">QTD PROGRAMADA</th>
-              <th className="num">COMP.</th><th className="num">LARG.</th><th className="num">ESP.</th>
-              <th className="num">QTD PRODUZIDA</th><th className="num">SALDO</th><th className="num">% CONCLUÍDO</th><th>STATUS</th><th>PRIORIDADE</th>
+              <th>Seq.</th><th>Pedido</th><th>Item</th><th>OF</th><th>Produto</th><th>Família</th><th>Descrição</th>
+              <th>Tipo</th><th>Rebaixo</th><th>Acabamento</th><th>Cor</th><th className="num">Qtd programada</th>
+              <th className="num">Comp.</th><th className="num">Larg.</th><th className="num">Esp.</th>
+              <th className="num">Qtd produzida</th><th className="num">Saldo</th><th className="num">% concluído</th><th>Status</th><th>Prioridade</th>
             </tr>
           </thead>
           <tbody>
@@ -134,83 +139,89 @@ export default function Apontamentos() {
                 <tr key={o.id} className={`clickRow ${c ? "critRow" : ""}`} onClick={() => { setSelId(o.id); setQty(""); }}>
                   <td className="mono">{String(i + 1).padStart(2, "0")}</td>
                   <td>{m.pedido}</td><td>{m.item}</td><td><b>{m.of}</b></td><td>{m.produto}</td>
-                  <td><em className="tag">{m.familia}</em>{c && <em className="tag crit">CRÍTICO</em>}</td>
+                  <td><div className="row" style={{ gap: "var(--sp-1)" }}><Badge>{m.familia}</Badge>{c && <Badge tone="danger">Crítico</Badge>}</div></td>
                   <td className="descCell"><b>{m.descricao}</b></td><td>{m.tipo}</td><td>{m.rebaixo}</td><td>{m.acabamento}</td><td>{m.cor}</td>
                   <td className="num">{fmt(m.planejado)}</td><td className="num mono">{fmt(m.comprimento)}</td><td className="num mono">{fmt(m.largura)}</td><td className="num mono">{fmt(m.espessura)}</td>
                   <td className="num">{fmt(m.produzido)}</td><td className="num"><b>{fmt(m.saldo)}</b></td><td className="num">{fmtPct(m.concluido)}</td>
-                  <td><Status value={o.status} /></td><td><span className={`priority p-${String(m.prioridade).toLowerCase()}`}>{m.prioridade}</span></td>
+                  <td><Status value={o.status} /></td><td><Badge tone={tomPrio(String(m.prioridade))}>{m.prioridade}</Badge></td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        {!rows.length && <div className="empty"><b>Nenhuma OF na fila.</b></div>}
+        {!rows.length && <Empty title="Nenhuma OF na fila." />}
       </TableScroll>
 
       <Drawer open={!!sel} title={sel ? `OF ${sel.p.of || "-"}` : "Operação"} onClose={() => setSelId(null)}>
         {sel && (
-          <div className="opDrawer">
-            <div className="opHeader">
-              <span>Pedido {sel.p.pedido}</span>
-              <Status value={sel.o.status} />
+          <div className="op-drawer">
+            <header className="op-head">
+              <div className="row between"><span className="muted">Pedido {sel.p.pedido}</span><Status value={sel.o.status} /></div>
               <h2>{sel.p.descricao}</h2>
-              <p>{familiaDe(sel.p.categoria)} • {sel.p.medida || "sem medida"}</p>
-            </div>
+              <p className="muted">{familiaDe(sel.p.categoria)} · {sel.p.medida || "sem medida"}</p>
+            </header>
 
-            <div className="qtyBoard">
-              <div><small>PLANEJADO</small><b>{fmt(sel.o.quantidadePlanejada)}</b></div>
-              <div><small>PRODUZIDO</small><b>{fmt(sel.o.quantidadeProduzida)}</b></div>
-              <div><small>REFUGO</small><b>{fmt(sel.o.quantidadeRefugo)}</b></div>
-              <div className="hl"><small>SALDO</small><b>{fmt(saldo)}</b></div>
+            <div className="op-qty-board">
+              <div><small>Planejado</small><b>{fmt(sel.o.quantidadePlanejada)}</b></div>
+              <div><small>Produzido</small><b>{fmt(sel.o.quantidadeProduzida)}</b></div>
+              <div><small>Refugo</small><b>{fmt(sel.o.quantidadeRefugo)}</b></div>
+              <div className="highlight"><small>Saldo</small><b>{fmt(saldo)}</b></div>
             </div>
-            <div className="bar"><i style={{ width: `${pct(sel.o.quantidadeProduzida, sel.o.quantidadePlanejada)}%` }} /></div>
-            <small className="barTxt">{fmtPct(pct(sel.o.quantidadeProduzida, sel.o.quantidadePlanejada))} concluído</small>
+            <Progress value={pct(sel.o.quantidadeProduzida, sel.o.quantidadePlanejada)} tone={saldo === 0 ? "success" : "info"} label={`${fmtPct(pct(sel.o.quantidadeProduzida, sel.o.quantidadePlanejada))}`} />
 
-            <div className="detailGrid">
+            <dl className="kv">
               {[["Material", sel.p.material], ["Rebaixo", sel.p.rebaixo], ["Acabamento", sel.p.acabamento], ["Cor", sel.p.cor]].map(([a, b]) => (
-                <div key={a}><small>{a}</small><b>{b || "-"}</b></div>
+                <div key={a}><dt>{a}</dt><dd>{b || "-"}</dd></div>
               ))}
-            </div>
+            </dl>
 
-            {(sel.o.status === "LIBERADA" || sel.o.status === "EM_ANDAMENTO") && (
+            {podeApontar && (
               <>
-                <div className="qtyDisplay">{qty || "0"}</div>
-                <div className="keypad">
+                <div className="op-qty-display" aria-live="polite">{qty || "0"}</div>
+                <div className="op-keypad">
                   {["1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0"].map((t) => (
                     <button key={t} type="button" onClick={() => tecla(t)}>{t}</button>
                   ))}
-                  <button type="button" className="ok" disabled={busy || !Number(qty)} onClick={() => somar(Number(qty))}>LANÇAR</button>
+                  <button type="button" className="success" disabled={busy || !Number(qty)} onClick={() => somar(Number(qty))}>Lançar</button>
                 </div>
-                <div className="quick">
+                <div className="op-quick">
                   {[1, 5, 10].map((n) => <button key={n} type="button" disabled={busy} onClick={() => somar(n)}>+{n}</button>)}
-                  <button type="button" disabled={busy || !saldo} onClick={() => somar(saldo)}>TUDO ({fmt(saldo)})</button>
-                  <button type="button" disabled={busy || !Number(qty)} onClick={refugo}>+ REFUGO</button>
+                  <button type="button" disabled={busy || !saldo} onClick={() => somar(saldo)}>Tudo ({fmt(saldo)})</button>
+                  <button type="button" className="danger" disabled={busy || !Number(qty)} onClick={refugo}>+ Refugo</button>
                 </div>
               </>
             )}
 
-            <div className="drawerActions big">
-              {sel.o.status === "LIBERADA" && <button className="primary" disabled={busy} onClick={() => op("INICIAR")}><Play />INICIAR</button>}
-              {sel.o.status === "EM_ANDAMENTO" && <button className="success" disabled={busy} onClick={async () => { if (await op("FINALIZAR")) setSelId(null); }}><CheckCircle2 />FINALIZAR</button>}
-              <button onClick={() => setAndon(true)}><AlertTriangle />PARADA / ANDON</button>
-              <button className="danger" disabled={busy} onClick={() => op("DIVERGENCIA")}>DIVERGÊNCIA</button>
+            <div className="op-actions">
+              {sel.o.status === "LIBERADA" && <button className="primary" disabled={busy} onClick={() => op("INICIAR")}><Play /> Iniciar</button>}
+              {sel.o.status === "EM_ANDAMENTO" && <button className="success" disabled={busy} onClick={async () => { if (await op("FINALIZAR")) setSelId(null); }}><CheckCircle2 /> Finalizar</button>}
+              <button onClick={() => setAndon(true)}><AlertTriangle /> Parada / Andon</button>
+              <button className="danger" disabled={busy} onClick={() => op("DIVERGENCIA")}>Divergência</button>
             </div>
           </div>
         )}
       </Drawer>
 
-      <Modal open={acima !== null} title="Quantidade acima do saldo" onClose={() => setAcima(null)}
-        footer={<><button onClick={() => setAcima(null)}>Cancelar</button><button className="primary" disabled={busy} onClick={async () => { const n = acima!; setAcima(null); if (await op("SOMAR", n, true)) setQty(""); }}>CONFIRMAR MESMO ASSIM</button></>}>
+      <Modal
+        open={acima !== null}
+        title="Quantidade acima do saldo"
+        onClose={() => setAcima(null)}
+        footer={<><button onClick={() => setAcima(null)}>Cancelar</button><button className="primary" disabled={busy} onClick={async () => { const n = acima!; setAcima(null); if (await op("SOMAR", n, true)) setQty(""); }}>Confirmar mesmo assim</button></>}
+      >
         <p className="modalText">Você está lançando <b>{fmt(acima)}</b>, mas o saldo é <b>{fmt(saldo)}</b>. Confirma o excedente?</p>
       </Modal>
 
-      <Modal open={andon} title="Abrir Andon" onClose={() => setAndon(false)}
-        footer={<><button onClick={() => setAndon(false)}>Cancelar</button><button className="primary" disabled={busy} onClick={sendAndon}>ABRIR ANDON</button></>}>
-        <div className="modalForm">
-          <label>Processo<input value={LABELS[sel?.o.processo || ""] || sel?.o.processo || ""} readOnly /></label>
-          <label>OF<input value={sel?.p.of || ""} readOnly /></label>
-          <label>Motivo<select value={motivo} onChange={(e) => setMotivo(e.target.value)}>{MOTIVOS.map((x) => <option key={x}>{x}</option>)}</select></label>
-          <label className="wide">Descrição<textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={4} /></label>
+      <Modal
+        open={andon}
+        title="Abrir Andon"
+        onClose={() => setAndon(false)}
+        footer={<><button onClick={() => setAndon(false)}>Cancelar</button><button className="primary" disabled={busy} onClick={sendAndon}>Abrir Andon</button></>}
+      >
+        <div className="form-grid">
+          <Field label="Processo"><input value={LABELS[sel?.o.processo || ""] || sel?.o.processo || ""} readOnly /></Field>
+          <Field label="OF"><input value={sel?.p.of || ""} readOnly /></Field>
+          <Field label="Motivo" className="span-all"><select value={motivo} onChange={(e) => setMotivo(e.target.value)}>{MOTIVOS.map((x) => <option key={x}>{x}</option>)}</select></Field>
+          <Field label="Descrição" className="span-all"><textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={4} /></Field>
         </div>
       </Modal>
     </>

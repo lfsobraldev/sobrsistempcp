@@ -1,14 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ArrowRight,
-  Boxes,
-  Factory,
-  Gauge,
-  ShieldCheck,
-  Workflow,
-} from "lucide-react";
+import { ArrowRight, Factory, Gauge, ShieldCheck, Boxes } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function Login() {
@@ -18,129 +11,54 @@ export default function Login() {
   const [erro, setErro] = useState("");
   const [busy, setBusy] = useState(false);
 
-  async function entrar(evento: React.FormEvent) {
-    evento.preventDefault();
+  async function entrar(e: React.FormEvent) {
+    e.preventDefault();
     setErro("");
     setBusy(true);
-
     try {
-      const resposta = await fetch("/api/auth/login", {
+      const r = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ usuario, senha }),
       });
-
-      const json = await resposta.json();
-      if (!resposta.ok) throw new Error(json.error || "Falha ao entrar.");
-
+      const json = await r.json();
+      if (!r.ok) throw new Error(json.error || "Falha ao entrar.");
       router.replace("/dashboard");
-    } catch (e: any) {
-      setErro(e?.message || "Falha ao entrar.");
+    } catch (err: any) {
+      setErro(err?.message || "Falha ao entrar.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <main className="fioriLogin">
-      <section className="fioriLoginBrandPanel">
-        <div className="fioriLoginLogo">
-          <span><Factory /></span>
-          <div>
-            <b>Sobral PCP</b>
-            <small>ERP Industrial</small>
-          </div>
+    <main className="login">
+      <section className="login-brand">
+        <div className="brand">
+          <span className="brand-mark"><Factory size={18} /></span>
+          <span>Sobral PCP</span>
         </div>
-
-        <div className="fioriLoginIntro">
-          <span>OPERAÇÃO INDUSTRIAL</span>
-          <h1>Produção, programação e controle em uma única plataforma.</h1>
-          <p>
-            Acompanhe o fluxo produtivo, prioridades, apontamentos, qualidade,
-            romaneios e exceções com atualização em tempo real.
-          </p>
-
-          <div className="fioriLoginFeatures">
-            <article>
-              <Gauge />
-              <div>
-                <b>Visão em tempo real</b>
-                <span>Indicadores, filas, gargalos e progresso do turno.</span>
-              </div>
-            </article>
-            <article>
-              <Workflow />
-              <div>
-                <b>Sequenciamento industrial</b>
-                <span>Pedidos e peças organizados por setor e máquina.</span>
-              </div>
-            </article>
-            <article>
-              <ShieldCheck />
-              <div>
-                <b>Qualidade integrada</b>
-                <span>Inspeções, bloqueios e não conformidades no mesmo fluxo.</span>
-              </div>
-            </article>
-            <article>
-              <Boxes />
-              <div>
-                <b>Expedição conectada</b>
-                <span>Romaneios e acompanhamento de pedidos sem retrabalho manual.</span>
-              </div>
-            </article>
-          </div>
-        </div>
-
-        <footer>
-          <span>Unidade Nordeste</span>
-          <small>Ambiente corporativo · acesso autorizado</small>
-        </footer>
+        <h1>Produção, qualidade e expedição em uma única plataforma.</h1>
+        <p>Programação, apontamentos, romaneios e um assistente de IA que responde e executa tarefas.</p>
+        <ul>
+          <li><Gauge size={16} /> Indicadores e filas em tempo real</li>
+          <li><Boxes size={16} /> Romaneios gerados com IA</li>
+          <li><ShieldCheck size={16} /> Controle de qualidade e rastreabilidade</li>
+        </ul>
       </section>
-
-      <section className="fioriLoginFormPanel">
-        <form className="fioriLoginCard" onSubmit={entrar}>
-          <div className="fioriLoginCardHead">
-            <span>Acesso ao sistema</span>
+      <section className="login-form">
+        <div className="login-card">
+          <div>
             <h2>Entrar</h2>
-            <p>Use suas credenciais operacionais.</p>
+            <p className="na">Use seu usuário corporativo.</p>
           </div>
-
-          <label>
-            <span>Usuário</span>
-            <input
-              value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
-              autoComplete="username"
-              placeholder="Digite seu usuário"
-              aria-label="Usuário"
-              required
-            />
-          </label>
-
-          <label>
-            <span>Senha</span>
-            <input
-              type="password"
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
-              autoComplete="current-password"
-              placeholder="Digite sua senha"
-              aria-label="Senha"
-              required
-            />
-          </label>
-
-          {erro && <div className="fioriMessageStrip error">{erro}</div>}
-
-          <button className="fioriPrimaryButton" disabled={busy}>
-            {busy ? "Validando..." : <>Entrar <ArrowRight /></>}
-          </button>
-
-          <small className="fioriLoginHelp">
-            Em caso de bloqueio de acesso, procure o responsável pelo PCP.
-          </small>
-        </form>
+          {erro && <div className="messageStrip error">{erro}</div>}
+          <form onSubmit={entrar}>
+            <div><label htmlFor="u">Usuário</label><input id="u" value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="username" required /></div>
+            <div><label htmlFor="s">Senha</label><input id="s" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" required /></div>
+            <button className="primary" disabled={busy}>{busy ? "Entrando..." : "Entrar"} <ArrowRight /></button>
+          </form>
+        </div>
       </section>
     </main>
   );

@@ -3,6 +3,9 @@ import pdf from "pdf-parse";
 import { requireRoles } from "@/lib/auth";
 import { createLayoutPageRenderer } from "@/lib/romaneio/pdf-layout";
 import { buildProcessing } from "@/lib/romaneio/parser";
+import { parseOrderItems } from "@/lib/romaneio/order-parser";
+import { auditOrderParse } from "@/lib/romaneio/order-audit";
+import { itensComoTexto, recuperarItensFaltantes } from "@/lib/ia/order-recovery";
 import { sanitizeConfig } from "@/lib/romaneio/settings";
 import type {
   LogisticsConfig,
@@ -127,7 +130,22 @@ export async function POST(req: Request) {
         ? Buffer.from(await mach.arrayBuffer())
         : undefined;
 
-    const result = buildProcessing(parsed.text, machBuf, {
+    // Auditoria do parser: confere sequência de itens e totais do PDF; a IA só completa o que faltou.
+    let pdfText = parsed.text as string;
+    let audit = auditOrderParse(pdfText, parseOrderItems(pdfText));
+    const recoveredByAI: string[] = [];
+    if (audit.missingItems.length && audit.missingItems.length <= 40) {
+      try {
+        const rec = await recuperarItensFaltantes(pdfText, audit.missingItems);
+        if (rec.length) {
+          pdfText = `${pdfText}\n${itensComoTexto(rec)}\n`;
+          recoveredByAI.push(...rec.map((r) => r.item));
+          audit = auditOrderParse(pdfText, parseOrderItems(pdfText));
+        }
+      } catch { /* IA indisponível: segue só com o parser determinístico */ }
+    }
+
+    const result = buildProcessing(pdfText, machBuf, {
       mountType,
       config,
       mixedOrder: String(fd.get("mixedOrder") || "") === "true",
@@ -138,6 +156,9 @@ export async function POST(req: Request) {
     result.complementoObra = Boolean(orderOptions.complementoObra);
     result.sourceMode = "PEDIDO";
     result.sourceFileName = order.name;
+    result.orderAudit = { confidence: audit.confidence, expectedItems: audit.expectedItems, foundItems: audit.foundItems, missingItems: audit.missingItems, issues: audit.issues, recoveredByAI };
+    if (recoveredByAI.length) result.warnings.push(`Itens ${recoveredByAI.join(", ")} foram recuperados pela IA — confira antes de emitir.`);
+    for (const issue of audit.issues) result.warnings.push(`Auditoria do pedido: ${issue}`);
 
     return NextResponse.json(result);
   } catch (e: any) {

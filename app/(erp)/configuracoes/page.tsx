@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Panel } from "@/components/ui";
+import { Card, Field, PageHeader } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
 import { LABELS } from "@/lib/metrics";
 import { PROCESSOS } from "@/lib/processos";
@@ -53,127 +53,43 @@ export default function Config() {
     await load();
   }
 
+  const set = (k: keyof typeof f, v: string) => setF({ ...f, [k]: v });
   return (
     <>
-      <div className="pageTitle">
-        <div>
-          <span>PARÂMETROS INDUSTRIAIS</span>
-          <h1>Configurações</h1>
-          <p>Capacidade, meta e parâmetros usados nos cálculos da Central.</p>
-        </div>
-      </div>
-
-      <div className="settingsGrid">
-        <Panel
-          title="Capacidade por máquina"
-          subtitle="Nenhuma capacidade é inventada pelo sistema"
-        >
-          <div className="configForm">
-            <label>
-              Processo
-              <select
-                value={f.processo}
-                onChange={(e) => setF({ ...f, processo: e.target.value })}
-              >
-                {procs.map((x) => (
-                  <option key={x} value={x}>
-                    {LABELS[x] || x}
-                  </option>
-                ))}
+      <PageHeader eyebrow="Parâmetros industriais" title="Configurações" description="Capacidade, meta e parâmetros usados nos cálculos da Central." />
+      <div className="grid-half">
+        <Card subtitle="Nenhuma capacidade é inventada pelo sistema" title="Capacidade por máquina">
+          <div className="form-grid">
+            <Field label="Processo">
+              <select value={f.processo} onChange={(e) => set("processo", e.target.value)}>
+                {procs.map((x) => <option key={x} value={x}>{LABELS[x] || x}</option>)}
               </select>
-            </label>
-
-            <label>
-              Máquina
-              <input
-                value={f.maquina}
-                onChange={(e) => setF({ ...f, maquina: e.target.value })}
-              />
-            </label>
-
-            <label>
-              Turno
-              <input
-                value={f.turno}
-                onChange={(e) => setF({ ...f, turno: e.target.value })}
-              />
-            </label>
-
-            <label>
-              Peças / hora
-              <input
-                type="number"
-                value={f.pecasHora}
-                onChange={(e) => setF({ ...f, pecasHora: e.target.value })}
-              />
-            </label>
-
-            <label>
-              Minutos disponíveis
-              <input
-                type="number"
-                value={f.minutosDisponiveis}
-                onChange={(e) =>
-                  setF({ ...f, minutosDisponiveis: e.target.value })
-                }
-              />
-            </label>
-
-            <label>
-              Eficiência esperada %
-              <input
-                type="number"
-                value={f.eficiencia}
-                onChange={(e) => setF({ ...f, eficiencia: e.target.value })}
-              />
-            </label>
-
-            <label>
-              Setup médio (min)
-              <input
-                type="number"
-                value={f.setupMedio}
-                onChange={(e) => setF({ ...f, setupMedio: e.target.value })}
-              />
-            </label>
-
-            <button className="primary" onClick={() => save("CAPACIDADE")}>
-              SALVAR CAPACIDADE
-            </button>
+            </Field>
+            <Field label="Máquina"><input value={f.maquina} onChange={(e) => set("maquina", e.target.value)} /></Field>
+            <Field label="Turno"><input value={f.turno} onChange={(e) => set("turno", e.target.value)} /></Field>
+            <Field label="Peças / hora"><input type="number" value={f.pecasHora} onChange={(e) => set("pecasHora", e.target.value)} /></Field>
+            <Field label="Minutos disponíveis"><input type="number" value={f.minutosDisponiveis} onChange={(e) => set("minutosDisponiveis", e.target.value)} /></Field>
+            <Field label="Eficiência esperada %"><input type="number" value={f.eficiencia} onChange={(e) => set("eficiencia", e.target.value)} /></Field>
+            <Field label="Setup médio (min)"><input type="number" value={f.setupMedio} onChange={(e) => set("setupMedio", e.target.value)} /></Field>
           </div>
-        </Panel>
-
-        <Panel
-          title="Meta do dia"
-          subtitle="Meta operacional por processo/máquina/turno"
-        >
-          <div className="configForm">
-            <label>
-              Meta
-              <input
-                type="number"
-                value={f.meta}
-                onChange={(e) => setF({ ...f, meta: e.target.value })}
-              />
-            </label>
-
-            <button className="primary" onClick={() => save("META")}>
-              SALVAR META
-            </button>
+          <div className="row" style={{ justifyContent: "flex-end", marginTop: "var(--sp-4)" }}>
+            <button className="primary" onClick={() => save("CAPACIDADE")}>Salvar capacidade</button>
           </div>
+        </Card>
 
-          <div className="capacityList">
-            {rows.map((x) => (
-              <div key={x.id}>
-                <b>{LABELS[x.processo] || x.processo}</b>
-                <span>
-                  {x.maquina} • Turno {x.turno}
-                </span>
-                <strong>{x.pecas_hora ?? "—"} pç/h</strong>
-              </div>
-            ))}
+        <Card subtitle="Meta operacional por processo/máquina/turno" title="Meta do dia">
+          <div className="row" style={{ alignItems: "flex-end" }}>
+            <Field label="Meta" className="grow"><input type="number" value={f.meta} onChange={(e) => set("meta", e.target.value)} /></Field>
+            <button className="primary" onClick={() => save("META")}>Salvar meta</button>
           </div>
-        </Panel>
+          <h3 className="sectionTitle">Capacidades cadastradas</h3>
+          {rows.length ? rows.map((x) => (
+            <div className="list-item row between" key={x.id}>
+              <div><b>{LABELS[x.processo] || x.processo}</b><span className="muted">{x.maquina} · Turno {x.turno}</span></div>
+              <strong className="mono-num">{x.pecas_hora ?? "—"} pç/h</strong>
+            </div>
+          )) : <span className="muted">Nenhuma capacidade cadastrada.</span>}
+        </Card>
       </div>
     </>
   );

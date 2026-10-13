@@ -22,9 +22,12 @@ const NUMBER_PATTERN = String.raw`(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,4})?`;
 const ANCHOR = /^\s*(\d{1,4}(?:\.\d+)?)\s+(\d{4,12})\b(.*)$/i;
 const HEADER_OR_FOOTER = /FAMOSSUL MADEIRAS NORDESTE|CNPJ:|INSCR\.?ESTADUAL|P[aá]gina:|Pedido:|Cliente:|Endere[çc]o:|Bairro:|Cidade:|Data Emiss[aã]o:|Data Previs[aã]o:|Observa[çc][aã]o:|Item\s+C[oó]digo|Peso Unit|Peso Total|Total Peso L[ií]quido|Total Volume|L[ií]quido/i;
 
-function parseLocaleNumber(value?: string) {
+/** Número de PDF de pedido (padrão brasileiro): "1.250" = 1250; "1.250,5" = 1250,5; "0,125" = 0,125. */
+export function parseLocaleNumber(value?: string) {
   if (!value) return undefined;
-  return toNumber(value);
+  const s = value.trim();
+  if (/^[1-9]\d{0,2}(?:\.\d{3})+(?:,\d+)?$/.test(s)) return Number(s.replace(/\./g, "").replace(",", "."));
+  return toNumber(s);
 }
 
 function findMetrics(text: string) {

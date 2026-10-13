@@ -7,7 +7,7 @@ import { LABELS, leaderPlanRows, leaderReleasedRows } from "@/lib/metrics";
 import { PROCESSOS } from "@/lib/processos";
 import { fmt, fmtPct, pct } from "@/lib/format";
 import { exportarSetor } from "@/lib/export";
-import { Empty, Panel } from "@/components/ui";
+import { Badge, Card, DataTable, Empty, Field, PageHeader, Segmented, StatCard } from "@/components/ui";
 import { TableScroll } from "@/components/table-scroll";
 import type { MontagemEngenharia, TipoPedido } from "@/types/pcp";
 
@@ -150,184 +150,101 @@ export default function Lideres() {
 
   return (
     <>
-      <div className="pageTitle">
-        <div>
-          <span>OPERAÇÃO</span>
-          <h1>Líderes</h1>
-          <p>Quantidades reais por processo, da maior medida para a menor.</p>
-        </div>
-        <button className="secondary" onClick={exportar}>
-          <FileSpreadsheet />Exportar Excel
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Operação"
+        title="Líderes"
+        description="Quantidades reais por processo, da maior medida para a menor."
+        actions={<button onClick={exportar}><FileSpreadsheet /> Exportar Excel</button>}
+      />
 
-      <div className="processTabs">
-        {procs.map((p) => (
-          <button
-            key={p}
-            className={proc === p ? "active" : ""}
-            onClick={() => setProc(p)}
-          >
-            {LABELS[p] || p}
-          </button>
-        ))}
+      <div style={{ marginBottom: "var(--sp-4)", overflowX: "auto" }}>
+        <Segmented value={proc} onChange={setProc} options={procs.map((p) => ({ value: p, label: LABELS[p] || p }))} />
       </div>
 
       {embalagemSelecionada && (
-        <Panel
-          title="Pedidos especiais da embalagem"
-          subtitle="Marque somente os pedidos especiais antes de exportar. Revenda usa a regra Revenda; Engenharia deve ser HS, Timadel ou Estância."
+        <Card
+          subtitle="Embalagem"
+          title="Pedidos especiais"
+          className="mb"
+          actions={<small>Revenda usa a regra Revenda; Engenharia deve ser HS, Timadel ou Estância.</small>}
         >
-          <div className="tableWrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>PEDIDO</th>
-                  <th>TIPO</th>
-                  <th>MONTAGEM ENGENHARIA</th>
-                  <th>DESTINO NA EMBALAGEM</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pedidos.map((p) => (
-                  <tr key={p.pedido}>
-                    <td><b>{p.pedido}</b></td>
-                    <td>
-                      <select
-                        value={p.tipo}
-                        disabled={busyPedido === p.pedido}
-                        onChange={(e) =>
-                          alterarPedido(
-                            p.pedido,
-                            e.target.value as TipoPedido,
-                            p.montagem
-                          )
-                        }
-                      >
-                        <option value="NORMAL">NORMAL</option>
-                        <option value="REVENDA">REVENDA</option>
-                        <option value="ENGENHARIA">ENGENHARIA</option>
-                      </select>
-                    </td>
-                    <td>
-                      {p.tipo === "ENGENHARIA" ? (
-                        <select
-                          value={p.montagem}
-                          disabled={busyPedido === p.pedido}
-                          onChange={(e) =>
-                            alterarPedido(
-                              p.pedido,
-                              "ENGENHARIA",
-                              e.target.value as MontagemEngenharia
-                            )
-                          }
-                        >
-                          {MONTAGENS_ENGENHARIA.map((m) => (
-                            <option key={m.value} value={m.value}>{m.label}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </td>
-                    <td>
-                      {p.tipo === "REVENDA"
-                        ? "Embalagem • Revenda"
-                        : p.tipo === "ENGENHARIA"
-                        ? `Embalagem • Engenharia • ${MONTAGENS_ENGENHARIA.find((m) => m.value === p.montagem)?.label || p.montagem}`
-                        : "Regra normal por componente"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Panel>
+          <DataTable head={["Pedido", "Tipo", "Montagem engenharia", "Destino na embalagem"]}>
+            {pedidos.map((p) => (
+              <tr key={p.pedido}>
+                <td><b>{p.pedido}</b></td>
+                <td style={{ width: 180 }}>
+                  <select value={p.tipo} disabled={busyPedido === p.pedido} onChange={(e) => alterarPedido(p.pedido, e.target.value as TipoPedido, p.montagem)}>
+                    <option value="NORMAL">Normal</option>
+                    <option value="REVENDA">Revenda</option>
+                    <option value="ENGENHARIA">Engenharia</option>
+                  </select>
+                </td>
+                <td style={{ width: 220 }}>
+                  {p.tipo === "ENGENHARIA" ? (
+                    <select value={p.montagem} disabled={busyPedido === p.pedido} onChange={(e) => alterarPedido(p.pedido, "ENGENHARIA", e.target.value as MontagemEngenharia)}>
+                      {MONTAGENS_ENGENHARIA.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                  ) : <span className="muted">-</span>}
+                </td>
+                <td>
+                  {p.tipo === "REVENDA" ? <Badge tone="info">Embalagem · Revenda</Badge>
+                    : p.tipo === "ENGENHARIA" ? <Badge tone="info">Embalagem · Engenharia · {MONTAGENS_ENGENHARIA.find((m) => m.value === p.montagem)?.label || p.montagem}</Badge>
+                    : <span className="muted">Regra normal por componente</span>}
+                </td>
+              </tr>
+            ))}
+          </DataTable>
+        </Card>
       )}
 
-      <section className="leaderHero">
-        <div><span>{LABELS[proc] || proc}</span><h2>Plano do dia</h2></div>
-        <div><small>PLANEJADO</small><b>{fmt(planned)}</b></div>
-        <div><small>PRODUZIDO</small><b>{fmt(produced)}</b></div>
-        <div><small>SALDO</small><b>{fmt(Math.max(0, planned - produced))}</b></div>
-        <div><small>ANDAMENTO</small><b>{fmtPct(pct(produced, planned))}</b></div>
-      </section>
-
-      <div className="switch">
-        <button className={tab === "PLAN" ? "active" : ""} onClick={() => setTab("PLAN")}>
-          PLANO DO DIA <b>{fmt(planned)} pçs</b>
-        </button>
-        <button className={tab === "NOW" ? "active" : ""} onClick={() => setTab("NOW")}>
-          LIBERADO AGORA <b>{fmt(soma(now, "quantidade"))} pçs</b>
-        </button>
+      <div className="stats">
+        <StatCard label={`${LABELS[proc] || proc} · plano do dia`} value={fmt(planned)} hint="peças planejadas" />
+        <StatCard label="Produzido" value={fmt(produced)} tone={produced ? "success" : "neutral"} />
+        <StatCard label="Saldo" value={fmt(Math.max(0, planned - produced))} />
+        <StatCard label="Andamento" value={fmtPct(pct(produced, planned))} />
       </div>
 
-      <section className="leaderFilters">
-        <div className="leaderFiltersHead">
-          <div>
-            <Filter />
-            <span>
-              <b>FILTRAR PRODUÇÃO</b>
-              <small>Encontre rapidamente peça, medida, material ou OF.</small>
-            </span>
+      <div style={{ marginBottom: "var(--sp-4)" }}>
+        <Segmented
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "PLAN", label: <>Plano do dia · <b>{fmt(planned)} pçs</b></> },
+            { value: "NOW", label: <>Liberado agora · <b>{fmt(soma(now, "quantidade"))} pçs</b></> },
+          ]}
+        />
+      </div>
+
+      <section className="card mb">
+        <div className="card-head">
+          <div className="row">
+            <span className="stat-icon"><Filter /></span>
+            <div><h2>Filtrar produção</h2><small>Encontre rapidamente peça, medida, material ou OF.</small></div>
           </div>
           {filtrosAtivos && (
-            <button
-              type="button"
-              className="leaderClearFilters"
-              onClick={() => {
-                setBusca("");
-                setPeca("TODAS");
-                setMedida("TODAS");
-              }}
-            >
-              <X /> LIMPAR
-            </button>
+            <button type="button" onClick={() => { setBusca(""); setPeca("TODAS"); setMedida("TODAS"); }}><X /> Limpar</button>
           )}
         </div>
-
-        <div className="leaderFilterGrid">
-          <label className="leaderSearch">
-            <span>BUSCA</span>
-            <div>
+        <div className="card-body form-grid">
+          <Field label="Busca">
+            <div className="search" style={{ maxWidth: "none" }}>
               <Search />
-              <input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Peça, material, OF, acabamento..."
-              />
+              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Peça, material, OF, acabamento..." />
             </div>
-          </label>
-
-          <label>
-            <span>PEÇA</span>
+          </Field>
+          <Field label="Peça">
             <select value={peca} onChange={(e) => setPeca(e.target.value)}>
               <option value="TODAS">Todas as peças</option>
-              {pecas.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
+              {pecas.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-          </label>
-
-          <label>
-            <span>MEDIDA / METRAGEM</span>
+          </Field>
+          <Field label="Medida / metragem">
             <select value={medida} onChange={(e) => setMedida(e.target.value)}>
               <option value="TODAS">Todas as medidas</option>
-              {medidas.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
+              {medidas.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
-          </label>
-
-          <div className="leaderFilterResult">
-            <span>RESULTADO</span>
-            <b>{rows.length}</b>
-            <small>{rows.length === 1 ? "linha encontrada" : "linhas encontradas"}</small>
-          </div>
+          </Field>
+          <div className="result-box"><small>Resultado</small><b>{rows.length}</b><small>{rows.length === 1 ? "linha encontrada" : "linhas encontradas"}</small></div>
         </div>
       </section>
 
@@ -335,14 +252,14 @@ export default function Lideres() {
         <table>
           <thead>
             <tr>
-              <th>PEÇA</th><th>MATERIAL</th><th>MEDIDA</th><th>REBAIXO</th><th>ACABAMENTO</th><th>COR</th>
-              <th className="num">PLANEJADO</th><th className="num">PRODUZIDO</th><th className="num">SALDO</th>
+              <th>Peça</th><th>Material</th><th>Medida</th><th>Rebaixo</th><th>Acabamento</th><th>Cor</th>
+              <th className="num">Planejado</th><th className="num">Produzido</th><th className="num">Saldo</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((x) => (
               <tr key={x.key}>
-                <td><b>{x.descricao}</b><em className="tag">{x.categoria}</em></td>
+                <td><b>{x.descricao}</b> <Badge>{x.categoria}</Badge></td>
                 <td>{x.material || "-"}</td>
                 <td className="mono">{x.medida || "-"}</td>
                 <td>{x.rebaixo || "-"}</td>
@@ -357,7 +274,7 @@ export default function Lideres() {
           {!!rows.length && (
             <tfoot>
               <tr>
-                <td colSpan={6}>TOTAL</td>
+                <td colSpan={6}>Total</td>
                 <td className="num">{fmt(soma(rows, "quantidade"))}</td>
                 <td className="num">{fmt(soma(rows, "produzido"))}</td>
                 <td className="num">{fmt(soma(rows, "saldo"))}</td>

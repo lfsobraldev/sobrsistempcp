@@ -17,10 +17,10 @@ import {
   ClipboardCheck,
   ShieldCheck,
   UploadCloud,
-  MoreVertical,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useOps } from "@/components/operational-provider";
+import { Badge, Card, DataTable, PageHeader, Progress, StatCard, type Tone } from "@/components/ui";
 import { LABELS, resumoMaquinas } from "@/lib/metrics";
 import { fmt, fmtPct, pct } from "@/lib/format";
 
@@ -46,13 +46,13 @@ type Excecao = {
   material: string;
 };
 
-function tone(status: string) {
+function tone(status: string): Tone {
   const s = String(status || "").toUpperCase();
   if (s.includes("ATRAS")) return "danger";
-  if (s.includes("URGENTE")) return "warn";
-  if (s.includes("CONCL")) return "ok";
+  if (s.includes("URGENTE")) return "warning";
+  if (s.includes("CONCL")) return "success";
   if (s.includes("ANDAMENTO")) return "info";
-  return "";
+  return "neutral";
 }
 
 function diasAte(data?: string | null) {
@@ -183,221 +183,124 @@ export default function Dashboard() {
     }
   }
 
+  const atalhos = [
+    { href: "/programacao", icon: <UploadCloud />, label: "Programação", value: pedidos.length, hint: "pedidos no filtro ativo" },
+    { href: "/programacao-gerente", icon: <Route />, label: "Programação Gerente", value: atrasados + proximos, hint: "prazo exige atenção" },
+    { href: "/lideres", icon: <Factory />, label: "Líderes / Setores", value: maquinas.length, hint: "setores com carga" },
+    { href: "/apontamentos", icon: <ClipboardCheck />, label: "Apontamento", value: fmt(produzido), hint: "peças produzidas" },
+    { href: "/excecoes", icon: <PackageSearch />, label: "Faltas e Retrabalho", value: excecoesAbertas.length, hint: "ocorrências abertas" },
+    { href: "/inspecao-pallets", icon: <ShieldCheck />, label: "Qualidade", value: fmt(refugo), hint: "refugo registrado" },
+  ];
+
   return (
     <>
-      <section className="v12DashHeader">
-        <div>
-          <span>CENTRAL INDUSTRIAL</span>
-          <h1>Produção em tempo real</h1>
-          <p>
-            Prioridades, prazo, faltas, gargalos e execução da programação ativa em uma única tela.
-          </p>
-        </div>
-        <div className="v12DashHeaderActions">
-          <div>
-            <span>FILTRO ATIVO</span>
-            <b>{pg?.filtro || "-"}</b>
-            <small>{pg ? `Turno ${pg.turno}` : "Sem programação"}</small>
-          </div>
-          <button className="secondary" onClick={atualizar} disabled={busy}>
-            <RefreshCw /> {busy ? "ATUALIZANDO" : "ATUALIZAR"}
-          </button>
-        </div>
+      <PageHeader
+        eyebrow="Central industrial"
+        title="Produção em tempo real"
+        description="Prioridades, prazo, faltas, gargalos e execução da programação ativa em uma única tela."
+        actions={
+          <>
+            <div className="muted" style={{ textAlign: "right" }}>
+              <small>Filtro ativo</small>
+              <div><b style={{ color: "var(--text)" }}>{pg?.filtro || "-"}</b> <small>{pg ? `· Turno ${pg.turno}` : "Sem programação"}</small></div>
+            </div>
+            <button onClick={atualizar} disabled={busy}>
+              <RefreshCw className={busy ? "spin" : ""} /> {busy ? "Atualizando" : "Atualizar"}
+            </button>
+          </>
+        }
+      />
+
+      <section className="launchpad" aria-label="Acessos rápidos">
+        {atalhos.map((a) => (
+          <Link key={a.href} href={a.href} className="tile">
+            <span className="tileIcon">{a.icon}</span>
+            <div><span>{a.label}</span><b>{a.value}</b><small>{a.hint}</small></div>
+          </Link>
+        ))}
       </section>
 
-      <section className="fioriLaunchpad" aria-label="Acessos rápidos">
-        <Link href="/programacao" className="fioriTile">
-          <span className="fioriTileIcon"><UploadCloud /></span>
-          <div>
-            <span>Programação</span>
-            <b>{pedidos.length}</b>
-            <small>pedidos no filtro ativo</small>
-          </div>
-        </Link>
-
-        <Link href="/programacao-gerente" className="fioriTile">
-          <span className="fioriTileIcon"><Route /></span>
-          <div>
-            <span>Programação Gerente</span>
-            <b>{atrasados + proximos}</b>
-            <small>prazo exige atenção</small>
-          </div>
-        </Link>
-
-        <Link href="/lideres" className="fioriTile">
-          <span className="fioriTileIcon"><Factory /></span>
-          <div>
-            <span>Líderes / Setores</span>
-            <b>{maquinas.length}</b>
-            <small>setores com carga</small>
-          </div>
-        </Link>
-
-        <Link href="/apontamentos" className="fioriTile">
-          <span className="fioriTileIcon"><ClipboardCheck /></span>
-          <div>
-            <span>Apontamento</span>
-            <b>{fmt(produzido)}</b>
-            <small>peças produzidas</small>
-          </div>
-        </Link>
-
-        <Link href="/excecoes" className="fioriTile">
-          <span className="fioriTileIcon"><PackageSearch /></span>
-          <div>
-            <span>Faltas e Retrabalho</span>
-            <b>{excecoesAbertas.length}</b>
-            <small>ocorrências abertas</small>
-          </div>
-        </Link>
-
-        <Link href="/inspecao-pallets" className="fioriTile">
-          <span className="fioriTileIcon"><ShieldCheck /></span>
-          <div>
-            <span>Qualidade</span>
-            <b>{fmt(refugo)}</b>
-            <small>refugo registrado</small>
-          </div>
-        </Link>
+      <section className="stats">
+        <StatCard icon={<Boxes />} label="Pedidos ativos" value={pedidosAtivos} hint={`${pedidos.length} no filtro`} />
+        <StatCard icon={<Gauge />} label="Execução" value={fmtPct(andamento)} hint={`${fmt(produzido)} / ${fmt(planejado)} peças`} />
+        <StatCard icon={<CalendarClock />} label="Atrasados" value={atrasados} hint={`${proximos} próximos do prazo`} tone={atrasados ? "danger" : "neutral"} />
+        <StatCard icon={<PackageSearch />} label="Faltas / exceções" value={excecoesAbertas.length} hint="abertas na produção" tone={excecoesAbertas.length ? "warning" : "neutral"} />
+        <StatCard icon={<Factory />} label="Setores ativos" value={maquinas.length} hint="com carga programada" />
+        <StatCard icon={<Wrench />} label="Refugo" value={fmt(refugo)} hint={`${fmt(saldo)} peças restantes`} tone={refugo ? "warning" : "neutral"} />
       </section>
 
-      <section className="v12Kpis">
-        <article>
-          <div className="v12KpiIcon"><Boxes /></div>
-          <div><span>PEDIDOS ATIVOS</span><b>{pedidosAtivos}</b><small>{pedidos.length} no filtro</small></div>
-        </article>
-        <article>
-          <div className="v12KpiIcon"><Gauge /></div>
-          <div><span>EXECUÇÃO</span><b>{fmtPct(andamento)}</b><small>{fmt(produzido)} / {fmt(planejado)} peças</small></div>
-        </article>
-        <article className={atrasados ? "danger" : ""}>
-          <div className="v12KpiIcon"><CalendarClock /></div>
-          <div><span>ATRASADOS</span><b>{atrasados}</b><small>{proximos} próximos do prazo</small></div>
-        </article>
-        <article className={excecoesAbertas.length ? "warn" : ""}>
-          <div className="v12KpiIcon"><PackageSearch /></div>
-          <div><span>FALTAS / EXCEÇÕES</span><b>{excecoesAbertas.length}</b><small>abertas na produção</small></div>
-        </article>
-        <article>
-          <div className="v12KpiIcon"><Factory /></div>
-          <div><span>SETORES ATIVOS</span><b>{maquinas.length}</b><small>com carga programada</small></div>
-        </article>
-        <article className={refugo ? "warn" : ""}>
-          <div className="v12KpiIcon"><Wrench /></div>
-          <div><span>REFUGO</span><b>{fmt(refugo)}</b><small>{fmt(saldo)} peças restantes</small></div>
-        </article>
-      </section>
-
-      <section className="v12DashGrid">
-        <article className="v12Card v12Wide">
-          <header>
-            <div><span>FLUXO DA FÁBRICA</span><h2>Carga por setor / máquina</h2></div>
-            <div className="fioriCardHeaderActions"><small>fila restante por processo</small><button aria-label="Mais opções"><MoreVertical /></button></div>
-          </header>
-          <div className="v12MachineChart">
+      <div className="grid-main">
+        <Card subtitle="Fluxo da fábrica" title="Carga por setor / máquina" actions={<small>fila restante por processo</small>}>
+          <div className="bars">
             {topMaquinas.map((m: any) => (
-              <div key={m.processo}>
-                <div className="v12MachineLabel">
-                  <b>{LABELS[m.processo] || m.processo}</b>
-                  <span>{fmt(m.filaPecas)} em fila</span>
-                </div>
-                <i>
-                  <em style={{ width: `${Math.max(2, (Number(m.filaPecas || 0) / maxFila) * 100)}%` }} />
-                </i>
+              <div className="bar-row" key={m.processo}>
+                <div><b>{LABELS[m.processo] || m.processo}</b><small>{fmt(m.filaPecas)} em fila</small></div>
+                <Progress value={(Number(m.filaPecas || 0) / maxFila) * 100} label="" />
                 <strong>{Number(m.progresso || 0).toFixed(0)}%</strong>
               </div>
             ))}
             {!topMaquinas.length && <div className="empty"><span>Sem carga programada.</span></div>}
           </div>
-        </article>
+        </Card>
 
-        <article className="v12Card">
-          <header>
-            <div><span>EXECUÇÃO GERAL</span><h2>Progresso do turno</h2></div>
-            <div className="fioriCardHeaderActions"><button aria-label="Mais opções"><MoreVertical /></button></div>
-          </header>
-          <div className="v12Execution">
-            <div
-              className="v12Donut"
-              style={{
-                background: `conic-gradient(var(--green2) ${Math.min(100, andamento)}%, #e8ece9 0)`,
-              }}
-            >
+        <Card subtitle="Execução geral" title="Progresso do turno">
+          <div className="row" style={{ gap: "var(--sp-5)", flexWrap: "wrap" }}>
+            <div className="donut" style={{ background: `conic-gradient(var(--primary) ${Math.min(100, andamento)}%, var(--surface-3) 0)` }}>
               <div><b>{fmtPct(andamento)}</b><span>executado</span></div>
             </div>
-            <dl>
+            <dl className="kv" style={{ flex: 1, minWidth: 160 }}>
               <div><dt>Planejado</dt><dd>{fmt(planejado)}</dd></div>
               <div><dt>Produzido</dt><dd>{fmt(produzido)}</dd></div>
               <div><dt>Saldo</dt><dd>{fmt(saldo)}</dd></div>
               <div><dt>Refugo</dt><dd>{fmt(refugo)}</dd></div>
             </dl>
           </div>
-        </article>
+        </Card>
+      </div>
 
-        <article className="v12Card v12Wide">
-          <header>
-            <div><span>ATENÇÃO DO GERENTE</span><h2>Pedidos que podem comprometer entrega</h2></div>
-            <div className="fioriCardHeaderActions"><small>{criticos.length} prioridade(s)</small><button aria-label="Mais opções"><MoreVertical /></button></div>
-          </header>
-          <div className="v12RiskTable">
-            <div className="v12RiskHead">
-              <span>Pedido</span><span>Prazo</span><span>Etapa atual</span><span>Exceções</span><span>Execução</span>
+      <div className="grid-main">
+        <Card subtitle="Atenção do gerente" title="Pedidos que podem comprometer entrega" actions={<Badge tone={criticos.length ? "warning" : "success"}>{criticos.length} prioridade(s)</Badge>}>
+          {criticos.length ? (
+            <DataTable head={["Pedido", "Prazo", "Etapa atual", "Exceções", "Execução"]}>
+              {criticos.map((p) => {
+                const dias = diasAte(p.dataEntrega);
+                const t = tone(p.statusEntrega);
+                return (
+                  <tr key={p.pedido}>
+                    <td><b>{p.pedido}</b></td>
+                    <td>
+                      {p.dataEntrega ? (
+                        <Badge tone={t}>
+                          {new Date(`${p.dataEntrega}T12:00:00`).toLocaleDateString("pt-BR")}
+                          {dias !== null ? ` · ${dias < 0 ? Math.abs(dias) + "d atraso" : dias + "d"}` : ""}
+                        </Badge>
+                      ) : <span className="muted">Sem data</span>}
+                    </td>
+                    <td>{p.atual}</td>
+                    <td>{p.excecoes.length ? <Badge tone="warning">{p.excecoes.length} aberta(s)</Badge> : <span className="muted">-</span>}</td>
+                    <td style={{ minWidth: 160 }}><Progress value={p.progresso} tone={p.progresso >= 100 ? "success" : "info"} /></td>
+                  </tr>
+                );
+              })}
+            </DataTable>
+          ) : (
+            <div className="empty-ok"><CheckCircle2 /><span>Nenhum pedido crítico identificado com os dados atuais.</span></div>
+          )}
+        </Card>
+
+        <Card subtitle="Exceções" title="Faltas, reposições e retrabalho">
+          {excecoesAbertas.length ? excecoesAbertas.slice(0, 7).map((x) => (
+            <div className="list-item" key={x.id}>
+              <span className="tileIcon">{x.tipo === "FALTA_PECA" ? <AlertTriangle /> : x.tipo === "REPOSICAO" ? <Layers3 /> : <Wrench />}</span>
+              <div>
+                <b>{tipoExcecao(x.tipo)} · Pedido {x.pedido}</b>
+                <span>{x.descricao || x.of || "Peça não identificada"}{x.medida ? ` · ${x.medida}` : ""}</span>
+                <small>{fmt(x.quantidade)} peça(s){x.motivo ? ` · ${x.motivo}` : ""}</small>
+              </div>
             </div>
-            {criticos.map((p) => {
-              const dias = diasAte(p.dataEntrega);
-              return (
-                <div key={p.pedido}>
-                  <b>{p.pedido}</b>
-                  <span className={tone(p.statusEntrega)}>
-                    {p.dataEntrega
-                      ? `${new Date(`${p.dataEntrega}T12:00:00`).toLocaleDateString("pt-BR")}${dias !== null ? ` • ${dias < 0 ? Math.abs(dias) + "d atraso" : dias + "d"}` : ""}`
-                      : "Sem data"}
-                  </span>
-                  <span>{p.atual}</span>
-                  <span>{p.excecoes.length ? `${p.excecoes.length} aberta(s)` : "-"}</span>
-                  <div className="v12OrderProgress">
-                    <i><em style={{ width: `${Math.min(100, p.progresso)}%` }} /></i>
-                    <b>{p.progresso.toFixed(0)}%</b>
-                  </div>
-                </div>
-              );
-            })}
-            {!criticos.length && (
-              <div className="v12NoRisk">
-                <CheckCircle2 />
-                <span>Nenhum pedido crítico identificado com os dados atuais.</span>
-              </div>
-            )}
-          </div>
-        </article>
-
-        <article className="v12Card">
-          <header>
-            <div><span>EXCEÇÕES</span><h2>Faltas, reposições e retrabalho</h2></div>
-            <div className="fioriCardHeaderActions"><button aria-label="Mais opções"><MoreVertical /></button></div>
-          </header>
-          <div className="v12ExceptionList">
-            {excecoesAbertas.slice(0, 7).map((x) => (
-              <div key={x.id}>
-                <span className={`v12ExceptionType ${x.tipo.toLowerCase()}`}>
-                  {x.tipo === "FALTA_PECA" ? <AlertTriangle /> : x.tipo === "REPOSICAO" ? <Layers3 /> : <Wrench />}
-                </span>
-                <div>
-                  <b>{tipoExcecao(x.tipo)} • Pedido {x.pedido}</b>
-                  <span>{x.descricao || x.of || "Peça não identificada"}{x.medida ? ` • ${x.medida}` : ""}</span>
-                  <small>{fmt(x.quantidade)} peça(s){x.motivo ? ` • ${x.motivo}` : ""}</small>
-                </div>
-              </div>
-            ))}
-            {!excecoesAbertas.length && (
-              <div className="v12NoRisk">
-                <CheckCircle2 />
-                <span>Sem exceções abertas.</span>
-              </div>
-            )}
-          </div>
-        </article>
-      </section>
+          )) : <div className="empty-ok"><CheckCircle2 /><span>Sem exceções abertas.</span></div>}
+        </Card>
+      </div>
     </>
   );
 }
