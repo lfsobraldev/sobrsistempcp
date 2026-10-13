@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import { ensurePreparedRomaneiosTable } from "@/lib/romaneio/prepared";
+import { ensurePreparedRomaneiosTable, prepareAllRomaneios } from "@/lib/romaneio/prepared";
 
 export const runtime = "nodejs";
 
@@ -25,7 +25,7 @@ export async function GET() {
       });
     }
 
-    const itens = await db`
+    let itens = await db`
       select
         pedido,cliente,tipo_pedido,montagem,status,
         has_machining,origem_usinagem,warnings,resultado,atualizado_em
@@ -33,6 +33,18 @@ export async function GET() {
       where programacao_id=${pg.id}
       order by pedido
     `;
+
+    if (!itens.length) {
+      await prepareAllRomaneios(String(pg.id), String(pg.filtro || ""), db);
+      itens = await db`
+        select
+          pedido,cliente,tipo_pedido,montagem,status,
+          has_machining,origem_usinagem,warnings,resultado,atualizado_em
+        from pcp_romaneios_preparados
+        where programacao_id=${pg.id}
+        order by pedido
+      `;
+    }
 
     return NextResponse.json({
       programacao: pg,
