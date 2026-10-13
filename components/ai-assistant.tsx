@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Check, FileSpreadsheet, MessageSquare, Send, Sparkles, X, ArrowRight } from "lucide-react";
+import { Check, FileSpreadsheet, MessageSquare, Send, X, ArrowRight } from "lucide-react";
 import { useOps } from "@/components/operational-provider";
 import { abrirRomaneioIA } from "@/components/romaneio-ai";
 import { baixarPlanilhaProducao } from "@/lib/planilha";
+import { BrandLogo } from "@/components/brand-logo";
 
 type Anexo =
   | { type: "navigate"; path: string; label: string }
@@ -68,13 +69,13 @@ export default function AiAssistant() {
     } catch (e: any) { toast("error", e.message || "Falha ao executar."); }
   }
 
-  if (!open) return <button className="ai-fab" onClick={() => setOpen(true)} aria-label="Abrir assistente IA"><Sparkles /> Assistente IA</button>;
+  if (!open) return <button className="ai-fab" onClick={() => setOpen(true)} aria-label="Abrir assistente IA"><BrandLogo size={24} /> Assistente IA</button>;
 
   return (
     <section className="ai-panel" aria-label="Assistente IA">
       <header>
-        <Sparkles size={18} />
-        <h3>Assistente Sobral</h3>
+        <BrandLogo size={28} />
+        <div className="ai-title"><h3>Assistente Sobral</h3><small>Inteligência industrial</small></div>
         <button className="ghost iconBtn" onClick={() => { setMsgs([]); }} title="Limpar conversa"><MessageSquare /></button>
         <button className="ghost iconBtn" onClick={() => setOpen(false)} aria-label="Fechar"><X /></button>
       </header>
