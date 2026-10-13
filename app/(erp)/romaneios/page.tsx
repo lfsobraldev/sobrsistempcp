@@ -16,6 +16,18 @@ import type {
 } from "@/lib/romaneio/types";
 import type { Produto } from "@/types/pcp";
 
+type PreparedEntry = {
+  pedido: string;
+  cliente: string;
+  tipoPedido: string;
+  montagem: MountType;
+  status: "PRE_PRONTO" | "PRONTO" | "ATENCAO" | string;
+  hasMachining: boolean;
+  origemUsinagem: string;
+  warnings: string[];
+  resultado: ProcessingResult;
+};
+
 const MONTAGENS: Array<{
   value: MountType;
   label: string;
@@ -47,6 +59,7 @@ export default function RomaneiosPage() {
   const [pedido, setPedido] = useState<File | null>(null);
   const [usinagem, setUsinagem] = useState<File | null>(null);
   const [produtosFiltro, setProdutosFiltro] = useState<Produto[]>([]);
+  const [preparados, setPreparados] = useState<PreparedEntry[]>([]);
   const [pedidoFiltro, setPedidoFiltro] = useState("");
   const [carregandoFiltro, setCarregandoFiltro] = useState(true);
   const [mountType, setMountType] = useState<MountType>("MONTADO_HS");
@@ -65,18 +78,26 @@ export default function RomaneiosPage() {
   useEffect(() => {
     let active = true;
 
-    fetch("/api/programacoes/ativa", { cache: "no-store" })
-      .then(async (response) => {
+    Promise.all([
+      fetch("/api/programacoes/ativa", { cache: "no-store" }),
+      fetch("/api/romaneios/preparados", { cache: "no-store" }),
+    ])
+      .then(async ([response, preparedResponse]) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.error || "Falha ao carregar Filtro 51.");
+        const preparedData = await preparedResponse.json().catch(() => ({ itens: [] }));
         if (!active) return;
         const products = (data.programacao?.produtos || []) as Produto[];
         setProdutosFiltro(products);
+        setPreparados(Array.isArray(preparedData.itens) ? preparedData.itens : []);
         const filtroAtual = String(data.programacao?.filtro || "");
         if (filtroAtual) setFiltro((current) => current || filtroAtual);
       })
       .catch(() => {
-        if (active) setProdutosFiltro([]);
+        if (active) {
+          setProdutosFiltro([]);
+          setPreparados([]);
+        }
       })
       .finally(() => {
         if (active) setCarregandoFiltro(false);
@@ -86,6 +107,11 @@ export default function RomaneiosPage() {
       active = false;
     };
   }, []);
+
+  const preparadosPorPedido = useMemo(
+    () => new Map(preparados.map((item) => [String(item.pedido), item])),
+    [preparados]
+  );
 
   const pedidosFiltro = useMemo(() => {
     const map = new Map<string, Produto[]>();
@@ -297,13 +323,13 @@ export default function RomaneiosPage() {
       <PageHeader
         eyebrow="Expedição"
         title="Gerador de Romaneios"
-        description="Gerador nativo do PCP com as regras de montagem do romaneio. Use a IA para pedidos fora do padrão."
+        description="Todos os pedidos do Filtro 51 já ficam pré-prontos automaticamente. A IA auxilia conferência e exceções; a planilha de usinagem é opcional para corrigir/complementar quando necessário."
         actions={<GerarComIABotao />}
       />
 
       <Card subtitle="Passo 1" title="Romaneios do Filtro 51" className="mb">
         <p className="muted" style={{ marginBottom: "var(--sp-4)" }}>
-          Selecione um pedido da programação. Teste sem usinagem ou finalize com a planilha quando ela chegar.
+          Ao liberar o Filtro 51, o PCP prepara automaticamente todos os romaneios. Abra um pedido para revisar e exportar. Se houver divergência, envie a planilha de usinagem como segunda opção para refazer o pedido.
         </p>
         {carregandoFiltro ? (
           <div className="warningBox"><b>Carregando programação…</b><span>Lendo os pedidos da programação ativa.</span></div>
@@ -312,13 +338,21 @@ export default function RomaneiosPage() {
             <DataTable head={["Pedido", "Itens", "Peças", "Tipo", "Status", ""]}>
               {pedidosFiltro.map((entry) => {
                 const ativo = pedidoFiltro === entry.numero;
+                const preparado = preparadosPorPedido.get(entry.numero);
+                const status = preparado?.status || "PREPARANDO";
                 return (
                   <tr key={entry.numero}>
                     <td><b>{entry.numero}</b></td>
                     <td>{entry.itens}</td>
                     <td>{entry.pecas}</td>
                     <td><Badge>{entry.tipoPedido}</Badge></td>
-                    <td>{ativo ? <Badge tone="info">Em edição</Badge> : <span className="muted">Aguardando usinagem</span>}</td>
+                    <td>
+                      {ativo ? <Badge tone="info">Em edição</Badge>
+                        : status === "PRONTO" ? <Badge tone="success">Pronto</Badge>
+                        : status === "ATENCAO" ? <Badge tone="warning">Revisar</Badge>
+                        : status === "PRE_PRONTO" ? <Badge tone="info">Pré-pronto</Badge>
+                        : <span className="muted">Preparando…</span>}
+                    </td>
                     <td style={{ textAlign: "right" }}>
                       <button
                         type="button"
@@ -333,8 +367,10 @@ export default function RomaneiosPage() {
                           // Seleção exclusiva: no máximo UM pedido ativo no gerador.
                           setPedidoFiltro(entry.numero);
                           setUsinagem(null);
-                          setResultado(null);
-                          if (entry.tipoPedido === "REVENDA") setMountType("REVENDA");
+                          const preparado = preparadosPorPedido.get(entry.numero);
+                          setResultado(preparado?.resultado || null);
+                          if (preparado?.montagem) setMountType(preparado.montagem);
+                          else if (entry.tipoPedido === "REVENDA") setMountType("REVENDA");
                           else if (entry.tipoPedido === "ENGENHARIA") setMountType(entry.montagem as MountType);
                           else setMountType("MONTADO_HS");
                         }}
@@ -354,24 +390,28 @@ export default function RomaneiosPage() {
                   <div><small>Montagem</small><div><b>{mountType.replaceAll("_", " ")}</b></div></div>
                 </div>
                 <div className="actions-grid">
-                  <button type="button" disabled={!!busy} onClick={() => processarFiltro(false)}>
+                  <button
+                    type="button"
+                    disabled={!resultado || !!busy}
+                    onClick={() => baixar("ROMANEIO")}
+                  >
                     <FileSpreadsheet />
-                    {busy === "TESTAR_FILTRO" ? "Montando teste…" : "Testar sem usinagem"}
+                    Baixar pré-pronto
                   </button>
                   <label className={`drop ${usinagem ? "ready" : ""}`}>
                     <UploadCloud />
                     <span>
-                      <b>{usinagem?.name || "Adicionar usinagem"}</b>
-                      <small>{usinagem ? "Planilha selecionada" : ".xlsx / .xls"}</small>
+                      <b>{usinagem?.name || "Usinagem opcional / correção"}</b>
+                      <small>{usinagem ? "Planilha selecionada para refazer" : "Use apenas se precisar complementar ou corrigir · .xlsx / .xls"}</small>
                     </span>
                     <input type="file" accept=".xlsx,.xls" onChange={(e) => setUsinagem(e.target.files?.[0] || null)} />
                   </label>
                   <button type="button" className="primary" disabled={!usinagem || !!busy} onClick={() => processarFiltro(true)}>
                     <RefreshCw className={busy === "PROCESSAR_FILTRO" ? "spin" : ""} />
-                    {busy === "PROCESSAR_FILTRO" ? "Finalizando…" : "Finalizar com usinagem"}
+                    {busy === "PROCESSAR_FILTRO" ? "Refazendo…" : "Refazer com usinagem"}
                   </button>
                 </div>
-                <small>O teste sem usinagem usa somente os dados do Filtro 51 e serve para validar itens, quantidades, medidas, separação e montagem.</small>
+                <small>O romaneio pré-pronto usa o Filtro 51. A planilha de usinagem não é obrigatória: ela funciona como fonte adicional/fallback quando houver mãos, aplicações ou detalhes que precisem de correção.</small>
               </div>
             )}
           </>
