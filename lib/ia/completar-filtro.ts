@@ -11,6 +11,10 @@ type Pendencia = { id: string; campo: Campo; motivo: string };
 const vazio = (v: unknown) => !String(v ?? "").trim();
 const normal = (v: string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 const evidenciaPresente = (texto: string, evidencia: string) => normal(texto).includes(normal(evidencia));
+const materialConflitante = (p: Produto) => {
+  const texto = normal([p.descricao,p.descricaoModelo,p.outrasCaracteristicas].filter(Boolean).join(" "));
+  return /\bPINUS\b/.test(texto) && /\bULTRA\b|(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(texto);
+};
 
 /** Nunca recebe dados de outras linhas. Nunca altera campos previamente preenchidos. */
 export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: Alteracao[] } {
@@ -20,6 +24,7 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   // Contexto somente da MESMA linha. Descrição Modelo pode identificar a porta
   // do conjunto: não usar essa informação para trocar a família da peça.
   const mascara = [p.descricao, p.descricaoModelo, p.outrasCaracteristicas].filter(Boolean).join(" | ");
+  const conflitoMaterial = materialConflitante(p);
   const texto = normal(descricao);
   const marco = /BATENTE|MARCO/.test(normal(String(p.categoria || ""))) || /^(?:CJ\s+M|M(?:\s+(?:P|T|CJ))?)\s/.test(texto) || /\b\d{3,4}X\d{2,3}X30\s+(?:42X10|S\/(?:REB|RB))\b/.test(texto);
   const alizar = /ALIZAR/.test(normal(String(p.categoria || ""))) || /^A\s/.test(texto);
@@ -27,7 +32,8 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   const perfilEspecial = /SUPORTE|TRILHO|KIT CORRER|KIT DE CORRER|PORTA DE CORRER/.test(normal(String(p.categoria || ""))) || /\b(?:SUP(?:ORTE)?(?: DE)? TRILHO|KIT (?:DE )?CORRER|PORTA DE CORRER)\b/.test(texto);
   const admiteRebaixo = marco && !alizar && !baguete;
   const preencher = (campo: Campo, valor: string, evidencia: string) => {
-    if (!vazio(produto[campo]) || !valor || !evidencia || !evidenciaPresente(descricao, evidencia)) return;
+    if (!vazio(produto[campo]) || !valor || !evidencia || !evidenciaPresente(mascara, evidencia)) return;
+    if (conflitoMaterial && (campo === "material" || campo === "tipo")) return;
     produto[campo] = valor;
     alteracoes.push({ id: p.id, campo, valor, evidencia, metodo: "REGRA" });
   };
@@ -83,7 +89,7 @@ export async function completarFiltro(
   // ausência (ex. canal de ferragem) NÃO devem gerar chamadas inúteis à IA.
   const relevantes: Campo[] = ["material", "medida"];
   const candidatos = produtos.filter((p) =>
-    relevantes.some((campo) => vazio(p[campo])) &&
+    !materialConflitante(p) && relevantes.some((campo) => vazio(p[campo])) &&
     /\b(?:MDF|ULTRA|STD|RU|HDF|PINUS|BAGUETE|TRILHO|CORRER)\b|\d{3,4}[xX×]\d{2,4}/i.test([p.descricao,p.descricaoModelo,p.outrasCaracteristicas].join(" "))
   );
   if (usarIA && candidatos.length) {
@@ -116,7 +122,7 @@ export async function completarFiltro(
       if (!dados.success) continue;
       for (const proposta of dados.data.propostas) {
         const p = permitidos.get(proposta.id);
-        if (!p || !relevantes.includes(proposta.campo)) continue;
+        if (!p || materialConflitante(p) || !relevantes.includes(proposta.campo)) continue;
         const { campo, valor, evidencia } = proposta;
         if (!vazio(p[campo]) || !valor.trim() || !evidencia.trim()) continue;
         const fonteDaLinha = [p.descricao, p.descricaoModelo, p.outrasCaracteristicas].filter(Boolean).join(" | ");
