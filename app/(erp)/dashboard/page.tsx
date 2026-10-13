@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   AlertTriangle,
+  BrainCircuit,
   Boxes,
   CalendarClock,
   CheckCircle2,
@@ -81,13 +82,28 @@ export default function Dashboard() {
     excecoes: [],
   });
   const [busy, setBusy] = useState(false);
+  const [inteligencia, setInteligencia] = useState<{
+    acoes: Array<{ nivel: "critico" | "atencao" | "info"; titulo: string; detalhe: string }>;
+    riscos: Array<{ pedido: string; risco: string; score: number; sinais: string[] }>;
+    capacidade: Array<{ processo: string; saldo: number; capacidadeTurno: number | null; cargaPct: number | null; gargalo: boolean | null }>;
+  }>({ acoes: [], riscos: [], capacidade: [] });
 
   useEffect(() => {
     let alive = true;
-    fetch("/api/gestao-producao", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : { controles: [], excecoes: [] }))
-      .then((j) => {
-        if (alive) setGestao({ controles: j.controles || [], excecoes: j.excecoes || [] });
+    Promise.all([
+      fetch("/api/gestao-producao", { cache: "no-store" }),
+      fetch("/api/inteligencia/resumo", { cache: "no-store" }),
+    ])
+      .then(async ([r, ri]) => {
+        const j = r.ok ? await r.json() : { controles: [], excecoes: [] };
+        const ji = ri.ok ? await ri.json() : { acoes: [], riscos: [], capacidade: [] };
+        if (!alive) return;
+        setGestao({ controles: j.controles || [], excecoes: j.excecoes || [] });
+        setInteligencia({
+          acoes: ji.acoes || [],
+          riscos: ji.riscos || [],
+          capacidade: ji.capacidade || [],
+        });
       });
     return () => {
       alive = false;
@@ -178,6 +194,15 @@ export default function Dashboard() {
         const j = await r.json();
         setGestao({ controles: j.controles || [], excecoes: j.excecoes || [] });
       }
+      const ri = await fetch("/api/inteligencia/resumo", { cache: "no-store" });
+      if (ri.ok) {
+        const ji = await ri.json();
+        setInteligencia({
+          acoes: ji.acoes || [],
+          riscos: ji.riscos || [],
+          capacidade: ji.capacidade || [],
+        });
+      }
     } finally {
       setBusy(false);
     }
@@ -228,6 +253,29 @@ export default function Dashboard() {
         <StatCard icon={<Factory />} label="Setores ativos" value={maquinas.length} hint="com carga programada" />
         <StatCard icon={<Wrench />} label="Refugo" value={fmt(refugo)} hint={`${fmt(saldo)} peças restantes`} tone={refugo ? "warning" : "neutral"} />
       </section>
+
+      <Card
+        subtitle="Inteligência operacional"
+        title="O que merece atenção agora"
+        className="smart-brief"
+        actions={<Badge tone={inteligencia.acoes.some((a) => a.nivel === "critico") ? "danger" : inteligencia.acoes.some((a) => a.nivel === "atencao") ? "warning" : "success"}>{inteligencia.acoes.length} sinal(is)</Badge>}
+      >
+        <div className="smart-brief-grid">
+          <div className="smart-brief-icon"><BrainCircuit /></div>
+          <div className="smart-brief-list">
+            {inteligencia.acoes.length ? inteligencia.acoes.slice(0, 6).map((a, i) => (
+              <div className={`smart-signal smart-${a.nivel}`} key={`${a.titulo}-${i}`}>
+                <span />
+                <div><b>{a.titulo}</b><small>{a.detalhe}</small></div>
+              </div>
+            )) : <div className="empty"><span>Analisando a programação ativa…</span></div>}
+          </div>
+          <div className="smart-brief-actions">
+            <Link href="/prioridades" className="btn">Ver prioridades</Link>
+            <Link href="/programacao-gerente" className="btn">Abrir programação</Link>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid-main">
         <Card subtitle="Fluxo da fábrica" title="Carga por setor / máquina" actions={<small>fila restante por processo</small>}>
