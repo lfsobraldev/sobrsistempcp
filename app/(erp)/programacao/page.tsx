@@ -16,6 +16,7 @@ export default function Programacao() {
   const [usinagem, setUsinagem] = useState<File | null>(null);
   const [draft, setDraft] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [requisicaoId, setRequisicaoId] = useState("");
   const [analiseIA, setAnaliseIA] = useState("");
   const [correcoesIA, setCorrecoesIA] = useState<Array<{ id: string; campo: string; valor: string; evidencia: string; metodo: string }>>([]);
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
@@ -23,6 +24,7 @@ export default function Programacao() {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function process() {
+    setRequisicaoId("");
     setCorrecoesIA([]);
     setBusy(true);
     try {
@@ -86,6 +88,7 @@ export default function Programacao() {
         setCorrecoesIA(rastreio);
       }
       setAnaliseIA("");
+      setRequisicaoId(crypto.randomUUID());
       setDraft(parsed);
       toast("success", "Arquivo interpretado e complementado. Revise os dados antes de liberar.");
     } catch (e: any) {
@@ -107,7 +110,7 @@ export default function Programacao() {
   }
 
   async function release() {
-    if (!draft) return;
+    if (!draft || busy || !requisicaoId) return;
     setBusy(true);
     try {
       const r = await fetch("/api/programacoes", {
@@ -115,6 +118,7 @@ export default function Programacao() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           filtro: draft.filtro,
+          requisicaoId,
           data,
           turno,
           origem: mode,
