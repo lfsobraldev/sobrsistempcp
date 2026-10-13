@@ -15,9 +15,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Envie o arquivo do Consistem (CSV, TXT, XLS ou XLSX)." }, { status: 400 });
     }
     const resultado = await parseFiltro(file);
-    if (process.env.PCP_AI_RELEASE_ENRICHMENT !== "enabled") {
-      return NextResponse.json(resultado, { headers: { "Cache-Control": "no-store" } });
-    }
     // Complementação durante a importação. O motor de regras não demanda chamada externa;
     // a IA não bloqueia o upload de milhares de linhas enquanto não houver fila durável.
     const principal = await completarFiltro(resultado.produtos, false);
@@ -28,12 +25,12 @@ export async function POST(req: Request) {
       ...resultado,
       produtos: principal.produtos,
       romaneioProdutos: romaneio?.produtos ?? resultado.romaneioProdutos,
-      complementoIA: {
+      complementoRegras: {
         corrigidos: principal.alteracoes.length,
         pendencias: principal.pendencias.length,
         corrigidosRomaneio: romaneio?.alteracoes.length ?? 0,
-        modo: "REGRAS",
       },
+      ...(process.env.PCP_AI_RELEASE_ENRICHMENT === "enabled" ? { complementoIA: { modo: "IA_EM_LOTES" } } : {}),
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (e: any) {
     const status = e?.message === "SEM_PERMISSAO" ? 403 : 500;
