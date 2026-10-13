@@ -84,7 +84,7 @@ export default function RomaneiosPage() {
     ])
       .then(async ([response, preparedResponse]) => {
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || "Falha ao carregar Filtro 51.");
+        if (!response.ok) throw new Error(data.error || "Falha ao carregar Filtro do Consistem.");
         const preparedData = await preparedResponse.json().catch(() => ({ itens: [] }));
         if (!active) return;
         const products = (data.programacao?.produtos || []) as Produto[];
@@ -175,7 +175,7 @@ export default function RomaneiosPage() {
         throw new Error(
           data.error ||
             (comUsinagem
-              ? "Falha ao finalizar romaneio pelo Filtro 51."
+              ? "Falha ao finalizar romaneio pelo Filtro do Consistem."
               : "Falha ao testar romaneio sem usinagem.")
         );
       }
@@ -323,13 +323,13 @@ export default function RomaneiosPage() {
       <PageHeader
         eyebrow="Expedição"
         title="Gerador de Romaneios"
-        description="Todos os pedidos do Filtro 51 já ficam pré-prontos automaticamente. A IA auxilia conferência e exceções; a planilha de usinagem é opcional para corrigir/complementar quando necessário."
+        description="Todos os pedidos do Filtro do Consistem já ficam pré-prontos automaticamente. A IA auxilia conferência e exceções; a planilha de usinagem é opcional para corrigir/complementar quando necessário."
         actions={<GerarComIABotao />}
       />
 
-      <Card subtitle="Passo 1" title="Romaneios do Filtro 51" className="mb">
+      <Card subtitle="Passo 1" title="Romaneios da programação ativa" className="mb">
         <p className="muted" style={{ marginBottom: "var(--sp-4)" }}>
-          Ao liberar o Filtro 51, o PCP prepara automaticamente todos os romaneios. Abra um pedido para revisar e exportar. Se houver divergência, envie a planilha de usinagem como segunda opção para refazer o pedido.
+          Ao liberar o Filtro do Consistem, o PCP prepara automaticamente todos os romaneios. Abra um pedido para revisar e exportar. Se houver divergência, envie a planilha de usinagem como segunda opção para refazer o pedido.
         </p>
         {carregandoFiltro ? (
           <div className="warningBox"><b>Carregando programação…</b><span>Lendo os pedidos da programação ativa.</span></div>
@@ -411,17 +411,17 @@ export default function RomaneiosPage() {
                     {busy === "PROCESSAR_FILTRO" ? "Refazendo…" : "Refazer com usinagem"}
                   </button>
                 </div>
-                <small>O romaneio pré-pronto usa o Filtro 51. A planilha de usinagem não é obrigatória: ela funciona como fonte adicional/fallback quando houver mãos, aplicações ou detalhes que precisem de correção.</small>
+                <small>O romaneio pré-pronto usa o Filtro do Consistem. A planilha de usinagem não é obrigatória: ela funciona como fonte adicional/fallback quando houver mãos, aplicações ou detalhes que precisem de correção.</small>
               </div>
             )}
           </>
         ) : (
-          <div className="warningBox"><b>Sem programação ativa</b><span>Importe e libere o Filtro 51 para os pedidos aparecerem aqui.</span></div>
+          <div className="warningBox"><b>Sem programação ativa</b><span>Importe e libere o Filtro do Consistem para os pedidos aparecerem aqui.</span></div>
         )}
       </Card>
 
       <Card subtitle="Alternativa" title="Modo manual" className="mb">
-        <p className="muted" style={{ marginBottom: "var(--sp-4)" }}>Use somente para pedidos que ainda não estejam no Filtro 51.</p>
+        <p className="muted" style={{ marginBottom: "var(--sp-4)" }}>Use somente para pedidos que ainda não estejam no Filtro do Consistem.</p>
         <div className="form-grid">
           <label className={`drop ${pedido ? "ready" : ""}`}>
             <UploadCloud />
