@@ -1,6 +1,6 @@
 import crypto from "crypto";
 
-export const MODEL = process.env.AI_GATEWAY_MODEL || "stealth/glyph-cluster";
+export const MODEL = process.env.AI_GATEWAY_MODEL || "inclusionai/ling-3.1-flash-free";
 
 /**
  * O modelo é executado pelo Vercel AI Gateway.
