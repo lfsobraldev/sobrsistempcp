@@ -1,0 +1,161 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  Bell, Boxes, ChevronDown, ClipboardCheck, Factory, Flag, History, LayoutDashboard, LogOut, Menu,
+  PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
+  UploadCloud, UsersRound, type LucideIcon,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { OperationalProvider, useOps } from "@/components/operational-provider";
+import AiAssistant from "@/components/ai-assistant";
+import RomaneioAIModal from "@/components/romaneio-ai";
+import { allowedPath } from "@/lib/permissions";
+
+type MenuItem = { path: string; label: string; icon: LucideIcon };
+type MenuGroup = { label: string; items: MenuItem[] };
+
+const menus: MenuGroup[] = [
+  { label: "Início", items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }] },
+  {
+    label: "Produção",
+    items: [
+      { path: "/programacao", label: "Programação", icon: UploadCloud },
+      { path: "/programacao-gerente", label: "Programação Gerente", icon: Route },
+      { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
+      { path: "/apontamentos", label: "Apontamento", icon: ClipboardCheck },
+      { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },
+    ],
+  },
+  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }] },
+  { label: "Expedição", items: [{ path: "/romaneios", label: "Romaneios", icon: Boxes }] },
+  {
+    label: "Relatórios",
+    items: [
+      { path: "/prioridades", label: "Prioridades", icon: Flag },
+      { path: "/historico", label: "Histórico", icon: History },
+    ],
+  },
+  { label: "Sistema", items: [{ path: "/configuracoes", label: "Configurações", icon: Settings }] },
+];
+
+const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/apontamentos", QUALIDADE: "/inspecao-pallets" };
+
+function Inner({ children }: { children: React.ReactNode }) {
+  const { me, pg, lastSync, realtimeStatus, refresh, loading } = useOps();
+  const path = usePathname();
+  const router = useRouter();
+  const [collapsed, setCollapsed] = useState(false);
+  const [mobileNav, setMobileNav] = useState(false);
+  const [query, setQuery] = useState("");
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  const visible = useMemo(
+    () => menus.map((g) => ({ ...g, items: g.items.filter((i) => me && allowedPath(me.perfil, i.path)) })).filter((g) => g.items.length),
+    [me]
+  );
+  const allVisible = useMemo(() => visible.flatMap((g) => g.items), [visible]);
+  const current = allVisible.find((i) => i.path === path)?.label || "Central de Produção";
+
+  useEffect(() => {
+    if (loading) return;
+    if (!me) { router.replace("/login"); return; }
+    if (allowedPath(me.perfil, path)) return;
+    router.replace(HOME[me.perfil] || "/dashboard");
+  }, [me, path, router, loading]);
+
+  useEffect(() => { setMobileNav(false); setProfileOpen(false); }, [path]);
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+  function searchModule() {
+    const q = query.trim().toLocaleLowerCase("pt-BR");
+    const found = q && allVisible.find((i) => i.label.toLocaleLowerCase("pt-BR").includes(q));
+    if (found) { router.push(found.path); setQuery(""); }
+  }
+
+  if (loading) return <div className="boot"><Factory /><b>Sobral PCP</b><span>Preparando ambiente...</span></div>;
+  if (!me) return null;
+
+  const live = realtimeStatus === "tempo_real";
+  return (
+    <div className={`shell ${collapsed ? "collapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
+      <aside className="sidenav">
+        <div className="brand"><span className="brand-mark"><Factory size={18} /></span><span>Sobral PCP</span></div>
+        <nav>
+          {visible.map((g) => (
+            <section key={g.label} className="navgroup">
+              <label>{g.label}</label>
+              {g.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link key={item.path} href={item.path} className={`navlink ${path === item.path ? "active" : ""}`} title={collapsed ? item.label : undefined}>
+                    <Icon /><span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </section>
+          ))}
+        </nav>
+        <div className="sidefoot">
+          Programação ativa
+          <b>{pg?.filtro || "Sem filtro"}</b>
+          {pg ? `Turno ${pg.turno} · ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}` : "Aguardando programação"}
+        </div>
+      </aside>
+
+      {mobileNav && <button className="backdrop" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
+
+      <header className="topbar2">
+        <button className="ghost iconBtn menubtn" onClick={() => setMobileNav(true)} aria-label="Abrir menu"><Menu /></button>
+        <button className="ghost iconBtn" onClick={() => setCollapsed((v) => !v)} aria-label="Recolher menu" style={{ display: undefined }}>
+          {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+        </button>
+        <h2>{current}</h2>
+        <div className="search" role="search">
+          <Search />
+          <input aria-label="Buscar módulo" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") searchModule(); }} placeholder="Ir para módulo…" />
+        </div>
+        <div className="spacer" />
+        {pg && (
+          <div className="ctxmeta">
+            <span>Filtro<b>{pg.filtro || "-"}</b></span>
+            <span>Turno<b>{pg.turno || "-"}</b></span>
+            <span>Data<b>{new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}</b></span>
+          </div>
+        )}
+        <span className={`livedot ${live ? "on" : ""}`} title={live ? "Tempo real ativo" : "Sincronizando"} />
+        <button className="ghost iconBtn" onClick={() => void refresh()} aria-label="Atualizar" title="Atualizar"><RefreshCw /></button>
+        <button className="ghost iconBtn" aria-label="Notificações" title="Notificações"><Bell /></button>
+        <div style={{ position: "relative" }}>
+          <button className="userchip" onClick={() => setProfileOpen((v) => !v)} aria-expanded={profileOpen}>
+            <span className="avatar">{me.usuario.slice(0, 2).toUpperCase()}</span>
+            <ChevronDown size={14} />
+          </button>
+          {profileOpen && (
+            <div className="menu">
+              <div><b>{me.usuario}</b><br /><small>{me.perfil}</small></div>
+              <div><small>Última sincronização: {lastSync ? lastSync.toLocaleTimeString("pt-BR") : "--:--:--"}</small></div>
+              <button onClick={logout}><LogOut /> Sair</button>
+            </div>
+          )}
+        </div>
+      </header>
+
+      <main className="main"><div className="page">{children}</div></main>
+      <AiAssistant />
+      <RomaneioAIModal />
+    </div>
+  );
+}
+
+export default function ErpShell({ children }: { children: React.ReactNode }) {
+  return (
+    <OperationalProvider>
+      <Inner>{children}</Inner>
+    </OperationalProvider>
+  );
+}
