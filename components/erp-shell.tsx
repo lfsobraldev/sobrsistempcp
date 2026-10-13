@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Bell, Boxes, BrainCircuit, ChevronDown, ClipboardCheck, Flag, History, LayoutDashboard, LogOut, Menu,
+  Bell, Boxes, BrainCircuit, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu,
   PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
   UploadCloud, UsersRound, type LucideIcon,
 } from "lucide-react";
@@ -25,7 +25,6 @@ const menus: MenuGroup[] = [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
       { path: "/programacao-gerente", label: "Programação Gerente", icon: Route },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
-      { path: "/apontamentos", label: "Apontamento", icon: ClipboardCheck },
       { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },
     ],
   },
@@ -42,7 +41,7 @@ const menus: MenuGroup[] = [
   { label: "Sistema", items: [{ path: "/configuracoes", label: "Configurações", icon: Settings }] },
 ];
 
-const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/apontamentos", QUALIDADE: "/inspecao-pallets" };
+const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets" };
 
 function Inner({ children }: { children: React.ReactNode }) {
   const { me, pg, lastSync, realtimeStatus, refresh, loading } = useOps();
