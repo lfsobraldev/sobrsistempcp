@@ -23,7 +23,7 @@ export type Programacao = {
   id:string; filtro:string; data:string; turno:string; status:string; origem:string; criadoEm?:string;
   diagnostico?:DiagnosticoImportacao; produtos:Produto[];
 };
-export type ImportResult = DiagnosticoImportacao & { filtro:string; produtos:Produto[] };
+export type ImportResult = DiagnosticoImportacao & { filtro:string; produtos:Produto[]; romaneioProdutos?:Produto[] };
 export type Sessao = { usuario:string; perfil:Perfil; processos:string[] };
 export type Andon = { id:string; operacao_id:string; processo:string; motivo:string; observacao:string; status:string;
   usuario_abertura:string; criado_em:string; pedido?:string; of?:string; categoria?:string; prioridade?:string; responsavel?:string;
