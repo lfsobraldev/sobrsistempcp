@@ -675,7 +675,7 @@ function filterProductDescription(product: FilterRomaneioProduct) {
 
 function categoryFromFilterProduct(product: FilterRomaneioProduct): ProductCategory {
   /*
-   * Usa a MESMA classificação central do PCP/Filtro 51.
+   * Usa a MESMA classificação central do PCP/filtro do Consistem.
    * Não mantemos uma segunda lógica concorrente dentro do romaneio.
    */
   const categoria = categoriaIndustrial({
@@ -865,7 +865,7 @@ export function buildProcessingFromFilterProducts(
     .filter((item): item is NonNullable<typeof item> => Boolean(item && item.quantity > 0 && item.description));
 
   /*
-   * No Filtro 51 cada registro já representa uma linha produtiva válida.
+   * No filtro do Consistem cada registro já representa uma linha produtiva válida.
    * Não aplicamos physicalOrderItems(), pois essa função foi criada para
    * o PDF do pedido e pode eliminar linhas ao interpretar item "1" como
    * pai de "1.1". Isso estava fazendo pedidos inteiros virarem poucas linhas.
@@ -896,7 +896,7 @@ export function buildProcessingFromFilterProducts(
   if (!machiningBuffer) {
     /*
      * PRIMEIRA ETAPA: romaneio SEM USINAGEM.
-     * O Filtro 51 já contém as linhas físicas. Mantemos exatamente essas linhas,
+     * O filtro do Consistem já contém as linhas físicas. Mantemos exatamente essas linhas,
      * suas descrições e medidas; consolidamos somente itens realmente idênticos.
      * Não inventamos mão, dobradiça, contratesta ou aplicação.
      */
@@ -950,9 +950,9 @@ export function buildProcessingFromFilterProducts(
   }
 
   if (!machiningBuffer) {
-    warnings.push("Romaneio base gerado pelo Filtro 51 sem usinagem. Descrições, medidas, quantidades e itens foram preservados; mão/aplicações específicas ficam para a opção com usinagem.");
+    warnings.push("Romaneio base gerado pelo filtro do Consistem sem usinagem. Descrições, medidas, quantidades e itens foram preservados; mão/aplicações específicas ficam para a opção com usinagem.");
     const semItem = sourceRows.filter((row) => !row.originalItem).length;
-    if (semItem) warnings.push(`${semItem} linha(s) do Filtro 51 não possuem número de item e ficaram sem Item na coluna Obs.`);
+    if (semItem) warnings.push(`${semItem} linha(s) do filtro do Consistem não possuem número de item e ficaram sem Item na coluna Obs.`);
   } else if (!machining.length) {
     warnings.push("A planilha de usinagem foi recebida, mas nenhuma linha utilizável foi identificada.");
   }
@@ -1069,7 +1069,7 @@ export function buildProcessingFromFilterProducts(
       notes: diagnosticNotes,
     },
     sourceMode: "PEDIDO",
-    sourceFileName: "FILTRO_51",
+    sourceFileName: "FILTRO_CONSISTEM",
     specialInstructions: [],
     trimAsResale: false,
     romaneioStyle: config.romaneioStyle,
@@ -1079,7 +1079,7 @@ export function buildProcessingFromFilterProducts(
   const result = applyLogistics(base, mountType, config);
 
   if (!machiningBuffer) {
-    result.parserDiagnostics!.notes.unshift("Romaneio base criado diretamente das linhas físicas do Filtro 51, sem inferir dados de usinagem.");
+    result.parserDiagnostics!.notes.unshift("Romaneio base criado diretamente das linhas físicas do filtro do Consistem, sem inferir dados de usinagem.");
   }
 
   return result;
