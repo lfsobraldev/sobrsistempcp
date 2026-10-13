@@ -48,9 +48,36 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
       case "resumo_producao": {
         const { db, pg } = await programacaoAtiva();
         if (!pg) return j({ erro: "Nenhuma programação ativa." });
-        const [tot] = await db`select count(distinct pedido)::int pedidos, count(*)::int ofs, coalesce(sum(quantidade),0)::float pecas from pcp_produtos where programacao_id=${pg.id}`;
-        const proc = await db`select o.processo, o.status, count(*)::int n, coalesce(sum(o.quantidade_planejada),0)::float planejado, coalesce(sum(o.quantidade_produzida),0)::float produzido from pcp_operacoes o join pcp_produtos p on p.id=o.produto_id where p.programacao_id=${pg.id} group by 1,2 order by 1,2`;
-        return j({ programacao: pg, totais: tot, porProcessoStatus: proc });
+        const [tot] = await db`
+          select
+            count(distinct pedido)::int pedidos,
+            count(distinct nullif(trim(of),''))::int ofs,
+            count(*)::int linhas,
+            coalesce(sum(quantidade),0)::float pecas
+          from pcp_produtos
+          where programacao_id=${pg.id}
+        `;
+        const proc = await db`
+          select
+            o.processo,
+            o.status,
+            count(*)::int operacoes,
+            coalesce(sum(o.quantidade_planejada),0)::float planejado,
+            coalesce(sum(o.quantidade_produzida),0)::float produzido,
+            coalesce(sum(greatest(o.quantidade_planejada-o.quantidade_produzida,0)),0)::float saldo
+          from pcp_operacoes o
+          join pcp_produtos p on p.id=o.produto_id
+          where p.programacao_id=${pg.id}
+          group by 1,2
+          order by 1,2
+        `;
+        return j({
+          programacao: pg,
+          totais: tot,
+          porProcessoStatus: proc,
+          unidadeResumo: "PEÇAS",
+          observacao: "Pedidos e OFs são contagens distintas. Situação por processo deve ser apresentada em quantidade de peças (planejado/produzido/saldo), não como quantidade de registros de operação."
+        });
       }
       case "buscar_pedido": {
         const { db, pg } = await programacaoAtiva();
