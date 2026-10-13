@@ -31,8 +31,8 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   if (medida) preencher("medida", medida.replace(/\s*[xX×]\s*/g, "x"), medida);
   // O Filtro 53 possui descrições truncadas na ORIGEM, como BCO(UL e BCO(ULTR.
   // Reconhecer UL/ULTR somente como token final entre parênteses (nunca palavras aleatórias).
-  const ultraAbreviado = texto.match(/(?:\(|\s)(UL|ULT|ULTR)(?:\s*\)?)$/)?.[1] || "";
-  const ultraEmToken = texto.match(/(?:^|[\s(])(?:UL|ULT|ULTR)(?=\s|\)|$)/)?.[0]?.trim() || "";
+  const ultraAbreviado = texto.match(/(?:\(|\s)(U|UL|ULT|ULTR)(?:\s*\)?)$/)?.[1] || "";
+  const ultraEmToken = texto.match(/(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=\s|\)|$)/)?.[0]?.trim() || "";
   const material = texto.match(/\bMDF\s+(?:ULTRA|STD|RU)\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b/)?.[0] || ultraAbreviado || ultraEmToken;
   if (material) {
     const nomeMaterial = material === "ULTRA" || Boolean((ultraAbreviado || ultraEmToken) && (material === ultraAbreviado || material === ultraEmToken)) ? "MDF ULTRA" : material === "STD" ? "MDF STD" : material;
