@@ -1,4 +1,4 @@
-import { generateObject } from "ai";
+import { generateText, tool } from "ai";
 import { z } from "zod";
 import { assertGatewayConfigured, MODEL } from "@/lib/ia/claude";
 import type { OrderPdfItem } from "@/lib/romaneio/order-parser";
@@ -29,9 +29,8 @@ export async function recuperarItensFaltantes(
     return [];
   }
 
-  const { object } = await generateObject({
+  const { toolCalls } = await generateText({
     model: MODEL,
-    schema: RecuperadosSchema,
     system:
       "Você lê pedidos de venda de portas, marcos e alizares. Extraia APENAS os itens pedidos, literalmente do texto. " +
       "Não invente códigos nem quantidades; se não encontrar o item, omita-o.",
@@ -41,10 +40,23 @@ Texto do pedido:
 """
 ${pdfText.slice(0, 100_000)}
 """`,
+    tools: {
+      itens_recuperados: tool({
+        description: "Itens do pedido que o leitor automático não conseguiu interpretar.",
+        inputSchema: RecuperadosSchema,
+      }),
+    },
+    toolChoice: { type: "tool", toolName: "itens_recuperados" },
+    maxOutputTokens: 4000,
   });
 
+  const call = toolCalls.find((c) => c.toolName === "itens_recuperados");
+  if (!call) return [];
+
+  const parsed = RecuperadosSchema.parse(call.input);
   const out: OrderPdfItem[] = [];
-  for (const r of object.itens || []) {
+
+  for (const r of parsed.itens || []) {
     const item = String(r.item || "").trim();
     const code = String(r.codigo || "").replace(/\D/g, "");
     const q = Number(r.quantidade);
