@@ -57,6 +57,7 @@ ${texto.slice(0, 120_000)}
       }),
     },
     toolChoice: { type: "tool", toolName: "salvar_romaneio" },
+    reasoning: "high",
     maxOutputTokens: 8000,
   });
 
