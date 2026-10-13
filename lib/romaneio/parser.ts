@@ -653,33 +653,24 @@ function filterCategoryPrefix(category?: string) {
   return "";
 }
 
-function filterProductDescription(product: FilterRomaneioProduct) {
-  const base = clean(product.descricao || "");
-  const prefix = filterCategoryPrefix(product.categoria);
-  const extras = [
-    product.medida,
-    product.material,
-    product.acabamento,
-    product.cor,
-    product.rebaixo,
-    product.descricaoModelo,
-    product.outrasCaracteristicas,
-  ]
-    .map(clean)
-    .filter(Boolean)
-    .filter((value, index, all) =>
-      all.findIndex((other) => norm(other) === norm(value)) === index
-    )
-    .filter((value) => !norm(base).includes(norm(value)));
+function stripMainMeasureFromDescription(text: string, measure?: string) {
+  let out = clean(text);
+  const dims = dimensionsFromText(clean(measure || ""));
+  if (dims) {
+    const [l, w, t] = dims;
+    const rx = new RegExp(`\\b${l}\\s*[xX×]\\s*${w}\\s*[xX×]\\s*${t}\\b`, "gi");
+    out = out.replace(rx, " ");
+  }
+  return clean(out);
+}
 
-  return clean(
-    [prefix, base, ...extras]
-      .filter(Boolean)
-      .filter((value, index, all) =>
-        all.findIndex((other) => norm(other) === norm(value)) === index
-      )
-      .join(" ")
+function filterProductDescription(product: FilterRomaneioProduct) {
+  const base = stripMainMeasureFromDescription(
+    clean(product.descricao || product.descricaoModelo || product.produto || ""),
+    product.medida
   );
+  // No romaneio, Produto contém somente o nome comercial. Medida fica nas colunas próprias.
+  return normalizeTitle(base);
 }
 
 function categoryFromFilterProduct(product: FilterRomaneioProduct): ProductCategory {
@@ -776,11 +767,11 @@ function buildUnmachinedFilterRows(sourceRows: Array<{
 }>): PackageRow[] {
   const rows: PackageRow[] = sourceRows.map((source) => {
     const raw = clean(source.product.descricao || "");
-    const description = raw || source.description;
+    const description = source.description || filterProductDescription(source.product);
     const dimensionText = clean(source.product.medida || "");
-    const dims = dimensionsFromText(dimensionText) || dimensionsFromText(description);
-    const packaging = packagingFromText(description);
-    const productText = withPackaging(normalizeTitle(description), packaging);
+    const dims = dimensionsFromText(dimensionText) || dimensionsFromText(raw);
+    const packaging = packagingFromText(raw);
+    const productText = withPackaging(description, packaging);
     const category = source.category;
     const role = source.role || (
       category === "PORTA" ? "PORTA" :
@@ -789,7 +780,7 @@ function buildUnmachinedFilterRows(sourceRows: Array<{
     );
 
     return {
-      sourceItems: [source.originalItem || source.item],
+      sourceItems: source.originalItem ? [source.originalItem] : [],
       sourceCode: source.code,
       sourceCodes: source.code ? [source.code] : [],
       quantity: source.quantity,
@@ -797,13 +788,13 @@ function buildUnmachinedFilterRows(sourceRows: Array<{
       widthMm: dims?.[1],
       thicknessMm: dims?.[2],
       product: productText,
-      observation: sourceText([{
-        item: source.originalItem || source.item,
+      observation: source.originalItem ? sourceText([{
+        item: source.originalItem,
         code: source.code,
         description,
         unit: source.unit,
         quantity: source.quantity,
-      }]),
+      }]) : undefined,
       category,
       groupType: category,
       groupId: `F51-${role}-${source.item}`,
@@ -840,27 +831,38 @@ export function buildProcessingFromFilterProducts(
   }
 ): ProcessingResult {
   const duplicateCount = new Map<string, number>();
+  const exactSeen = new Set<string>();
 
   const sourceRows = input.products
     .map((product, index) => {
-      const originalItem = clean(product.item || "");
-      const baseKey = originalItem || String(index + 1);
+      const originalItem = normalizeItemId(product.item || "");
+      const code = clean(product.produto || "");
+      const description = filterProductDescription(product);
+      const quantity = Math.max(0, Math.round(Number(product.quantidade || 0)));
+      const category = categoryFromFilterProduct(product);
+      const measure = clean(product.medida || "");
+
+      const exactKey = [originalItem, code, norm(description), norm(measure), quantity, category].join("|");
+      if (originalItem && exactSeen.has(exactKey)) return null;
+      if (originalItem) exactSeen.add(exactKey);
+
+      const baseKey = originalItem || `SEMITEM-${index + 1}`;
       const seen = (duplicateCount.get(baseKey) || 0) + 1;
       duplicateCount.set(baseKey, seen);
 
       return {
         product,
-        item: seen === 1 ? baseKey : `${baseKey}-${seen}`,
-        originalItem: originalItem || baseKey,
-        code: clean(product.produto || ""),
-        description: filterProductDescription(product),
+        item: seen === 1 ? baseKey : `${baseKey}#${seen}`,
+        originalItem,
+        code,
+        description,
         unit: "UN",
-        quantity: Math.max(0, Math.round(Number(product.quantidade || 0))),
-        category: categoryFromFilterProduct(product),
-        role: roleFromFilterProduct(product, categoryFromFilterProduct(product)),
+        quantity,
+        category,
+        role: roleFromFilterProduct(product, category),
       };
     })
-    .filter((item) => item.quantity > 0 && !!item.description);
+    .filter((item): item is NonNullable<typeof item> => Boolean(item && item.quantity > 0 && item.description));
 
   /*
    * No Filtro 51 cada registro já representa uma linha produtiva válida.
@@ -949,6 +951,8 @@ export function buildProcessingFromFilterProducts(
 
   if (!machiningBuffer) {
     warnings.push("Romaneio base gerado pelo Filtro 51 sem usinagem. Descrições, medidas, quantidades e itens foram preservados; mão/aplicações específicas ficam para a opção com usinagem.");
+    const semItem = sourceRows.filter((row) => !row.originalItem).length;
+    if (semItem) warnings.push(`${semItem} linha(s) do Filtro 51 não possuem número de item e ficaram sem Item na coluna Obs.`);
   } else if (!machining.length) {
     warnings.push("A planilha de usinagem foi recebida, mas nenhuma linha utilizável foi identificada.");
   }
