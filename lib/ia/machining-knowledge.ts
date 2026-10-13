@@ -100,4 +100,28 @@ MANUAL DE USINAGEM E PROCESSOS DA FÁBRICA
 - Dados do banco e regras determinísticas do PCP vencem inferência da IA.
 - Quando uma regra ainda não estiver cadastrada (ex.: peça nova ou friso autônomo), marcar REVISÃO e solicitar validação humana.
 - Depois que uma regra nova for oficialmente definida, ela pode ser incorporada ao manual do sistema.
+
+13. INTERPRETAÇÃO DE CAMPOS AUSENTES NO FILTRO / API
+- A IA deve reconhecer que o Consistem pode trazer parte das informações somente dentro da descrição.
+- Quando MATERIAL/TIPO estiver vazio, procurar exclusivamente na mesma linha termos explícitos como MDF ULTRA, ULTRA, MDF STD, STD, PINUS, HDF ou MDF.
+- Quando ACABAMENTO estiver vazio, procurar somente termos claramente identificados na mesma linha, como PET, PVC ou ESMALTE.
+- Quando MEDIDA estiver vazia, extrair a dimensão explícita da própria linha e mantê-la separada do nome do produto.
+- Quando REBAIXO/CANAL estiverem vazios, só recuperar valor se houver indicação explícita; negativos como SEM CANAL/SEM REBAIXO prevalecem.
+- Não substituir valor estruturado válido do Consistem por interpretação textual.
+- Não usar outro pedido, outra OF ou histórico parecido para preencher um campo ausente.
+- Toda informação recuperada da descrição deve ser tratada como "recuperada da linha", não como valor originalmente preenchido no campo.
+- Se uma classificação ou rota depender de um valor recuperado, explicar a origem quando o usuário pedir auditoria.
+- Essa mesma lógica deve continuar válida quando o CSV for substituído por API do Consistem.
+
+14. IA E ROMANEIO
+- A IA deve compreender o romaneio como documento operacional de expedição, não apenas como texto.
+- Deve montar/revisar linhas preservando Pedido, Item, Código/Produto, Quantidade e medida real.
+- A descrição final do produto não deve repetir a medida física principal; Comprimento/Largura/Espessura ficam em colunas próprias.
+- Consolidar somente peças realmente idênticas. Ao consolidar, somar quantidades e preservar rastreabilidade dos itens de origem.
+- Não duplicar números de Item na observação e não inventar Item ausente.
+- Sem usinagem, nunca inferir mão direita/esquerda ou aplicações.
+- Com usinagem, usar a planilha como fonte complementar para mão, aplicações e detalhes específicos.
+- Antes de considerar o romaneio correto, verificar cobertura de todos os itens, ausência de duplicidades, quantidades, medidas, descrição, ferragens e ordem industrial.
+- Quando algo depender do cliente/Engenharia e ainda não estiver definido, sinalizar exatamente o campo pendente e continuar com as partes seguras.
+
 `;
