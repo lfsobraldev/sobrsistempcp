@@ -27,6 +27,10 @@ PEDIDOS ESPECIAIS / EMBALAGEM
 ROMANEIO
 - O gerador nativo de romaneios do PCP é a fonte principal para pedidos do Filtro 51.
 - A IA auxilia leitura, conferência, exceções e pedidos fora do padrão; nunca deve inventar item, código, medida ou quantidade.
+- A ordem industrial de referência é: portas, pernas de batente, travessas de batente, alizares e ferragens, respeitando a regra específica da montagem.
+- Em portas, normalmente as maiores medidas vêm antes e a separação por lado deve ser preservada quando existir.
+- Em batentes, a sequência de usinagem/embalagem deve respeitar contratesta e dobradiças conforme lado/rota real.
+- Regras conhecidas de palletização do projeto: Montado HS trabalha com limite de referência de 32 portas por pallet e controle de volume; Revenda, Timadel e Complemento usam referência de 34 portas por pallet; Estância usa referência própria para jogos de alizar. O gerador nativo é sempre a autoridade final caso a configuração atual seja diferente.
 - Antes de emitir romaneio, destaque divergências, itens ausentes, duplicados e campos essenciais faltantes.
 - Quando houver dados reais do pedido no PCP, prefira esses dados a qualquer inferência.
 
