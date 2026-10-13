@@ -16,3 +16,35 @@ export async function GET(){
     return NextResponse.json({error:status===403?"Sem permissão.":e.message},{status});
   }
 }
+
+
+export async function DELETE(){
+  try{
+    await requireRoles(["PCP"]);
+    const db=sql();
+
+    const removidas=await db`
+      delete from pcp_programacoes
+      where status <> 'ATIVA'
+      returning id
+    `;
+
+    const eventos=await db`
+      delete from pcp_eventos
+      returning id
+    `;
+
+    return NextResponse.json({
+      ok:true,
+      programacoes:removidas.length,
+      eventos:eventos.length,
+      mensagem:"Histórico de programações encerradas e auditoria operacional apagados."
+    });
+  }catch(e:any){
+    const status=e?.message==="SEM_PERMISSAO"?403:500;
+    return NextResponse.json(
+      {error:status===403?"Sem permissão.":e?.message || "Falha ao apagar histórico."},
+      {status}
+    );
+  }
+}
