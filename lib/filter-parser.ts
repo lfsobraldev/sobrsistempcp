@@ -584,7 +584,7 @@ function material(r: Record<string, string>) {
   const fonte = [descricao, mascara, caracteristicas, produto];
   const detectar = (d: string) => {
     if (/\bPINUS\b/.test(d)) return "PINUS";
-    if (/\bULTRA\b/.test(d) || /(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(d)) return "MDF ULTRA";
+    if (/\bULTRA\b/.test(d) || /(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)(]|$)/.test(d)) return "MDF ULTRA";
     if (/\bSTD\b/.test(d)) return "MDF STD";
     if (/\bHDF\b/.test(d)) return "HDF";
     if (/\bMDF\b/.test(d)) return "MDF";
