@@ -324,16 +324,20 @@ export async function POST(req: Request) {
     }
     // Publicar só depois de salvar todas as linhas e preparar os romaneios.
     // Uma importação interrompida fica PREPARANDO e não substitui a ativa.
-    await db`
-      update pcp_programacoes
-      set status = 'ENCERRADA', encerrado_em = now()
-      where status = 'ATIVA'
-    `;
-    await db`
+    // Troca publicada em uma única instrução SQL (atômica).
+    const ativadas = await db`
+      with encerradas as (
+        update pcp_programacoes
+        set status = 'ENCERRADA', encerrado_em = now()
+        where status = 'ATIVA'
+        returning id
+      )
       update pcp_programacoes
       set status = 'ATIVA'
       where id = ${pg.id} and status = 'PREPARANDO'
+      returning id
     `;
+    if (ativadas.length !== 1) throw new Error("Falha na ativação da programação.");
 
     return NextResponse.json({
       ok: true,
