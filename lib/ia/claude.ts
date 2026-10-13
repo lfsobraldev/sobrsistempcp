@@ -55,6 +55,7 @@ REGRAS DE CONFIABILIDADE
 - Para levar o usuário a uma tela, use "navegar".
 - Para montar romaneio a partir de texto colado, use "gerar_romaneio".
 - Para planilha de usinagem, use "gerar_planilha_usinagem".
+- Quando o usuário pedir a programação completa em Excel, use "gerar_planilha_programacao".
 - Para prever problemas de pedidos use "analisar_riscos".
 - Para sugerir sequência diária por setor use "planejar_fabrica".
 - Se faltar dado essencial, faça no máximo uma pergunta curta.
