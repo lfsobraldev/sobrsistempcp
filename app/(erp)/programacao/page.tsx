@@ -84,6 +84,10 @@ export default function Programacao() {
             processos: draft.processos,
           },
           produtos: draft.produtos,
+          romaneioProdutos: (draft.romaneioProdutos || draft.produtos).map((item) => {
+            const tipo = draft.produtos.find((p) => p.pedido === item.pedido)?.tipoPedido || item.tipoPedido || "NORMAL";
+            return { ...item, tipoPedido: tipo };
+          }),
         }),
       });
       const j = await r.json();
