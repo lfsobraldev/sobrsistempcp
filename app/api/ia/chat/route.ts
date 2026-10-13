@@ -160,8 +160,9 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
       system,
       messages,
       tools: aiTools,
-      stopWhen: stepCountIs(6),
-      maxOutputTokens: 4000,
+      stopWhen: stepCountIs(10),
+      reasoning: "high",
+      maxOutputTokens: 5000,
     });
 
     const text = result.text.trim() || "Pronto.";
