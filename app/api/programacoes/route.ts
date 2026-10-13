@@ -2,12 +2,33 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
 import { prepareAllRomaneios } from "@/lib/romaneio/prepared";
+import { completarFiltro } from "@/lib/ia/completar-filtro";
+import type { Produto } from "@/types/pcp";
 
 export async function POST(req: Request) {
   try {
     await requireRoles(["PCP"]);
 
-    const b = await req.json();
+    const entrada = await req.json();
+    if (!Array.isArray(entrada.produtos) || !entrada.produtos.length) {
+      return NextResponse.json({ error: "Programação sem produtos para liberar." }, { status: 400 });
+    }
+    // Ativação explícita após homologação. A validação ocorre ANTES de encerrar
+    // a programação anterior ou gravar qualquer registro na fábrica.
+    const habilitado = process.env.PCP_AI_RELEASE_ENRICHMENT === "enabled";
+    const complemento = habilitado
+      ? await completarFiltro(entrada.produtos as Produto[])
+      : { produtos: entrada.produtos as Produto[], alteracoes: [], pendencias: [] };
+    // A fonte de romaneios pode possuir IDs e linhas diferentes: nunca
+    // transferir atributos de uma lista para a outra por pedido/OF.
+    const romaneio = habilitado && Array.isArray(entrada.romaneioProdutos)
+      ? await completarFiltro(entrada.romaneioProdutos as Produto[])
+      : null;
+    const b = {
+      ...entrada,
+      produtos: complemento.produtos,
+      romaneioProdutos: romaneio?.produtos ?? entrada.romaneioProdutos,
+    };
     const db = sql();
 
     await db`
@@ -270,6 +291,7 @@ export async function POST(req: Request) {
             b.diagnostico
               ?.inconsistenciasRota || 0
           ),
+          complementoIA: { ativo: habilitado, alteracoes: complemento.alteracoes, pendencias: complemento.pendencias, alteracoesRomaneio: romaneio?.alteracoes ?? [], pendenciasRomaneio: romaneio?.pendencias ?? [] },
         })}::jsonb
       )
     `;
@@ -293,6 +315,7 @@ export async function POST(req: Request) {
       ok: true,
       id: pg.id,
       romaneios,
+      complementoIA: { ativo: habilitado, corrigidos: complemento.alteracoes.length, pendencias: complemento.pendencias.length, corrigidosRomaneio: romaneio?.alteracoes.length ?? 0, pendenciasRomaneio: romaneio?.pendencias.length ?? 0 },
       diagnostico: {
         linhas: Number(
           b.diagnostico?.linhas || 0
