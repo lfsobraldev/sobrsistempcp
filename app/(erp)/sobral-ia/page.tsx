@@ -74,7 +74,7 @@ export default function SobralIAPage(){
   </section>
 
   <section className="sobral-ai-metrics">
-   <div className="sobral-ai-metric"><span className="metric-icon"><Database/></span><div><small>Programação</small><b>{pg?.filtro ? \`Filtro \${pg.filtro}\` : "Sem filtro ativo"}</b><span>{pg ? \`Turno \${pg.turno}\` : "Aguardando programação"}</span></div></div>
+   <div className="sobral-ai-metric"><span className="metric-icon"><Database/></span><div><small>Programação</small><b>{pg?.filtro ? `Filtro ${pg.filtro}` : "Sem filtro ativo"}</b><span>{pg ? `Turno ${pg.turno}` : "Aguardando programação"}</span></div></div>
    <div className="sobral-ai-metric"><span className="metric-icon"><GraduationCap/></span><div><small>Conhecimento</small><b>{regras.filter(r=>r.ativo).length} regras ativas</b><span>{regras.length} cadastradas no total</span></div></div>
    <div className="sobral-ai-metric"><span className="metric-icon"><ShieldCheck/></span><div><small>Modo</small><b>Dados reais + regras</b><span>Sem inventar produção</span></div></div>
    <div className="sobral-ai-metric"><span className="metric-icon"><Activity/></span><div><small>Escopo</small><b>PCP completo</b><span>Produção, risco e expedição</span></div></div>
@@ -89,8 +89,8 @@ export default function SobralIAPage(){
    <aside className="sobral-ai-context sobral-ai-context-v2">
     <div className="ai-context-card ai-context-primary">
      <div className="ai-context-title"><Gauge/><span>Contexto atual</span></div>
-     <b>{pg?.filtro?\`Filtro \${pg.filtro}\`:"Sem programação ativa"}</b>
-     <small>{pg?\`Turno \${pg.turno} conectado à análise\`:"Libere uma programação para análises completas."}</small>
+     <b>{pg?.filtro?`Filtro ${pg.filtro}`:"Sem programação ativa"}</b>
+     <small>{pg?`Turno ${pg.turno} conectado à análise`:"Libere uma programação para análises completas."}</small>
      <div className="ai-context-state"><span/> Dados do PCP disponíveis</div>
     </div>
     <div className="ai-context-card">
@@ -117,7 +117,7 @@ export default function SobralIAPage(){
       <p>Pergunte em linguagem normal. Eu cruzo programação, pedidos, capacidade, usinagem, romaneios, qualidade e regras ensinadas pela equipe.</p>
       <div className="ai-welcome-suggestions">{ATALHOS.slice(0,4).map(a=><button key={a} onClick={()=>void enviar(a)}>{a}</button>)}</div>
      </div>}
-     {msgs.map((m,i)=><article key={i} className={\`ai-bubble \${m.role}\`}><div className="ai-bubble-label">{m.role==="user"?"Você":"Sobral IA"}</div><div className="ai-bubble-content">{m.content}</div>
+     {msgs.map((m,i)=><article key={i} className={`ai-bubble ${m.role}`}><div className="ai-bubble-label">{m.role==="user"?"Você":"Sobral IA"}</div><div className="ai-bubble-content">{m.content}</div>
       {m.anexos?.map((a,k)=><div className="ai-action-row" key={k}>
        {a.type==="confirm"&&<button className="primary" onClick={()=>void confirmar(a.token)}><Check/> Confirmar: {a.label}</button>}
        {a.type==="romaneio"&&<button className="primary" onClick={()=>abrirRomaneioIA({romaneio:a.data})}><FileSpreadsheet/> Revisar romaneio</button>}
