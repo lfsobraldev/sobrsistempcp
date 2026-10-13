@@ -19,6 +19,8 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   const texto = normal(descricao);
   const marco = /BATENTE|MARCO/.test(normal(String(p.categoria || ""))) || /^M(?:\s+(?:P|T|CJ))?\s/.test(texto);
   const alizar = /ALIZAR/.test(normal(String(p.categoria || ""))) || /^A\s/.test(texto);
+  const baguete = /BAGUETE/.test(normal(String(p.categoria || ""))) || /\bBAGUETE\b/.test(texto);
+  const admiteRebaixo = marco && !alizar && !baguete;
   const preencher = (campo: Campo, valor: string, evidencia: string) => {
     if (!vazio(produto[campo]) || !valor || !evidencia || !evidenciaPresente(descricao, evidencia)) return;
     produto[campo] = valor;
@@ -37,7 +39,7 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
     if (alizar && /\b(?:STD|ULTRA|MDF|RU)\b/.test(material)) preencher("tipo", material === "MDF STD" ? "STD" : material === "MDF ULTRA" ? "ULTRA" : material, material);
   }
   const rebaixo = texto.match(/\bS\/REB\b|\b(?:C\/REB\s*)?\d{2}X\d{1,2}\b/)?.[0] || "";
-  if (marco && rebaixo) preencher("rebaixo", rebaixo === "S/REB" ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
+  if (admiteRebaixo && rebaixo) preencher("rebaixo", rebaixo === "S/REB" ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
   const cor = texto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
   if (cor) preencher("cor", cor, cor);
   // Siglas de rebaixo de alizares (RT/RTO) exigem confirmação na nomenclatura
