@@ -56,7 +56,7 @@ export default function Programacao() {
         }
         const elegiveis = parsed.produtos.filter((p: any) =>
           ["material", "medida"].some((k) => !String(p[k] || "").trim()) &&
-          /\\b(MDF|ULTRA|STD|RU|COLMEIA|SOLIDA|SÓLIDA)\\b|\\d{3,4}[X×]\\d{2,4}/i.test(String(p.descricao || ""))
+          /\b(MDF|ULTRA|STD|RU|COLMEIA|SOLIDA|SÓLIDA)\b|\d{3,4}[X×]\d{2,4}/i.test(String(p.descricao || ""))
         );
         const updates = new Map<string, any>();
         const rastreio: Array<{ id: string; campo: string; valor: string; evidencia: string; metodo: string }> = [];
