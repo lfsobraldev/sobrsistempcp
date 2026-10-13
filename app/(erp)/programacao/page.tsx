@@ -22,6 +22,7 @@ export default function Programacao() {
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [turno, setTurno] = useState("A");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [descricaoExpandida, setDescricaoExpandida] = useState(true);
 
   async function process() {
     setRequisicaoId("");
@@ -247,7 +248,7 @@ export default function Programacao() {
           </Card>
         </div>
       ) : (
-        <Review d={draft} busy={busy} back={() => setDraft(null)} release={release} setTipoPedido={definirTipoPedido} correcoes={correcoesIA} />
+        <Review d={draft} busy={busy} back={() => setDraft(null)} release={release} setTipoPedido={definirTipoPedido} correcoes={correcoesIA} descricaoExpandida={descricaoExpandida} setDescricaoExpandida={setDescricaoExpandida} />
       )}
     </>
   );
@@ -280,13 +281,15 @@ function Drop({ file, set, accept, title }: { file: File | null; set: (file: Fil
 const tomPrio = (v: string): Tone => (/URGENTE/i.test(v) ? "danger" : /ALTA/i.test(v) ? "warning" : "neutral");
 const ordenarPedidos = (a: string, b: string) => a.localeCompare(b, "pt-BR", { numeric: true });
 
-function Review({ d, busy, back, release, setTipoPedido, correcoes }: {
+function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExpandida, setDescricaoExpandida }: {
   d: ImportResult;
   busy: boolean;
   back: () => void;
   release: () => void;
   setTipoPedido: (pedido: string, tipo: TipoPedido) => void;
   correcoes: Array<{ id: string; campo: string; valor: string; evidencia: string; metodo: string }>;
+  descricaoExpandida: boolean;
+  setDescricaoExpandida: (value: boolean) => void;
 }) {
   const hasWarnings = d.semRota > 0 || d.inconsistenciasRota > 0;
   const pedidosOrdenados = [...new Set(d.produtos.map((p) => p.pedido))].sort(ordenarPedidos);
@@ -412,6 +415,11 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes }: {
         </DataTable>
       </Card>
 
+      <div className="row" style={{ justifyContent: "flex-end", marginBottom: 12 }}>
+        <button type="button" onClick={() => setDescricaoExpandida(!descricaoExpandida)}>
+          {descricaoExpandida ? "Visualização compacta" : "Expandir descrições e colunas"}
+        </button>
+      </div>
       <Card subtitle={`Prévia limitada a 250 linhas · a programação completa (${d.produtos.length}) será salva`} title="Itens da programação" className="mb">
         <DataTable head={["Seq.", "Pedido", "Item", "OF", "Produto", "Família", "Descrição", "Tipo", "Canal", "Rebaixo", "Acabamento", "Cor", "Qtd programada", "Comp.", "Larg.", "Esp.", "Prioridade", "Rota"]}>
           {d.produtos.slice(0, 250).map((p, index) => {
@@ -421,8 +429,8 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes }: {
                 <td className="mono">{String(index + 1).padStart(2, "0")}</td>
                 <td>{m.pedido}</td><td>{m.item}</td><td><b>{m.of}</b></td><td>{m.produto}</td>
                 <td><Badge>{m.familia}</Badge></td>
-                <td className="descCell"><b>{m.descricao}</b></td>
-                <td>{m.tipo}</td><td>{m.canal}</td><td>{m.rebaixo}</td><td>{m.acabamento}</td><td>{m.cor}</td>
+                <td className="descCell" title={p.descricao} style={descricaoExpandida ? { minWidth: 540, maxWidth: 750, width: 640, whiteSpace: "normal", overflowWrap: "anywhere", lineHeight: 1.5 } : undefined}><b>{p.descricao}</b></td>
+                <td style={descricaoExpandida ? { minWidth: 140, whiteSpace: "normal" } : undefined}>{m.tipo}</td><td>{m.canal}</td><td style={descricaoExpandida ? { minWidth: 135, whiteSpace: "normal" } : undefined}>{m.rebaixo}</td><td>{m.acabamento}</td><td>{m.cor}</td>
                 <td className="num">{m.planejado}</td>
                 <td className="num mono">{m.comprimento || "-"}</td>
                 <td className="num mono">{m.largura || "-"}</td>
