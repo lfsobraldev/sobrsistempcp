@@ -29,14 +29,17 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   // Medida é inferida da descrição da própria peça; a dimensão original da fonte tem precedência.
   const medida = descricao.match(/\b\d{2,4}\s*[xX×]\s*\d{2,4}(?:\s*[xX×]\s*\d{1,3})?\b/)?.[0] || "";
   if (medida) preencher("medida", medida.replace(/\s*[xX×]\s*/g, "x"), medida);
-  const material = texto.match(/\bMDF\s+(?:ULTRA|STD|RU)\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b/)?.[0] || "";
+  // O Filtro 53 possui descrições truncadas na ORIGEM, como BCO(UL e BCO(ULTR.
+  // Reconhecer UL/ULTR somente como token final entre parênteses (nunca palavras aleatórias).
+  const ultraAbreviado = texto.match(/\(UL(?:TR?)?\s*\)?$/)?.[0] || "";
+  const material = texto.match(/\bMDF\s+(?:ULTRA|STD|RU)\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b/)?.[0] || ultraAbreviado;
   if (material) {
-    const nomeMaterial = material === "ULTRA" ? "MDF ULTRA" : material === "STD" ? "MDF STD" : material;
+    const nomeMaterial = material === "ULTRA" || Boolean(ultraAbreviado && material === ultraAbreviado) ? "MDF ULTRA" : material === "STD" ? "MDF STD" : material;
     preencher("material", nomeMaterial, material);
     // No Consistem, Tipo pode ser REG 2L, LISA, MDF ULTRA etc.; nunca assumir
     // que significa estrutura colmeia. Só completar como material para marcos/batentes.
     if (marco && /^(MDF|ULTRA|STD|RU)\b/.test(material)) preencher("tipo", nomeMaterial, material);
-    if (alizar && /\b(?:STD|ULTRA|MDF|RU)\b/.test(material)) preencher("tipo", material === "MDF STD" ? "STD" : material === "MDF ULTRA" ? "ULTRA" : material, material);
+    if (alizar && (/\b(?:STD|ULTRA|MDF|RU)\b/.test(material) || Boolean(ultraAbreviado))) preencher("tipo", nomeMaterial === "MDF ULTRA" ? "ULTRA" : material === "MDF STD" ? "STD" : material, material);
   }
   const rebaixo = texto.match(/\bS\/REB\b|\b(?:C\/REB\s*)?\d{2}X\d{1,2}\b/)?.[0] || "";
   if (admiteRebaixo && rebaixo) preencher("rebaixo", rebaixo === "S/REB" ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);

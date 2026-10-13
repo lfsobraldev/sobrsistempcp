@@ -89,3 +89,14 @@ test("alizar e baguete nunca recebem rebaixo inferido, mesmo com padrão 42X10",
   assert.equal(alizar.produto.rebaixo, "");
   assert.equal(baguete.produto.rebaixo, "");
 });
+
+test("Filtro 53 original: UL e ULTR truncados significam MDF ULTRA somente na própria linha", () => {
+  for (const desc of ["P A 2200X60X18 RTO RL55 RC PET BCO(ULTR", "TR AL 1100X60X18 RTO RL55 REC PET BCO(UL", "PER ALI 2200X60X18 RTO LME RC PET BCO(UL", "TR AL 1100X60X18 RTO LME REC PET BCO (UL"]) {
+    const p = completarPorRegras(produto(desc, desc, { categoria: "ALIZARES" })).produto;
+    assert.equal(p.tipo, "ULTRA");
+    assert.equal(p.material, "MDF ULTRA");
+    assert.equal(p.rebaixo, "");
+  }
+  const ferragem = completarPorRegras(produto("sem", "FECHADURA PALI", { categoria: "FERRAGEM" })).produto;
+  assert.equal(ferragem.tipo, "");
+});
