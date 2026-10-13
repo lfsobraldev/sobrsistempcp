@@ -16,10 +16,14 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   const produto: Produto = { ...p };
   const alteracoes: Alteracao[] = [];
   const descricao = String(p.descricao || "");
+  // Contexto somente da MESMA linha. Descrição Modelo pode identificar a porta
+  // do conjunto: não usar essa informação para trocar a família da peça.
+  const mascara = [p.descricao, p.descricaoModelo, p.outrasCaracteristicas].filter(Boolean).join(" | ");
   const texto = normal(descricao);
   const marco = /BATENTE|MARCO/.test(normal(String(p.categoria || ""))) || /^(?:CJ\s+M|M(?:\s+(?:P|T|CJ))?)\s/.test(texto) || /\b\d{3,4}X\d{2,3}X30\s+(?:42X10|S\/(?:REB|RB))\b/.test(texto);
   const alizar = /ALIZAR/.test(normal(String(p.categoria || ""))) || /^A\s/.test(texto);
   const baguete = /BAGUETE/.test(normal(String(p.categoria || ""))) || /\bBAGUETE\b/.test(texto);
+  const perfilEspecial = /SUPORTE|TRILHO|KIT CORRER|KIT DE CORRER|PORTA DE CORRER/.test(normal(String(p.categoria || ""))) || /\b(?:SUP(?:ORTE)?(?: DE)? TRILHO|KIT (?:DE )?CORRER|PORTA DE CORRER)\b/.test(texto);
   const admiteRebaixo = marco && !alizar && !baguete;
   const preencher = (campo: Campo, valor: string, evidencia: string) => {
     if (!vazio(produto[campo]) || !valor || !evidencia || !evidenciaPresente(descricao, evidencia)) return;
@@ -40,7 +44,7 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
     // No Consistem, Tipo pode ser REG 2L, LISA, MDF ULTRA etc.; nunca assumir
     // que significa estrutura colmeia. Só completar como material para marcos/batentes.
     if (marco && /^(MDF|ULTRA|STD|RU)\b/.test(material)) preencher("tipo", nomeMaterial, material);
-    if (alizar && (/\b(?:STD|ULTRA|MDF|RU)\b/.test(material) || Boolean(ultraAbreviado || ultraEmToken))) preencher("tipo", nomeMaterial === "MDF ULTRA" ? "ULTRA" : material === "MDF STD" ? "STD" : material, material);
+    if ((alizar || baguete || perfilEspecial) && (/\b(?:STD|ULTRA|MDF|RU|HDF)\b/.test(material) || Boolean(ultraAbreviado || ultraEmToken))) preencher("tipo", nomeMaterial === "MDF ULTRA" ? "ULTRA" : material === "MDF STD" ? "STD" : material, material);
   }
   const rebaixo = texto.match(/\bS\/(?:REB|RB)\b|\b(?:C\/REB\s*)?42\s*X\s*10\b/)?.[0] || "";
   if (admiteRebaixo && rebaixo) preencher("rebaixo", /^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
