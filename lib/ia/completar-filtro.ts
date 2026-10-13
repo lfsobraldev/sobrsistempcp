@@ -12,7 +12,7 @@ const vazio = (v: unknown) => !String(v ?? "").trim();
 const normal = (v: string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 const evidenciaPresente = (texto: string, evidencia: string) => normal(texto).includes(normal(evidencia));
 const materialConflitante = (p: Produto) => {
-  const texto = normal([p.descricao,p.descricaoModelo,p.outrasCaracteristicas].filter(Boolean).join(" "));
+  const texto = normal([p.descricao,p.descricaoModelo,p.outrasCaracteristicas,p.tipo].filter(Boolean).join(" "));
   const tipos = [
     /\bPINUS\b/.test(texto),
     /\bULTRA\b|(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(texto),
