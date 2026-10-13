@@ -594,7 +594,8 @@ function material(r: Record<string, string>) {
   const materialTipo = detectar(tipo);
   // Um valor descritivo de tipo não deve ser armazenado como material.
   const inferencias = fonte.map(detectar).filter(Boolean);
-  if (materialTipo && !inferencias.some((m) => m !== materialTipo)) return materialTipo;
+  if (materialTipo && inferencias.some((m) => m !== materialTipo)) return "";
+  if (materialTipo) return materialTipo;
   const unicos = [...new Set(inferencias)];
   // Dados contraditórios da MESMA linha exigem revisão; nunca escolher silenciosamente.
   if (unicos.length > 1) {
