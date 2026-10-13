@@ -193,7 +193,7 @@ export async function POST(req: Request) {
 
     result.orderOptions = orderOptions;
     result.complementoObra = Boolean(orderOptions.complementoObra);
-    result.sourceMode = "FILTRO_51";
+    result.sourceMode = "FILTRO_CONSISTEM";
     result.sourceFileName = `Filtro ${String(ativa[0].filtro || "-")} • Pedido ${pedido}`;
 
     await ensurePreparedRomaneiosTable(db);
