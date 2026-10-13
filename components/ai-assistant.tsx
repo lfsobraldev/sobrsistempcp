@@ -50,9 +50,17 @@ export default function AiAssistant() {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ path, messages: next.map(({ role, content }) => ({ role, content })) }),
       });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Falha na IA.");
-      setMsgs([...next, { role: "assistant", content: j.reply, anexos: j.attachments }]);
+      const raw = await r.text();
+      let j: any = {};
+      try {
+        j = raw ? JSON.parse(raw) : {};
+      } catch {
+        throw new Error(r.ok
+          ? "A IA retornou uma resposta inválida. Tente novamente."
+          : `Falha no serviço de IA (${r.status}).`);
+      }
+      if (!r.ok) throw new Error(j.error || `Falha na IA (${r.status}).`);
+      setMsgs([...next, { role: "assistant", content: String(j.reply || "Pronto."), anexos: Array.isArray(j.attachments) ? j.attachments : [] }]);
     } catch (e: any) {
       setMsgs([...next, { role: "assistant", content: `⚠ ${e.message}` }]);
     } finally { setBusy(false); }
