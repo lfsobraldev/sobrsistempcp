@@ -60,6 +60,14 @@ function m3Produto(p: Produto) {
   return (c * l * e * n(p.quantidade)) / 1_000_000_000;
 }
 
+function mlProduto(p: Produto) {
+  // Metro linear físico da peça, sem multiplicar pelo número de operações.
+  const familia = familiaIndustrial(p);
+  if (!["BATENTES", "ALIZARES", "BAGUETE", "KIT CORRER"].includes(familia)) return 0;
+  const [comprimento] = medidaDoItem(p);
+  return comprimento > 0 ? (comprimento / 1000) * n(p.quantidade) : 0;
+}
+
 function materialPedido(produtos: Produto[]) {
   const text = produtos
     .map((p) => [p.material, p.tipo, p.descricao].filter(Boolean).join(" "))
@@ -190,6 +198,7 @@ export default function ProgramacaoGerentePage() {
           pecas,
           ofs: new Set(itens.map((p) => p.of).filter(Boolean)).size,
           m3: itens.reduce((s, p) => s + m3Produto(p), 0),
+          ml: itens.reduce((s, p) => s + mlProduto(p), 0),
           kits: kitsPedido(itens),
           usinagem: itens.some((p) => p.usinagemPlanilha),
           alizares: alizaresPedido(itens),
@@ -260,6 +269,7 @@ export default function ProgramacaoGerentePage() {
   const pendUsinagem = pedidos.filter((p) => !p.usinagem).length;
   const kits = pedidos.reduce((s, p) => s + p.kits, 0);
   const volume = pedidos.reduce((s, p) => s + p.m3, 0);
+  const metrosLineares = pedidos.reduce((s, p) => s + p.ml, 0);
 
   async function exportar() {
     if (!produtos.length) return;
@@ -402,6 +412,11 @@ export default function ProgramacaoGerentePage() {
           <small>abertas na produção</small>
         </article>
         <article>
+          <span>METROS LINEARES</span>
+          <b>{metrosLineares.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+          <small>mL físicos · batentes, alizares e perfis</small>
+        </article>
+        <article>
           <span>VOLUME</span>
           <b>{volume.toFixed(3)}</b>
           <small>m³ estimados</small>
@@ -468,6 +483,7 @@ export default function ProgramacaoGerentePage() {
                   <th className="num">PEÇAS</th>
                   <th className="num">OFs</th>
                   <th className="num">m³</th>
+                  <th className="num">mL</th>
                   <th className="num">KITS</th>
                   <th>USINAGEM</th>
                   <th>ALIZAR</th>
@@ -496,6 +512,7 @@ export default function ProgramacaoGerentePage() {
                       <td className="num">{fmt(pedido.pecas)}</td>
                       <td className="num">{pedido.ofs}</td>
                       <td className="num">{pedido.m3.toFixed(3)}</td>
+                      <td className="num">{pedido.ml.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                       <td className="num"><b>{fmt(pedido.kits)}</b></td>
                       <td>
                         <span className={`managerFlag ${pedido.usinagem ? "ok" : "pending"}`}>
@@ -559,7 +576,7 @@ export default function ProgramacaoGerentePage() {
 
                     {pedidoAberto === pedido.pedido && (
                       <tr key={`${pedido.pedido}-detail`} className="managerDetailRow">
-                        <td colSpan={15}>
+                        <td colSpan={16}>
                           <div className="managerOrderDetail">
                             <div className="managerOrderRoute">
                               <header>
