@@ -7,6 +7,7 @@ on:
       - 'package.json'
       - 'app/api/ia/**'
       - 'lib/ia/**'
+      - 'components/ai-assistant.tsx'
       - '.github/workflows/verify-build.yml'
 permissions:
   contents: write
