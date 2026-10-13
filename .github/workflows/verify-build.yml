@@ -4,6 +4,10 @@ on:
     branches:
       - main
     paths:
+      - 'lib/permissions.ts'
+      - 'lib/ia/knowledge.ts'
+      - 'app/api/ia/conhecimento/**'
+      - 'app/(erp)/sobral-ia/**'
       - 'public/sobral-s.svg'
       - 'app/api/inteligencia/**'
       - 'app/(erp)/dashboard/page.tsx'
