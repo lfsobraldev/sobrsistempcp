@@ -11,7 +11,8 @@ type Anexo =
   | { type: "navigate"; path: string; label: string }
   | { type: "confirm"; label: string; token: string }
   | { type: "romaneio"; data: any; alertas: any[]; resumo: any }
-  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string; pedido?: string };
+  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string; pedido?: string }
+  | { type: "planilha_programacao"; arquivo: string; label: string; setores?: string[] };
 type Msg = { role: "user" | "assistant"; content: string; anexos?: Anexo[] };
 
 const SUGESTOES = [
@@ -94,6 +95,28 @@ export default function AiAssistant() {
                     {a.alertas.length > 0 && <span className="status s-atencao">{a.alertas.length} alerta(s)</span>}
                     <button className="primary" onClick={() => { abrirRomaneioIA({ romaneio: a.data }); }}><FileSpreadsheet /> Revisar e exportar</button>
                   </>
+                )}
+                {a.type === "planilha_programacao" && (
+                  <button
+                    className="primary"
+                    onClick={async () => {
+                      if (!pg?.produtos?.length) {
+                        toast("error", "Nenhuma programação ativa disponível.");
+                        return;
+                      }
+                      try {
+                        await baixarPlanilhaProducao(pg.produtos, {
+                          setores: a.setores,
+                          arquivo: a.arquivo || "Programacao_Producao_IA",
+                        });
+                        toast("success", "Programação da fábrica gerada.");
+                      } catch (e: any) {
+                        toast("error", e?.message || "Falha ao gerar programação.");
+                      }
+                    }}
+                  >
+                    <FileSpreadsheet /> {a.label || "Gerar programação"}
+                  </button>
                 )}
                 {a.type === "planilha_usinagem" && (
                   <button
