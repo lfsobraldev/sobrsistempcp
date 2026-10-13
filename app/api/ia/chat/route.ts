@@ -56,12 +56,22 @@ export async function POST(req: Request) {
     }).format(new Date());
 
     const conhecimentoEquipe = await conhecimentoTreinavelPrompt();
-    const system = `${SYSTEM_BASE}
+    const system = `${SYSTEM_BASE}\nQuando perguntarem quantas peças de uma MEDIDA (como alizar 50x9), use consultar_pecas_por_medida ANTES de responder. Mostre total programado e ressalva do período; se perguntarem esta semana, não confunda programação ativa com todas as datas da semana. Nunca diga que não possui consulta por medida sem chamar a ferramenta.\n
 ${conhecimentoEquipe}
 Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "-")}.
 Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
 
     const aiTools = {
+      consultar_pecas_por_medida: tool({
+        description: TOOL_META.consultar_pecas_por_medida,
+        inputSchema: z.object({
+          familia: z.enum(["ALIZARES", "BATENTES", "BAGUETE", "PORTAS"]).default("ALIZARES"),
+          largura: z.number().positive(),
+          espessura: z.number().positive(),
+          pedido: z.string().optional(),
+        }),
+        execute: async (input) => runTool("consultar_pecas_por_medida", input, { user: s, attachments }),
+      }),
       resumo_metros_lineares: tool({
         description: TOOL_META.resumo_metros_lineares,
         inputSchema: z.object({ pedido: z.string().optional() }),
