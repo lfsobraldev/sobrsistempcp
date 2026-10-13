@@ -1,5 +1,5 @@
 "use client";
-import { useEffect,useMemo,useRef,useState } from "react";
+import { Fragment, useEffect,useMemo,useRef,useState, type ReactNode } from "react";
 import { Activity, BarChart3, BrainCircuit, Check, Clock3, Database, FileSpreadsheet, Gauge, GraduationCap, Save, Send, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
 import { PageHeader,Badge } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
@@ -11,6 +11,30 @@ type Msg={role:"user"|"assistant";content:string;anexos?:any[]};
 type Regra={id:string;titulo:string;area:string;situacao:string;regra:string;exemplo:string;observacao:string;ativo:boolean;prioridade:number};
 const AREAS=["GERAL","USINAGEM","ROMANEIO","PCP","ATRASOS","EMBALAGEM","QUALIDADE","EXPEDICAO","RECOBRIDORA","PRODUTO","CLIENTE"];
 const ATALHOS=["Quais pedidos estão em risco de atraso hoje?","Onde estão os gargalos da fábrica?","Audite as usinagens da programação ativa.","Gere a planilha de usinagem.","Faça a programação sugerida da fábrica."];
+
+
+function inlineMarkdown(text:string):ReactNode[]{
+ const parts=text.split(/(\*\*[^*]+\*\*)/g);
+ return parts.map((part,i)=>{
+  const m=part.match(/^\*\*(.+)\*\*$/);
+  return m?<strong key={i}>{m[1]}</strong>:<Fragment key={i}>{part}</Fragment>;
+ });
+}
+
+function AiMessage({text}:{text:string}){
+ const lines=String(text||"").split("\n");
+ return <div className="ai-message-rendered">
+  {lines.map((raw,i)=>{
+   const line=raw.trimEnd();
+   if(!line.trim()) return <div className="ai-message-space" key={i}/>;
+   const heading=line.match(/^#{1,3}\s+(.+)$/);
+   if(heading) return <div className="ai-message-heading" key={i}>{inlineMarkdown(heading[1])}</div>;
+   const bullet=line.match(/^\s*[-•]\s+(.+)$/);
+   if(bullet) return <div className="ai-message-bullet" key={i}><span>•</span><div>{inlineMarkdown(bullet[1])}</div></div>;
+   return <div className="ai-message-line" key={i}>{inlineMarkdown(line)}</div>;
+  })}
+ </div>;
+}
 
 export default function SobralIAPage(){
  const {pg,toast,refresh}=useOps();
@@ -117,7 +141,7 @@ export default function SobralIAPage(){
       <p>Pergunte em linguagem normal. Eu cruzo programação, pedidos, capacidade, usinagem, romaneios, qualidade e regras ensinadas pela equipe.</p>
       <div className="ai-welcome-suggestions">{ATALHOS.slice(0,4).map(a=><button key={a} onClick={()=>void enviar(a)}>{a}</button>)}</div>
      </div>}
-     {msgs.map((m,i)=><article key={i} className={`ai-bubble ${m.role}`}><div className="ai-bubble-label">{m.role==="user"?"Você":"Sobral IA"}</div><div className="ai-bubble-content">{m.content}</div>
+     {msgs.map((m,i)=><article key={i} className={`ai-bubble ${m.role}`}><div className="ai-bubble-label">{m.role==="user"?"Você":"Sobral IA"}</div><div className="ai-bubble-content"><AiMessage text={m.content}/></div>
       {m.anexos?.map((a,k)=><div className="ai-action-row" key={k}>
        {a.type==="confirm"&&<button className="primary" onClick={()=>void confirmar(a.token)}><Check/> Confirmar: {a.label}</button>}
        {a.type==="romaneio"&&<button className="primary" onClick={()=>abrirRomaneioIA({romaneio:a.data})}><FileSpreadsheet/> Revisar romaneio</button>}
