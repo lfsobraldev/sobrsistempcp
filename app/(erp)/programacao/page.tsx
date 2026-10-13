@@ -16,6 +16,7 @@ export default function Programacao() {
   const [usinagem, setUsinagem] = useState<File | null>(null);
   const [draft, setDraft] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [analiseIA, setAnaliseIA] = useState("");
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [turno, setTurno] = useState("A");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -40,14 +41,52 @@ export default function Programacao() {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
 
-      setDraft({
+      let parsed = {
         ...j,
         produtos: (j.produtos || []).map((p: any) => ({ ...p, tipoPedido: p.tipoPedido || "NORMAL" })),
-      });
-      toast("success", "Arquivo interpretado. Revise os dados antes de liberar.");
+      };
+      // A API processa apenas 12 registros por requisição, sem ultrapassar
+      // o limite do servidor. Cada resposta é aplicada exclusivamente pelo ID.
+      if (mode === "FILTRO" && j.complementoIA) {
+        const ids = new Set<string>();
+        if (parsed.produtos.some((p: any) => !p.id || ids.has(p.id) || !ids.add(p.id))) {
+          throw new Error("IDs duplicados ou ausentes no arquivo. Importação não liberada.");
+        }
+        const elegiveis = parsed.produtos.filter((p: any) =>
+          ["tipo", "material", "medida"].some((k) => !String(p[k] || "").trim()) &&
+          /\\b(MDF|ULTRA|STD|RU|COLMEIA|SOLIDA|SÓLIDA)\\b|\\d{3,4}[X×]\\d{2,4}/i.test(String(p.descricao || ""))
+        );
+        const updates = new Map<string, any>();
+        for (let i = 0; i < elegiveis.length; i += 12) {
+          setAnaliseIA(`Analisando campos incompletos: ${Math.min(i + 12, elegiveis.length)} de ${elegiveis.length}`);
+          const resposta = await fetch("/api/importar/complementar", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ produtos: elegiveis.slice(i, i + 12) }),
+          });
+          const dados = await resposta.json();
+          if (!resposta.ok) throw new Error(dados.error || "Falha ao analisar lote da IA.");
+          const permitidos = new Set(elegiveis.slice(i, i + 12).map((p: any) => p.id));
+          for (const p of dados.produtos || []) if (permitidos.has(p.id)) updates.set(p.id, p);
+        }
+        const aplicar = (produtos: any[]) => produtos.map((p: any) => {
+          const revisado = updates.get(p.id);
+          if (!revisado) return p;
+          const complemento: any = { ...p };
+          for (const campo of ["tipo", "material", "medida", "cor", "acabamento", "rebaixo", "canal"]) {
+            if (!String(p[campo] || "").trim() && String(revisado[campo] || "").trim()) complemento[campo] = revisado[campo];
+          }
+          return complemento;
+        });
+        parsed = { ...parsed, produtos: aplicar(parsed.produtos), romaneioProdutos: aplicar(parsed.romaneioProdutos || []) };
+      }
+      setAnaliseIA("");
+      setDraft(parsed);
+      toast("success", "Arquivo interpretado e complementado. Revise os dados antes de liberar.");
     } catch (e: any) {
       toast("error", e.message);
     } finally {
+      setAnaliseIA("");
       setBusy(false);
     }
   }
@@ -181,7 +220,7 @@ export default function Programacao() {
                   </select>
                 </Field>
                 <button type="button" className="primary" style={{ minHeight: 44 }} disabled={busy} onClick={process}>
-                  {busy ? "Processando…" : <>Processar <ChevronRight /></>}
+                  {busy ? (analiseIA || "Processando…") : <>Processar <ChevronRight /></>}
                 </button>
               </div>
             </div>
