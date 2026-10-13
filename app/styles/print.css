@@ -1,0 +1,28 @@
+/* Impressão: tabelas das telas e etiqueta de pallet. Papel = preto sobre branco (palavras-chave, sem hex). */
+.palletLabelPrint{display:none}
+@media print{
+  .sidenav,.topbar2,.ph,.seg,.familyTabs,.scrollBtns,.exportAll,.ai-fab,.ai-panel,.backdrop,.toastStack,.card-actions button{display:none!important}
+  .shell{display:block}
+  .main{padding:0}
+  .tableScroll,.tableWrap{max-height:none;overflow:visible;border:0;box-shadow:none}
+  thead th{position:static;background:var(--primary-800)!important;color:var(--text-inverse)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  tbody td{font-size:10px;padding:4px}
+
+  body.print-pallet-label *{visibility:hidden!important}
+  .print-pallet-label #pallet-label-print,.print-pallet-label #pallet-label-print *{visibility:visible!important}
+  .print-pallet-label #pallet-label-print{display:block!important;position:absolute;left:0;top:0;width:100%;padding:8mm;background:white;color:black;font-family:Arial,sans-serif}
+  .palletLabelPrint header{display:flex;justify-content:space-between;border-bottom:2px solid black;padding-bottom:4mm}
+  .palletLabelPrint header b{font-size:14pt}
+  .palletLabelPrint header span{font-size:10pt;font-family:monospace}
+  .palletLabelPrint main{padding-top:5mm}
+  .palletLabelPrint .labelBig{display:inline-block;width:48%;vertical-align:top;border:1px solid black;padding:4mm;margin-right:2%}
+  .palletLabelPrint .labelBig small{display:block;font-size:9pt;color:black}
+  .palletLabelPrint .labelBig b{display:block;font-size:25pt;margin-top:2mm}
+  .palletLabelPrint dl{display:grid;grid-template-columns:1fr 1fr;border:1px solid black;margin:5mm 0}
+  .palletLabelPrint dl div{padding:3mm;border-right:1px solid black;border-bottom:1px solid black}
+  .palletLabelPrint dt{font-size:8pt}
+  .palletLabelPrint dd{font-size:12pt;font-weight:bold;margin:1mm 0 0}
+  .palletLabelPrint .labelStatus{border:3px solid black;text-align:center;font-size:22pt;font-weight:900;padding:4mm}
+  .palletLabelPrint .labelSign{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:5mm;font-size:10pt}
+  .palletLabelPrint footer{margin-top:5mm;padding-top:2mm;border-top:1px solid black;font-size:8pt}
+}
