@@ -581,3 +581,19 @@ tbody tr:hover{background:var(--primary-soft)}
 .smart-signal small{display:block;margin-top:2px;color:var(--text-3);line-height:1.35}
 .smart-brief-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 @media(max-width:900px){.smart-brief-grid{grid-template-columns:auto minmax(0,1fr)}.smart-brief-actions{grid-column:1/-1;justify-content:flex-start}}
+
+
+/* ============ Background hotfix — restore stable ERP palette ============ */
+html,body{background:var(--bg)}
+body{background-image:none}
+.shell,.main,.page{background:transparent}
+.sidenav{background:var(--sidebar-bg)}
+.sidenav .brand{background:var(--sidebar-bg)}
+.sidefoot{background:var(--sidebar-bg)}
+.topbar2{background:var(--surface)}
+.login{background:var(--bg)}
+.login-brand{background:var(--sidebar-bg)}
+.login-form{background:var(--bg)}
+.ai-msgs{background:var(--bg)}
+.smart-brief{background:var(--surface)}
+.card,.panel,.stat,.tableScroll,.login-card,.ai-panel{background:var(--surface)}
