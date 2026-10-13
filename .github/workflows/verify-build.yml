@@ -4,6 +4,17 @@ on:
     branches:
       - main
     paths:
+      - 'public/sobral-s.svg'
+      - 'app/api/inteligencia/**'
+      - 'app/(erp)/dashboard/page.tsx'
+      - 'app/(erp)/lideres/page.tsx'
+      - 'components/erp-shell.tsx'
+      - 'components/brand-logo.tsx'
+      - 'app/login/page.tsx'
+      - 'app/icon.svg'
+      - 'app/layout.tsx'
+      - 'app/styles/tokens.css'
+      - 'app/globals.css'
       - 'package.json'
       - 'app/api/ia/**'
       - 'lib/ia/**'
