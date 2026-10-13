@@ -82,3 +82,10 @@ test("Filtro 53: não presume rebaixo do alizar com RT sem regra homologada", ()
   assert.equal(a.produto.tipo, "STD");
   assert.equal(a.produto.rebaixo, "");
 });
+
+test("alizar e baguete nunca recebem rebaixo inferido, mesmo com padrão 42X10", () => {
+  const alizar = completarPorRegras(produto("a-rebaixo", "ALIZAR STD 2200X70X12 RT 42X10", { categoria: "ALIZARES", rebaixo: "" }));
+  const baguete = completarPorRegras(produto("b-rebaixo", "BAGUETE MDF ULTRA 2110X25X15 42X10", { categoria: "BAGUETE", rebaixo: "" }));
+  assert.equal(alizar.produto.rebaixo, "");
+  assert.equal(baguete.produto.rebaixo, "");
+});
