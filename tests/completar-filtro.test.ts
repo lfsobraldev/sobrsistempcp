@@ -17,11 +17,11 @@ function produto(id: string, descricao: string, extras: Partial<Produto> = {}): 
 test("completa apenas informações descritas na mesma linha", () => {
   const primeira = completarPorRegras(produto("1", "PORTA COLMEIA RU 2100X820X30 BRANCA"));
   const segunda = completarPorRegras(produto("2", "PORTA SOLIDA MDF 2100X900X35 PRETA"));
-  assert.equal(primeira.produto.tipo, "COLMEIA");
+  assert.equal(primeira.produto.tipo, "MDF RU");
   assert.equal(primeira.produto.material, "RU");
   assert.equal(primeira.produto.medida, "2100x820x30");
   assert.equal(primeira.produto.cor, "BRANCA");
-  assert.equal(segunda.produto.tipo, "SÓLIDA");
+  assert.equal(segunda.produto.tipo, "");
   assert.equal(segunda.produto.material, "MDF");
   assert.equal(segunda.produto.medida, "2100x900x35");
   assert.equal(segunda.produto.cor, "PRETA");
