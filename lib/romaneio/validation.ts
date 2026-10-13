@@ -48,10 +48,10 @@ export function validateProcessing(data: ProcessingResult): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   if (!data.client?.trim()) {
     issues.push({
-      severity: data.sourceMode === "FILTRO_51" ? "WARNING" : "ERROR",
+      severity: ["FILTRO_CONSISTEM","FILTRO_51"].includes(data.sourceMode) ? "WARNING" : "ERROR",
       code: "CLIENT_EMPTY",
-      message: data.sourceMode === "FILTRO_51"
-        ? "Cliente não veio no Filtro 51. O romaneio pode ser usado para teste, mas confira o cabeçalho antes da emissão final."
+      message: ["FILTRO_CONSISTEM","FILTRO_51"].includes(data.sourceMode)
+        ? "Cliente não veio na programação do Consistem. O romaneio pode ser usado para teste, mas confira o cabeçalho antes da emissão final."
         : "Cliente não informado.",
     });
   }
