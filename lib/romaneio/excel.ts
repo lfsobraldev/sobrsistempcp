@@ -169,7 +169,7 @@ function applyReferenceRomaneioStyle(
   }
 
   if (!data.hasMachining) {
-    ws.getCell("A5").note = "Romaneio base gerado pelo Filtro 51 sem inferência de usinagem.";
+    ws.getCell("A5").note = "Romaneio base gerado pela programação do Consistem sem inferência de usinagem.";
   }
 }
 
