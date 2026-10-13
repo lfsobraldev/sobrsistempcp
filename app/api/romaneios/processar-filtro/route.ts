@@ -91,7 +91,7 @@ export async function POST(req: Request) {
 
     if (!ativa.length) {
       return NextResponse.json(
-        { error: "Não existe programação ativa do Filtro 51." },
+        { error: "Não existe programação ativa do Consistem." },
         { status: 404 }
       );
     }
@@ -194,7 +194,7 @@ export async function POST(req: Request) {
     result.orderOptions = orderOptions;
     result.complementoObra = Boolean(orderOptions.complementoObra);
     result.sourceMode = "FILTRO_51";
-    result.sourceFileName = `Filtro 51 • Pedido ${pedido}`;
+    result.sourceFileName = `Filtro ${String(ativa[0].filtro || "-")} • Pedido ${pedido}`;
 
     await ensurePreparedRomaneiosTable(db);
     const tipoPedido = String(first.tipo_pedido || "NORMAL").toUpperCase();
@@ -245,7 +245,7 @@ export async function POST(req: Request) {
         error:
           status === 403
             ? "Sem permissão."
-            : e?.message || "Falha ao montar romaneio pelo Filtro 51.",
+            : e?.message || "Falha ao montar romaneio pela programação ativa do Consistem.",
       },
       { status }
     );
