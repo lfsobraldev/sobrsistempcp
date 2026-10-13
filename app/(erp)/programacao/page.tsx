@@ -53,7 +53,7 @@ export default function Programacao() {
           throw new Error("IDs duplicados ou ausentes no arquivo. Importação não liberada.");
         }
         const elegiveis = parsed.produtos.filter((p: any) =>
-          ["tipo", "material", "medida"].some((k) => !String(p[k] || "").trim()) &&
+          ["material", "medida"].some((k) => !String(p[k] || "").trim()) &&
           /\\b(MDF|ULTRA|STD|RU|COLMEIA|SOLIDA|SÓLIDA)\\b|\\d{3,4}[X×]\\d{2,4}/i.test(String(p.descricao || ""))
         );
         const updates = new Map<string, any>();
