@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
+import { prepareAllRomaneios } from "@/lib/romaneio/prepared";
 
 export async function POST(req: Request) {
   try {
@@ -210,9 +211,25 @@ export async function POST(req: Request) {
       )
     `;
 
+    let romaneios;
+    try {
+      romaneios = await prepareAllRomaneios(String(pg.id), String(b.filtro || ""), db);
+    } catch (romaneioError: any) {
+      console.error("[ROMANEIOS_AUTO]", romaneioError);
+      romaneios = {
+        total: Number(b.diagnostico?.pedidos || 0),
+        preparados: 0,
+        atencao: 0,
+        preProntos: 0,
+        prontos: 0,
+        erros: [{ pedido: "*", erro: romaneioError?.message || "Falha ao preparar romaneios." }],
+      };
+    }
+
     return NextResponse.json({
       ok: true,
       id: pg.id,
+      romaneios,
       diagnostico: {
         linhas: Number(
           b.diagnostico?.linhas || 0
