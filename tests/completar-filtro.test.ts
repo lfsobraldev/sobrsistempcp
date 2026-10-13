@@ -100,3 +100,16 @@ test("Filtro 53 original: UL e ULTR truncados significam MDF ULTRA somente na pr
   const ferragem = completarPorRegras(produto("sem", "FECHADURA PALI", { categoria: "FERRAGEM" })).produto;
   assert.equal(ferragem.tipo, "");
 });
+
+test("OF 613147: ULT no fim da descricao equivale a ULTRA", () => {
+  const a = completarPorRegras(produto("613147", "T A 1200X70X09 RTO RL55 RC PET CAPUC ULT", { categoria: "ALIZARES" }));
+  assert.equal(a.produto.tipo, "ULTRA");
+  assert.equal(a.produto.material, "MDF ULTRA");
+  assert.equal(a.produto.rebaixo, "");
+});
+test("nao preencher rebaixo nos alizares e preservar a OF", () => {
+  const a = completarPorRegras(produto("613148", "T A 1200X70X09 RTO LME RC PET CAPUCC (UL", { categoria: "ALIZARES", of: "613148" }));
+  assert.equal(a.produto.of, "613148");
+  assert.equal(a.produto.tipo, "ULTRA");
+  assert.equal(a.produto.rebaixo, "");
+});
