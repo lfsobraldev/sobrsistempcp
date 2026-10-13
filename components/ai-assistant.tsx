@@ -77,7 +77,8 @@ export default function AiAssistant() {
     } catch (e: any) { toast("error", e.message || "Falha ao executar."); }
   }
 
-  if (!open) return <button className="ai-fab" onClick={() => setOpen(true)} aria-label="Abrir assistente IA"><BrandLogo size={24} /> Assistente IA</button>;
+  if (path === "/sobral-ia") return null;
+  if (!open) return <button className="ai-fab" onClick={() => router.push("/sobral-ia")} aria-label="Abrir Sobral IA"><BrandLogo size={24} /> Sobral IA</button>;
 
   return (
     <section className="ai-panel" aria-label="Assistente IA">
