@@ -29,6 +29,22 @@ export async function POST(req: Request) {
       produtos: complemento.produtos,
       romaneioProdutos: romaneio?.produtos ?? entrada.romaneioProdutos,
     };
+    // Auditoria recebida da prévia: não é autorização para editar registros.
+    // Apenas referências que conferem com os próprios produtos são registradas.
+    const permitidosAuditoria = new Set(["tipo", "material", "medida", "cor", "acabamento", "rebaixo", "canal"]);
+    const porId = new Map<string, Produto>(b.produtos.map((p: Produto) => [p.id, p]));
+    const auditoria = (Array.isArray(entrada.auditoriaComplemento) ? entrada.auditoriaComplemento : [])
+      .slice(0, 10000)
+      .filter((a: any) => {
+        const p = porId.get(String(a?.id || ""));
+        const campo = String(a?.campo || "");
+        const valor = String(a?.valor || "");
+        const evidencia = String(a?.evidencia || "");
+        return p && permitidosAuditoria.has(campo) && valor && evidencia &&
+          String((p as any)[campo] || "") === valor &&
+          p.descricao.normalize("NFD").toUpperCase().includes(evidencia.normalize("NFD").toUpperCase());
+      })
+      .map((a: any) => ({ id: a.id, campo: a.campo, valor: a.valor, evidencia: a.evidencia, metodo: a.metodo }));
     const db = sql();
 
     await db`
@@ -291,7 +307,7 @@ export async function POST(req: Request) {
             b.diagnostico
               ?.inconsistenciasRota || 0
           ),
-          complementoIA: { ativo: habilitado, alteracoes: complemento.alteracoes, pendencias: complemento.pendencias, alteracoesRomaneio: romaneio?.alteracoes ?? [], pendenciasRomaneio: romaneio?.pendencias ?? [] },
+          complementoIA: { ativo: habilitado, auditoriaImportacao: auditoria, alteracoes: complemento.alteracoes, pendencias: complemento.pendencias, alteracoesRomaneio: romaneio?.alteracoes ?? [], pendenciasRomaneio: romaneio?.pendencias ?? [] },
         })}::jsonb
       )
     `;
@@ -315,7 +331,7 @@ export async function POST(req: Request) {
       ok: true,
       id: pg.id,
       romaneios,
-      complementoIA: { ativo: habilitado, corrigidos: complemento.alteracoes.length, pendencias: complemento.pendencias.length, corrigidosRomaneio: romaneio?.alteracoes.length ?? 0, pendenciasRomaneio: romaneio?.pendencias.length ?? 0 },
+      complementoIA: { ativo: habilitado, corrigidosNaImportacao: auditoria.length, corrigidos: complemento.alteracoes.length, pendencias: complemento.pendencias.length, corrigidosRomaneio: romaneio?.alteracoes.length ?? 0, pendenciasRomaneio: romaneio?.pendencias.length ?? 0 },
       diagnostico: {
         linhas: Number(
           b.diagnostico?.linhas || 0
