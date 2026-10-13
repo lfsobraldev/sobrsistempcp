@@ -220,31 +220,7 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
   clearData(ws, positions.lastData);
   applyDocumentStyle(ws, data, positions.lastData);
 
-  /*
-   * Legibilidade do modelo oficial:
-   * mantém colunas numéricas compactas, mas dá espaço real para Produto/Obs.
-   * Não reduzimos larguras configuradas; apenas garantimos um mínimo legível.
-   */
-  ws.getColumn(10).width = Math.max(Number(ws.getColumn(10).width || 0), 72);
-  ws.getColumn(11).width = Math.max(Number(ws.getColumn(11).width || 0), 24);
-
-  /*
-   * O modelo oficial trabalha com a tabela centralizada.
-   * Forçamos o alinhamento em toda a área de dados para impedir
-   * que estilos herdados/duplicados do Excel deixem algumas células
-   * à esquerda ou desalinhadas após inserção de linhas.
-   */
-  for (let row = 12; row <= positions.lastData; row++) {
-    for (let col = 1; col <= 11; col++) {
-      const cell = ws.getCell(row, col);
-      cell.alignment = {
-        ...(cell.alignment || {}),
-        horizontal: "center",
-        vertical: "middle",
-        wrapText: col === 10 || col === 11,
-      };
-    }
-  }
+  applyReferenceRomaneioStyle(ws, data, positions.lastData);
 
   set(ws, "B7", new Date()); ws.getCell("B7").numFmt = "dd/mm/yyyy";
   set(ws, "B8", data.client); set(ws, "B9", data.destination); set(ws, "B10", data.orderNumber); set(ws, "B11", data.delivery || "");
@@ -273,30 +249,8 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
       ws.getCell(`${COL.m3}${cursor}`).numFmt = "0.000";
       set(ws, `${COL.product}${cursor}`, row.product || "");
       set(ws, `${COL.obs}${cursor}`, "");
-      ws.getCell(`${COL.product}${cursor}`).alignment = { ...(ws.getCell(`${COL.product}${cursor}`).alignment || {}), vertical:"middle", horizontal:"center", wrapText:true };
-      ws.getCell(`${COL.obs}${cursor}`).alignment = { ...(ws.getCell(`${COL.obs}${cursor}`).alignment || {}), vertical:"middle", horizontal:"center", wrapText:true };
-
-      if (!data.romaneioStyle?.productFontSize) {
-        ws.getCell(`${COL.product}${cursor}`).font = {
-          ...(ws.getCell(`${COL.product}${cursor}`).font || {}),
-          size: 10,
-        };
-      }
-      if (!data.romaneioStyle?.observationFontSize) {
-        ws.getCell(`${COL.obs}${cursor}`).font = {
-          ...(ws.getCell(`${COL.obs}${cursor}`).font || {}),
-          size: 10,
-        };
-      }
-      const productLength = (row.product || "").length;
-      const obsLength = (row.observation || row.itemText || "").length;
-      const estimatedProductLines = Math.max(1, Math.ceil(productLength / 55));
-      const estimatedObsLines = Math.max(1, Math.ceil(obsLength / 20));
-      const estimatedLines = Math.max(estimatedProductLines, estimatedObsLines);
-
-      if (!data.romaneioStyle?.rowHeight) {
-        ws.getRow(cursor).height = Math.min(54, Math.max(22, 18 + (estimatedLines - 1) * 8));
-      }
+      ws.getCell(`${COL.product}${cursor}`).alignment = { vertical:"middle", horizontal:"center", wrapText:false };
+      ws.getCell(`${COL.obs}${cursor}`).alignment = { vertical:"middle", horizontal:"center", wrapText:false };
       applyRowStyle(ws, cursor, row);
       written.push({ excelRow:cursor, row });
       cursor++;
