@@ -1,6 +1,6 @@
 import { generateText, tool } from "ai";
 import { z } from "zod";
-import { assertGatewayConfigured, MODEL } from "@/lib/ia/claude";
+import { assertGatewayConfigured, HEAVY_MODEL } from "@/lib/ia/claude";
 import type { OrderPdfItem } from "@/lib/romaneio/order-parser";
 
 const RecuperadosSchema = z.object({
@@ -30,7 +30,7 @@ export async function recuperarItensFaltantes(
   }
 
   const { toolCalls } = await generateText({
-    model: MODEL,
+    model: HEAVY_MODEL,
     system:
       "Você lê pedidos de venda de portas, marcos e alizares. Extraia APENAS os itens pedidos, literalmente do texto. " +
       "Não invente códigos nem quantidades; se não encontrar o item, omita-o.",
