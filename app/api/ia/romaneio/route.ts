@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     const resumo = agruparPorCarga(dados, Number(fd.get("maxVolumes")) || 0);
     return NextResponse.json({ romaneio: dados, alertas, resumo });
   } catch (e: any) {
-    const msg = e?.message === "SEM_PERMISSAO" ? "Sem permissão." : e?.message === "IA_NAO_CONFIGURADA" ? "IA não configurada: defina ANTHROPIC_API_KEY no servidor." : e?.message || "Falha ao processar.";
+    const msg = e?.message === "SEM_PERMISSAO" ? "Sem permissão." : e?.message === "IA_NAO_CONFIGURADA" ? "Vercel AI Gateway não configurado para este ambiente." : e?.message || "Falha ao processar.";
     const st = e?.message === "SEM_PERMISSAO" ? 403 : e?.message === "IA_NAO_CONFIGURADA" ? 503 : 500;
     return NextResponse.json({ error: msg }, { status: st });
   }
