@@ -1,5 +1,8 @@
 name: Verify Sobral PCP Build
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -45,9 +48,12 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Test
+        run: npm run test
       - name: Build
         run: npm run build
       - name: Commit lockfile if updated
+        if: github.event_name == 'push'
         shell: bash
         run: |
           if git diff --quiet package-lock.json; then
