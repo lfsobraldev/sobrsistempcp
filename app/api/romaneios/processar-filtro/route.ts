@@ -5,6 +5,7 @@ import {
   buildProcessingFromFilterProducts,
 } from "@/lib/romaneio/parser";
 import { sanitizeConfig } from "@/lib/romaneio/settings";
+import { ensurePreparedRomaneiosTable } from "@/lib/romaneio/prepared";
 import type {
   LogisticsConfig,
   MountType,
@@ -189,6 +190,45 @@ export async function POST(req: Request) {
     result.complementoObra = Boolean(orderOptions.complementoObra);
     result.sourceMode = "FILTRO_51";
     result.sourceFileName = `Filtro 51 • Pedido ${pedido}`;
+
+    await ensurePreparedRomaneiosTable(db);
+    const tipoPedido = String(first.tipo_pedido || "NORMAL").toUpperCase();
+    const statusRomaneio = result.hasMachining
+      ? "PRONTO"
+      : (result.warnings || []).some((w) => /nenhuma linha utilizável|não foram associados|sem vínculo|inválid|erro/i.test(String(w)))
+        ? "ATENCAO"
+        : "PRE_PRONTO";
+
+    await db`
+      insert into pcp_romaneios_preparados(
+        programacao_id,pedido,cliente,tipo_pedido,montagem,status,
+        has_machining,origem_usinagem,warnings,resultado,atualizado_em
+      )
+      values(
+        ${programacaoId},
+        ${pedido},
+        ${String(first.pedido_cliente || "")},
+        ${tipoPedido},
+        ${mountType},
+        ${statusRomaneio},
+        ${Boolean(result.hasMachining)},
+        ${mach instanceof File ? "UPLOAD" : "FILTRO"},
+        ${JSON.stringify(result.warnings || [])}::jsonb,
+        ${JSON.stringify(result)}::jsonb,
+        now()
+      )
+      on conflict(programacao_id,pedido)
+      do update set
+        cliente=excluded.cliente,
+        tipo_pedido=excluded.tipo_pedido,
+        montagem=excluded.montagem,
+        status=excluded.status,
+        has_machining=excluded.has_machining,
+        origem_usinagem=excluded.origem_usinagem,
+        warnings=excluded.warnings,
+        resultado=excluded.resultado,
+        atualizado_em=now()
+    `;
 
     return NextResponse.json(result, {
       headers: { "Cache-Control": "no-store" },
