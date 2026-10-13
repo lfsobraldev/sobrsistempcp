@@ -48,10 +48,15 @@ export async function POST(req: Request) {
     }
 
     const attachments: Attachment[] = [];
+    const dataLocal = new Intl.DateTimeFormat("pt-BR", {
+      timeZone: "America/Maceio",
+      dateStyle: "full",
+      timeStyle: "short",
+    }).format(new Date());
+
     const system = `${SYSTEM_BASE}
-Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "-")}. Data: ${new Date()
-      .toISOString()
-      .slice(0, 10)}.`;
+Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "-")}.
+Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
 
     const aiTools = {
       resumo_producao: tool({
@@ -63,6 +68,24 @@ Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "
         description: TOOL_META.buscar_pedido,
         inputSchema: z.object({ pedido: z.string() }),
         execute: async (input) => runTool("buscar_pedido", input, { user: s, attachments }),
+      }),
+      analisar_riscos: tool({
+        description: TOOL_META.analisar_riscos,
+        inputSchema: z.object({ pedido: z.string().optional() }),
+        execute: async (input) =>
+          runTool("analisar_riscos", input, { user: s, attachments }),
+      }),
+      planejar_fabrica: tool({
+        description: TOOL_META.planejar_fabrica,
+        inputSchema: z.object({}),
+        execute: async (input) =>
+          runTool("planejar_fabrica", input, { user: s, attachments }),
+      }),
+      consultar_capacidade: tool({
+        description: TOOL_META.consultar_capacidade,
+        inputSchema: z.object({}),
+        execute: async (input) =>
+          runTool("consultar_capacidade", input, { user: s, attachments }),
       }),
       listar_andon: tool({
         description: TOOL_META.listar_andon,
@@ -111,6 +134,7 @@ Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "
             "USINAGEM-DOBRADICAS",
             "USINAGEM-TUPIA",
           ]).optional(),
+          pedido: z.string().optional(),
         }),
         execute: async (input) =>
           runTool("gerar_planilha_usinagem", input, { user: s, attachments }),
@@ -131,7 +155,7 @@ Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "
       messages,
       tools: aiTools,
       stopWhen: stepCountIs(6),
-      maxOutputTokens: 2000,
+      maxOutputTokens: 4000,
     });
 
     const text = result.text.trim() || "Pronto.";
