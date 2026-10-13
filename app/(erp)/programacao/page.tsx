@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronRight, FileSpreadsheet, FileText, UploadCloud, X } from "lucide-react";
+import { ChevronRight, FileSpreadsheet, FileText, Trash2, UploadCloud, X } from "lucide-react";
 import type { ImportResult, TipoPedido } from "@/types/pcp";
 import { useOps } from "@/components/operational-provider";
 import { Badge, Card, DataTable, Field, PageHeader, StatCard, type Tone } from "@/components/ui";
@@ -9,7 +9,7 @@ import { LABELS } from "@/lib/metrics";
 import { modeloProduto } from "@/lib/presentation";
 
 export default function Programacao() {
-  const { refresh, toast } = useOps();
+  const { refresh, toast, pg } = useOps();
   const [mode, setMode] = useState<"FILTRO" | "PEDIDO">("FILTRO");
   const [filter, setFilter] = useState<File | null>(null);
   const [pedido, setPedido] = useState<File | null>(null);
@@ -18,6 +18,7 @@ export default function Programacao() {
   const [busy, setBusy] = useState(false);
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [turno, setTurno] = useState("A");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function process() {
     setBusy(true);
@@ -103,9 +104,48 @@ export default function Programacao() {
     }
   }
 
+  async function excluirFiltroAtual() {
+    if (!pg) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const r = await fetch("/api/programacoes/ativa", { method: "DELETE" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Falha ao excluir filtro.");
+      setConfirmDelete(false);
+      setDraft(null);
+      setFilter(null);
+      toast("success", j.mensagem || "Filtro atual excluído.");
+      await refresh();
+    } catch (e: any) {
+      toast("error", e.message || "Falha ao excluir filtro.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <>
-      <PageHeader eyebrow="Planejamento" title="Programação do Dia" description="Importação revisada antes da liberação para o chão de fábrica." />
+      <PageHeader
+        eyebrow="Planejamento"
+        title="Programação do Dia"
+        description="Importação revisada antes da liberação para o chão de fábrica."
+        actions={pg ? (
+          <button
+            type="button"
+            className={confirmDelete ? "danger" : ""}
+            disabled={busy}
+            onClick={() => void excluirFiltroAtual()}
+          >
+            <Trash2 />
+            {confirmDelete ? `Confirmar exclusão do filtro ${pg.filtro || "atual"}` : `Excluir filtro ${pg.filtro || "atual"}`}
+          </button>
+        ) : undefined}
+      />
 
       {!draft ? (
         <div className="split-form" style={{ gridTemplateColumns: "minmax(0,3fr) minmax(0,2fr)" }}>
