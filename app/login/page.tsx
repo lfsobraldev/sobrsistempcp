@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Factory, Gauge, ShieldCheck, Boxes } from "lucide-react";
+import { ArrowRight, Gauge, ShieldCheck, Boxes } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { BrandLogo } from "@/components/brand-logo";
 
 export default function Login() {
   const router = useRouter();
@@ -35,8 +36,8 @@ export default function Login() {
     <main className="login">
       <section className="login-brand">
         <div className="brand">
-          <span className="brand-mark"><Factory size={18} /></span>
-          <span>Sobral PCP</span>
+          <BrandLogo size={42} />
+          <span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span>
         </div>
         <h1>Produção, qualidade e expedição em uma única plataforma.</h1>
         <p>Programação, apontamentos, romaneios e um assistente de IA que responde e executa tarefas.</p>
