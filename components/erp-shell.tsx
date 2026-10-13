@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Bell, Boxes, ChevronDown, ClipboardCheck, Flag, History, LayoutDashboard, LogOut, Menu,
+  Bell, Boxes, BrainCircuit, ChevronDown, ClipboardCheck, Flag, History, LayoutDashboard, LogOut, Menu,
   PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
   UploadCloud, UsersRound, type LucideIcon,
 } from "lucide-react";
@@ -29,6 +29,7 @@ const menus: MenuGroup[] = [
       { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },
     ],
   },
+  { label: "Inteligência", items: [{ path: "/sobral-ia", label: "Sobral IA", icon: BrainCircuit }] },
   { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }] },
   { label: "Expedição", items: [{ path: "/romaneios", label: "Romaneios", icon: Boxes }] },
   {
