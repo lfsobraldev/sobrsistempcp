@@ -16,6 +16,7 @@ const LINHAS = [
   ["53","25982","1","1004","610404","PE KIT CORR KIT DE CORRER EM MADEIRA DE PINUS","KIT DE CORRER EM MADEIRA DE PINUS","","","","PET","BRANCO CARRARA","6","2200","55","45","","0"],
   ["53","25983","1","1005","610405","SEM DADOS DIMENSIONAIS","PRODUTO NÃO CLASSIFICADO","","","","","","1","","","","","0"],
   ["53","25984","1","1006","610406","BAGU 2200X22X22 RTO UNHA 15x15 PET BCO","BAGUETE EM MADEIRA DE PINUS","","","","PET","BRANCO CARRARA","5","2220","22","22","","0"],
+  ["53","25984","1","1007","613296","2110x130x30 42x10 R2 BIA PET CAP U(REC)","BATENTE PERNA","","","","PET","CAPUCCINO","8","2110","130","30","","0"],
 ];
 test("Filtro Consistem: usa máscara e dimensões reais de cada linha para famílias especiais", async () => {
   const csv = [COLUNAS.join(";"),...LINHAS.map(l=>l.join(";"))].join("\n");
@@ -56,6 +57,10 @@ test("Filtro Consistem: usa máscara e dimensões reais de cada linha para famí
   assert.equal(bagueteAbreviado.medida, "2220x22x22");
   assert.equal(bagueteAbreviado.material, "PINUS");
   assert.equal(bagueteAbreviado.tipo, "PINUS");
+
+  const ultraRec = byOf("613296");
+  assert.equal(ultraRec.material, "MDF ULTRA");
+  assert.equal(ultraRec.medida, "2110x130x30");
 
   const sem = byOf("610405");
   assert.equal(sem.medida, "");
