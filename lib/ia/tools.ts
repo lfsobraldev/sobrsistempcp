@@ -4,6 +4,7 @@ import { allowedPath, pathsFor } from "@/lib/permissions";
 import { signAction } from "@/lib/ia/claude";
 import { agruparPorCarga, extrairRomaneio, validarRomaneio } from "@/lib/ia/romaneio";
 import { analisarRiscos, capacidadeProcessos, localHoje, planejarFabrica } from "@/lib/ia/intelligence";
+import { processosUsinagemDoItem, familiaIndustrial, tipoPeca, temCanalBorracha } from "@/lib/domain/industrial";
 
 export type Attachment =
   | { type: "navigate"; path: string; label: string }
@@ -30,6 +31,7 @@ export const TOOL_META = {
   analisar_riscos: "Calcula risco operacional de pedidos com base em prazo, progresso, bloqueios, faltas/retrabalhos, Andons, qualidade e gargalos de capacidade.",
   planejar_fabrica: "Sugere a sequência de produção por processo usando prioridade, prazo, saldo, fila fixada e capacidade cadastrada. Não altera dados.",
   consultar_capacidade: "Compara saldo de produção por processo com a capacidade cadastrada do turno e identifica gargalos.",
+  diagnosticar_usinagem: "Audita a rota de usinagem da programação ativa e compara operações esperadas pelas regras industriais com as operações realmente cadastradas. Detecta operação faltante, indevida e item que exige revisão.",
   propor_prioridade: "Propõe alterar a prioridade de um pedido (NORMAL, ALTA, URGENTE). O usuário precisa confirmar.",
 } as const;
 
@@ -81,6 +83,103 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<s
         const { db, pg } = await programacaoAtiva();
         if (!pg) return j({ erro: "Nenhuma programação ativa." });
         return j({ programacao: pg, processos: await capacidadeProcessos(db, pg) });
+      }
+
+      case "diagnosticar_usinagem": {
+        const { db, pg } = await programacaoAtiva();
+        if (!pg) return j({ erro: "Nenhuma programação ativa." });
+
+        const pedido = String(input.pedido || "").trim();
+        const produtos = pedido
+          ? await db`
+              select id,pedido,of,item,produto,descricao,categoria,tipo,canal,rebaixo,
+                     material,acabamento,cor,medida
+              from pcp_produtos
+              where programacao_id=${pg.id} and pedido=${pedido}
+              order by pedido,item
+            `
+          : await db`
+              select id,pedido,of,item,produto,descricao,categoria,tipo,canal,rebaixo,
+                     material,acabamento,cor,medida
+              from pcp_produtos
+              where programacao_id=${pg.id}
+              order by pedido,item
+              limit 3000
+            `;
+
+        const ids = produtos.map((x: any) => x.id);
+        const ops = ids.length
+          ? await db`
+              select produto_id,processo,status,quantidade_planejada::float planejado,
+                     quantidade_produzida::float produzido
+              from pcp_operacoes
+              where produto_id = any(${ids})
+            `
+          : [];
+
+        const byProd = new Map<string, string[]>();
+        for (const o of ops as any[]) {
+          const k = String(o.produto_id);
+          byProd.set(k, [...(byProd.get(k) || []), String(o.processo)]);
+        }
+
+        const detalhes = (produtos as any[]).map((p) => {
+          const item = {
+            categoria: p.categoria,
+            descricao: p.descricao,
+            produto: p.produto,
+            tipo: p.tipo,
+            canal: p.canal,
+            rebaixo: p.rebaixo,
+            material: p.material,
+            acabamento: p.acabamento,
+            cor: p.cor,
+            medida: p.medida,
+            pedido: p.pedido,
+            of: p.of,
+          };
+
+          const esperadas = processosUsinagemDoItem(item);
+          const atuais = (byProd.get(String(p.id)) || []).filter((x) => x.startsWith("USINAGEM-"));
+          const faltantes = esperadas.filter((x) => !atuais.includes(x));
+          const indevidas = atuais.filter((x) => !esperadas.includes(x));
+          const familia = familiaIndustrial(item);
+          const revisaoFriso =
+            /\bFRISO(?:S)?\b/i.test(String(p.descricao || "")) &&
+            familia !== "PORTAS";
+
+          return {
+            pedido: p.pedido,
+            of: p.of,
+            item: p.item,
+            descricao: p.descricao,
+            familia,
+            tipoPeca: familia === "BATENTES" ? tipoPeca(item) : null,
+            canalBorracha: familia === "BATENTES" ? temCanalBorracha(item) : false,
+            esperadas,
+            atuais,
+            faltantes,
+            indevidas,
+            revisao: revisaoFriso || faltantes.length > 0 || indevidas.length > 0,
+            motivoRevisao: revisaoFriso
+              ? "FRISO autônomo/fora de PORTAS sem regra industrial explícita."
+              : "",
+          };
+        });
+
+        const divergencias = detalhes.filter((x) => x.revisao);
+        return j({
+          programacao: pg,
+          pedido: pedido || null,
+          auditados: detalhes.length,
+          divergencias: divergencias.length,
+          resumo: {
+            faltantes: divergencias.reduce((n, x) => n + x.faltantes.length, 0),
+            indevidas: divergencias.reduce((n, x) => n + x.indevidas.length, 0),
+            revisaoFriso: divergencias.filter((x) => x.motivoRevisao).length,
+          },
+          itens: divergencias.slice(0, 200),
+        });
       }
 
       case "listar_andon": {
