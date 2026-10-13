@@ -5,6 +5,7 @@ import { session } from "@/lib/auth";
 import { assertGatewayConfigured, MODEL, SYSTEM_BASE } from "@/lib/ia/claude";
 import { runTool, TOOL_META, type Attachment } from "@/lib/ia/tools";
 import { sql } from "@/lib/db";
+import { conhecimentoTreinavelPrompt } from "@/lib/ia/knowledge";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -54,7 +55,9 @@ export async function POST(req: Request) {
       timeStyle: "short",
     }).format(new Date());
 
+    const conhecimentoEquipe = await conhecimentoTreinavelPrompt();
     const system = `${SYSTEM_BASE}
+${conhecimentoEquipe}
 Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "-")}.
 Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
 
