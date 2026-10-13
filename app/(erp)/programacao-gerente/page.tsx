@@ -68,34 +68,35 @@ function mlProduto(p: Produto) {
   return comprimento > 0 ? (comprimento / 1000) * n(p.quantidade) : 0;
 }
 
-function materialPedido(produtos: Produto[]) {
-  const text = produtos
-    .map((p) => [p.material, p.tipo, p.descricao].filter(Boolean).join(" "))
-    .join(" ")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase();
+function materialDaLinha(p: Produto): "ULTRA" | "STD" | null {
+  const texto = [p.material, p.tipo, p.descricao, p.descricaoModelo, p.outrasCaracteristicas]
+    .filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  if (/\b(?:MDF\s+)?STD\b/.test(texto)) return "STD";
+  if (/\b(?:MDF\s+)?ULTRA\b/.test(texto)) return "ULTRA";
+  if (/(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(texto)
+    && ["ALIZARES", "BATENTES", "BAGUETE"].includes(familiaIndustrial(p))) return "ULTRA";
+  return null;
+}
 
-  const ultra = text.includes("ULTRA");
-  const std = /(^|[^A-Z])STD([^A-Z]|$)/.test(text);
-  return ultra && std ? "ULTRA/STD" : ultra ? "ULTRA" : std ? "STD" : "-";
+function materialPedido(produtos: Produto[]) {
+  const tipos = new Set(produtos.map(materialDaLinha).filter(Boolean));
+  return tipos.has("ULTRA") && tipos.has("STD") ? "ULTRA/STD"
+    : tipos.has("ULTRA") ? "ULTRA"
+    : tipos.has("STD") ? "STD" : "-";
 }
 
 function alizaresPedido(produtos: Produto[]) {
-  return [
-    ...new Set(
-      produtos
-        .filter((p) => familiaIndustrial(p) === "ALIZARES")
-        .map((p) => {
-          const [, largura, espessura] = medidaDoItem(p);
-          return largura > 0 && espessura > 0 ? `${largura}x${espessura}` : "";
-        })
-        .filter(Boolean)
-    ),
-  ].sort((a, b) => {
-    const [la, ea] = a.split("x").map(Number);
-    const [lb, eb] = b.split("x").map(Number);
-    return lb - la || eb - ea;
+  return [...new Set(
+    produtos.filter((p) => familiaIndustrial(p) === "ALIZARES")
+      .map((p) => {
+        const [comprimento, largura, espessura] = medidaDoItem(p);
+        return comprimento > 0 && largura > 0 && espessura > 0
+          ? [comprimento, largura, espessura].join("x") : "";
+      }).filter(Boolean)
+  )].sort((a, b) => {
+    const ma = a.split("x").map(Number);
+    const mb = b.split("x").map(Number);
+    return mb[0] - ma[0] || mb[1] - ma[1] || mb[2] - ma[2];
   });
 }
 
