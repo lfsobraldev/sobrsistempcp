@@ -16,11 +16,14 @@ export default function Programacao() {
   const [usinagem, setUsinagem] = useState<File | null>(null);
   const [draft, setDraft] = useState<ImportResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const [analiseIA, setAnaliseIA] = useState("");
+  const [correcoesIA, setCorrecoesIA] = useState<Array<{ id: string; campo: string; valor: string; evidencia: string; metodo: string }>>([]);
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [turno, setTurno] = useState("A");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function process() {
+    setCorrecoesIA([]);
     setBusy(true);
     try {
       const fd = new FormData();
@@ -40,14 +43,55 @@ export default function Programacao() {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
 
-      setDraft({
+      let parsed = {
         ...j,
         produtos: (j.produtos || []).map((p: any) => ({ ...p, tipoPedido: p.tipoPedido || "NORMAL" })),
-      });
-      toast("success", "Arquivo interpretado. Revise os dados antes de liberar.");
+      };
+      // A API processa apenas 12 registros por requisição, sem ultrapassar
+      // o limite do servidor. Cada resposta é aplicada exclusivamente pelo ID.
+      if (mode === "FILTRO" && j.complementoIA) {
+        const ids = new Set<string>();
+        if (parsed.produtos.some((p: any) => !p.id || ids.has(p.id) || !ids.add(p.id))) {
+          throw new Error("IDs duplicados ou ausentes no arquivo. Importação não liberada.");
+        }
+        const elegiveis = parsed.produtos.filter((p: any) =>
+          ["material", "medida"].some((k) => !String(p[k] || "").trim()) &&
+          /\b(MDF|ULTRA|STD|RU|COLMEIA|SOLIDA|SÓLIDA)\b|\d{3,4}[X×]\d{2,4}/i.test(String(p.descricao || ""))
+        );
+        const updates = new Map<string, any>();
+        const rastreio: Array<{ id: string; campo: string; valor: string; evidencia: string; metodo: string }> = [];
+        for (let i = 0; i < elegiveis.length; i += 12) {
+          setAnaliseIA(`Analisando campos incompletos: ${Math.min(i + 12, elegiveis.length)} de ${elegiveis.length}`);
+          const resposta = await fetch("/api/importar/complementar", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ produtos: elegiveis.slice(i, i + 12) }),
+          });
+          const dados = await resposta.json();
+          if (!resposta.ok) throw new Error(dados.error || "Falha ao analisar lote da IA.");
+          const permitidos = new Set(elegiveis.slice(i, i + 12).map((p: any) => p.id));
+          for (const p of dados.produtos || []) if (permitidos.has(p.id)) updates.set(p.id, p);
+          for (const a of dados.alteracoes || []) if (permitidos.has(a.id)) rastreio.push(a);
+        }
+        const aplicar = (produtos: any[]) => produtos.map((p: any) => {
+          const revisado = updates.get(p.id);
+          if (!revisado) return p;
+          const complemento: any = { ...p };
+          for (const campo of ["tipo", "material", "medida", "cor", "acabamento", "rebaixo", "canal"]) {
+            if (!String(p[campo] || "").trim() && String(revisado[campo] || "").trim()) complemento[campo] = revisado[campo];
+          }
+          return complemento;
+        });
+        parsed = { ...parsed, produtos: aplicar(parsed.produtos), romaneioProdutos: aplicar(parsed.romaneioProdutos || []) };
+        setCorrecoesIA(rastreio);
+      }
+      setAnaliseIA("");
+      setDraft(parsed);
+      toast("success", "Arquivo interpretado e complementado. Revise os dados antes de liberar.");
     } catch (e: any) {
       toast("error", e.message);
     } finally {
+      setAnaliseIA("");
       setBusy(false);
     }
   }
@@ -85,6 +129,7 @@ export default function Programacao() {
             processos: draft.processos,
           },
           produtos: draft.produtos,
+          auditoriaComplemento: correcoesIA,
           romaneioProdutos: (draft.romaneioProdutos || draft.produtos).map((item) => {
             const tipo = draft.produtos.find((p) => p.pedido === item.pedido)?.tipoPedido || item.tipoPedido || "NORMAL";
             return { ...item, tipoPedido: tipo };
@@ -181,7 +226,7 @@ export default function Programacao() {
                   </select>
                 </Field>
                 <button type="button" className="primary" style={{ minHeight: 44 }} disabled={busy} onClick={process}>
-                  {busy ? "Processando…" : <>Processar <ChevronRight /></>}
+                  {busy ? (analiseIA || "Processando…") : <>Processar <ChevronRight /></>}
                 </button>
               </div>
             </div>
@@ -198,7 +243,7 @@ export default function Programacao() {
           </Card>
         </div>
       ) : (
-        <Review d={draft} busy={busy} back={() => setDraft(null)} release={release} setTipoPedido={definirTipoPedido} />
+        <Review d={draft} busy={busy} back={() => setDraft(null)} release={release} setTipoPedido={definirTipoPedido} correcoes={correcoesIA} />
       )}
     </>
   );
@@ -231,12 +276,13 @@ function Drop({ file, set, accept, title }: { file: File | null; set: (file: Fil
 const tomPrio = (v: string): Tone => (/URGENTE/i.test(v) ? "danger" : /ALTA/i.test(v) ? "warning" : "neutral");
 const ordenarPedidos = (a: string, b: string) => a.localeCompare(b, "pt-BR", { numeric: true });
 
-function Review({ d, busy, back, release, setTipoPedido }: {
+function Review({ d, busy, back, release, setTipoPedido, correcoes }: {
   d: ImportResult;
   busy: boolean;
   back: () => void;
   release: () => void;
   setTipoPedido: (pedido: string, tipo: TipoPedido) => void;
+  correcoes: Array<{ id: string; campo: string; valor: string; evidencia: string; metodo: string }>;
 }) {
   const hasWarnings = d.semRota > 0 || d.inconsistenciasRota > 0;
   const pedidosOrdenados = [...new Set(d.produtos.map((p) => p.pedido))].sort(ordenarPedidos);
@@ -263,6 +309,19 @@ function Review({ d, busy, back, release, setTipoPedido }: {
         <StatCard label="Sem rota" value={d.semRota} tone={d.semRota ? "warning" : "neutral"} />
         <StatCard label="Inconsistências" value={d.inconsistenciasRota} tone={d.inconsistenciasRota ? "warning" : "neutral"} />
       </div>
+
+      {correcoes.length > 0 && (
+        <Card subtitle="Revisão antes da liberação" title={`Complementações auditáveis (${correcoes.length})`} className="mb">
+          <p className="muted">Somente atributos vazios foram complementados, com evidência da própria descrição.</p>
+          <DataTable head={["OF", "Campo", "Valor", "Evidência", "Método"]}>
+            {correcoes.slice(0, 250).map((a, i) => {
+              const p = d.produtos.find((item) => item.id === a.id);
+              return <tr key={`${a.id}-${a.campo}-${i}`}><td>{p?.of || "-"}</td><td>{a.campo}</td><td><b>{a.valor}</b></td><td>{a.evidencia}</td><td>{a.metodo}</td></tr>;
+            })}
+          </DataTable>
+          {correcoes.length > 250 && <p className="muted">Exibidas 250 correções; todas seguem na auditoria da liberação.</p>}
+        </Card>
+      )}
 
       {hasWarnings && (
         <div className="warningBox" style={{ flexDirection: "column" }}>

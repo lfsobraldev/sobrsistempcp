@@ -17,18 +17,34 @@ export async function POST(req: Request) {
     // a programação anterior ou gravar qualquer registro na fábrica.
     const habilitado = process.env.PCP_AI_RELEASE_ENRICHMENT === "enabled";
     const complemento = habilitado
-      ? await completarFiltro(entrada.produtos as Produto[])
+      ? await completarFiltro(entrada.produtos as Produto[], false)
       : { produtos: entrada.produtos as Produto[], alteracoes: [], pendencias: [] };
     // A fonte de romaneios pode possuir IDs e linhas diferentes: nunca
     // transferir atributos de uma lista para a outra por pedido/OF.
     const romaneio = habilitado && Array.isArray(entrada.romaneioProdutos)
-      ? await completarFiltro(entrada.romaneioProdutos as Produto[])
+      ? await completarFiltro(entrada.romaneioProdutos as Produto[], false)
       : null;
     const b = {
       ...entrada,
       produtos: complemento.produtos,
       romaneioProdutos: romaneio?.produtos ?? entrada.romaneioProdutos,
     };
+    // Auditoria recebida da prévia: não é autorização para editar registros.
+    // Apenas referências que conferem com os próprios produtos são registradas.
+    const permitidosAuditoria = new Set(["tipo", "material", "medida", "cor", "acabamento", "rebaixo", "canal"]);
+    const porId = new Map<string, Produto>(b.produtos.map((p: Produto) => [p.id, p] as [string, Produto]));
+    const auditoria = (Array.isArray(entrada.auditoriaComplemento) ? entrada.auditoriaComplemento : [])
+      .slice(0, 10000)
+      .filter((a: any) => {
+        const p = porId.get(String(a?.id || ""));
+        const campo = String(a?.campo || "");
+        const valor = String(a?.valor || "");
+        const evidencia = String(a?.evidencia || "");
+        return p && permitidosAuditoria.has(campo) && valor && evidencia &&
+          String((p as any)[campo] || "") === valor &&
+          p.descricao.normalize("NFD").toUpperCase().includes(evidencia.normalize("NFD").toUpperCase());
+      })
+      .map((a: any) => ({ id: a.id, campo: a.campo, valor: a.valor, evidencia: a.evidencia, metodo: a.metodo }));
     const db = sql();
 
     await db`
@@ -83,14 +99,6 @@ export async function POST(req: Request) {
       mas não impedem a liberação.
     */
 
-    await db`
-      update pcp_programacoes
-      set
-        status = 'ENCERRADA',
-        encerrado_em = now()
-      where status = 'ATIVA'
-    `;
-
     const [pg] = await db`
       insert into pcp_programacoes(
         pedido,
@@ -117,7 +125,7 @@ export async function POST(req: Request) {
         ${String(b.filtro || "")},
         ${String(b.data || "")},
         ${String(b.turno || "A")},
-        'ATIVA',
+        'PREPARANDO',
         ${String(b.origem || "FILTRO")},
         ${Number(b.diagnostico?.linhas || 0)},
         ${Number(b.diagnostico?.pedidos || 0)},
@@ -291,7 +299,7 @@ export async function POST(req: Request) {
             b.diagnostico
               ?.inconsistenciasRota || 0
           ),
-          complementoIA: { ativo: habilitado, alteracoes: complemento.alteracoes, pendencias: complemento.pendencias, alteracoesRomaneio: romaneio?.alteracoes ?? [], pendenciasRomaneio: romaneio?.pendencias ?? [] },
+          complementoIA: { ativo: habilitado, auditoriaImportacao: auditoria, alteracoes: complemento.alteracoes, pendencias: complemento.pendencias, alteracoesRomaneio: romaneio?.alteracoes ?? [], pendenciasRomaneio: romaneio?.pendencias ?? [] },
         })}::jsonb
       )
     `;
@@ -311,11 +319,27 @@ export async function POST(req: Request) {
       };
     }
 
+    if (Array.isArray(romaneios?.erros) && romaneios.erros.length) {
+      throw new Error("Falha ao preparar romaneios. Programação anterior preservada; nova programação não liberada.");
+    }
+    // Publicar só depois de salvar todas as linhas e preparar os romaneios.
+    // Uma importação interrompida fica PREPARANDO e não substitui a ativa.
+    await db`
+      update pcp_programacoes
+      set status = 'ENCERRADA', encerrado_em = now()
+      where status = 'ATIVA'
+    `;
+    await db`
+      update pcp_programacoes
+      set status = 'ATIVA'
+      where id = ${pg.id} and status = 'PREPARANDO'
+    `;
+
     return NextResponse.json({
       ok: true,
       id: pg.id,
       romaneios,
-      complementoIA: { ativo: habilitado, corrigidos: complemento.alteracoes.length, pendencias: complemento.pendencias.length, corrigidosRomaneio: romaneio?.alteracoes.length ?? 0, pendenciasRomaneio: romaneio?.pendencias.length ?? 0 },
+      complementoIA: { ativo: habilitado, corrigidosNaImportacao: auditoria.length, corrigidos: complemento.alteracoes.length, pendencias: complemento.pendencias.length, corrigidosRomaneio: romaneio?.alteracoes.length ?? 0, pendenciasRomaneio: romaneio?.pendencias.length ?? 0 },
       diagnostico: {
         linhas: Number(
           b.diagnostico?.linhas || 0
