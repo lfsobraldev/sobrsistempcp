@@ -260,3 +260,31 @@ create table if not exists pcp_romaneios_preparados(
 );
 create index if not exists ix_pcp_romaneios_preparados_prog
   on pcp_romaneios_preparados(programacao_id,status,pedido);
+
+
+-- Fonte completa do Filtro 51 para romaneios (inclui ferragens e itens fora do PCP operacional)
+create table if not exists pcp_romaneio_source_items(
+ id uuid primary key default gen_random_uuid(),
+ programacao_id uuid not null references pcp_programacoes(id) on delete cascade,
+ pedido varchar(40) not null,
+ item varchar(40) not null default '',
+ produto varchar(80) not null default '',
+ descricao text not null default '',
+ categoria varchar(120) not null default '',
+ tipo varchar(120) not null default '',
+ canal varchar(120) not null default '',
+ codigo_modelo varchar(80) not null default '',
+ quantidade numeric(16,3) not null default 0,
+ medida varchar(80) not null default '',
+ acabamento varchar(120) not null default '',
+ cor varchar(160) not null default '',
+ rebaixo varchar(120) not null default '',
+ material varchar(120) not null default '',
+ descricao_modelo text not null default '',
+ outras_caracteristicas text not null default '',
+ pedido_cliente varchar(120) not null default '',
+ tipo_pedido varchar(20) not null default 'NORMAL',
+ montagem_engenharia varchar(30) not null default 'MONTADO_HS'
+);
+create index if not exists ix_pcp_romaneio_source_items_prog_pedido
+ on pcp_romaneio_source_items(programacao_id,pedido);
