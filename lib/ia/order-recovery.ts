@@ -47,6 +47,7 @@ ${pdfText.slice(0, 100_000)}
       }),
     },
     toolChoice: { type: "tool", toolName: "itens_recuperados" },
+    reasoning: "high",
     maxOutputTokens: 4000,
   });
 
