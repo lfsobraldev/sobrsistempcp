@@ -103,31 +103,31 @@ export async function POST(req: Request) {
       add column if not exists usinagem_planilha boolean not null default false
     `;
 
-    const rows = await db`
-      select
-        pedido,
-        item,
-        produto,
-        descricao,
-        tipo,
-        canal,
-        codigo_modelo,
-        quantidade,
-        medida,
-        acabamento,
-        cor,
-        rebaixo,
-        material,
-        descricao_modelo,
-        outras_caracteristicas,
-        pedido_cliente,
-        tipo_pedido,
-        montagem_engenharia
-      from pcp_produtos
-      where programacao_id = ${programacaoId}
-        and pedido = ${pedido}
-      order by item
+    const [sourceTable] = await db`
+      select to_regclass('public.pcp_romaneio_source_items')::text as nome
     `;
+
+    const rows = sourceTable?.nome
+      ? await db`
+          select
+            pedido,item,produto,descricao,categoria,tipo,canal,codigo_modelo,
+            quantidade,medida,acabamento,cor,rebaixo,material,descricao_modelo,
+            outras_caracteristicas,pedido_cliente,tipo_pedido,montagem_engenharia
+          from pcp_romaneio_source_items
+          where programacao_id = ${programacaoId}
+            and pedido = ${pedido}
+          order by item
+        `
+      : await db`
+          select
+            pedido,item,produto,descricao,categoria,tipo,canal,codigo_modelo,
+            quantidade,medida,acabamento,cor,rebaixo,material,descricao_modelo,
+            outras_caracteristicas,pedido_cliente,tipo_pedido,montagem_engenharia
+          from pcp_produtos
+          where programacao_id = ${programacaoId}
+            and pedido = ${pedido}
+          order by item
+        `;
 
     if (!rows.length) {
       return NextResponse.json(
