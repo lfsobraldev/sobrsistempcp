@@ -11,10 +11,17 @@ type Anexo =
   | { type: "navigate"; path: string; label: string }
   | { type: "confirm"; label: string; token: string }
   | { type: "romaneio"; data: any; alertas: any[]; resumo: any }
-  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string };
+  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string; pedido?: string };
 type Msg = { role: "user" | "assistant"; content: string; anexos?: Anexo[] };
 
-const SUGESTOES = ["Resumo da produção de hoje", "Quais Andons estão abertos?", "Romaneios recentes", "Pallets pendentes de qualidade"];
+const SUGESTOES = [
+  "Resumo da produção de hoje",
+  "Quais pedidos estão em risco de atraso?",
+  "Faça a programação sugerida da fábrica",
+  "Onde estão os gargalos de capacidade?",
+  "Gerar planilha de usinagem",
+  "Quais Andons estão abertos?",
+];
 const KEY = "sobral-ia-chat";
 
 export default function AiAssistant() {
@@ -97,7 +104,10 @@ export default function AiAssistant() {
                         return;
                       }
                       try {
-                        await baixarPlanilhaProducao(pg.produtos, {
+                        const produtos = a.pedido
+                          ? pg.produtos.filter((p) => String(p.pedido) === String(a.pedido))
+                          : pg.produtos;
+                        await baixarPlanilhaProducao(produtos, {
                           setores: a.setores,
                           arquivo: a.arquivo || "Planilha_Usinagem",
                         });
