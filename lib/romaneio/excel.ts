@@ -6,10 +6,9 @@ import { rowVolume } from "./logistics";
 import { compactItemIds } from "./domain";
 
 const START_ROW = 13;
-const BASE_LAST_DATA_ROW = 108;
-const BASE_TOTAL_ROW = 109;
-const BASE_FILTER_ROW = 110;
-const BASE_OBS_ROW = 111;
+const FALLBACK_TOTAL_ROW = 109;
+const FALLBACK_FILTER_ROW = 110;
+const FALLBACK_OBS_ROW = 111;
 const COL = { pkg:"A", order:"B", games:"C", qty:"D", len:"E", wid:"F", thk:"G", m3:"H", palletM3:"I", product:"J", obs:"K" } as const;
 const MOUNT_SHORT = { MONTADO_HS:"Mont. HS", MONTADO_TIMADEL:"Mont. Timadel", REVENDA:"Revenda", MONTADO_ESTANCIA:"Mont. Estância" } as const;
 
@@ -18,11 +17,27 @@ type WrittenRow = { excelRow:number; row:PackageRow };
 function set(ws: ExcelJS.Worksheet, address: string, value: string | number | Date | null | undefined) { ws.getCell(address).value = value ?? ""; }
 function safeMerge(ws: ExcelJS.Worksheet, ref: string) { try { ws.mergeCells(ref); } catch { /* template may already contain a compatible merge */ } }
 function totalRows(data: ProcessingResult) { return data.packages.reduce((sum, pkg) => sum + pkg.rows.length, 0); }
+function findRowByLabel(ws: ExcelJS.Worksheet, col: number, text: string, fallback: number) {
+  for (let row = START_ROW; row <= Math.max(ws.rowCount, fallback + 10); row++) {
+    const value = String(ws.getCell(row, col).value ?? "").trim().toLowerCase();
+    if (value === text.trim().toLowerCase()) return row;
+  }
+  return fallback;
+}
 function ensureCapacity(ws: ExcelJS.Worksheet, required: number) {
-  const base = BASE_LAST_DATA_ROW - START_ROW + 1;
+  const baseTotal = findRowByLabel(ws, 7, "Total m³", FALLBACK_TOTAL_ROW);
+  const baseFilter = findRowByLabel(ws, 1, "Filtro:", FALLBACK_FILTER_ROW);
+  const baseObs = findRowByLabel(ws, 1, "Obs:", FALLBACK_OBS_ROW);
+  const baseLastData = baseTotal - 1;
+  const base = baseLastData - START_ROW + 1;
   const extra = Math.max(0, required - base);
-  if (extra > 0) ws.duplicateRow(BASE_LAST_DATA_ROW, extra, true);
-  return { lastData: BASE_LAST_DATA_ROW + extra, total: BASE_TOTAL_ROW + extra, filter: BASE_FILTER_ROW + extra, obs: BASE_OBS_ROW + extra };
+  if (extra > 0) ws.duplicateRow(baseLastData, extra, true);
+  return {
+    lastData: baseLastData + extra,
+    total: baseTotal + extra,
+    filter: baseFilter + extra,
+    obs: baseObs + extra,
+  };
 }
 function clearData(ws: ExcelJS.Worksheet, last: number) {
   for (let row = START_ROW; row <= last; row++) {
