@@ -160,15 +160,29 @@ export async function buildPreparedForOrder(args: {
 export async function prepareAllRomaneios(programacaoId: string, filtro: string, db = sql()) {
   await ensurePreparedRomaneiosTable(db);
 
-  const rows = await db`
-    select
-      pedido,item,produto,descricao,categoria,tipo,canal,codigo_modelo,
-      quantidade,medida,acabamento,cor,rebaixo,material,descricao_modelo,
-      outras_caracteristicas,pedido_cliente,tipo_pedido,montagem_engenharia
-    from pcp_produtos
-    where programacao_id=${programacaoId}
-    order by pedido,item
+  const [sourceTable] = await db`
+    select to_regclass('public.pcp_romaneio_source_items')::text as nome
   `;
+
+  const rows = sourceTable?.nome
+    ? await db`
+        select
+          pedido,item,produto,descricao,categoria,tipo,canal,codigo_modelo,
+          quantidade,medida,acabamento,cor,rebaixo,material,descricao_modelo,
+          outras_caracteristicas,pedido_cliente,tipo_pedido,montagem_engenharia
+        from pcp_romaneio_source_items
+        where programacao_id=${programacaoId}
+        order by pedido,item
+      `
+    : await db`
+        select
+          pedido,item,produto,descricao,categoria,tipo,canal,codigo_modelo,
+          quantidade,medida,acabamento,cor,rebaixo,material,descricao_modelo,
+          outras_caracteristicas,pedido_cliente,tipo_pedido,montagem_engenharia
+        from pcp_produtos
+        where programacao_id=${programacaoId}
+        order by pedido,item
+      `;
 
   const grouped = new Map<string, any[]>();
   for (const row of rows as any[]) {
