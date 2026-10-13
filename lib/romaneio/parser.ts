@@ -762,6 +762,67 @@ function roleFromFilterProduct(
   return "OUTRO";
 }
 
+
+function buildUnmachinedFilterRows(sourceRows: Array<{
+  product: FilterRomaneioProduct;
+  item: string;
+  originalItem: string;
+  code: string;
+  description: string;
+  unit: string;
+  quantity: number;
+  category: ProductCategory;
+  role: PackageRow["role"];
+}>): PackageRow[] {
+  const rows: PackageRow[] = sourceRows.map((source) => {
+    const raw = clean(source.product.descricao || "");
+    const description = raw || source.description;
+    const dimensionText = clean(source.product.medida || "");
+    const dims = dimensionsFromText(dimensionText) || dimensionsFromText(description);
+    const packaging = packagingFromText(description);
+    const productText = withPackaging(normalizeTitle(description), packaging);
+    const category = source.category;
+    const role = source.role || (
+      category === "PORTA" ? "PORTA" :
+      category === "FERRAGEM" ? "FERRAGEM" :
+      category === "KIT" ? "KIT" : "OUTRO"
+    );
+
+    return {
+      sourceItems: [source.originalItem || source.item],
+      sourceCode: source.code,
+      sourceCodes: source.code ? [source.code] : [],
+      quantity: source.quantity,
+      lengthMm: dims?.[0],
+      widthMm: dims?.[1],
+      thicknessMm: dims?.[2],
+      product: productText,
+      observation: sourceText([{
+        item: source.originalItem || source.item,
+        code: source.code,
+        description,
+        unit: source.unit,
+        quantity: source.quantity,
+      }]),
+      category,
+      groupType: category,
+      groupId: `F51-${role}-${source.item}`,
+      role,
+      packaging,
+      originalDescription: description,
+      matchConfidence: 100,
+      mergeObservation: true,
+    } as PackageRow;
+  });
+
+  /*
+   * O romaneio de referência consolida linhas idênticas e soma quantidade,
+   * mantendo todos os itens de origem na coluna Obs.
+   * Sem usinagem NÃO criamos mão, dobradiça/contratesta ou aplicação por inferência.
+   */
+  return aggregateRows(rows);
+}
+
 export function buildProcessingFromFilterProducts(
   input: {
     orderNumber: string;
@@ -830,54 +891,64 @@ export function buildProcessingFromFilterProducts(
   const itemRole = (item: PdfItem) =>
     roleByItem.get(item.item);
 
-  rows.push(...buildMachinedDoors(machining, items));
-  rows.push(...buildMachinedFrames(machining, items));
+  if (!machiningBuffer) {
+    /*
+     * PRIMEIRA ETAPA: romaneio SEM USINAGEM.
+     * O Filtro 51 já contém as linhas físicas. Mantemos exatamente essas linhas,
+     * suas descrições e medidas; consolidamos somente itens realmente idênticos.
+     * Não inventamos mão, dobradiça, contratesta ou aplicação.
+     */
+    rows.push(...buildUnmachinedFilterRows(sourceRows));
+  } else {
+    rows.push(...buildMachinedDoors(machining, items));
+    rows.push(...buildMachinedFrames(machining, items));
 
-  const already = () => new Set(rows.flatMap((row) => row.sourceItems || []));
+    const already = () => new Set(rows.flatMap((row) => row.sourceItems || []));
 
-  for (const item of items.filter((x) =>
-    itemCategory(x) === "PORTA" && !already().has(x.item)
-  )) {
-    rows.push(buildSimpleDoor(item));
-  }
+    for (const item of items.filter((x) =>
+      itemCategory(x) === "PORTA" && !already().has(x.item)
+    )) {
+      rows.push(buildSimpleDoor(item));
+    }
 
-  const unmatchedFrames = items.filter((x) =>
-    itemCategory(x) === "MARCO" && !already().has(x.item)
-  );
-  for (const item of unmatchedFrames) rows.push(...buildSimpleFrame(item));
-
-  rows.push(...buildTrimRows(items.filter((x) =>
-    itemCategory(x) === "ALIZAR" && !already().has(x.item)
-  )));
-  rows.push(...buildKitRows(items.filter((x) =>
-    itemCategory(x) === "KIT" && !already().has(x.item)
-  )));
-  rows.push(...buildHardwareRows(items.filter((x) =>
-    itemCategory(x) === "FERRAGEM" && !already().has(x.item)
-  )));
-
-  const after = already();
-  for (const item of items) {
-    if (after.has(item.item)) continue;
-
-    const fallback = buildFallback(item);
-    const category = itemCategory(item);
-    fallback.category = category;
-    fallback.groupType = category;
-    fallback.role = itemRole(item) || (
-      category === "PORTA"
-        ? "PORTA"
-        : category === "KIT"
-        ? "KIT"
-        : category === "FERRAGEM"
-        ? "FERRAGEM"
-        : "OUTRO"
+    const unmatchedFrames = items.filter((x) =>
+      itemCategory(x) === "MARCO" && !already().has(x.item)
     );
-    rows.push(fallback);
+    for (const item of unmatchedFrames) rows.push(...buildSimpleFrame(item));
+
+    rows.push(...buildTrimRows(items.filter((x) =>
+      itemCategory(x) === "ALIZAR" && !already().has(x.item)
+    )));
+    rows.push(...buildKitRows(items.filter((x) =>
+      itemCategory(x) === "KIT" && !already().has(x.item)
+    )));
+    rows.push(...buildHardwareRows(items.filter((x) =>
+      itemCategory(x) === "FERRAGEM" && !already().has(x.item)
+    )));
+
+    const after = already();
+    for (const item of items) {
+      if (after.has(item.item)) continue;
+
+      const fallback = buildFallback(item);
+      const category = itemCategory(item);
+      fallback.category = category;
+      fallback.groupType = category;
+      fallback.role = itemRole(item) || (
+        category === "PORTA"
+          ? "PORTA"
+          : category === "KIT"
+          ? "KIT"
+          : category === "FERRAGEM"
+          ? "FERRAGEM"
+          : "OUTRO"
+      );
+      rows.push(fallback);
+    }
   }
 
   if (!machiningBuffer) {
-    warnings.push("Pedido preparado pelo Filtro 51. Aguardando planilha de usinagem para finalizar mãos, aplicações e itens usinados.");
+    warnings.push("Romaneio base gerado pelo Filtro 51 sem usinagem. Descrições, medidas, quantidades e itens foram preservados; mão/aplicações específicas ficam para a opção com usinagem.");
   } else if (!machining.length) {
     warnings.push("A planilha de usinagem foi recebida, mas nenhuma linha utilizável foi identificada.");
   }
@@ -1004,7 +1075,7 @@ export function buildProcessingFromFilterProducts(
   const result = applyLogistics(base, mountType, config);
 
   if (!machiningBuffer) {
-    result.parserDiagnostics!.notes.unshift("Romaneio base criado pelo Filtro 51; falta usinagem para finalização.");
+    result.parserDiagnostics!.notes.unshift("Romaneio base criado diretamente das linhas físicas do Filtro 51, sem inferir dados de usinagem.");
   }
 
   return result;
