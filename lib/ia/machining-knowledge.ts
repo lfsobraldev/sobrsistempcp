@@ -101,8 +101,8 @@ MANUAL DE USINAGEM E PROCESSOS DA FÁBRICA
 - Quando uma regra ainda não estiver cadastrada (ex.: peça nova ou friso autônomo), marcar REVISÃO e solicitar validação humana.
 - Depois que uma regra nova for oficialmente definida, ela pode ser incorporada ao manual do sistema.
 
-13. INTERPRETAÇÃO DE CAMPOS AUSENTES NO FILTRO / API
-- A IA deve reconhecer que o Consistem pode trazer parte das informações somente dentro da descrição.
+13. INTERPRETAÇÃO DE CAMPOS AUSENTES EM QUALQUER FILTRO / API DO CONSISTEM
+- A IA deve reconhecer que qualquer filtro/programação do Consistem, qualquer que seja seu número, pode trazer parte das informações somente dentro da descrição.
 - Quando MATERIAL/TIPO estiver vazio, procurar exclusivamente na mesma linha termos explícitos como MDF ULTRA, ULTRA, MDF STD, STD, PINUS, HDF ou MDF.
 - Quando ACABAMENTO estiver vazio, procurar somente termos claramente identificados na mesma linha, como PET, PVC ou ESMALTE.
 - Quando MEDIDA estiver vazia, extrair a dimensão explícita da própria linha e mantê-la separada do nome do produto.
