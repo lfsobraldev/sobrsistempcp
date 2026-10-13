@@ -239,3 +239,24 @@ create table if not exists pcp_romaneios_hist(
 );
 create index if not exists ix_romaneios_hist_pedido on pcp_romaneios_hist(pedido);
 create index if not exists ix_romaneios_hist_cliente on pcp_romaneios_hist(cliente, criado_em desc);
+
+
+-- V16.1 • Romaneios pré-prontos automáticos por programação
+create table if not exists pcp_romaneios_preparados(
+  id uuid primary key default gen_random_uuid(),
+  programacao_id uuid not null references pcp_programacoes(id) on delete cascade,
+  pedido varchar(80) not null,
+  cliente varchar(240) not null default '',
+  tipo_pedido varchar(30) not null default 'NORMAL',
+  montagem varchar(40) not null default 'MONTADO_HS',
+  status varchar(30) not null default 'PRE_PRONTO',
+  has_machining boolean not null default false,
+  origem_usinagem varchar(30) not null default 'FILTRO',
+  warnings jsonb not null default '[]'::jsonb,
+  resultado jsonb not null default '{}'::jsonb,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  unique(programacao_id,pedido)
+);
+create index if not exists ix_pcp_romaneios_preparados_prog
+  on pcp_romaneios_preparados(programacao_id,status,pedido);
