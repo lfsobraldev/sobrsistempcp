@@ -1,5 +1,6 @@
+import { generateObject } from "ai";
 import { z } from "zod";
-import { claude, MODEL } from "@/lib/ia/claude";
+import { assertGatewayConfigured, MODEL } from "@/lib/ia/claude";
 
 export const ItemSchema = z.object({
   codigo: z.string().default(""),
@@ -27,53 +28,32 @@ export type RomaneioIA = z.infer<typeof RomaneioIASchema>;
 
 export type Alerta = { nivel: "erro" | "aviso"; campo: string; mensagem: string };
 
-const TOOL = {
-  name: "salvar_romaneio",
-  description: "Registra o romaneio extraído, em formato estruturado.",
-  input_schema: {
-    type: "object" as const,
-    properties: {
-      pedido: { type: "string" }, cliente: { type: "string" }, transportadora: { type: "string" },
-      rota: { type: "string" }, motorista: { type: "string" }, placa: { type: "string" },
-      notaFiscal: { type: "string" }, dataEntrega: { type: "string", description: "AAAA-MM-DD se conhecida" },
-      observacoes: { type: "string" },
-      itens: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            codigo: { type: "string" }, descricao: { type: "string" },
-            quantidade: { type: "number" }, unidade: { type: "string" },
-            pesoKg: { type: ["number", "null"] }, volumes: { type: ["number", "null"] },
-            observacao: { type: "string" },
-          },
-          required: ["descricao", "quantidade"],
-        },
-      },
-    },
-    required: ["itens"],
-  },
-};
-
 const SYSTEM = `Você extrai romaneios de expedição (fábrica de portas, marcos e alizares) a partir de texto de pedidos, planilhas ou PDFs.
 - Extraia somente o que está no texto. Campo ausente = string vazia ou null. Nunca invente.
 - Quantidades são números (use ponto decimal). Preserve códigos e descrições originais; não resuma itens.
-- Se o contexto histórico trouxer padrões do mesmo cliente (transportadora, rota), use-os apenas para campos vazios e marque isso em "observacoes".
-Responda SEMPRE chamando a ferramenta salvar_romaneio.`;
+- Se o contexto histórico trouxer padrões do mesmo cliente (transportadora, rota), use-os apenas para campos vazios e marque isso em "observacoes".`;
 
-export async function extrairRomaneio(texto: string, historico: string[] = []): Promise<RomaneioIA> {
-  const ctx = historico.length ? `\n\nHistórico recente do sistema (padrões da empresa):\n${historico.join("\n")}` : "";
-  const res = await claude().messages.create({
+export async function extrairRomaneio(
+  texto: string,
+  historico: string[] = []
+): Promise<RomaneioIA> {
+  assertGatewayConfigured();
+
+  const ctx = historico.length
+    ? `\n\nHistórico recente do sistema (padrões da empresa):\n${historico.join("\n")}`
+    : "";
+
+  const { object } = await generateObject({
     model: MODEL,
-    max_tokens: 8000,
+    schema: RomaneioIASchema,
     system: SYSTEM,
-    tools: [TOOL],
-    tool_choice: { type: "tool", name: TOOL.name },
-    messages: [{ role: "user", content: `Texto de origem:\n"""\n${texto.slice(0, 120_000)}\n"""${ctx}` }],
+    prompt: `Texto de origem:
+"""
+${texto.slice(0, 120_000)}
+"""${ctx}`,
   });
-  const block = res.content.find((b) => b.type === "tool_use");
-  if (!block || block.type !== "tool_use") throw new Error("A IA não retornou dados estruturados.");
-  return RomaneioIASchema.parse(block.input);
+
+  return RomaneioIASchema.parse(object);
 }
 
 /** Validação determinística — roda SEMPRE depois da IA, antes de emitir. */
