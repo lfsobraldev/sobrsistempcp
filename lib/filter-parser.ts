@@ -576,27 +576,35 @@ function medidaLinha(
 
 function material(r: Record<string, string>) {
   const tipo = up(field(r, "Tipo"));
-  const fontes = [
-    field(r, "Descrição"), field(r, "Descrição Modelo"),
-    field(r, "Outras Características"), field(r, "Produto"),
-  ].map(up);
-  // O Tipo preenchido no Consistem tem prioridade, sem substituir o valor original.
-  if (tipo && tipo !== "N/A" && tipo !== "-") {
-    if (/\bULTRA\b/.test(tipo)) return "MDF ULTRA";
-    if (/\bSTD\b/.test(tipo)) return "MDF STD";
-    return clean(field(r, "Tipo"));
-  }
-  // Não usar outras linhas, pedidos ou exemplos para completar este material.
-  // Siglas curtas são aceitas apenas como tokens isolados.
-  for (const d of fontes) {
+  const descricao = up(field(r, "Descrição"));
+  const mascara = up(field(r, "Descrição Modelo"));
+  const caracteristicas = up(field(r, "Outras Características"));
+  const produto = up(field(r, "Produto"));
+  // Tipo pode significar REGULAGEM, LISA, COLMEIA etc. Não é sempre material.
+  const fonte = [descricao, mascara, caracteristicas, produto];
+  const detectar = (d: string) => {
+    if (/\bPINUS\b/.test(d)) return "PINUS";
     if (/\bULTRA\b/.test(d) || /(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(d)) return "MDF ULTRA";
     if (/\bSTD\b/.test(d)) return "MDF STD";
-    if (/\bPINUS\b/.test(d)) return "PINUS";
     if (/\bHDF\b/.test(d)) return "HDF";
     if (/\bMDF\b/.test(d)) return "MDF";
     if (/\bRU\b/.test(d)) return "RU";
+    return "";
+  };
+  const materialTipo = detectar(tipo);
+  // Um valor descritivo de tipo não deve ser armazenado como material.
+  const inferencias = fonte.map(detectar).filter(Boolean);
+  if (materialTipo && !inferencias.some((m) => m !== materialTipo)) return materialTipo;
+  const unicos = [...new Set(inferencias)];
+  // Dados contraditórios da MESMA linha exigem revisão; nunca escolher silenciosamente.
+  if (unicos.length > 1) {
+    if (unicos.length === 2 && unicos.includes("MDF") && unicos.includes("MDF ULTRA"))
+      return "MDF ULTRA";
+    if (unicos.length === 2 && unicos.includes("MDF") && unicos.includes("MDF STD"))
+      return "MDF STD";
+    return "";
   }
-  return "";
+  return unicos[0] || materialTipo || "";
 }
 
 function fallbackAcab(
