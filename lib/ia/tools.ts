@@ -1,4 +1,3 @@
-import type Anthropic from "@anthropic-ai/sdk";
 import { sql } from "@/lib/db";
 import type { Sessao } from "@/types/pcp";
 import { allowedPath, pathsFor } from "@/lib/permissions";
@@ -14,17 +13,17 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
-export const TOOLS: Anthropic.Tool[] = [
-  { name: "resumo_producao", description: "Resumo da programação ativa: filtro, turno, total de pedidos/OFs/peças e progresso por processo.", input_schema: { type: "object", properties: {} } },
-  { name: "buscar_pedido", description: "Detalhes de um pedido na programação ativa: itens/OFs, prioridade e andamento por processo.", input_schema: { type: "object", properties: { pedido: { type: "string" } }, required: ["pedido"] } },
-  { name: "listar_andon", description: "Chamados Andon abertos (paradas/problemas na produção).", input_schema: { type: "object", properties: {} } },
-  { name: "listar_excecoes", description: "Faltas e retrabalhos de peças (exceções). Status padrão: ABERTA.", input_schema: { type: "object", properties: { status: { type: "string" } } } },
-  { name: "resumo_qualidade", description: "Contagem de pallets por status de qualidade/MSAC.", input_schema: { type: "object", properties: {} } },
-  { name: "historico_romaneios", description: "Romaneios gerados anteriormente. Filtra por pedido ou cliente.", input_schema: { type: "object", properties: { busca: { type: "string" }, limite: { type: "number" } } } },
-  { name: "navegar", description: "Leva o usuário para uma tela do sistema.", input_schema: { type: "object", properties: { caminho: { type: "string", description: "Ex: /romaneios, /dashboard, /prioridades" } }, required: ["caminho"] } },
-  { name: "gerar_romaneio", description: "Extrai e valida um romaneio a partir de texto de pedido/lista colado pelo usuário. Retorna prévia com alertas.", input_schema: { type: "object", properties: { texto: { type: "string" }, max_volumes_por_carga: { type: "number" } }, required: ["texto"] } },
-  { name: "propor_prioridade", description: "Propõe alterar a prioridade de um pedido (NORMAL, ALTA, URGENTE). O usuário precisa confirmar.", input_schema: { type: "object", properties: { pedido: { type: "string" }, prioridade: { type: "string", enum: ["NORMAL", "ALTA", "URGENTE"] } }, required: ["pedido", "prioridade"] } },
-];
+export const TOOL_META = {
+  resumo_producao: "Resumo da programação ativa: filtro, turno, total de pedidos/OFs/peças e progresso por processo.",
+  buscar_pedido: "Detalhes de um pedido na programação ativa: itens/OFs, prioridade e andamento por processo.",
+  listar_andon: "Chamados Andon abertos (paradas/problemas na produção).",
+  listar_excecoes: "Faltas e retrabalhos de peças (exceções). Status padrão: ABERTA.",
+  resumo_qualidade: "Contagem de pallets por status de qualidade/MSAC.",
+  historico_romaneios: "Romaneios gerados anteriormente. Filtra por pedido ou cliente.",
+  navegar: "Leva o usuário para uma tela do sistema.",
+  gerar_romaneio: "Extrai e valida um romaneio a partir de texto de pedido/lista colado pelo usuário. Retorna prévia com alertas.",
+  propor_prioridade: "Propõe alterar a prioridade de um pedido (NORMAL, ALTA, URGENTE). O usuário precisa confirmar.",
+} as const;
 
 async function programacaoAtiva() {
   const db = sql();
