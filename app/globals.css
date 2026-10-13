@@ -814,3 +814,13 @@ body{background-image:none}
  .training-overview-stats{width:100%}.training-overview-stats>div{flex:1}
  .ai-composer-footer>span{display:none}
 }
+
+
+/* Sobral IA — resposta formatada */
+.ai-message-rendered{display:flex;flex-direction:column;gap:3px}
+.ai-message-line{line-height:1.55}
+.ai-message-heading{font-weight:800;font-size:13px;margin-top:7px;margin-bottom:2px;color:inherit}
+.ai-message-bullet{display:grid;grid-template-columns:12px minmax(0,1fr);gap:5px;align-items:start;line-height:1.5}
+.ai-message-bullet>span{font-weight:900}
+.ai-message-space{height:5px}
+.ai-message-rendered strong{font-weight:800}
