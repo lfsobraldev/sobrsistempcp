@@ -100,6 +100,21 @@ Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "
         }),
         execute: async (input) => runTool("gerar_romaneio", input, { user: s, attachments }),
       }),
+      gerar_planilha_usinagem: tool({
+        description: TOOL_META.gerar_planilha_usinagem,
+        inputSchema: z.object({
+          processo: z.enum([
+            "TODAS",
+            "USINAGEM-PORTAS",
+            "USINAGEM-TRAVESSAS",
+            "USINAGEM-CONTRATESTA",
+            "USINAGEM-DOBRADICAS",
+            "USINAGEM-TUPIA",
+          ]).optional(),
+        }),
+        execute: async (input) =>
+          runTool("gerar_planilha_usinagem", input, { user: s, attachments }),
+      }),
       propor_prioridade: tool({
         description: TOOL_META.propor_prioridade,
         inputSchema: z.object({
