@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     // Auditoria recebida da prévia: não é autorização para editar registros.
     // Apenas referências que conferem com os próprios produtos são registradas.
     const permitidosAuditoria = new Set(["tipo", "material", "medida", "cor", "acabamento", "rebaixo", "canal"]);
-    const porId = new Map<string, Produto>(b.produtos.map((p: Produto) => [p.id, p]));
+    const porId = new Map<string, Produto>(b.produtos.map((p: Produto) => [p.id, p] as [string, Produto]));
     const auditoria = (Array.isArray(entrada.auditoriaComplemento) ? entrada.auditoriaComplemento : [])
       .slice(0, 10000)
       .filter((a: any) => {
