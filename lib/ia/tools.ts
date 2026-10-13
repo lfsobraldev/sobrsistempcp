@@ -40,9 +40,9 @@ async function programacaoAtiva() {
   const [pg] = await db`select id, filtro, data_programacao, turno from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
   return { db, pg };
 }
-const j = (v: unknown) => JSON.stringify(v);
+const j = <T,>(v: T): T => v;
 
-export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<string> {
+export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<unknown> {
   try {
     switch (name) {
       case "resumo_producao": {
