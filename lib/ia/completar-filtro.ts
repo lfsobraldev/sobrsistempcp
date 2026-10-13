@@ -94,10 +94,13 @@ export async function completarFiltro(
   // Somente campos que admitem evidência literal inequívoca; demais tipos de
   // ausência (ex. canal de ferragem) NÃO devem gerar chamadas inúteis à IA.
   const relevantes: Campo[] = ["material", "medida"];
-  const candidatos = produtos.filter((p) =>
-    !materialConflitante(p) && relevantes.some((campo) => vazio(p[campo])) &&
-    /\b(?:MDF|ULTRA|STD|RU|HDF|PINUS|BAGUETE|TRILHO|CORRER)\b|\d{3,4}[xX×]\d{2,4}/i.test([p.descricao,p.descricaoModelo,p.outrasCaracteristicas].join(" "))
-  );
+  const candidatos = produtos.filter((p) => {
+    if (materialConflitante(p)) return false;
+    const fonte = [p.descricao, p.descricaoModelo, p.outrasCaracteristicas].join(" ");
+    const temMaterial = /\b(?:MDF|ULTRA|STD|RU|HDF|PINUS)\b|(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/i.test(fonte);
+    const temMedida = /\d{3,4}\s*[xX×]\s*\d{2,4}/i.test(fonte);
+    return (vazio(p.material) && temMaterial) || (vazio(p.medida) && temMedida);
+  });
   if (usarIA && candidatos.length) {
     assertGatewayConfigured();
     // Compartilha as regras ativas e aprovadas da fábrica com o extrator,
