@@ -565,3 +565,19 @@ tbody tr:hover{background:var(--primary-soft)}
 
 .shell.collapsed .brand .sobral-logo{display:grid}
 .shell.collapsed .brand .brand-copy{display:none}
+
+
+.smart-brief{margin-bottom:18px;border-color:color-mix(in srgb,var(--primary-200) 70%,var(--border));background:
+  linear-gradient(135deg,color-mix(in srgb,var(--primary-soft) 78%,var(--surface)),var(--surface) 46%)}
+.smart-brief-grid{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:start}
+.smart-brief-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:14px;background:linear-gradient(145deg,var(--primary-500),var(--primary-700));color:var(--on-primary);box-shadow:0 8px 22px rgba(37,99,235,.22)}
+.smart-brief-icon svg{width:23px;height:23px}
+.smart-brief-list{display:grid;gap:8px}
+.smart-signal{display:grid;grid-template-columns:8px minmax(0,1fr);gap:10px;align-items:start;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--surface) 82%,transparent);border:1px solid var(--border)}
+.smart-signal>span{width:8px;height:8px;border-radius:50%;margin-top:5px;background:var(--info)}
+.smart-signal.smart-critico>span{background:var(--danger)}
+.smart-signal.smart-atencao>span{background:var(--warning)}
+.smart-signal b{display:block;font-size:12px;line-height:1.35}
+.smart-signal small{display:block;margin-top:2px;color:var(--text-3);line-height:1.35}
+.smart-brief-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:900px){.smart-brief-grid{grid-template-columns:auto minmax(0,1fr)}.smart-brief-actions{grid-column:1/-1;justify-content:flex-start}}
