@@ -17,7 +17,7 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   const alteracoes: Alteracao[] = [];
   const descricao = String(p.descricao || "");
   const texto = normal(descricao);
-  const marco = /BATENTE|MARCO/.test(normal(String(p.categoria || ""))) || /^M(?:\s+(?:P|T|CJ))?\s/.test(texto);
+  const marco = /BATENTE|MARCO/.test(normal(String(p.categoria || ""))) || /^(?:CJ\s+M|M(?:\s+(?:P|T|CJ))?)\s/.test(texto) || /\b\d{3,4}X\d{2,3}X30\s+(?:42X10|S\/(?:REB|RB))\b/.test(texto);
   const alizar = /ALIZAR/.test(normal(String(p.categoria || ""))) || /^A\s/.test(texto);
   const baguete = /BAGUETE/.test(normal(String(p.categoria || ""))) || /\bBAGUETE\b/.test(texto);
   const admiteRebaixo = marco && !alizar && !baguete;
@@ -32,17 +32,18 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   // O Filtro 53 possui descrições truncadas na ORIGEM, como BCO(UL e BCO(ULTR.
   // Reconhecer UL/ULTR somente como token final entre parênteses (nunca palavras aleatórias).
   const ultraAbreviado = texto.match(/(?:\(|\s)(UL|ULT|ULTR)(?:\s*\)?)$/)?.[1] || "";
-  const material = texto.match(/\bMDF\s+(?:ULTRA|STD|RU)\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b/)?.[0] || ultraAbreviado;
+  const ultraEmToken = texto.match(/(?:^|[\s(])(?:UL|ULT|ULTR)(?=\s|\)|$)/)?.[0]?.trim() || "";
+  const material = texto.match(/\bMDF\s+(?:ULTRA|STD|RU)\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b/)?.[0] || ultraAbreviado || ultraEmToken;
   if (material) {
-    const nomeMaterial = material === "ULTRA" || Boolean(ultraAbreviado && material === ultraAbreviado) ? "MDF ULTRA" : material === "STD" ? "MDF STD" : material;
+    const nomeMaterial = material === "ULTRA" || Boolean((ultraAbreviado || ultraEmToken) && (material === ultraAbreviado || material === ultraEmToken)) ? "MDF ULTRA" : material === "STD" ? "MDF STD" : material;
     preencher("material", nomeMaterial, material);
     // No Consistem, Tipo pode ser REG 2L, LISA, MDF ULTRA etc.; nunca assumir
     // que significa estrutura colmeia. Só completar como material para marcos/batentes.
     if (marco && /^(MDF|ULTRA|STD|RU)\b/.test(material)) preencher("tipo", nomeMaterial, material);
-    if (alizar && (/\b(?:STD|ULTRA|MDF|RU)\b/.test(material) || Boolean(ultraAbreviado))) preencher("tipo", nomeMaterial === "MDF ULTRA" ? "ULTRA" : material === "MDF STD" ? "STD" : material, material);
+    if (alizar && (/\b(?:STD|ULTRA|MDF|RU)\b/.test(material) || Boolean(ultraAbreviado || ultraEmToken))) preencher("tipo", nomeMaterial === "MDF ULTRA" ? "ULTRA" : material === "MDF STD" ? "STD" : material, material);
   }
-  const rebaixo = texto.match(/\bS\/REB\b|\b(?:C\/REB\s*)?\d{2}X\d{1,2}\b/)?.[0] || "";
-  if (admiteRebaixo && rebaixo) preencher("rebaixo", rebaixo === "S/REB" ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
+  const rebaixo = texto.match(/\bS\/(?:REB|RB)\b|\b(?:C\/REB\s*)?42\s*X\s*10\b/)?.[0] || "";
+  if (admiteRebaixo && rebaixo) preencher("rebaixo", /^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
   const cor = texto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
   if (cor) preencher("cor", cor, cor);
   // Siglas de rebaixo de alizares (RT/RTO) exigem confirmação na nomenclatura
