@@ -3,12 +3,13 @@ import type { Sessao } from "@/types/pcp";
 import { allowedPath, pathsFor } from "@/lib/permissions";
 import { signAction } from "@/lib/ia/claude";
 import { agruparPorCarga, extrairRomaneio, validarRomaneio } from "@/lib/ia/romaneio";
+import { analisarRiscos, capacidadeProcessos, localHoje, planejarFabrica } from "@/lib/ia/intelligence";
 
 export type Attachment =
   | { type: "navigate"; path: string; label: string }
   | { type: "confirm"; label: string; token: string }
   | { type: "romaneio"; data: unknown; alertas: unknown; resumo: unknown }
-  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string };
+  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string; pedido?: string };
 
 export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 
@@ -23,7 +24,10 @@ export const TOOL_META = {
   historico_romaneios: "Romaneios gerados anteriormente. Filtra por pedido ou cliente.",
   navegar: "Leva o usuário para uma tela do sistema.",
   gerar_romaneio: "Extrai e valida um romaneio a partir de texto de pedido/lista colado pelo usuário. Retorna prévia com alertas.",
-  gerar_planilha_usinagem: "Gera uma planilha Excel de usinagem usando os dados reais da programação ativa. Pode gerar todas as usinagens ou apenas um processo específico.",
+  gerar_planilha_usinagem: "Gera uma planilha Excel de usinagem usando os dados reais da programação ativa. Pode gerar todas as usinagens ou apenas um processo específico, e filtrar por pedido.",
+  analisar_riscos: "Calcula risco operacional de pedidos com base em prazo, progresso, bloqueios, faltas/retrabalhos, Andons, qualidade e gargalos de capacidade.",
+  planejar_fabrica: "Sugere a sequência de produção por processo usando prioridade, prazo, saldo, fila fixada e capacidade cadastrada. Não altera dados.",
+  consultar_capacidade: "Compara saldo de produção por processo com a capacidade cadastrada do turno e identifica gargalos.",
   propor_prioridade: "Propõe alterar a prioridade de um pedido (NORMAL, ALTA, URGENTE). O usuário precisa confirmar.",
 } as const;
 
@@ -52,6 +56,31 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<s
         if (!itens.length) return j({ erro: `Pedido ${pedido} não encontrado na programação ativa.` });
         return j({ pedido, totalItens: itens.length, itens });
       }
+      case "analisar_riscos": {
+        const { db, pg } = await programacaoAtiva();
+        if (!pg) return j({ erro: "Nenhuma programação ativa." });
+        const pedido = String(input.pedido || "").trim();
+        const riscos = await analisarRiscos(db, pg, pedido);
+        return j({
+          dataAnalise: localHoje(),
+          programacao: pg,
+          metodologia: "Indicador heurístico baseado em fatos do PCP; não é previsão garantida.",
+          riscos: pedido ? riscos : riscos.slice(0, 30),
+        });
+      }
+
+      case "planejar_fabrica": {
+        const { db, pg } = await programacaoAtiva();
+        if (!pg) return j({ erro: "Nenhuma programação ativa." });
+        return j(await planejarFabrica(db, pg));
+      }
+
+      case "consultar_capacidade": {
+        const { db, pg } = await programacaoAtiva();
+        if (!pg) return j({ erro: "Nenhuma programação ativa." });
+        return j({ programacao: pg, processos: await capacidadeProcessos(db, pg) });
+      }
+
       case "listar_andon": {
         const db = sql();
         const r = await db`select processo, motivo, observacao, status, prioridade, usuario_abertura, criado_em from pcp_andon where status<>'RESOLVIDO' order by criado_em desc limit 30`;
@@ -104,6 +133,7 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<s
         ];
 
         const solicitado = String(input.processo || "").trim().toUpperCase();
+        const pedido = String(input.pedido || "").trim();
         const setores = solicitado && solicitado !== "TODAS"
           ? todos.filter((x) => x === solicitado)
           : todos;
@@ -115,35 +145,51 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<s
         const { db, pg } = await programacaoAtiva();
         if (!pg) return j({ erro: "Nenhuma programação ativa." });
 
-        const rows = await db`
-          select distinct o.processo
-          from pcp_operacoes o
-          join pcp_produtos p on p.id=o.produto_id
-          where p.programacao_id=${pg.id}
-            and o.processo = any(${setores})
-        `;
+        const rows = pedido
+          ? await db`
+              select distinct o.processo
+              from pcp_operacoes o
+              join pcp_produtos p on p.id=o.produto_id
+              where p.programacao_id=${pg.id}
+                and p.pedido=${pedido}
+                and o.processo = any(${setores})
+            `
+          : await db`
+              select distinct o.processo
+              from pcp_operacoes o
+              join pcp_produtos p on p.id=o.produto_id
+              where p.programacao_id=${pg.id}
+                and o.processo = any(${setores})
+            `;
 
         const existentes = rows.map((r: any) => String(r.processo));
         if (!existentes.length) {
           return j({ erro: "A programação ativa não possui itens de usinagem para os setores solicitados." });
         }
 
-        const arquivo = existentes.length === 1
+        const arquivoBase = existentes.length === 1
           ? `Usinagem_${existentes[0].replace(/[^A-Z0-9]+/gi, "_")}`
           : "Planilha_Usinagem";
+        const arquivo = pedido ? `${arquivoBase}_Pedido_${pedido}` : arquivoBase;
 
         ctx.attachments.push({
           type: "planilha_usinagem",
           setores: existentes,
           arquivo,
-          label: existentes.length === 1 ? `Gerar ${existentes[0]}` : "Gerar planilha de usinagem",
+          label: pedido
+            ? `Gerar usinagem do pedido ${pedido}`
+            : existentes.length === 1
+              ? `Gerar ${existentes[0]}`
+              : "Gerar planilha de usinagem",
+          pedido: pedido || undefined,
         });
 
         return j({
           ok: true,
           programacao: pg,
           setores: existentes,
-          mensagem: "Botão para gerar a planilha Excel foi exibido ao usuário.",
+          pedido: pedido || null,
+          mensagem: "Botão para gerar a planilha Excel real foi exibido ao usuário.",
         });
       }
 
