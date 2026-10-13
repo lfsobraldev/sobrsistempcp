@@ -5,11 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { Check, FileSpreadsheet, MessageSquare, Send, Sparkles, X, ArrowRight } from "lucide-react";
 import { useOps } from "@/components/operational-provider";
 import { abrirRomaneioIA } from "@/components/romaneio-ai";
+import { baixarPlanilhaProducao } from "@/lib/planilha";
 
 type Anexo =
   | { type: "navigate"; path: string; label: string }
   | { type: "confirm"; label: string; token: string }
-  | { type: "romaneio"; data: any; alertas: any[]; resumo: any };
+  | { type: "romaneio"; data: any; alertas: any[]; resumo: any }
+  | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string };
 type Msg = { role: "user" | "assistant"; content: string; anexos?: Anexo[] };
 
 const SUGESTOES = ["Resumo da produção de hoje", "Quais Andons estão abertos?", "Romaneios recentes", "Pallets pendentes de qualidade"];
@@ -18,7 +20,7 @@ const KEY = "sobral-ia-chat";
 export default function AiAssistant() {
   const router = useRouter();
   const path = usePathname();
-  const { toast, refresh } = useOps();
+  const { toast, refresh, pg } = useOps();
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -85,6 +87,28 @@ export default function AiAssistant() {
                     {a.alertas.length > 0 && <span className="status s-atencao">{a.alertas.length} alerta(s)</span>}
                     <button className="primary" onClick={() => { abrirRomaneioIA({ romaneio: a.data }); }}><FileSpreadsheet /> Revisar e exportar</button>
                   </>
+                )}
+                {a.type === "planilha_usinagem" && (
+                  <button
+                    className="primary"
+                    onClick={async () => {
+                      if (!pg?.produtos?.length) {
+                        toast("error", "Nenhuma programação ativa disponível.");
+                        return;
+                      }
+                      try {
+                        await baixarPlanilhaProducao(pg.produtos, {
+                          setores: a.setores,
+                          arquivo: a.arquivo || "Planilha_Usinagem",
+                        });
+                        toast("success", "Planilha de usinagem gerada.");
+                      } catch (e: any) {
+                        toast("error", e?.message || "Falha ao gerar planilha.");
+                      }
+                    }}
+                  >
+                    <FileSpreadsheet /> {a.label || "Gerar planilha de usinagem"}
+                  </button>
                 )}
               </div>
             ))}
