@@ -1,6 +1,6 @@
 import { generateText, tool } from "ai";
 import { z } from "zod";
-import { assertGatewayConfigured, MODEL } from "@/lib/ia/claude";
+import { assertGatewayConfigured, HEAVY_MODEL } from "@/lib/ia/claude";
 
 export const ItemSchema = z.object({
   codigo: z.string().default(""),
@@ -44,7 +44,7 @@ export async function extrairRomaneio(
     : "";
 
   const { toolCalls } = await generateText({
-    model: MODEL,
+    model: HEAVY_MODEL,
     system: SYSTEM,
     prompt: `Texto de origem:
 """
