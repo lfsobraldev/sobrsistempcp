@@ -15,7 +15,6 @@ import {
   RefreshCw,
   Route,
   Wrench,
-  ClipboardCheck,
   ShieldCheck,
   UploadCloud,
 } from "lucide-react";
@@ -212,7 +211,6 @@ export default function Dashboard() {
     { href: "/programacao", icon: <UploadCloud />, label: "Programação", value: pedidos.length, hint: "pedidos no filtro ativo" },
     { href: "/programacao-gerente", icon: <Route />, label: "Programação Gerente", value: atrasados + proximos, hint: "prazo exige atenção" },
     { href: "/lideres", icon: <Factory />, label: "Líderes / Setores", value: maquinas.length, hint: "setores com carga" },
-    { href: "/apontamentos", icon: <ClipboardCheck />, label: "Apontamento", value: fmt(produzido), hint: "peças produzidas" },
     { href: "/excecoes", icon: <PackageSearch />, label: "Faltas e Retrabalho", value: excecoesAbertas.length, hint: "ocorrências abertas" },
     { href: "/inspecao-pallets", icon: <ShieldCheck />, label: "Qualidade", value: fmt(refugo), hint: "refugo registrado" },
   ];

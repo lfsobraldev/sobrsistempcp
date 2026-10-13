@@ -2,7 +2,7 @@ import type { Perfil } from "@/types/pcp";
 
 const ALL_PCP = [
   "/dashboard", "/programacao", "/programacao-gerente", "/prioridades", "/criticos", "/lideres",
-  "/apontamentos", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/configuracoes",
+  "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/configuracoes",
 ];
 
 const BY_ROLE: Record<Perfil, string[]> = {
@@ -10,7 +10,7 @@ const BY_ROLE: Record<Perfil, string[]> = {
   GERENTE: ["/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia"],
   ENCARREGADO: ["/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/sobral-ia"],
   LIDER: ["/lideres", "/excecoes", "/sobral-ia"],
-  APONTADOR: ["/apontamentos"],
+  APONTADOR: ["/lideres"],
   QUALIDADE: ["/dashboard", "/inspecao-pallets"],
 };
 

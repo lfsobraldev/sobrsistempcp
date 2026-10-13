@@ -40,7 +40,7 @@ export default function Login() {
           <span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span>
         </div>
         <h1>Produção, qualidade e expedição em uma única plataforma.</h1>
-        <p>Programação, apontamentos, romaneios e um assistente de IA que responde e executa tarefas.</p>
+        <p>Programação, acompanhamento de produção, romaneios e um assistente de IA para apoiar as operações.</p>
         <ul>
           <li><Gauge size={16} /> Indicadores e filas em tempo real</li>
           <li><Boxes size={16} /> Romaneios gerados com IA</li>
