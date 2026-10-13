@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
     /*
       IMPORTANTE:
-      A programação NÃO é mais bloqueada porque o Filtro 51 mudou
+      A programação NÃO é bloqueada porque o número/conteúdo do filtro mudou
       de quantidade de linhas, pedidos, OFs, peças ou operações.
 
       O filtro é diário e pode variar.
