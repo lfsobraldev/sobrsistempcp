@@ -108,7 +108,7 @@ export async function buildPreparedForOrder(args: {
   );
 
   result.sourceMode = "FILTRO_51";
-  result.sourceFileName = `Filtro 51 • Pedido ${args.pedido}`;
+  result.sourceFileName = `Filtro ${args.filtro || "-"} • Pedido ${args.pedido}`;
 
   const status = statusFor(result);
   const origemUsinagem = args.origemUsinagem || (args.machiningBuffer ? "UPLOAD" : "FILTRO");
