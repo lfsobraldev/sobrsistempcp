@@ -18,6 +18,7 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   const descricao = String(p.descricao || "");
   const texto = normal(descricao);
   const marco = /BATENTE|MARCO/.test(normal(String(p.categoria || ""))) || /^M(?:\s+(?:P|T|CJ))?\s/.test(texto);
+  const alizar = /ALIZAR/.test(normal(String(p.categoria || ""))) || /^A\s/.test(texto);
   const preencher = (campo: Campo, valor: string, evidencia: string) => {
     if (!vazio(produto[campo]) || !valor || !evidencia || !evidenciaPresente(descricao, evidencia)) return;
     produto[campo] = valor;
@@ -33,11 +34,14 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
     // No Consistem, Tipo pode ser REG 2L, LISA, MDF ULTRA etc.; nunca assumir
     // que significa estrutura colmeia. Só completar como material para marcos/batentes.
     if (marco && /^(MDF|ULTRA|STD|RU)\b/.test(material)) preencher("tipo", nomeMaterial, material);
+    if (alizar && /\b(?:STD|ULTRA|MDF|RU)\b/.test(material)) preencher("tipo", material === "MDF STD" ? "STD" : material === "MDF ULTRA" ? "ULTRA" : material, material);
   }
   const rebaixo = texto.match(/\bS\/REB\b|\b(?:C\/REB\s*)?\d{2}X\d{1,2}\b/)?.[0] || "";
   if (marco && rebaixo) preencher("rebaixo", rebaixo === "S/REB" ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
   const cor = texto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
   if (cor) preencher("cor", cor, cor);
+  // Siglas de rebaixo de alizares (RT/RTO) exigem confirmação na nomenclatura
+  // oficial da fábrica; não inferir a partir de RT OL R80 ou abreviações similares.
   // Nunca adivinhar canal: R2L e abreviações semelhantes não comprovam canal de borracha.
   return { produto, alteracoes };
 }
