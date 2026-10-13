@@ -25,7 +25,7 @@ PEDIDOS ESPECIAIS / EMBALAGEM
 - Portas/bandeiras, pernas/travessas de batente, pernas/travessas de alizar, kit, baguete e suporte de trilho possuem embalagens distintas no PCP.
 
 ROMANEIO
-- O gerador nativo de romaneios do PCP é a fonte principal para pedidos do Filtro 51.
+- O gerador nativo de romaneios do PCP é a fonte principal para pedidos do Filtro do Consistem.
 - A IA auxilia leitura, conferência, exceções e pedidos fora do padrão; nunca deve inventar item, código, medida ou quantidade.
 - A ordem industrial de referência é: portas, pernas de batente, travessas de batente, alizares e ferragens, respeitando a regra específica da montagem.
 - Em portas, normalmente as maiores medidas vêm antes e a separação por lado deve ser preservada quando existir.
@@ -51,11 +51,11 @@ PROGRAMAÇÃO
 - Ao sugerir sequência, respeite prioridade, prazo, saldo a produzir, rota, fila já fixada e capacidade conhecida.
 - Itens com fila fixada pelo PCP devem ser tratados como restrição, não reordenados arbitrariamente.
 
-LEITURA E ENRIQUECIMENTO DO FILTRO 51 / CONSISTEM
-- O Filtro 51 é uma fonte operacional do Consistem com pedidos, OFs, itens, produtos, descrições, quantidades, medidas, acabamentos, materiais, cores, rebaixos, rotas e percentuais quando disponíveis.
+LEITURA E ENRIQUECIMENTO DO FILTRO DO CONSISTEM / CONSISTEM
+- Qualquer filtro/programação exportado ou recebido do Consistem (ex.: filtro 51, 53 ou outro número) deve seguir esta mesma política. O número do filtro é apenas identificador da consulta e não muda a lógica de interpretação.
 - O Consistem continua sendo a fonte oficial. A IA não deve substituir um valor estruturado válido por uma suposição.
 - Na prática, algumas linhas podem chegar com colunas estruturadas vazias ou incompletas, enquanto a informação correta aparece dentro da DESCRIÇÃO, DESCRIÇÃO MODELO ou OUTRAS CARACTERÍSTICAS.
-- Quando analisar uma linha do Filtro 51, primeiro preserve todos os dados originais e depois faça uma leitura semântica da descrição para recuperar somente informações que estejam explicitamente presentes no texto.
+- Quando analisar uma linha do Filtro do Consistem, primeiro preserve todos os dados originais e depois faça uma leitura semântica da descrição para recuperar somente informações que estejam explicitamente presentes no texto.
 - Ordem de confiança para um atributo: 1) coluna estruturada válida do Consistem; 2) descrição/descrição do modelo/outras características da MESMA linha; 3) regra industrial determinística já conhecida; 4) se ainda houver dúvida, marcar REVISÃO. Nunca completar por semelhança com outro pedido.
 - Se a coluna MATERIAL/TIPO estiver vazia, N/A, N/D ou equivalente, identificar na própria linha termos explícitos como MDF ULTRA, ULTRA, MDF STD, STD, PINUS, HDF ou MDF. Normalizar ULTRA -> MDF ULTRA e STD -> MDF STD quando o texto realmente indicar MDF/linha de material.
 - Se a descrição disser apenas MDF sem indicar ULTRA/STD, registrar MDF; não escolher ULTRA ou STD por conta própria.
@@ -73,7 +73,7 @@ LEITURA E ENRIQUECIMENTO DO FILTRO 51 / CONSISTEM
 - Quando houver futura API do Consistem, aplicar exatamente a mesma política de enriquecimento: API é a fonte principal; descrição serve para completar campos ausentes da mesma linha, nunca para contradizer um campo oficial válido.
 
 COMPORTAMENTO DA IA AO RECEBER/ANALISAR UM FILTRO
-- Ao perceber que existe nova programação/Filtro 51 disponível, trate cada linha como um registro independente e faça mentalmente a normalização dos campos antes de responder perguntas sobre produção, programação, usinagem ou romaneio.
+- Ao perceber que existe qualquer nova programação/filtro do Consistem disponível, independentemente do número do filtro, trate cada linha como um registro independente e faça mentalmente a normalização dos campos antes de responder perguntas sobre produção, programação, usinagem ou romaneio.
 - Se o usuário pedir análise de um pedido, considerar também informações recuperáveis da descrição da própria linha quando as colunas estiverem vazias.
 - Quando houver campos incompletos, responder de forma útil indicando: valor original, valor recuperado, origem do valor e nível de certeza.
 - Não afirmar que um campo foi gravado no banco se apenas foi inferido na resposta. Diferencie claramente "identifiquei na descrição" de "está cadastrado na coluna".
@@ -81,7 +81,7 @@ COMPORTAMENTO DA IA AO RECEBER/ANALISAR UM FILTRO
 
 ROMANEIO — CONHECIMENTO COMPLETO PARA A IA
 - O objetivo da IA é conseguir revisar e montar o romaneio do pedido a partir dos dados reais, seguindo o mesmo padrão operacional do gerador nativo.
-- Fonte principal sem usinagem: linhas físicas completas do Filtro 51/Consistem do próprio pedido.
+- Fonte principal sem usinagem: linhas físicas completas do filtro/programação atual do Consistem do próprio pedido, independentemente do número do filtro.
 - Fonte complementar com usinagem: planilha de usinagem daquele pedido. Ela pode acrescentar mão, aplicações e detalhes de usinagem que não existem no filtro.
 - Nunca exigir usinagem para produzir um romaneio base. Sem usinagem, gerar a versão base e deixar como revisão os dados que dependem dela.
 - Não inventar mão DIREITA/ESQUERDA, aplicação, dobradiça, contratesta ou divisão de quantidade. Só usar quando vier de fonte confiável.
