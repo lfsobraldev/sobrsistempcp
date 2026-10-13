@@ -99,14 +99,6 @@ export async function POST(req: Request) {
       mas não impedem a liberação.
     */
 
-    await db`
-      update pcp_programacoes
-      set
-        status = 'ENCERRADA',
-        encerrado_em = now()
-      where status = 'ATIVA'
-    `;
-
     const [pg] = await db`
       insert into pcp_programacoes(
         pedido,
@@ -133,7 +125,7 @@ export async function POST(req: Request) {
         ${String(b.filtro || "")},
         ${String(b.data || "")},
         ${String(b.turno || "A")},
-        'ATIVA',
+        'PREPARANDO',
         ${String(b.origem || "FILTRO")},
         ${Number(b.diagnostico?.linhas || 0)},
         ${Number(b.diagnostico?.pedidos || 0)},
@@ -326,6 +318,22 @@ export async function POST(req: Request) {
         erros: [{ pedido: "*", erro: romaneioError?.message || "Falha ao preparar romaneios." }],
       };
     }
+
+    if (Array.isArray(romaneios?.erros) && romaneios.erros.length) {
+      throw new Error("Falha ao preparar romaneios. Programação anterior preservada; nova programação não liberada.");
+    }
+    // Publicar só depois de salvar todas as linhas e preparar os romaneios.
+    // Uma importação interrompida fica PREPARANDO e não substitui a ativa.
+    await db`
+      update pcp_programacoes
+      set status = 'ENCERRADA', encerrado_em = now()
+      where status = 'ATIVA'
+    `;
+    await db`
+      update pcp_programacoes
+      set status = 'ATIVA'
+      where id = ${pg.id} and status = 'PREPARANDO'
+    `;
 
     return NextResponse.json({
       ok: true,
