@@ -15,6 +15,7 @@ const LINHAS = [
   ["53","25982","1","1003","610403","FO P COR HI C HDF 6 RU 2100X720X35 PET","FOLHA DE PORTA DE CORRER HIVE CORE","LISA","","","PET","BRANCO CARRARA","2","2100","720","35","","0"],
   ["53","25982","1","1004","610404","PE KIT CORR KIT DE CORRER EM MADEIRA DE PINUS","KIT DE CORRER EM MADEIRA DE PINUS","","","","PET","BRANCO CARRARA","6","2200","55","45","","0"],
   ["53","25983","1","1005","610405","SEM DADOS DIMENSIONAIS","PRODUTO NÃO CLASSIFICADO","","","","","","1","","","","","0"],
+  ["53","25984","1","1006","610406","BAGU 2200X22X22 RTO UNHA 15x15 PET BCO","BAGUETE EM MADEIRA DE PINUS","","","","PET","BRANCO CARRARA","5","2220","22","22","","0"],
 ];
 test("Filtro Consistem: usa máscara e dimensões reais de cada linha para famílias especiais", async () => {
   const csv = [COLUNAS.join(";"),...LINHAS.map(l=>l.join(";"))].join("\n");
@@ -49,6 +50,12 @@ test("Filtro Consistem: usa máscara e dimensões reais de cada linha para famí
   assert.equal(kit.material, "PINUS");
   assert.equal(kit.medida, "2200x55x45");
   assert.equal(kit.tipo, "PINUS");
+
+  const bagueteAbreviado = byOf("610406");
+  assert.equal(bagueteAbreviado.categoria, "BAGUETE");
+  assert.equal(bagueteAbreviado.medida, "2220x22x22");
+  assert.equal(bagueteAbreviado.material, "PINUS");
+  assert.equal(bagueteAbreviado.tipo, "PINUS");
 
   const sem = byOf("610405");
   assert.equal(sem.medida, "");
