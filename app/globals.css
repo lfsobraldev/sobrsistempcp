@@ -597,3 +597,75 @@ body{background-image:none}
 .ai-msgs{background:var(--bg)}
 .smart-brief{background:var(--surface)}
 .card,.panel,.stat,.tableScroll,.login-card,.ai-panel{background:var(--surface)}
+
+
+/* ============ Sobral IA workspace ============ */
+.sobral-ai-page{display:flex;flex-direction:column;gap:16px}
+.sobral-ai-tabs{display:flex;gap:8px;padding:6px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm);width:max-content}
+.sobral-ai-tabs button{display:flex;align-items:center;gap:8px;height:42px;padding:0 16px;border:0;border-radius:10px;background:transparent;color:var(--text-2);font-weight:700}
+.sobral-ai-tabs button.active{background:var(--primary-600);color:white;box-shadow:0 7px 18px rgba(37,99,235,.18)}
+.sobral-ai-tabs svg{width:18px;height:18px}
+
+.sobral-ai-workspace{display:grid;grid-template-columns:270px minmax(0,1fr);gap:16px;min-height:680px}
+.sobral-ai-context{display:flex;flex-direction:column;gap:12px}
+.ai-context-card{display:flex;flex-direction:column;gap:7px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-sm)}
+.ai-context-card>b{font-size:14px}
+.ai-context-card>small{color:var(--text-3);line-height:1.45}
+.ai-shortcuts{display:grid;gap:7px}
+.ai-shortcuts button{text-align:left;justify-content:flex-start;white-space:normal;min-height:40px;padding:9px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--text-2);font-size:12px;line-height:1.35}
+.ai-shortcuts button:hover{border-color:var(--primary-300);background:var(--primary-soft);color:var(--primary-700)}
+
+.sobral-ai-chat-large{display:grid;grid-template-rows:auto minmax(0,1fr) auto;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-sm);overflow:hidden;min-width:0}
+.sobral-ai-chat-large>header{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface)}
+.sobral-ai-chat-large>header>div{display:flex;flex-direction:column}
+.sobral-ai-chat-large>header b{font-size:14px}
+.sobral-ai-chat-large>header small{margin-top:3px;color:var(--text-3)}
+.sobral-ai-thread{overflow:auto;padding:22px;background:var(--bg);display:flex;flex-direction:column;gap:14px}
+.ai-welcome{margin:auto;max-width:560px;text-align:center;padding:34px 26px;color:var(--text-2)}
+.ai-welcome svg{width:42px;height:42px;color:var(--primary-600);margin-bottom:12px}
+.ai-welcome h2{font-size:23px;margin:0 0 8px;color:var(--text)}
+.ai-welcome p{line-height:1.6;color:var(--text-3)}
+.ai-bubble{max-width:min(820px,90%);padding:14px 16px;border-radius:15px;line-height:1.52;white-space:pre-wrap}
+.ai-bubble.user{margin-left:auto;background:linear-gradient(135deg,var(--primary-600),var(--primary-700));color:white;border-bottom-right-radius:5px}
+.ai-bubble.assistant{margin-right:auto;background:var(--surface);border:1px solid var(--border);box-shadow:var(--shadow-sm);border-bottom-left-radius:5px;color:var(--text)}
+.ai-bubble-label{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;opacity:.7;margin-bottom:6px}
+.ai-action-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.ai-action-row button{min-height:36px}
+.sobral-ai-composer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:12px;border-top:1px solid var(--border);background:var(--surface)}
+.sobral-ai-composer textarea{min-height:54px;max-height:140px;resize:vertical;padding:12px 14px;border-radius:12px}
+.sobral-ai-composer button{align-self:end;height:44px;padding-inline:18px}
+
+.sobral-training-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(420px,.95fr);gap:16px;align-items:start}
+.sobral-training-form .card-body{display:grid;gap:12px}
+.sobral-training-form textarea{min-height:84px;resize:vertical}
+.sobral-training-form textarea.training-rule{min-height:130px}
+.form-grid.two{grid-template-columns:1fr 220px}
+.training-footer{display:flex;align-items:end;gap:10px;flex-wrap:wrap;padding-top:6px}
+.training-footer .compact{width:130px}
+.training-active{display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);font-size:12px;font-weight:700}
+.training-active input{min-height:auto;width:16px;height:16px}
+.sobral-training-list .card-head{align-items:end}
+.sobral-training-list .card-head select{width:150px}
+.training-rule-list{display:grid;gap:8px;padding:14px;max-height:720px;overflow:auto}
+.training-rule-card{display:flex;flex-direction:column;align-items:stretch;text-align:left;gap:7px;padding:13px 14px;background:var(--surface);border:1px solid var(--border);border-radius:11px;box-shadow:none}
+.training-rule-card:hover{border-color:var(--primary-300);background:var(--primary-soft);transform:none}
+.training-rule-card>div{display:flex;align-items:center;gap:8px;color:var(--text-3);font-size:10px}
+.training-rule-card>b{font-size:13px;color:var(--text)}
+.training-rule-card>p{margin:0;color:var(--text-2);font-size:12px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.training-rule-card>small{color:var(--text-3);line-height:1.4}
+.notice.warning{padding:10px 12px;border:1px solid color-mix(in srgb,var(--warning) 35%,var(--border));background:color-mix(in srgb,var(--warning) 9%,var(--surface));border-radius:10px;color:var(--text-2);font-size:12px}
+
+@media(max-width:1100px){
+  .sobral-ai-workspace{grid-template-columns:1fr}
+  .sobral-ai-context{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .sobral-training-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .sobral-ai-tabs{width:100%}.sobral-ai-tabs button{flex:1;justify-content:center}
+  .sobral-ai-context{grid-template-columns:1fr}
+  .sobral-ai-workspace{min-height:620px}
+  .sobral-ai-thread{padding:14px}
+  .ai-bubble{max-width:96%}
+  .sobral-ai-composer{grid-template-columns:1fr}
+  .form-grid.two{grid-template-columns:1fr}
+}
