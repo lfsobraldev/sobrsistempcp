@@ -2,7 +2,7 @@ import * as XLSX from "xlsx";
 import type { LogisticsConfig, MountType, OrderOptions, PackageData, PackageRow, ProcessingResult, ProductCategory } from "./types";
 import { applyLogistics, rowVolume } from "./logistics";
 import { DEFAULT_LOGISTICS_CONFIG } from "./settings";
-import { buildSourceCatalog, classifyProduct, clean, compactItemIds, dimensionsFromText, itemsText, norm, packagingFromText, sourceParent, toNumber } from "./domain";
+import { buildSourceCatalog, classifyProduct, clean, compactItemIds, dimensionsFromText, itemsText, norm, normalizeItemId, packagingFromText, sourceParent, toNumber } from "./domain";
 import { parseOrderHeader, parseOrderItems, physicalOrderItems, type OrderPdfItem } from "./order-parser";
 import { categoriaIndustrial, tipoPeca } from "@/lib/domain/industrial";
 
