@@ -327,10 +327,9 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
 
     set(ws, `${COL.obs}${entry.excelRow}`, text);
     ws.getCell(`${COL.obs}${entry.excelRow}`).alignment = {
-      ...(ws.getCell(`${COL.obs}${entry.excelRow}`).alignment || {}),
       vertical: "middle",
       horizontal: "center",
-      wrapText: true,
+      wrapText: false,
     };
   }
 
@@ -342,6 +341,18 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
   ws.getCell(`H${positions.total}`).value = { formula:`SUM(H${START_ROW}:H${positions.lastData})` } as any;
   ws.getCell(`H${positions.total}`).numFmt = "0.000";
   ws.getCell(`K${positions.total}`).value = { formula:`ROUNDUP(((H${positions.total}*420)/1000),1)&" - toneladas"` } as any;
+  ws.getRow(positions.total).height = 18;
+  for (let col = 1; col <= 11; col++) {
+    const cell = ws.getCell(positions.total, col);
+    cell.font = { name: "Arial", size: 10, bold: true, color: { argb: "FF000000" } };
+    cell.alignment = { horizontal: "center", vertical: "middle", wrapText: false };
+    cell.border = {
+      top: referenceBorder("medium"),
+      bottom: referenceBorder("medium"),
+      left: col === 1 ? referenceBorder("medium") : referenceBorder("thin"),
+      right: col === 11 ? referenceBorder("medium") : referenceBorder("thin"),
+    };
+  }
 
   set(ws, `A${positions.filter}`, "Filtro:"); set(ws, `B${positions.filter}`, data.orderOptions?.filtro || "");
   set(ws, `C${positions.filter}`, "Pag.:"); set(ws, `D${positions.filter}`, data.orderOptions?.pagina || "");
