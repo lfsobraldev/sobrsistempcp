@@ -66,3 +66,19 @@ test("não confunde dimensões com rebaixo nem substitui tipo regulagem existent
   assert.equal(a.produto.medida, "2200x70x12");
   assert.equal(a.produto.rebaixo, "");
 });
+
+test("Filtro 53: alizar STD na descrição preenche Tipo somente daquela peça", () => {
+  const a = completarPorRegras(produto("alizar-1", "T A 1100X50X9 RT OL LME PET BCO TXT (STD)", { categoria: "ALIZARES" }));
+  const b = completarPorRegras(produto("alizar-2", "T A 1100X50X9 RT OL LME PET BCO TXT", { categoria: "ALIZARES" }));
+  assert.equal(a.produto.tipo, "STD");
+  assert.equal(a.produto.material, "MDF STD");
+  assert.equal(a.produto.medida, "1100x50x9");
+  assert.equal(b.produto.tipo, "");
+  assert.equal(b.produto.material, "");
+});
+
+test("Filtro 53: não presume rebaixo do alizar com RT sem regra homologada", () => {
+  const a = completarPorRegras(produto("alizar-3", "2250X50X9 RTO RL80 PET BCO TXT MPMV(STD)", { categoria: "ALIZARES", rebaixo: "" }));
+  assert.equal(a.produto.tipo, "STD");
+  assert.equal(a.produto.rebaixo, "");
+});
