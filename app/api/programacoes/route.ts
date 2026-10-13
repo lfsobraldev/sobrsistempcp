@@ -20,6 +20,37 @@ export async function POST(req: Request) {
       add column if not exists montagem_engenharia varchar(30) not null default 'MONTADO_HS'
     `;
 
+    await db`
+      create table if not exists pcp_romaneio_source_items(
+        id uuid primary key default gen_random_uuid(),
+        programacao_id uuid not null references pcp_programacoes(id) on delete cascade,
+        pedido varchar(40) not null,
+        item varchar(40) not null default '',
+        produto varchar(80) not null default '',
+        descricao text not null default '',
+        categoria varchar(120) not null default '',
+        tipo varchar(120) not null default '',
+        canal varchar(120) not null default '',
+        codigo_modelo varchar(80) not null default '',
+        quantidade numeric(16,3) not null default 0,
+        medida varchar(80) not null default '',
+        acabamento varchar(120) not null default '',
+        cor varchar(160) not null default '',
+        rebaixo varchar(120) not null default '',
+        material varchar(120) not null default '',
+        descricao_modelo text not null default '',
+        outras_caracteristicas text not null default '',
+        pedido_cliente varchar(120) not null default '',
+        tipo_pedido varchar(20) not null default 'NORMAL',
+        montagem_engenharia varchar(30) not null default 'MONTADO_HS'
+      )
+    `;
+
+    await db`
+      create index if not exists ix_pcp_romaneio_source_items_prog_pedido
+      on pcp_romaneio_source_items(programacao_id,pedido)
+    `;
+
     /*
       IMPORTANTE:
       A programação NÃO é mais bloqueada porque o Filtro 51 mudou
@@ -168,6 +199,38 @@ export async function POST(req: Request) {
           )
         `;
       }
+    }
+
+    for (const p of b.romaneioProdutos || b.produtos || []) {
+      await db`
+        insert into pcp_romaneio_source_items(
+          programacao_id,pedido,item,produto,descricao,categoria,tipo,canal,codigo_modelo,
+          quantidade,medida,acabamento,cor,rebaixo,material,descricao_modelo,
+          outras_caracteristicas,pedido_cliente,tipo_pedido,montagem_engenharia
+        )
+        values(
+          ${pg.id},
+          ${String(p.pedido || "")},
+          ${String(p.item || "")},
+          ${String(p.produto || "")},
+          ${String(p.descricao || "")},
+          ${String(p.categoria || "")},
+          ${String(p.tipo || "")},
+          ${String(p.canal || "")},
+          ${String(p.codigoModelo || "")},
+          ${Number(p.quantidade || 0)},
+          ${String(p.medida || "")},
+          ${String(p.acabamento || "")},
+          ${String(p.cor || "")},
+          ${String(p.rebaixo || "")},
+          ${String(p.material || "")},
+          ${String(p.descricaoModelo || "")},
+          ${String(p.outrasCaracteristicas || "")},
+          ${String(p.pedidoCliente || "")},
+          ${["REVENDA","ENGENHARIA"].includes(String(p.tipoPedido || "").toUpperCase()) ? String(p.tipoPedido).toUpperCase() : "NORMAL"},
+          ${["MONTADO_HS","MONTADO_TIMADEL","MONTADO_ESTANCIA"].includes(String(p.montagemEngenharia || "").toUpperCase()) ? String(p.montagemEngenharia).toUpperCase() : "MONTADO_HS"}
+        )
+      `;
     }
 
     await db`
