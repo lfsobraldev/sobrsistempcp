@@ -62,6 +62,11 @@ Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "
 Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
 
     const aiTools = {
+      resumo_metros_lineares: tool({
+        description: TOOL_META.resumo_metros_lineares,
+        inputSchema: z.object({ pedido: z.string().optional() }),
+        execute: async (input) => runTool("resumo_metros_lineares", input, { user: s, attachments }),
+      }),
       resumo_producao: tool({
         description: TOOL_META.resumo_producao,
         inputSchema: z.object({}),
