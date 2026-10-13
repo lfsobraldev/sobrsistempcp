@@ -18,6 +18,7 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  consultar_pecas_por_medida: "Consulta diretamente os itens da programação ativa filtrados por família, largura e espessura (por exemplo alizares 50x9), com quantidade por pedido e OF e saldo de embalagem quando existir. Nunca confundir esta programação com a semana inteira.",
   resumo_metros_lineares: "Calcula os metros lineares físicos da programação ativa, por pedido ou total, com comprimento x quantidade e itens sem medida identificados.",
   resumo_producao: "Resumo da programação ativa: filtro, turno, total de pedidos/OFs/peças e progresso por processo.",
   buscar_pedido: "Detalhes de um pedido na programação ativa: itens/OFs, prioridade e andamento por processo.",
@@ -46,6 +47,51 @@ const j = <T,>(v: T): T => v;
 export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<unknown> {
   try {
     switch (name) {
+      case "consultar_pecas_por_medida": {
+        const { db, pg } = await programacaoAtiva();
+        if (!pg) return { erro: "Nenhuma programação ativa." };
+        const familiaFiltro = String(input.familia || "ALIZARES").toUpperCase();
+        const largura = Number(input.largura);
+        const espessura = Number(input.espessura);
+        if (!["ALIZARES", "BATENTES", "BAGUETE", "PORTAS"].includes(familiaFiltro) ||
+            !(largura > 0 && espessura > 0)) {
+          return { erro: "Família ou medida inválida. Informe largura e espessura positivas em milímetros." };
+        }
+        const pedido = String(input.pedido || "").trim();
+        const registros = await db`
+          select p.id,p.pedido,p.of,p.categoria,p.descricao,p.medida,p.quantidade::float quantidade,
+            (select json_agg(json_build_object('processo',o.processo,
+              'planejado',o.quantidade_planejada::float,
+              'produzido',o.quantidade_produzida::float)) from pcp_operacoes o
+              where o.produto_id=p.id and o.processo like 'EMBALAGEM%') as embalagens
+          from pcp_produtos p where p.programacao_id=${pg.id}
+          and (${pedido}='' or p.pedido=${pedido})
+        `;
+        const { medidaDoItem, familiaIndustrial } = await import("@/lib/domain/industrial");
+        let programado = 0, saldoEmbalagem = 0, semApontamento = 0, linhas = 0;
+        const pedidos: Record<string, number> = {};
+        const exemplos: Array<{ pedido: string; of: string; medida: string; quantidade: number }> = [];
+        for (const p of registros) {
+          if (familiaIndustrial(p) !== familiaFiltro) continue;
+          const [comprimento, l, e] = medidaDoItem(p);
+          if (l !== largura || e !== espessura) continue;
+          const quantidade = Number(p.quantidade || 0);
+          programado += quantidade; linhas++;
+          pedidos[p.pedido] = (pedidos[p.pedido] || 0) + quantidade;
+          if (exemplos.length < 30) exemplos.push({pedido: String(p.pedido),of: String(p.of || ""),medida: [comprimento,l,e].join("x"),quantidade});
+          const ops = Array.isArray(p.embalagens) ? p.embalagens : [];
+          if (!ops.length) { semApontamento += quantidade; continue; }
+          const embalagem = ops.reduce((a: any, b: any) => Number(a.planejado || 0) >= Number(b.planejado || 0) ? a : b);
+          saldoEmbalagem += Math.max(0, Number(embalagem.planejado || 0) - Number(embalagem.produzido || 0));
+        }
+        return {
+          fonte: "programação ATIVA", filtro: pg.filtro, dataProgramacao: pg.data_programacao, turno: pg.turno,
+          familia: familiaFiltro, larguraMM: largura, espessuraMM: espessura,
+          totalProgramadoPecas: programado, saldoEmbalagemConhecidoPecas: saldoEmbalagem,
+          pecasSemOperacaoEmbalagem: semApontamento, linhas, porPedido: pedidos, exemplos,
+          ressalva: "A consulta mede a programação ativa, NÃO a semana inteira. Saldo total exato não pode ser garantido quando faltam operações de embalagem; não somar operações distintas da mesma peça."
+        };
+      }
       case "resumo_metros_lineares": {
         const { db, pg } = await programacaoAtiva();
         if (!pg) return { erro: "Nenhuma programação ativa." };
