@@ -1,6 +1,7 @@
 import crypto from "crypto";
 
-export const MODEL = process.env.AI_GATEWAY_MODEL || "inclusionai/ling-3.1-flash-free";
+export const MODEL = process.env.AI_GATEWAY_MODEL || "openai/gpt-5.4";
+export const HEAVY_MODEL = process.env.AI_GATEWAY_HEAVY_MODEL || "openai/gpt-5.4";
 
 /**
  * O modelo é executado pelo Vercel AI Gateway.
@@ -49,5 +50,6 @@ Regras:
 - Para alterar dados, use as ferramentas "propor_*": elas geram uma confirmação para o usuário. Nunca diga que alterou algo antes da confirmação.
 - Para levar o usuário a uma tela, use a ferramenta "navegar".
 - Para montar romaneio a partir de texto colado pelo usuário, use "gerar_romaneio".
+- Quando o usuário pedir planilha de usinagem, use "gerar_planilha_usinagem". A planilha deve ser gerada com dados reais da programação ativa, nunca inventada em texto.
 - Se faltar dado essencial, pergunte uma única coisa curta.
 - Respostas curtas; use listas só quando ajudarem.`;
