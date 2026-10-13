@@ -17,12 +17,12 @@ export async function POST(req: Request) {
     // a programação anterior ou gravar qualquer registro na fábrica.
     const habilitado = process.env.PCP_AI_RELEASE_ENRICHMENT === "enabled";
     const complemento = habilitado
-      ? await completarFiltro(entrada.produtos as Produto[])
+      ? await completarFiltro(entrada.produtos as Produto[], false)
       : { produtos: entrada.produtos as Produto[], alteracoes: [], pendencias: [] };
     // A fonte de romaneios pode possuir IDs e linhas diferentes: nunca
     // transferir atributos de uma lista para a outra por pedido/OF.
     const romaneio = habilitado && Array.isArray(entrada.romaneioProdutos)
-      ? await completarFiltro(entrada.romaneioProdutos as Produto[])
+      ? await completarFiltro(entrada.romaneioProdutos as Produto[], false)
       : null;
     const b = {
       ...entrada,
