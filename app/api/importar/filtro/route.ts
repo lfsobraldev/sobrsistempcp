@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseFiltro } from "@/lib/filter-parser";
 import { requireRoles } from "@/lib/auth";
 import { completarFiltro } from "@/lib/ia/completar-filtro";
+import { enriquecerComCatalogo } from "@/lib/catalogo-consistem";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -17,14 +18,22 @@ export async function POST(req: Request) {
     const resultado = await parseFiltro(file);
     // Complementação durante a importação. O motor de regras não demanda chamada externa;
     // a IA não bloqueia o upload de milhares de linhas enquanto não houver fila durável.
-    const principal = await completarFiltro(resultado.produtos, false);
+    let consulta;
+    try {
+      consulta = await enriquecerComCatalogo(resultado.produtos);
+    } catch (e) {
+      console.error("[CATALOGO_CONSISTEM]", e);
+      throw new Error("Falha na consulta ao Catálogo Mestre. Importação interrompida para evitar dados incompletos.");
+    }
+    const principal = await completarFiltro(consulta.produtos, false);
     const romaneio = resultado.romaneioProdutos
-      ? await completarFiltro(resultado.romaneioProdutos, false)
+      ? await completarFiltro((await enriquecerComCatalogo(resultado.romaneioProdutos)).produtos, false)
       : null;
     return NextResponse.json({
       ...resultado,
       produtos: principal.produtos,
       romaneioProdutos: romaneio?.produtos ?? resultado.romaneioProdutos,
+      catalogoMestre: { correspondencias: consulta.correspondencias, conflitos: consulta.conflitos, naoEncontrados: consulta.naoEncontrados },
       complementoRegras: {
         corrigidos: principal.alteracoes.length,
         pendencias: principal.pendencias.length,
