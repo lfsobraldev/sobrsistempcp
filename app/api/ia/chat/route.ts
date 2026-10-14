@@ -93,6 +93,12 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
         execute: async (input) =>
           runTool("analisar_riscos", input, { user: s, attachments }),
       }),
+      simular_programacao_urgente: tool({
+        description: TOOL_META.simular_programacao_urgente,
+        inputSchema: z.object({ pedido: z.string().min(1).max(80) }),
+        execute: async (input) =>
+          runTool("simular_programacao_urgente", input, { user: s, attachments }),
+      }),
       planejar_fabrica: tool({
         description: TOOL_META.planejar_fabrica,
         inputSchema: z.object({}),
