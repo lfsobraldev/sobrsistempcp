@@ -150,3 +150,20 @@ test("alizar reconhece U UL ULT e ULTR isolados como Ultra", () => {
   const p = completarPorRegras(produto("outro", "FERRAGEM COD U300", { categoria: "FERRAGEM" })).produto;
   assert.equal(p.material, "");
 });
+
+test("Kit de correr com ULT e máscara PINUS conflitantes não recebe material arbitrário", () => {
+  const item = completarPorRegras(produto("kit-pin-ultra", "CA KIT L MAI ULT", {
+    categoria: "KIT CORRER", descricaoModelo: "KIT DE CORRER EM MADEIRA DE PINUS",
+    material: "", tipo: "",
+  }));
+  assert.equal(item.produto.material, "");
+  assert.equal(item.produto.tipo, "");
+});
+
+test("Tipo STD e descrição ULTRA conflitantes não substituem material", () => {
+  const item = completarPorRegras(produto("conflito-tipo", "SUP TRILHO ULTRA", {
+    categoria: "SUPORTE TRILHO", tipo: "STD", material: "",
+  }));
+  assert.equal(item.produto.tipo, "STD");
+  assert.equal(item.produto.material, "");
+});
