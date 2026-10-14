@@ -92,10 +92,10 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           select pg.data_programacao::text as dia, p.pedido, p.of, p.categoria, p.produto, p.tipo, p.descricao, p.medida, p.quantidade::float as quantidade
           from pcp_produtos p join pcp_programacoes pg on pg.id=p.programacao_id
           where pg.data_programacao::date >= ${inicio}::date and pg.data_programacao::date <= ${fim}::date
-            and pg.status in ('ATIVA','SUBSTITUIDA')
+            and pg.status in ('ATIVA','ENCERRADA')
             and pg.id = (select pg2.id from pcp_programacoes pg2
               where pg2.data_programacao::date=pg.data_programacao::date
-                and pg2.status in ('ATIVA','SUBSTITUIDA')
+                and pg2.status in ('ATIVA','ENCERRADA')
               order by pg2.criado_em desc limit 1)
           order by pg.data_programacao,p.pedido limit 15000
         `;
