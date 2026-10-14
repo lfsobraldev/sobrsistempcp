@@ -206,7 +206,7 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
       maxOutputTokens: 5000,
     });
 
-    const text = result.text.trim() || "Pronto.";
+    const text = result.text.trim() || "Não consegui concluir uma resposta fundamentada. Tente formular a consulta com mais detalhes.";
 
     try {
       await sql()`insert into pcp_ia_log(usuario, pergunta, resposta, anexos)
