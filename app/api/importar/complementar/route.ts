@@ -9,7 +9,7 @@ export const maxDuration = 60;
 export async function POST(req: Request) {
   try {
     await requireRoles(["PCP"]);
-    if (process.env.PCP_AI_RELEASE_ENRICHMENT !== "enabled") {
+    if (process.env.PCP_AI_RELEASE_ENRICHMENT === "disabled") {
       return NextResponse.json({ error: "Complementação desativada neste ambiente." }, { status: 503 });
     }
     const body = await req.json();
