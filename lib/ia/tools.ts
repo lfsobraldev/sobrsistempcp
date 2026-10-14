@@ -401,11 +401,26 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           cargaPct:x.cargaPct,gargalo:x.gargalo,capacidadeCadastrada:x.capacidadeCadastrada,
           turnosEstimados:x.capacidadeTurno>0?Math.ceil(x.saldo/x.capacidadeTurno):null
         }));
+        const filaComProjecao = (planejamento.sequencias || []).map((setor:any) => {
+          const capacidadeTurno = Number(cap.find((c:any)=>c.processo===setor.processo)?.capacidadeTurno || 0);
+          let acumulado = 0;
+          return {
+            processo: setor.processo, capacidadeTurno: capacidadeTurno || null,
+            filaSugerida: (setor.filaSugerida || []).map((item:any) => {
+              const saldo = Math.max(0,Number(item.saldo || 0));
+              const inicio = capacidadeTurno > 0 ? Math.floor(acumulado / capacidadeTurno) + 1 : null;
+              acumulado += saldo;
+              const fim = capacidadeTurno > 0 ? Math.ceil(acumulado / capacidadeTurno) : null;
+              return {...item, turnoEstimadoInicio:inicio,turnoEstimadoFim:fim,
+                exigeRevisaoCapacidade:capacidadeTurno<=0};
+            }),
+          };
+        });
         return {programacao:pg,capacidades:cap,
           gargalos:cap.filter((x:any)=>x.gargalo===true),
           semCadastro:cap.filter((x:any)=>!x.capacidadeCadastrada).map((x:any)=>x.processo),
-          sequencias:planejamento.sequencias,
-          premissas:"Capacidade estimada por peças/hora × minutos disponíveis × eficiência. Sequência sugerida por prioridade e prazo, preservando filas fixadas. NÃO é APS com setup e dependências calculados; não altera fila."};
+          sequencias:filaComProjecao,
+          premissas:"Capacidade estimada por peças/hora × minutos disponíveis × eficiência. Sequência sugerida por prioridade e prazo, preservando filas fixadas. Projeções são em turnos consecutivos por processo, sem calendário nem setup; não considerar como prazo prometido. NÃO é APS com setup e dependências calculados; não altera fila."};
       }
       case "gerar_romaneio": {
         if (!["PCP", "GERENTE", "ENCARREGADO", "LIDER"].includes(ctx.user.perfil)) return j({ erro: "Sem permissão para romaneios." });
