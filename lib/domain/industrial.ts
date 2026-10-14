@@ -847,19 +847,16 @@ function prioridadeRank(
  * BANDEIRAS
  * OUTROS
  */
-const FAMILY_ORDER:
-  Record<
-    FamiliaIndustrial,
-    number
-  > = {
+/** Ordem fixa da prévia e da programação: não é alterada por prioridade. */
+const FAMILY_ORDER: Record<FamiliaIndustrial, number> = {
   PORTAS: 0,
   BATENTES: 1,
   ALIZARES: 2,
-  BAGUETE: 3,
+  BANDEIRA: 3,
   "KIT CORRER": 4,
-  BANDEIRA: 5,
+  BAGUETE: 5, // Baguetes ficam no bloco de componentes após o kit, antes das ferragens.
   OUTROS: 6,
-  FERRAGENS: 99,
+  FERRAGENS: 7,
 };
 
 function familyRank(
@@ -1109,8 +1106,8 @@ export function compareProduction(
 ) {
   /*
    * A sequência industrial é soberana:
-   * PORTAS -> BATENTES -> ALIZARES -> BAGUETES
-   * -> KIT/SUPORTE -> BANDEIRAS -> OUTROS.
+   * PORTAS -> BATENTES -> ALIZARES -> BANDEIRAS
+   * -> KIT/SUPORTE -> BAGUETES -> OUTROS -> FERRAGENS.
    *
    * Prioridade atua apenas dentro da mesma família.
    */

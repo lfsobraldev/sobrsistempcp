@@ -29,9 +29,9 @@ export const FAMILIAS = [
   "PORTAS",
   "BATENTES",
   "ALIZARES",
-  "BAGUETE",
-  "KIT CORRER",
   "BANDEIRA",
+  "KIT CORRER",
+  "BAGUETE",
   "OUTROS",
 ] as const;
 
