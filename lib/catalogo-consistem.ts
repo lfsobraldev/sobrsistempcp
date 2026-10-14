@@ -2,12 +2,12 @@ import { sql } from "@/lib/db";
 import type { Produto } from "@/types/pcp";
 import { completarPorRegras } from "@/lib/ia/completar-filtro";
 
-export const normalizarCodigo = (v: unknown) => String(v ?? "").trim().replace(/\\.0$/, "").toUpperCase();
+export const normalizarCodigo = (v: unknown) => String(v ?? "").trim().replace(/\.0$/, "").toUpperCase();
 export function consolidarCatalogo(linhas: {codigo: string; narrativa: string}[]) {
   const mapa = new Map<string, Set<string>>();
   for (const row of linhas) {
     const codigo = normalizarCodigo(row.codigo);
-    const narrativa = String(row.narrativa || "").trim().replace(/\\s+/g," ");
+    const narrativa = String(row.narrativa || "").trim().replace(/\s+/g," ");
     if (!codigo) continue;
     const narrativas = mapa.get(codigo) || new Set<string>();
     if (narrativa) narrativas.add(narrativa);
