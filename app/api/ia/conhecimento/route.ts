@@ -21,6 +21,17 @@ async function ensure(db: ReturnType<typeof sql>) {
       atualizado_em timestamptz not null default now()
     )
   `;
+  await db`
+    create table if not exists pcp_ia_conhecimento_auditoria (
+      id uuid primary key default gen_random_uuid(),
+      conhecimento_id uuid not null,
+      evento varchar(20) not null,
+      autor varchar(120) not null,
+      anterior jsonb,
+      posterior jsonb,
+      criado_em timestamptz not null default now()
+    )
+  `;
 }
 
 const podeTreinar = (perfil: string) => ["PCP","GERENTE"].includes(perfil);
@@ -68,6 +79,9 @@ export async function POST(req: Request) {
       )
       returning *
     `;
+    await db`insert into pcp_ia_conhecimento_auditoria
+      (conhecimento_id,evento,autor,posterior)
+      values(${item.id},'CRIACAO',${s.usuario},${JSON.stringify(item)}::jsonb)`;
     return NextResponse.json({ ok:true,item });
   } catch(e:any) {
     return NextResponse.json({ error:e?.message || "Falha ao salvar conhecimento." }, { status:500 });
@@ -84,6 +98,8 @@ export async function PATCH(req: Request) {
     if (!id) return NextResponse.json({ error:"ID obrigatório." }, { status:400 });
     const db = sql();
     await ensure(db);
+    const [anterior] = await db`select * from pcp_ia_conhecimento where id=${id}`;
+    if (!anterior) return NextResponse.json({error:"Conhecimento não encontrado."},{status:404});
     const [item] = await db`
       update pcp_ia_conhecimento set
         titulo=${String(body.titulo || "").trim()},
@@ -98,6 +114,9 @@ export async function PATCH(req: Request) {
       where id=${id}
       returning *
     `;
+    await db`insert into pcp_ia_conhecimento_auditoria
+      (conhecimento_id,evento,autor,anterior,posterior)
+      values(${id}::uuid,'ATUALIZACAO',${s.usuario},${JSON.stringify(anterior)}::jsonb,${JSON.stringify(item)}::jsonb)`;
     return NextResponse.json({ ok:true,item });
   } catch(e:any) {
     return NextResponse.json({ error:e?.message || "Falha ao atualizar conhecimento." }, { status:500 });

@@ -19,6 +19,7 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  diagnostico_integrado: "Gera diagnóstico real da programação ativa com capacidade por setor, riscos de pedidos e plano de produção; não inventa dados faltantes e não altera a fábrica.",
   consultar_catalogo: "Consulta código e narrativa do catálogo mestre permanente da engenharia; informa conflito e variantes em vez de inventar especificações.",
   consultar_conhecimento: "Recupera conteúdo e exemplos que a equipe cadastrou na base de treinamento da Sobral IA, identificando a fonte do procedimento.",
   consultar_periodo: "Consulta programação histórica por datas, produto, peça e medida; não confunde programação ativa com semana. Retorna total por dia e pedido.",
@@ -54,6 +55,19 @@ const j = <T,>(v: T): T => v;
 export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<unknown> {
   try {
     switch (name) {
+      case "diagnostico_integrado": {
+        const { db, pg } = await programacaoAtiva();
+        if (!pg) return { erro: "Nenhuma programação ativa. Não é possível diagnosticar a fábrica sem dados." };
+        const [capacidade, riscos, plano] = await Promise.all([
+          capacidadeProcessos(db,pg), analisarRiscos(db,pg), planejarFabrica(db,pg)
+        ]);
+        return {
+          fonte:"Programação ativa e capacidades cadastradas no Neon",
+          filtro:pg.filtro, consultadoEm:new Date().toISOString(),
+          capacidade,riscos,plano,
+          observacao:"Análise baseada nos dados existentes; não representa operação em tempo real sem apontamentos atualizados. Sugestões não alteram programação."
+        };
+      }
       case "consultar_catalogo": {
         const codigo=String(input.codigo||"").trim().replace(/\\.0$/,"").toUpperCase().slice(0,80);
         if(!codigo) return {erro:"Informe o código do produto."};
