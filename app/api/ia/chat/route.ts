@@ -56,12 +56,22 @@ export async function POST(req: Request) {
     }).format(new Date());
 
     const conhecimentoEquipe = await conhecimentoTreinavelPrompt();
-    const system = `${SYSTEM_BASE}\nQuando perguntarem quantas peças de uma MEDIDA (como travessas de alizar 50x9), use consultar_pecas_por_medida ANTES de responder. Para TRAVESSAS informe tipoPeca=TRAVESSA; para PERNAS informe tipoPeca=PERNA. Nunca misture travessas com pernas, nem batentes com alizares. Mostre total programado e ressalva do período; se perguntarem esta semana, não confunda programação ativa com todas as datas da semana. Para consultas por semana, mês ou datas, utilize consultar_periodo com as datas locais reais; não trate apenas o filtro ativo como período inteiro. Nunca diga que não possui consulta por medida sem chamar a ferramenta.\n
+    const system = `${SYSTEM_BASE}\nQuando perguntarem quantas peças de uma MEDIDA (como travessas de alizar 50x9), use consultar_pecas_por_medida ANTES de responder. Para TRAVESSAS informe tipoPeca=TRAVESSA; para PERNAS informe tipoPeca=PERNA. Nunca misture travessas com pernas, nem batentes com alizares. Mostre total programado e ressalva do período; se perguntarem esta semana, não confunda programação ativa com todas as datas da semana. Quando pedirem descrição completa, material ou divergência de código, use consultar_catalogo. Para procedimentos ensinados pela equipe use consultar_conhecimento. Para consultas por semana, mês ou datas, utilize consultar_periodo com as datas locais reais; não trate apenas o filtro ativo como período inteiro. Nunca diga que não possui consulta por medida sem chamar a ferramenta.\n
 ${conhecimentoEquipe}
 Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "-")}.
 Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
 
     const aiTools = {
+      consultar_catalogo: tool({
+        description: TOOL_META.consultar_catalogo,
+        inputSchema: z.object({codigo:z.string().min(1).max(80)}),
+        execute: async input => runTool("consultar_catalogo",input,{user:s,attachments}),
+      }),
+      consultar_conhecimento: tool({
+        description: TOOL_META.consultar_conhecimento,
+        inputSchema: z.object({assunto:z.string().min(2).max(120)}),
+        execute: async input => runTool("consultar_conhecimento",input,{user:s,attachments}),
+      }),
       consultar_periodo: tool({
         description: TOOL_META.consultar_periodo,
         inputSchema: z.object({
