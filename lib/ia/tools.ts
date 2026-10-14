@@ -19,6 +19,8 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  consultar_catalogo: "Consulta código e narrativa do catálogo mestre permanente da engenharia; informa conflito e variantes em vez de inventar especificações.",
+  consultar_conhecimento: "Recupera conteúdo e exemplos que a equipe cadastrou na base de treinamento da Sobral IA, identificando a fonte do procedimento.",
   consultar_periodo: "Consulta programação histórica por datas, produto, peça e medida; não confunde programação ativa com semana. Retorna total por dia e pedido.",
   gerar_documentos_pedido: "Gera links autenticados para o romaneio e as etiquetas Excel de um pedido REAL da programação ativa, usando somente o gerador oficial e romaneio previamente processado; não inventa itens.",
   planejamento_capacidade: "Analisa gargalos reais, capacidade por turno, saldos, filas fixadas e sequência sugerida por processo. Não altera produção; sinaliza setores sem capacidade cadastrada.",
@@ -52,6 +54,32 @@ const j = <T,>(v: T): T => v;
 export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<unknown> {
   try {
     switch (name) {
+      case "consultar_catalogo": {
+        const codigo=String(input.codigo||"").trim().replace(/\\.0$/,"").toUpperCase().slice(0,80);
+        if(!codigo) return {erro:"Informe o código do produto."};
+        const db=sql();
+        const rows=await db`
+          select c.codigo,c.narrativa,c.conflito,c.vazio,c.variantes,
+                 v.ativo_em as catalogoAtualizadoEm
+          from pcp_catalogo_produtos c join pcp_catalogo_versoes v on v.id=c.versao
+          where v.status='ATIVA' and c.codigo=${codigo} limit 1
+        `;
+        return rows.length?{fonte:"Catálogo Mestre de Produtos",registro:rows[0]}:
+          {fonte:"Catálogo Mestre de Produtos",erro:"Código não encontrado no catálogo ativo.",codigo};
+      }
+      case "consultar_conhecimento": {
+        const assunto=String(input.assunto||"").trim().slice(0,120);
+        if(assunto.length<2) return {erro:"Informe um assunto com pelo menos dois caracteres."};
+        const busca="%"+assunto.replace(/[%_]/g,"")+"%";
+        const db=sql();
+        const rows=await db`
+          select titulo,area,regra,exemplo,observacao,atualizado_em
+          from pcp_ia_conhecimento
+          where ativo=true and (titulo ilike ${busca} or regra ilike ${busca} or exemplo ilike ${busca})
+          order by prioridade desc,atualizado_em desc limit 12
+        `;
+        return {fonte:"Biblioteca de conhecimento cadastrada pela equipe",assunto,resultados:rows};
+      }
       case "consultar_periodo": {
         const inicio = String(input.inicio || "");
         const fim = String(input.fim || "");
