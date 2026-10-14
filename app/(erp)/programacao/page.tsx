@@ -339,6 +339,7 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
   // Ferragens ficam no romaneio, mas não se tornam operações produtivas do PCP.
   const ferragens = (d.romaneioProdutos || []).filter((p) => familiaIndustrial(p) === "FERRAGENS");
   const itensPreview = [...d.produtos, ...ferragens].sort(compareProduto);
+  const catalogo = (d as ImportResult & { catalogoMestre?: { correspondencias: number; conflitos: string[]; naoEncontrados: string[] } }).catalogoMestre;
   const resumoSetores = resumoPorSetor(d.produtos);
   const auditoriaRomaneio = auditarCoberturaRomaneio(d.produtos, d.romaneioProdutos || (d.filtro === "PEDIDO" ? d.produtos : []));
   const totalPendencias = resumoSetores.reduce((n, setor) => n + setor.materiaisAusentes + setor.medidasAusentes, 0);
@@ -403,6 +404,18 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
           </>
         ) : <p className="muted">Quantidades conferidas por família entre programação e romaneios. Ferragens são tratadas somente no romaneio.</p>}
       </Card>
+
+      {catalogo && (
+        <Card title="Conferência do Catálogo Mestre" subtitle="Códigos do filtro × narrativas armazenadas no Neon" className="mb">
+          <div className="stats">
+            <StatCard label="Itens relacionados" value={catalogo.correspondencias} />
+            <StatCard label="Códigos conflitantes" value={catalogo.conflitos.length} tone={catalogo.conflitos.length ? "warning" : "neutral"} />
+            <StatCard label="Códigos não encontrados" value={catalogo.naoEncontrados.length} tone={catalogo.naoEncontrados.length ? "warning" : "neutral"} />
+          </div>
+          {catalogo.conflitos.length > 0 && <p className="muted">Conflitos sem resolução segura: {catalogo.conflitos.slice(0,30).join(", ")}{catalogo.conflitos.length>30 ? "…" : ""}. Confira a narrativa com o cadastro responsável; o sistema não escolhe descrição contraditória.</p>}
+          {catalogo.naoEncontrados.length > 0 && <p className="muted">Sem código no catálogo: {catalogo.naoEncontrados.slice(0,30).join(", ")}{catalogo.naoEncontrados.length>30 ? "…" : ""}. Esses produtos conservam o que veio no filtro.</p>}
+        </Card>
+      )}
 
       {correcoes.length > 0 && (
         <Card subtitle="Revisão antes da liberação" title={`Complementações auditáveis (${correcoes.length})`} className="mb">
