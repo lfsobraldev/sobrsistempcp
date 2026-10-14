@@ -875,6 +875,11 @@ export function buildProcessingFromFilterProducts(
     quantity: row.quantity,
   }));
 
+  // Nunca aceitar silenciosamente a perda de linhas positivas da fonte.
+  const fisicas = input.products.filter((p) => Number(p.quantidade || 0) > 0);
+  if (fisicas.length !== sourceRows.length) {
+    throw new Error(`Romaneio incompleto: ${fisicas.length - sourceRows.length} linha(s) com quantidade positiva ficaram sem descrição ou identificação. Confira a origem.`);
+  }
   const items = allItems;
   const machining = parseMachining(machiningBuffer);
   const warnings: string[] = [];
