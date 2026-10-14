@@ -7,6 +7,8 @@ import { useOps } from "@/components/operational-provider";
 import { Badge, Card, DataTable, Field, PageHeader, StatCard, type Tone } from "@/components/ui";
 import { LABELS } from "@/lib/metrics";
 import { modeloProduto } from "@/lib/presentation";
+import { compareProduto } from "@/lib/sort";
+import { familiaIndustrial } from "@/lib/domain/industrial";
 
 export default function Programacao() {
   const { refresh, toast, pg } = useOps();
@@ -90,7 +92,7 @@ export default function Programacao() {
       }
       setAnaliseIA("");
       setRequisicaoId(crypto.randomUUID());
-      setDraft(parsed);
+      setDraft({ ...parsed, produtos: [...parsed.produtos].sort(compareProduto), romaneioProdutos: [...(parsed.romaneioProdutos || parsed.produtos)].sort(compareProduto) });
       toast("success", "Arquivo interpretado e complementado. Revise os dados antes de liberar.");
     } catch (e: any) {
       toast("error", e.message);
@@ -133,9 +135,9 @@ export default function Programacao() {
             inconsistenciasRota: draft.inconsistenciasRota,
             processos: draft.processos,
           },
-          produtos: draft.produtos,
+          produtos: [...draft.produtos].sort(compareProduto),
           auditoriaComplemento: correcoesIA,
-          romaneioProdutos: (draft.romaneioProdutos || draft.produtos).map((item) => {
+          romaneioProdutos: [...(draft.romaneioProdutos || draft.produtos)].sort(compareProduto).map((item) => {
             const tipo = draft.produtos.find((p) => p.pedido === item.pedido)?.tipoPedido || item.tipoPedido || "NORMAL";
             return { ...item, tipoPedido: tipo };
           }),
@@ -293,6 +295,9 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
 }) {
   const hasWarnings = d.semRota > 0 || d.inconsistenciasRota > 0;
   const pedidosOrdenados = [...new Set(d.produtos.map((p) => p.pedido))].sort(ordenarPedidos);
+  // Ferragens ficam no romaneio, mas não se tornam operações produtivas do PCP.
+  const ferragens = (d.romaneioProdutos || []).filter((p) => familiaIndustrial(p) === "FERRAGENS");
+  const itensPreview = [...d.produtos, ...ferragens].sort(compareProduto);
 
   return (
     <>
@@ -420,9 +425,9 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
           {descricaoExpandida ? "Visualização compacta" : "Expandir descrições e colunas"}
         </button>
       </div>
-      <Card subtitle={`Prévia limitada a 250 linhas · a programação completa (${d.produtos.length}) será salva`} title="Itens da programação" className="mb">
+      <Card subtitle={`Prévia de até 250 linhas · ${d.produtos.length} peças da programação + ${ferragens.length} ferragens do romaneio`} title="Itens da programação" className="mb">
         <DataTable head={["Seq.", "Pedido", "Item", "OF", "Produto", "Família", "Descrição", "Descrição Máscara", "Material", "Tipo", "Canal", "Rebaixo", "Acabamento", "Cor", "Qtd programada", "Comp.", "Larg.", "Esp.", "Prioridade", "Rota"]}>
-          {d.produtos.slice(0, 250).map((p, index) => {
+          {itensPreview.slice(0, 250).map((p, index) => {
             const m = modeloProduto(p);
             return (
               <tr key={p.id}>
