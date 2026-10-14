@@ -101,7 +101,13 @@ export async function enriquecerComCatalogo(produtos: Produto[], db = sql()) {
   const atualizados=produtos.map(p=>{
     const codigo=normalizarCodigo(p.produto), ref=mapa.get(codigo);
     if (!ref) { if(codigo) naoEncontrados.add(codigo); return p; }
-    if(ref.conflito) {\n      const alternativa=resolverNarrativaConflitante(p,Array.isArray(ref.variantes)?ref.variantes:[]);\n      if (!alternativa) {conflitos.add(codigo);return p;}\n      correspondencias++;\n      return enriquecerProdutoPeloRegistro(p,{...ref,conflito:false,narrativa:alternativa});\n    }\n    if(ref.vazio || !ref.narrativa) {conflitos.add(codigo);return p;}
+    if(ref.conflito) {
+      const alternativa=resolverNarrativaConflitante(p,Array.isArray(ref.variantes)?ref.variantes:[]);
+      if (!alternativa) {conflitos.add(codigo);return p;}
+      correspondencias++;
+      return enriquecerProdutoPeloRegistro(p,{...ref,conflito:false,narrativa:alternativa});
+    }
+    if(ref.vazio || !ref.narrativa) {conflitos.add(codigo);return p;}
     correspondencias++;
     return enriquecerProdutoPeloRegistro(p,ref);
   });
