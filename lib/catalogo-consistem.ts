@@ -55,16 +55,32 @@ export async function enriquecerComCatalogo(produtos: Produto[], db = sql()) {
     if (!ref) { if(codigo) naoEncontrados.add(codigo); return p; }
     if(ref.conflito || ref.vazio || !ref.narrativa) {conflitos.add(codigo);return p;}
     correspondencias++;
-    // Analisa a narrativa oficial apenas para preencher campos vazios:
-    // a descrição abreviada e todas as quantidades/OFs/rotas são preservadas.
-    const base={...p, descricao:ref.narrativa};
+    const narrativa=ref.narrativa;
+    // Catálogo cadastrado por código exato é a fonte de descrição técnica.
+    // O Consistem continua responsável por pedido, OF, quantidade e rota.
+    const base={...p, descricao:narrativa, medida:"",material:"",cor:"",acabamento:"",rebaixo:"",canal:""};
     const preenchido=completarPorRegras(base).produto;
-    const campos=("tipo material medida cor acabamento rebaixo canal").split(" ") as Array<keyof Produto>;
-    const copy={...p};
+    const copy={...p, descricao:narrativa};
+    const campos=("tipo material cor acabamento rebaixo canal").split(" ") as Array<keyof Produto>;
     for (const campo of campos) {
       if(!String(copy[campo]??"").trim() && String(preenchido[campo]??"").trim()) {
         (copy as any)[campo]=preenchido[campo];
       }
+    }
+    // Exigir as três dimensões. Um valor 2110x50 vindo do filtro não
+    // pode ter precedência sobre o 2110x50x9 do catálogo.
+    const medidaCompleta=narrativa.match(/\\b(\\d{2,4}(?:[.,]\\d+)?)\\s*[xX×]\\s*(\\d{2,4}(?:[.,]\\d+)?)\\s*[xX×]\\s*(\\d{1,3}(?:[.,]\\d+)?)\\b/);
+    if(medidaCompleta) {
+      copy.medida=medidaCompleta.slice(1,4).map(v=>v.replace(",",".")).join("x");
+    } else if(!String(copy.medida||"").trim() && String(preenchido.medida||"").trim()) {
+      copy.medida=preenchido.medida;
+    }
+    // O material vem preferencialmente da narrativa completa se a
+    // descrição truncada produzir um código incompleto ou genérico.
+    const materialCatalogo=String(preenchido.material||"").trim();
+    const materialAtual=String(copy.material||"").trim();
+    if(materialCatalogo && (!materialAtual || /^(?:U|UL|ULT|ULTR|MDF)$/i.test(materialAtual))) {
+      copy.material=materialCatalogo;
     }
     return copy;
   });
