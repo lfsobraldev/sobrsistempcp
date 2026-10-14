@@ -100,7 +100,7 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           order by pg.data_programacao,p.pedido limit 15000
         `;
         const { familiaIndustrial, tipoPeca, medidaDoItem } = await import("@/lib/domain/industrial");
-        const porDia: Record<string,number> = {}, porPedido: Record<string,number> = {};
+        const porDia: Record<string,number> = {}, porPedido: Record<string,number> = {}, porOF: Record<string,number> = {};
         let total=0, linhas=0;
         for (const p of rows) {
           if (familiaIndustrial(p)!==familia || (peca!=="TODOS" && tipoPeca(p)!==peca)) continue;
@@ -110,8 +110,10 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           total+=q; linhas++;
           porDia[p.dia]=(porDia[p.dia]||0)+q;
           porPedido[p.pedido]=(porPedido[p.pedido]||0)+q;
+          const chaveOF=String(p.pedido)+"/"+String(p.of || "SEM OF");
+          porOF[chaveOF]=(porOF[chaveOF]||0)+q;
         }
-        return { fonte:"programações salvas por data",inicio,fim,familia,peca,largura,espessura,totalProgramadoPecas:total,linhas,porDia,porPedido,
+        return { fonte:"programações salvas por data",inicio,fim,familia,peca,largura,espessura,totalProgramadoPecas:total,linhas,porDia,porPedido,porOF,
           alerta:rows.length>=15000?"Limite de 15 mil registros, total possivelmente incompleto":null,
           criterio:"Última programação cadastrada por dia. Quantidade programada não representa necessariamente saldo pendente." };
       }
