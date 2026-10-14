@@ -38,10 +38,13 @@ function AiMessage({text}:{text:string}){
 
 export default function SobralIAPage(){
  const {pg,toast,refresh}=useOps();
- const [tab,setTab]=useState<"usar"|"treinar">("usar");
+ const [tab,setTab]=useState<"usar"|"centro"|"treinar">("usar");
  const [msgs,setMsgs]=useState<Msg[]>([]);
  const [input,setInput]=useState("");
  const [busy,setBusy]=useState(false);
+ const [centro,setCentro]=useState<any>(null);
+ const [centroBusy,setCentroBusy]=useState(false);
+ const [centroErro,setCentroErro]=useState("");
  const [regras,setRegras]=useState<Regra[]>([]);
  const [canTrain,setCanTrain]=useState(false);
  const [area,setArea]=useState("TODAS");
@@ -66,6 +69,17 @@ export default function SobralIAPage(){
    if(!r.ok)throw new Error(j.error||"Falha na IA.");
    setMsgs([...next,{role:"assistant",content:String(j.reply||"Pronto."),anexos:Array.isArray(j.attachments)?j.attachments:[]}]);
   }catch(e:any){setMsgs([...next,{role:"assistant",content:`⚠ ${e.message}`}])}finally{setBusy(false)}
+ }
+
+ async function carregarCentro(){
+  setCentroBusy(true);setCentroErro("");
+  try{
+   const r=await fetch("/api/ia/centro",{cache:"no-store"});
+   const j=await r.json();
+   if(!r.ok)throw new Error(j.error||"Falha no diagnóstico.");
+   setCentro(j.analise);
+  }catch(e:any){setCentroErro(e.message||"Falha na análise.");}
+  finally{setCentroBusy(false);}
  }
 
  async function confirmar(token:string){
@@ -106,6 +120,7 @@ export default function SobralIAPage(){
 
   <div className="sobral-ai-tabs sobral-ai-tabs-v2">
    <button className={tab==="usar"?"active":""} onClick={()=>setTab("usar")}><BrainCircuit/> Central da IA</button>
+   <button className={tab==="centro"?"active":""} onClick={()=>{setTab("centro");if(!centro)void carregarCentro()}}><Gauge/> Centro operacional</button>
    <button className={tab==="treinar"?"active":""} onClick={()=>setTab("treinar")}><GraduationCap/> Base de conhecimento</button>
   </div>
 
@@ -160,7 +175,55 @@ export default function SobralIAPage(){
      </div>
     </form>
    </section>
-  </div>:<div className="sobral-training-v2">
+  </div>:tab==="centro"?<section className="sobral-training-v2">
+   <div className="training-overview">
+    <div><span className="sobral-ai-kicker">CENTRO DE INTELIGÊNCIA OPERACIONAL</span>
+     <h2>Diagnóstico da programação e capacidade</h2>
+     <p>Análise de dados reais do PCP, sem modificar filas, prioridades ou OFs. A avaliação depende da atualização dos apontamentos.</p>
+    </div>
+    <button className="primary" disabled={centroBusy} onClick={()=>void carregarCentro()}><Activity/> {centroBusy?"Analisando…":"Atualizar diagnóstico"}</button>
+   </div>
+   {centroErro&&<div className="notice warning">{centroErro}</div>}
+   {centroBusy&&!centro&&<div className="card"><div className="card-body">Consultando pedidos, operações, capacidades e riscos…</div></div>}
+   {centro&&<>
+    <section className="sobral-ai-metrics">
+     <div className="sobral-ai-metric"><span className="metric-icon"><Database/></span><div><small>Fonte</small><b>Filtro {centro.filtro||"—"}</b><span>Programação ativa</span></div></div>
+     <div className="sobral-ai-metric"><span className="metric-icon"><Activity/></span><div><small>Processos</small><b>{Array.isArray(centro.capacidade)?centro.capacidade.length:0}</b><span>Com carga produtiva</span></div></div>
+     <div className="sobral-ai-metric"><span className="metric-icon"><ShieldCheck/></span><div><small>Pedidos em risco</small><b>{Array.isArray(centro.riscos)?centro.riscos.filter((r:any)=>["CRITICO","ALTO"].includes(r.risco)).length:0}</b><span>Crítico ou alto</span></div></div>
+     <div className="sobral-ai-metric"><span className="metric-icon"><Gauge/></span><div><small>Gargalos</small><b>{Array.isArray(centro.capacidade)?centro.capacidade.filter((c:any)=>c.gargalo===true).length:0}</b><span>Capacidade cadastrada</span></div></div>
+    </section>
+    <div className="sobral-training-grid sobral-training-grid-v2">
+     <section className="card">
+      <div className="card-head"><div><h3>Carga por processo</h3><p>Saldo de operações e capacidade estimada do turno</p></div></div>
+      <div className="card-body">
+       {(Array.isArray(centro.capacidade)?centro.capacidade:[]).map((c:any,i:number)=><div key={i} style={{padding:"12px 0",borderBottom:"1px solid var(--border,#ddd)"}}>
+        <b>{c.processo}</b><div>Saldo: {Number(c.saldo||0).toLocaleString("pt-BR")} peças · Capacidade: {c.capacidadeTurno==null?"Não cadastrada":Number(c.capacidadeTurno).toLocaleString("pt-BR")+" peças/turno"}</div>
+        <small>{c.cargaPct==null?"Não é possível calcular ocupação sem capacidade":c.cargaPct+"% de carga"}{c.gargalo===true?" · Gargalo identificado":""}</small>
+       </div>)}
+      </div>
+     </section>
+     <section className="card">
+      <div className="card-head"><div><h3>Pedidos que exigem atenção</h3><p>Classificação baseada em prazos, pendências e sinais reais</p></div></div>
+      <div className="card-body">
+       {(Array.isArray(centro.riscos)?centro.riscos.slice(0,15):[]).map((r:any,i:number)=><div key={i} style={{padding:"12px 0",borderBottom:"1px solid var(--border,#ddd)"}}>
+        <b>Pedido {r.pedido} · Risco {r.risco}</b><div>Prioridade: {r.prioridade} · Progresso: {r.progresso}%</div>
+        <small>{Array.isArray(r.sinais)?r.sinais.join(" · "):"Sem sinais adicionais"}</small>
+       </div>)}
+       {!centro.riscos?.length&&<p>Sem pedidos em risco identificados nesta programação.</p>}
+      </div>
+     </section>
+    </div>
+    <section className="card">
+     <div className="card-head"><div><h3>Sequenciamento sugerido</h3><p>Leitura consultiva: alterações reais de fila exigem confirmação operacional.</p></div></div>
+     <div className="card-body">
+      {(centro.plano?.sequencias||[]).map((s:any,i:number)=><div key={i} style={{padding:"12px 0",borderBottom:"1px solid var(--border,#ddd)"}}>
+       <b>{s.processo}</b><div>{(s.filaSugerida||[]).slice(0,8).map((p:any)=>"Pedido "+p.pedido+" ("+p.prioridade+")").join(" → ")||"Sem saldo pendente"}</div>
+      </div>)}
+     </div>
+    </section>
+    <p style={{opacity:.75}}>Consulta: {centro.consultadoEm?new Date(centro.consultadoEm).toLocaleString("pt-BR"):"—"}. Os indicadores não representam produção em tempo real sem apontamentos atualizados.</p>
+   </>}
+  </section>:<div className="sobral-training-v2">
    <section className="training-overview">
     <div><span className="sobral-ai-kicker">TREINAMENTO OPERACIONAL</span><h2>Ensine a Sobral IA como a fábrica realmente trabalha</h2><p>Cadastre regras específicas sem alterar código. Elas entram no contexto das próximas análises da IA.</p></div>
     <div className="training-overview-stats"><div><b>{regras.filter(r=>r.ativo).length}</b><span>ativas</span></div><div><b>{regras.length}</b><span>total</span></div><div><b>{AREAS.length}</b><span>áreas</span></div></div>
