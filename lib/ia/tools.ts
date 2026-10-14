@@ -21,7 +21,7 @@ const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 export const TOOL_META = {
   gerar_documentos_pedido: "Gera links autenticados para o romaneio e as etiquetas Excel de um pedido REAL da programação ativa, usando somente o gerador oficial e romaneio previamente processado; não inventa itens.",
   planejamento_capacidade: "Analisa gargalos reais, capacidade por turno, saldos, filas fixadas e sequência sugerida por processo. Não altera produção; sinaliza setores sem capacidade cadastrada.",
-  consultar_pecas_por_medida: "Consulta diretamente os itens da programação ativa filtrados por família, largura e espessura (por exemplo alizares 50x9), com quantidade por pedido e OF e saldo de embalagem quando existir. Nunca confundir esta programação com a semana inteira.",
+  consultar_pecas_por_medida: "Consulta peças EXATAMENTE por família, tipo PERNA ou TRAVESSA e perfil largura x espessura (ex.: travessas de alizar 50x9). Nunca somar pernas quando solicitado travessas. Para semana, declarar claramente que o dado é só da programação ativa, não o total semanal.",
   simular_programacao_urgente: "Simula uma programação urgente de um pedido existente na programação ativa, consulta operações com saldo, máquinas/setores envolvidos e filas fixadas. Somente leitura: não altera prioridades nem libera produção.",
   resumo_metros_lineares: "Calcula os metros lineares físicos da programação ativa, por pedido ou total, com comprimento x quantidade e itens sem medida identificados.",
   resumo_producao: "Resumo da programação ativa: filtro, turno, total de pedidos/OFs/peças e progresso por processo.",
@@ -62,8 +62,10 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           return { erro: "Família ou medida inválida. Informe largura e espessura positivas em milímetros." };
         }
         const pedido = String(input.pedido || "").trim();
+        const tipoFiltro = String(input.tipoPeca || "TODOS").toUpperCase();
+        if (!["TODOS", "PERNA", "TRAVESSA"].includes(tipoFiltro)) return { erro: "Tipo de peça inválido." };
         const registros = await db`
-          select p.id,p.pedido,p.of,p.categoria,p.descricao,p.medida,p.quantidade::float quantidade,
+          select p.id,p.pedido,p.of,p.categoria,p.descricao,p.medida,p.produto,p.tipo,p.quantidade::float quantidade,
             (select json_agg(json_build_object('processo',o.processo,
               'planejado',o.quantidade_planejada::float,
               'produzido',o.quantidade_produzida::float)) from pcp_operacoes o
@@ -71,12 +73,13 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           from pcp_produtos p where p.programacao_id=${pg.id}
           and (${pedido}='' or p.pedido=${pedido})
         `;
-        const { medidaDoItem, familiaIndustrial } = await import("@/lib/domain/industrial");
+        const { medidaDoItem, familiaIndustrial, tipoPeca } = await import("@/lib/domain/industrial");
         let programado = 0, saldoEmbalagem = 0, semApontamento = 0, linhas = 0;
         const pedidos: Record<string, number> = {};
         const exemplos: Array<{ pedido: string; of: string; medida: string; quantidade: number }> = [];
         for (const p of registros) {
           if (familiaIndustrial(p) !== familiaFiltro) continue;
+          if (tipoFiltro !== "TODOS" && tipoPeca(p) !== tipoFiltro) continue;
           const [comprimento, l, e] = medidaDoItem(p);
           if (l !== largura || e !== espessura) continue;
           const quantidade = Number(p.quantidade || 0);
@@ -90,7 +93,7 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         }
         return {
           fonte: "programação ATIVA", filtro: pg.filtro, dataProgramacao: pg.data_programacao, turno: pg.turno,
-          familia: familiaFiltro, larguraMM: largura, espessuraMM: espessura,
+          familia: familiaFiltro, tipoPeca: tipoFiltro, larguraMM: largura, espessuraMM: espessura,
           totalProgramadoPecas: programado, saldoEmbalagemConhecidoPecas: saldoEmbalagem,
           pecasSemOperacaoEmbalagem: semApontamento, linhas, porPedido: pedidos, exemplos,
           ressalva: "A consulta mede a programação ativa, NÃO a semana inteira. Saldo total exato não pode ser garantido quando faltam operações de embalagem; não somar operações distintas da mesma peça."
