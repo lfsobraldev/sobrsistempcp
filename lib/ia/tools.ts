@@ -19,6 +19,7 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  consultar_periodo: "Consulta programação histórica por datas, produto, peça e medida; não confunde programação ativa com semana. Retorna total por dia e pedido.",
   gerar_documentos_pedido: "Gera links autenticados para o romaneio e as etiquetas Excel de um pedido REAL da programação ativa, usando somente o gerador oficial e romaneio previamente processado; não inventa itens.",
   planejamento_capacidade: "Analisa gargalos reais, capacidade por turno, saldos, filas fixadas e sequência sugerida por processo. Não altera produção; sinaliza setores sem capacidade cadastrada.",
   consultar_pecas_por_medida: "Consulta peças EXATAMENTE por família, tipo PERNA ou TRAVESSA e perfil largura x espessura (ex.: travessas de alizar 50x9). Nunca somar pernas quando solicitado travessas. Para semana, declarar claramente que o dado é só da programação ativa, não o total semanal.",
@@ -51,6 +52,41 @@ const j = <T,>(v: T): T => v;
 export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<unknown> {
   try {
     switch (name) {
+      case "consultar_periodo": {
+        const inicio = String(input.inicio || "");
+        const fim = String(input.fim || "");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fim) || inicio > fim) return { erro: "Datas inválidas. Informe início e fim em YYYY-MM-DD." };
+        const familia = String(input.familia || "ALIZARES").toUpperCase();
+        const peca = String(input.peca || "TODOS").toUpperCase();
+        const largura = Number(input.largura || 0), espessura = Number(input.espessura || 0);
+        const db = sql();
+        const rows = await db`
+          select pg.data_programacao::text as dia, p.pedido, p.of, p.categoria, p.produto, p.tipo, p.descricao, p.medida, p.quantidade::float as quantidade
+          from pcp_produtos p join pcp_programacoes pg on pg.id=p.programacao_id
+          where pg.data_programacao::date >= ${inicio}::date and pg.data_programacao::date <= ${fim}::date
+            and pg.status in ('ATIVA','SUBSTITUIDA')
+            and pg.id = (select pg2.id from pcp_programacoes pg2
+              where pg2.data_programacao::date=pg.data_programacao::date
+                and pg2.status in ('ATIVA','SUBSTITUIDA')
+              order by pg2.criado_em desc limit 1)
+          order by pg.data_programacao,p.pedido limit 15000
+        `;
+        const { familiaIndustrial, tipoPeca, medidaDoItem } = await import("@/lib/domain/industrial");
+        const porDia: Record<string,number> = {}, porPedido: Record<string,number> = {};
+        let total=0, linhas=0;
+        for (const p of rows) {
+          if (familiaIndustrial(p)!==familia || (peca!=="TODOS" && tipoPeca(p)!==peca)) continue;
+          const [,l,e]=medidaDoItem(p);
+          if ((largura && largura!==l) || (espessura && espessura!==e)) continue;
+          const q=Number(p.quantidade||0);
+          total+=q; linhas++;
+          porDia[p.dia]=(porDia[p.dia]||0)+q;
+          porPedido[p.pedido]=(porPedido[p.pedido]||0)+q;
+        }
+        return { fonte:"programações salvas por data",inicio,fim,familia,peca,largura,espessura,totalProgramadoPecas:total,linhas,porDia,porPedido,
+          alerta:rows.length>=15000?"Limite de 15 mil registros, total possivelmente incompleto":null,
+          criterio:"Última programação cadastrada por dia. Quantidade programada não representa necessariamente saldo pendente." };
+      }
       case "consultar_pecas_por_medida": {
         const { db, pg } = await programacaoAtiva();
         if (!pg) return { erro: "Nenhuma programação ativa." };
