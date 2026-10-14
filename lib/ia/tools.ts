@@ -83,7 +83,7 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
       case "consultar_periodo": {
         const inicio = String(input.inicio || "");
         const fim = String(input.fim || "");
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fim) || inicio > fim) return { erro: "Datas inválidas. Informe início e fim em YYYY-MM-DD." };
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fim) || inicio > fim || !Number.isFinite(Date.parse(inicio)) || !Number.isFinite(Date.parse(fim)) || (Date.parse(fim)-Date.parse(inicio))>93*86400000) return { erro: "Período inválido; informe datas YYYY-MM-DD de até 93 dias." };
         const familia = String(input.familia || "ALIZARES").toUpperCase();
         const peca = String(input.peca || "TODOS").toUpperCase();
         const largura = Number(input.largura || 0), espessura = Number(input.espessura || 0);
