@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight, FileSpreadsheet, FileText, Trash2, UploadCloud, X } from "lucide-react";
 import type { ImportResult, TipoPedido } from "@/types/pcp";
 import { useOps } from "@/components/operational-provider";
@@ -19,6 +19,13 @@ export default function Programacao() {
   const [catalogoFile, setCatalogoFile] = useState<File | null>(null);
   const [catalogoBusy, setCatalogoBusy] = useState(false);
   const [catalogoResumo, setCatalogoResumo] = useState("");
+  useEffect(() => {
+    fetch("/api/catalogo-produtos",{cache:"no-store"})
+      .then(async r=>{if(!r.ok) return null;return r.json();})
+      .then(j=>{if(j?.ativo) setCatalogoResumo(`Catálogo permanente ativo: ${Number(j.ativo.total||0).toLocaleString("pt-BR")} códigos cadastrados · ${Number(j.ativo.conflitos||0)} conflitos. Não precisa reenviar para novos filtros.`);})
+      .catch(()=>{});
+  }, []);
+
   const [pedido, setPedido] = useState<File | null>(null);
   const [usinagem, setUsinagem] = useState<File | null>(null);
   const [draft, setDraft] = useState<ImportResult | null>(null);
@@ -223,7 +230,7 @@ export default function Programacao() {
         ) : undefined}
       />
 
-      <Card title="Catálogo Mestre de Produtos" subtitle="Cadastro de Código + Narrativa completa do Consistem" className="mb">
+      <Card title="Catálogo Mestre de Produtos" subtitle="Base permanente no Neon — atualização apenas quando o cadastro da empresa mudar" className="mb">
         <div className="row" style={{alignItems:"center",flexWrap:"wrap"}}>
           <input type="file" accept=".xlsx,.xls" disabled={catalogoBusy} onChange={(e)=>setCatalogoFile(e.target.files?.[0] || null)} aria-label="Planilha do catálogo" />
           <button type="button" disabled={!catalogoFile || catalogoBusy} onClick={()=>void cadastrarCatalogo()}>
