@@ -46,6 +46,25 @@ function uniqueGames(rows: PackageRow[]) {
 
 export function validateProcessing(data: ProcessingResult): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  // A exportação não pode ignorar componentes físicos desvinculados.
+  const semVinculo = Number(data.reconciliation?.unmapped || 0);
+  if (semVinculo > 0) {
+    issues.push({
+      severity: "ERROR",
+      code: "ROMANEIO_FONTE_INCOMPLETA",
+      message: `${semVinculo} item(ns) da origem não aparecem no romaneio. Reprocesse o pedido antes de imprimir.`,
+    });
+  }
+  for (const [familia, total] of Object.entries(data.parserDiagnostics?.sourceCategories || {})) {
+    const vinculado = Number((data.parserDiagnostics?.mappedCategories as Record<string, number> | undefined)?.[familia] || 0);
+    if (Number(total) > vinculado) {
+      issues.push({
+        severity: "ERROR", code: "ROMANEIO_FAMILIA_AUSENTE",
+        message: `${familia}: origem tem ${total} linha(s), mas somente ${vinculado} foram vinculadas ao romaneio.`,
+      });
+    }
+  }
+
   const isConsistemSource =
     data.sourceMode === "FILTRO_CONSISTEM" ||
     data.sourceMode === "FILTRO_51";
