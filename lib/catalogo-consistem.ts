@@ -3,7 +3,7 @@ import type { Produto } from "@/types/pcp";
 import { completarPorRegras } from "@/lib/ia/completar-filtro";
 
 export const normalizarCodigo = (v: unknown) => String(v ?? "").trim().replace(/\.0$/, "").toUpperCase();
-const chaveNarrativa = (v:string) => v.normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toUpperCase().replace(/\\s+/g," ").trim();
+const chaveNarrativa = (v:string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/\s+/g," ").trim();
 
 export function consolidarCatalogo(linhas: {codigo: string; narrativa: string}[]) {
   const mapa = new Map<string, Set<string>>();
@@ -39,7 +39,7 @@ export async function ensureCatalogo(db = sql()) {
 }
 export type RegistroCatalogo = {codigo: string; narrativa: string; conflito: boolean; vazio: boolean; variantes?: string[]};
 
-const tripla = (texto:unknown) => String(texto||"").match(/\\b(\\d{3,4})\\s*[xX×]\\s*(\\d{2,4})\\s*[xX×]\\s*(\\d{1,3})\\b/)?.slice(1).join("x") || "";
+const tripla = (texto:unknown) => String(texto||"").match(/\b(\d{3,4})\s*[xX×]\s*(\d{2,4})\s*[xX×]\s*(\d{1,3})\b/)?.slice(1).join("x") || "";
 
 /** Em código conflitante, selecionar apenas se a tripla técnica da linha for inequívoca. */
 export function resolverNarrativaConflitante(p:Produto, variantes:readonly string[]) {
