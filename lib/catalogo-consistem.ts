@@ -3,6 +3,8 @@ import type { Produto } from "@/types/pcp";
 import { completarPorRegras } from "@/lib/ia/completar-filtro";
 
 export const normalizarCodigo = (v: unknown) => String(v ?? "").trim().replace(/\.0$/, "").toUpperCase();
+const chaveNarrativa = (v:string) => v.normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toUpperCase().replace(/\\s+/g," ").trim();
+
 export function consolidarCatalogo(linhas: {codigo: string; narrativa: string}[]) {
   const mapa = new Map<string, Set<string>>();
   for (const row of linhas) {
@@ -10,7 +12,7 @@ export function consolidarCatalogo(linhas: {codigo: string; narrativa: string}[]
     const narrativa = String(row.narrativa || "").trim().replace(/\s+/g," ");
     if (!codigo) continue;
     const narrativas = mapa.get(codigo) || new Set<string>();
-    if (narrativa) narrativas.add(narrativa);
+    if (narrativa && ![...narrativas].some(v=>chaveNarrativa(v)===chaveNarrativa(narrativa))) narrativas.add(narrativa);
     mapa.set(codigo,narrativas);
   }
   return [...mapa].map(([codigo, narrativas])=>({
@@ -35,7 +37,21 @@ export async function ensureCatalogo(db = sql()) {
   )`;
   await db`create index if not exists ix_pcp_catalogo_codigo on pcp_catalogo_produtos(codigo)`;
 }
-export type RegistroCatalogo = {codigo: string; narrativa: string; conflito: boolean; vazio: boolean};
+export type RegistroCatalogo = {codigo: string; narrativa: string; conflito: boolean; vazio: boolean; variantes?: string[]};
+
+const tripla = (texto:unknown) => String(texto||"").match(/\\b(\\d{3,4})\\s*[xX×]\\s*(\\d{2,4})\\s*[xX×]\\s*(\\d{1,3})\\b/)?.slice(1).join("x") || "";
+
+/** Em código conflitante, selecionar apenas se a tripla técnica da linha for inequívoca. */
+export function resolverNarrativaConflitante(p:Produto, variantes:readonly string[]) {
+  const medidaFonte=tripla(p.medida)||tripla(p.descricao);
+  if(!medidaFonte) return null;
+  const candidatas=[...new Set(variantes.filter(v=>tripla(v)===medidaFonte).map(v=>v.trim()))];
+  // Mesmo perfil dimensional pode ter cor/material/acabamento diferente:
+  // nunca selecionar automaticamente se houver duas descrições distintas.
+  const unicas=new Map(candidatas.map(v=>[chaveNarrativa(v),v]));
+  return unicas.size===1 ? [...unicas.values()][0] : null;
+}
+
 export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo): Produto {
   if(ref.conflito || ref.vazio || !ref.narrativa) return p;
   const narrativa=ref.narrativa;
@@ -73,7 +89,7 @@ export async function enriquecerComCatalogo(produtos: Produto[], db = sql()) {
   if (!codigos.length) return {produtos, correspondencias:0, conflitos:[], naoEncontrados:codigos};
   await ensureCatalogo(db);
   const rows = await db`
-    select c.codigo,c.narrativa,c.conflito,c.vazio
+    select c.codigo,c.narrativa,c.conflito,c.vazio,c.variantes
     from pcp_catalogo_produtos c
     join pcp_catalogo_versoes v on v.id=c.versao
     where v.status='ATIVA' and c.codigo = any(${codigos}::text[])
@@ -85,7 +101,7 @@ export async function enriquecerComCatalogo(produtos: Produto[], db = sql()) {
   const atualizados=produtos.map(p=>{
     const codigo=normalizarCodigo(p.produto), ref=mapa.get(codigo);
     if (!ref) { if(codigo) naoEncontrados.add(codigo); return p; }
-    if(ref.conflito || ref.vazio || !ref.narrativa) {conflitos.add(codigo);return p;}
+    if(ref.conflito) {\n      const alternativa=resolverNarrativaConflitante(p,Array.isArray(ref.variantes)?ref.variantes:[]);\n      if (!alternativa) {conflitos.add(codigo);return p;}\n      correspondencias++;\n      return enriquecerProdutoPeloRegistro(p,{...ref,conflito:false,narrativa:alternativa});\n    }\n    if(ref.vazio || !ref.narrativa) {conflitos.add(codigo);return p;}
     correspondencias++;
     return enriquecerProdutoPeloRegistro(p,ref);
   });
