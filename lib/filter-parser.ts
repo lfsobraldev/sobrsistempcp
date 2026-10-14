@@ -509,53 +509,23 @@ function medida(
   return "";
 }
 
-function medidaLinha(
-  r: Record<string, string>
-) {
-  const prioritarios = [
-    field(
-      r,
-      "Descrição"
-    ),
-    field(
-      r,
-      "Descrição Modelo"
-    ),
-    field(
-      r,
-      "Outras Características"
-    ),
-    field(
-      r,
-      "Produto"
-    ),
-    field(
-      r,
-      "Tipo"
-    ),
-  ];
-
-  const encontrada =
-    medida(
-      ...prioritarios
-    );
-
-  if (
-    encontrada
-  ) {
-    return encontrada;
-  }
-
-  /*
-   * Último recurso: procura em TODAS as colunas da linha.
-   * A expressão de medida exige separadores dimensionais,
-   * então não confunde Pedido/OF com medida.
-   */
-  return medida(
-    ...Object.values(
-      r
-    )
+function medidaLinha(r: Record<string, string>) {
+  // O Filtro Consistem possui dimensões próprias: são mais confiáveis que
+  // a descrição abreviada e evitam interpretar 2100x700x3 como espessura 3.
+  const valores = ["Comprimento", "Largura", "Espessura"].map(campo =>
+    clean(field(r, campo)).replace(",", ".")
   );
+  const completos = valores.every(v => /^\\d+(?:\\.\\d+)?$/.test(v) && Number(v) > 0);
+  if (completos) return valores.map(v => String(Number(v))).join("x");
+
+  const prioritarios = [
+    field(r, "Descrição"),
+    field(r, "Descrição Modelo"),
+    field(r, "Outras Características"),
+    field(r, "Produto"),
+    field(r, "Tipo"),
+  ];
+  return medida(...prioritarios) || medida(...Object.values(r));
 }
 
 function material(
