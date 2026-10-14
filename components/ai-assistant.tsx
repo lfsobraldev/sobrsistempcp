@@ -99,6 +99,11 @@ export default function AiAssistant() {
                 {a.type === "confirm" && (done[a.token]
                   ? <span className="status s-concluida"><Check size={12} /> Executado</span>
                   : <button className="primary" onClick={() => confirmar(a.token)}><Check /> Confirmar: {a.label}</button>)}
+                {a.type === "arquivo" && (
+                  <a className="primary" href={a.url} target="_blank" rel="noopener noreferrer" download>
+                    <FileSpreadsheet /> {a.label}
+                  </a>
+                )}
                 {a.type === "romaneio" && (
                   <>
                     <span className="tag">{a.data.itens.length} itens</span>
