@@ -65,6 +65,8 @@ export default function RomaneiosPage() {
   const [mountType, setMountType] = useState<MountType>("MONTADO_HS");
   const [filtro, setFiltro] = useState("");
   const [pagina, setPagina] = useState("");
+  const [cliente, setCliente] = useState("");
+  const [destino, setDestino] = useState("");
   const [conferente, setConferente] = useState("");
   const [separador, setSeparador] = useState("");
   const [motorista, setMotorista] = useState("");
@@ -146,6 +148,8 @@ export default function RomaneiosPage() {
     try {
       const fd = new FormData();
       fd.append("pedido", pedidoFiltro);
+      fd.append("cliente", cliente.trim());
+      fd.append("destino", destino.trim());
       if (comUsinagem && usinagem) fd.append("usinagem", usinagem);
       fd.append("mountType", mountType);
       fd.append(
@@ -369,6 +373,8 @@ export default function RomaneiosPage() {
                           setUsinagem(null);
                           const preparado = preparadosPorPedido.get(entry.numero);
                           setResultado(preparado?.resultado || null);
+                          setCliente(String(preparado?.resultado?.client || ""));
+                          setDestino(String(preparado?.resultado?.destination || ""));
                           if (preparado?.montagem) setMountType(preparado.montagem);
                           else if (entry.tipoPedido === "REVENDA") setMountType("REVENDA");
                           else if (entry.tipoPedido === "ENGENHARIA") setMountType(entry.montagem as MountType);
@@ -453,6 +459,8 @@ export default function RomaneiosPage() {
         </div>
         <div className="form-grid" style={{ marginTop: "var(--sp-4)" }}>
           <Field label="Filtro"><input value={filtro} onChange={(e) => setFiltro(e.target.value)} /></Field>
+          <Field label="Cliente (etiquetas)"><input value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Nome do cliente" /></Field>
+          <Field label="Destino (etiquetas)"><input value={destino} onChange={(e) => setDestino(e.target.value)} placeholder="Destino da entrega" /></Field>
           <Field label="Página"><input value={pagina} onChange={(e) => setPagina(e.target.value)} /></Field>
           <Field label="Conferente"><input value={conferente} onChange={(e) => setConferente(e.target.value)} /></Field>
           <Field label="Separado por"><input value={separador} onChange={(e) => setSeparador(e.target.value)} /></Field>
