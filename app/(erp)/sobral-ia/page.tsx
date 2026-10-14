@@ -144,6 +144,7 @@ export default function SobralIAPage(){
      {msgs.map((m,i)=><article key={i} className={`ai-bubble ${m.role}`}><div className="ai-bubble-label">{m.role==="user"?"Você":"Sobral IA"}</div><div className="ai-bubble-content"><AiMessage text={m.content}/></div>
       {m.anexos?.map((a,k)=><div className="ai-action-row" key={k}>
        {a.type==="confirm"&&<button className="primary" onClick={()=>void confirmar(a.token)}><Check/> Confirmar: {a.label}</button>}
+       {a.type==="arquivo"&&<a className="primary" href={a.url} target="_blank" rel="noopener noreferrer" download><FileSpreadsheet/> {a.label}</a>}
        {a.type==="romaneio"&&<button className="primary" onClick={()=>abrirRomaneioIA({romaneio:a.data})}><FileSpreadsheet/> Revisar romaneio</button>}
        {a.type==="planilha_programacao"&&<button className="primary" onClick={async()=>{if(pg?.produtos?.length)await baixarPlanilhaProducao(pg.produtos,{setores:a.setores,arquivo:a.arquivo})}}><FileSpreadsheet/> {a.label}</button>}
        {a.type==="planilha_usinagem"&&<button className="primary" onClick={async()=>{if(!pg?.produtos?.length)return;const ps=a.pedido?pg.produtos.filter(p=>String(p.pedido)===String(a.pedido)):pg.produtos;await baixarPlanilhaProducao(ps,{setores:a.setores,arquivo:a.arquivo})}}><FileSpreadsheet/> {a.label}</button>}

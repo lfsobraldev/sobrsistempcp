@@ -145,6 +145,16 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
         inputSchema: z.object({ caminho: z.string() }),
         execute: async (input) => runTool("navegar", input, { user: s, attachments }),
       }),
+      gerar_documentos_pedido: tool({
+        description: TOOL_META.gerar_documentos_pedido,
+        inputSchema: z.object({pedido:z.string().min(1).max(80),tipo:z.enum(["romaneio","etiquetas","ambos"]).default("ambos")}),
+        execute: async (input) => runTool("gerar_documentos_pedido",input,{user:s,attachments}),
+      }),
+      planejamento_capacidade: tool({
+        description: TOOL_META.planejamento_capacidade,
+        inputSchema: z.object({}),
+        execute: async (input) => runTool("planejamento_capacidade",input,{user:s,attachments}),
+      }),
       gerar_romaneio: tool({
         description: TOOL_META.gerar_romaneio,
         inputSchema: z.object({

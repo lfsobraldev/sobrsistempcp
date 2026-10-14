@@ -8,6 +8,7 @@ import { processosUsinagemDoItem, familiaIndustrial, tipoPeca, temCanalBorracha 
 
 export type Attachment =
   | { type: "navigate"; path: string; label: string }
+  | { type: "arquivo"; url: string; label: string; pedido: string }
   | { type: "confirm"; label: string; token: string }
   | { type: "romaneio"; data: unknown; alertas: unknown; resumo: unknown }
   | { type: "planilha_usinagem"; setores: string[]; arquivo: string; label: string; pedido?: string }
@@ -18,6 +19,8 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  gerar_documentos_pedido: "Gera links autenticados para o romaneio e as etiquetas Excel de um pedido REAL da programação ativa, usando somente o gerador oficial e romaneio previamente processado; não inventa itens.",
+  planejamento_capacidade: "Analisa gargalos reais, capacidade por turno, saldos, filas fixadas e sequência sugerida por processo. Não altera produção; sinaliza setores sem capacidade cadastrada.",
   consultar_pecas_por_medida: "Consulta diretamente os itens da programação ativa filtrados por família, largura e espessura (por exemplo alizares 50x9), com quantidade por pedido e OF e saldo de embalagem quando existir. Nunca confundir esta programação com a semana inteira.",
   simular_programacao_urgente: "Simula uma programação urgente de um pedido existente na programação ativa, consulta operações com saldo, máquinas/setores envolvidos e filas fixadas. Somente leitura: não altera prioridades nem libera produção.",
   resumo_metros_lineares: "Calcula os metros lineares físicos da programação ativa, por pedido ou total, com comprimento x quantidade e itens sem medida identificados.",
@@ -349,6 +352,77 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         if (!allowedPath(ctx.user.perfil, path)) return j({ erro: "Tela inexistente ou sem permissão.", telasPermitidas: pathsFor(ctx.user.perfil) });
         ctx.attachments.push({ type: "navigate", path, label: path });
         return j({ ok: true, mensagem: `Botão de navegação para ${path} exibido ao usuário.` });
+      }
+      case "gerar_documentos_pedido": {
+        if (!["PCP","GERENTE","ENCARREGADO","LIDER"].includes(ctx.user.perfil))
+          return {erro:"Sem permissão para gerar documentos."};
+        const pedido = String(input.pedido || "").trim();
+        const tipo = String(input.tipo || "ambos").toLowerCase();
+        if (!/^[a-zA-Z0-9._-]{1,80}$/.test(pedido) ||
+          !["romaneio","etiquetas","ambos"].includes(tipo))
+          return {erro:"Pedido ou tipo inválido."};
+        const {db,pg} = await programacaoAtiva();
+        if (!pg) return {erro:"Não há programação ativa."};
+        const {ensurePreparedRomaneiosTable} = await import("@/lib/romaneio/prepared");
+        await ensurePreparedRomaneiosTable(db);
+        const [row] = await db`
+          select pedido, cliente, status, warnings, resultado
+          from pcp_romaneios_preparados
+          where programacao_id=${pg.id} and pedido=${pedido} limit 1
+        `;
+        if (!row) return {erro:"Romaneio não preparado para esse pedido. Revise e prepare primeiro no módulo Romaneios.",pedido};
+        const data = row.resultado;
+        const {canGenerate} = await import("@/lib/romaneio/validation");
+        if (!data?.packages?.length || !canGenerate(data))
+          return {erro:"Romaneio com pendências impeditivas; não foi gerado.",pedido,warnings:row.warnings};
+        const temCliente = Boolean(String(data.client || "").trim());
+        const temDestino = Boolean(String(data.destination || "").trim());
+        const tipos = tipo === "ambos" ? ["romaneio","etiquetas"] : [tipo];
+        const gerados:string[] = [];
+        const bloqueados:string[] = [];
+        for (const t of tipos) {
+          if (t === "etiquetas" && (!temCliente || !temDestino)) {
+            bloqueados.push("Etiquetas: cliente e destino são obrigatórios.");
+            continue;
+          }
+          const url = "/api/ia/arquivos?pedido=" + encodeURIComponent(pedido) + "&tipo=" + t;
+          ctx.attachments.push({type:"arquivo",url,label:t==="romaneio"?"Baixar romaneio Excel":"Baixar etiquetas Excel",pedido});
+          gerados.push(t);
+        }
+        return {pedido,cliente:row.cliente,status:row.status,gerados,bloqueados,
+          observacao:"Arquivos são gerados no download a partir do romaneio preparado, sem modificar o pedido."};
+      }
+      case "planejamento_capacidade": {
+        const {db,pg} = await programacaoAtiva();
+        if (!pg) return {erro:"Nenhuma programação ativa."};
+        const [capacidades,planejamento] = await Promise.all([
+          capacidadeProcessos(db,pg),planejarFabrica(db,pg)
+        ]);
+        const cap = capacidades.map((x:any)=>({
+          processo:x.processo,saldo:x.saldo,capacidadeTurno:x.capacidadeTurno,
+          cargaPct:x.cargaPct,gargalo:x.gargalo,capacidadeCadastrada:x.capacidadeCadastrada,
+          turnosEstimados:x.capacidadeTurno>0?Math.ceil(x.saldo/x.capacidadeTurno):null
+        }));
+        const filaComProjecao = (planejamento.sequencias || []).map((setor:any) => {
+          const capacidadeTurno = Number(cap.find((c:any)=>c.processo===setor.processo)?.capacidadeTurno || 0);
+          let acumulado = 0;
+          return {
+            processo: setor.processo, capacidadeTurno: capacidadeTurno || null,
+            filaSugerida: (setor.filaSugerida || []).map((item:any) => {
+              const saldo = Math.max(0,Number(item.saldo || 0));
+              const inicio = capacidadeTurno > 0 ? Math.floor(acumulado / capacidadeTurno) + 1 : null;
+              acumulado += saldo;
+              const fim = capacidadeTurno > 0 ? Math.ceil(acumulado / capacidadeTurno) : null;
+              return {...item, turnoEstimadoInicio:inicio,turnoEstimadoFim:fim,
+                exigeRevisaoCapacidade:capacidadeTurno<=0};
+            }),
+          };
+        });
+        return {programacao:pg,capacidades:cap,
+          gargalos:cap.filter((x:any)=>x.gargalo===true),
+          semCadastro:cap.filter((x:any)=>!x.capacidadeCadastrada).map((x:any)=>x.processo),
+          sequencias:filaComProjecao,
+          premissas:"Capacidade estimada por peças/hora × minutos disponíveis × eficiência. Sequência sugerida por prioridade e prazo, preservando filas fixadas. Projeções são em turnos consecutivos por processo, sem calendário nem setup; não considerar como prazo prometido. NÃO é APS com setup e dependências calculados; não altera fila."};
       }
       case "gerar_romaneio": {
         if (!["PCP", "GERENTE", "ENCARREGADO", "LIDER"].includes(ctx.user.perfil)) return j({ erro: "Sem permissão para romaneios." });
