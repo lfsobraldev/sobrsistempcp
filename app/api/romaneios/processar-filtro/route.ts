@@ -29,6 +29,8 @@ export async function POST(req: Request) {
     const fd = await req.formData();
     const pedido = String(fd.get("pedido") || "").trim();
     const mach = fd.get("usinagem");
+    const clienteInformado = String(fd.get("cliente") || "").trim().slice(0, 240);
+    const destinoInformado = String(fd.get("destino") || "").trim().slice(0, 240);
 
     if (!pedido) {
       return NextResponse.json(
@@ -154,8 +156,8 @@ export async function POST(req: Request) {
     const result = buildProcessingFromFilterProducts(
       {
         orderNumber: pedido,
-        client: String(first.pedido_cliente || ""),
-        destination: "",
+        client: clienteInformado || String(first.pedido_cliente || ""),
+        destination: destinoInformado,
         products: rows.map((row: any) => ({
           item: row.item,
           produto: row.produto,
@@ -212,7 +214,7 @@ export async function POST(req: Request) {
       values(
         ${programacaoId},
         ${pedido},
-        ${String(first.pedido_cliente || "")},
+        ${result.client},
         ${tipoPedido},
         ${mountType},
         ${statusRomaneio},
