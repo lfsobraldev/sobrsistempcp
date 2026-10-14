@@ -59,7 +59,7 @@ export default function Programacao() {
         }
         const elegiveis = parsed.produtos.filter((p: any) =>
           ["material", "medida"].some((k) => !String(p[k] || "").trim()) &&
-          /\b(MDF|ULTRA|STD|RU|COLMEIA|SOLIDA|SÓLIDA)\b|\d{3,4}[X×]\d{2,4}/i.test(String(p.descricao || ""))
+          /\b(MDF|ULTRA|STD|RU|HDF|PINUS)\b|(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)(]|$)|\d{3,4}[X×]\d{2,4}/i.test([p.descricao, p.descricaoModelo, p.outrasCaracteristicas].filter(Boolean).join(" "))
         );
         const updates = new Map<string, any>();
         const rastreio: Array<{ id: string; campo: string; valor: string; evidencia: string; metodo: string }> = [];
@@ -421,7 +421,7 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
         </button>
       </div>
       <Card subtitle={`Prévia limitada a 250 linhas · a programação completa (${d.produtos.length}) será salva`} title="Itens da programação" className="mb">
-        <DataTable head={["Seq.", "Pedido", "Item", "OF", "Produto", "Família", "Descrição", "Tipo", "Canal", "Rebaixo", "Acabamento", "Cor", "Qtd programada", "Comp.", "Larg.", "Esp.", "Prioridade", "Rota"]}>
+        <DataTable head={["Seq.", "Pedido", "Item", "OF", "Produto", "Família", "Descrição", "Descrição Máscara", "Material", "Tipo", "Canal", "Rebaixo", "Acabamento", "Cor", "Qtd programada", "Comp.", "Larg.", "Esp.", "Prioridade", "Rota"]}>
           {d.produtos.slice(0, 250).map((p, index) => {
             const m = modeloProduto(p);
             return (
@@ -430,6 +430,8 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
                 <td>{m.pedido}</td><td>{m.item}</td><td><b>{m.of}</b></td><td>{m.produto}</td>
                 <td><Badge>{m.familia}</Badge></td>
                 <td className="descCell" title={p.descricao} style={descricaoExpandida ? { minWidth: 540, maxWidth: 750, width: 640, whiteSpace: "normal", overflowWrap: "anywhere", lineHeight: 1.5 } : undefined}><b>{p.descricao}</b></td>
+                <td title={p.descricaoModelo || ""} style={descricaoExpandida ? { minWidth: 300, whiteSpace: "normal", overflowWrap: "anywhere" } : undefined}>{p.descricaoModelo || "-"}</td>
+                <td>{p.material || "-"}</td>
                 <td style={descricaoExpandida ? { minWidth: 140, whiteSpace: "normal" } : undefined}>{m.tipo}</td><td>{m.canal}</td><td style={descricaoExpandida ? { minWidth: 135, whiteSpace: "normal" } : undefined}>{m.rebaixo}</td><td>{m.acabamento}</td><td>{m.cor}</td>
                 <td className="num">{m.planejado}</td>
                 <td className="num mono">{m.comprimento || "-"}</td>
