@@ -7,6 +7,7 @@ import { useOps } from "@/components/operational-provider";
 import { Badge, Card, DataTable, Field, PageHeader, StatCard, type Tone } from "@/components/ui";
 import { LABELS } from "@/lib/metrics";
 import { modeloProduto } from "@/lib/presentation";
+import { resumoPorSetor } from "@/lib/programacao-auditoria";
 import { compareProduto } from "@/lib/sort";
 import { familiaIndustrial } from "@/lib/domain/industrial";
 
@@ -298,6 +299,8 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
   // Ferragens ficam no romaneio, mas não se tornam operações produtivas do PCP.
   const ferragens = (d.romaneioProdutos || []).filter((p) => familiaIndustrial(p) === "FERRAGENS");
   const itensPreview = [...d.produtos, ...ferragens].sort(compareProduto);
+  const resumoSetores = resumoPorSetor(d.produtos);
+  const totalPendencias = resumoSetores.reduce((n, setor) => n + setor.materiaisAusentes + setor.medidasAusentes, 0);
 
   return (
     <>
@@ -321,6 +324,26 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
         <StatCard label="Sem rota" value={d.semRota} tone={d.semRota ? "warning" : "neutral"} />
         <StatCard label="Inconsistências" value={d.inconsistenciasRota} tone={d.inconsistenciasRota ? "warning" : "neutral"} />
       </div>
+
+      <Card title="Programação pronta para os setores" subtitle="Quantidades por operação. Não soma a mesma peça de processos diferentes como produção total." className="mb">
+        <DataTable head={["Setor / máquina", "Pedidos", "OFs", "Linhas", "Qtd. programada", "Sem material", "Sem medida"]}>
+          {resumoSetores.map((setor) => (
+            <tr key={setor.setor}>
+              <td><b>{setor.setor}</b></td>
+              <td className="num">{setor.pedidos}</td>
+              <td className="num">{setor.ofs}</td>
+              <td className="num">{setor.linhas}</td>
+              <td className="num"><b>{setor.pecas.toLocaleString("pt-BR")}</b></td>
+              <td><Badge tone={setor.materiaisAusentes ? "warning" : "success"}>{setor.materiaisAusentes}</Badge></td>
+              <td><Badge tone={setor.medidasAusentes ? "warning" : "success"}>{setor.medidasAusentes}</Badge></td>
+            </tr>
+          ))}
+        </DataTable>
+        {resumoSetores.length === 0 && <p className="muted">Nenhuma operação produtiva identificada. Confira o roteamento antes de liberar.</p>}
+        {totalPendencias > 0 && (
+          <p className="muted"><b>{totalPendencias}</b> campo(s) ausente(s) nas linhas por operação. Revise a tabela de itens antes de imprimir; uma peça pode aparecer em mais de um setor.</p>
+        )}
+      </Card>
 
       {correcoes.length > 0 && (
         <Card subtitle="Revisão antes da liberação" title={`Complementações auditáveis (${correcoes.length})`} className="mb">
