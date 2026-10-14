@@ -509,7 +509,7 @@ function medida(
   return "";
 }
 
-function medidaLinha(r: Record<string, string>) {
+export function medidaLinha(r: Record<string, string>) {
   // O Filtro Consistem possui dimensões próprias: são mais confiáveis que
   // a descrição abreviada e evitam interpretar 2100x700x3 como espessura 3.
   const valores = ["Comprimento", "Largura", "Espessura"].map(campo =>
