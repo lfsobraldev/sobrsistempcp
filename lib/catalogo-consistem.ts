@@ -71,7 +71,7 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
   const medidaCompleta=narrativa.match(/\b(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{1,3}(?:[.,]\d+)?)\b/);
   if(medidaCompleta) {
     const catalogoMedida=medidaCompleta.slice(1,4).map(v=>String(Number(v.replace(",",".")))).join("x");
-    const medidaOriginal=String(p.medida || "").match(/^\\s*(\\d{2,4})\\s*[xX×]\\s*(\\d{2,4})\\s*[xX×]\\s*(\\d{1,3})\\s*$/);
+    const medidaOriginal=String(p.medida || "").match(/^\s*(\d{2,4})\s*[xX×]\s*(\d{2,4})\s*[xX×]\s*(\d{1,3})\s*$/);
     // Se o filtro contém três dimensões completas, a narrativa do catálogo
     // nunca pode alterá-las silenciosamente (ex.: perfis 5260 vs 2130).
     // A divergência deve ser analisada em auditoria, sem inventar medidas.
