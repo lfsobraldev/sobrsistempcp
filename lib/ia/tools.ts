@@ -363,6 +363,8 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           return {erro:"Pedido ou tipo inválido."};
         const {db,pg} = await programacaoAtiva();
         if (!pg) return {erro:"Não há programação ativa."};
+        const {ensurePreparedRomaneiosTable} = await import("@/lib/romaneio/prepared");
+        await ensurePreparedRomaneiosTable(db);
         const [row] = await db`
           select pedido, cliente, status, warnings, resultado
           from pcp_romaneios_preparados
