@@ -515,7 +515,7 @@ export function medidaLinha(r: Record<string, string>) {
   const valores = ["Comprimento", "Largura", "Espessura"].map(campo =>
     clean(field(r, campo)).replace(",", ".")
   );
-  const completos = valores.every(v => /^\\d+(?:\\.\\d+)?$/.test(v) && Number(v) > 0);
+  const completos = valores.every(v => /^\d+(?:\.\d+)?$/.test(v) && Number(v) > 0);
   if (completos) return valores.map(v => String(Number(v))).join("x");
 
   const prioritarios = [
