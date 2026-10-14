@@ -70,7 +70,14 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
   // pode ter precedência sobre o 2110x50x9 do catálogo.
   const medidaCompleta=narrativa.match(/\b(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{1,3}(?:[.,]\d+)?)\b/);
   if(medidaCompleta) {
-    copy.medida=medidaCompleta.slice(1,4).map(v=>v.replace(",",".")).join("x");
+    const catalogoMedida=medidaCompleta.slice(1,4).map(v=>String(Number(v.replace(",",".")))).join("x");
+    const medidaOriginal=String(p.medida || "").match(/^\\s*(\\d{2,4})\\s*[xX×]\\s*(\\d{2,4})\\s*[xX×]\\s*(\\d{1,3})\\s*$/);
+    // Se o filtro contém três dimensões completas, a narrativa do catálogo
+    // nunca pode alterá-las silenciosamente (ex.: perfis 5260 vs 2130).
+    // A divergência deve ser analisada em auditoria, sem inventar medidas.
+    copy.medida=medidaOriginal
+      ? medidaOriginal.slice(1).map(v=>String(Number(v))).join("x")
+      : catalogoMedida;
   } else if(!String(copy.medida||"").trim() && String(preenchido.medida||"").trim()) {
     copy.medida=preenchido.medida;
   }
