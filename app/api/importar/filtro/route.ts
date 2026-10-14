@@ -30,7 +30,7 @@ export async function POST(req: Request) {
         pendencias: principal.pendencias.length,
         corrigidosRomaneio: romaneio?.alteracoes.length ?? 0,
       },
-      ...(process.env.PCP_AI_RELEASE_ENRICHMENT === "enabled" ? { complementoIA: { modo: "IA_EM_LOTES" } } : {}),
+      ...(process.env.PCP_AI_RELEASE_ENRICHMENT !== "disabled" ? { complementoIA: { modo: "IA_EM_LOTES" } } : {}),
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (e: any) {
     const status = e?.message === "SEM_PERMISSAO" ? 403 : 500;
