@@ -1,5 +1,6 @@
 import { sql } from "@/lib/db";
 import { buildProcessingFromFilterProducts } from "@/lib/romaneio/parser";
+import { auditarCoberturaRomaneio } from "@/lib/romaneio/source-audit";
 import type { MountType, ProcessingResult } from "@/lib/romaneio/types";
 
 export type PreparedRomaneio = {
@@ -107,6 +108,18 @@ export async function buildPreparedForOrder(args: {
     }
   );
 
+  if (Number(result.reconciliation?.unmapped || 0) > 0) {
+    throw new Error(`Pedido ${args.pedido}: ${result.reconciliation?.unmapped} item(ns) de origem sem vínculo no romaneio.`);
+  }
+  const diagnostico = result.parserDiagnostics;
+  if (diagnostico) {
+    for (const [familia, origem] of Object.entries(diagnostico.sourceCategories || {})) {
+      const ligados = Number((diagnostico.mappedCategories as Record<string, number> | undefined)?.[familia] || 0);
+      if (Number(origem) > ligados) {
+        throw new Error(`Pedido ${args.pedido}: ${familia} possui ${origem} linha(s) na origem e somente ${ligados} no romaneio.`);
+      }
+    }
+  }
   result.sourceMode = "FILTRO_CONSISTEM";
   result.sourceFileName = `Filtro ${args.filtro || "-"} • Pedido ${args.pedido}`;
 
@@ -188,6 +201,22 @@ export async function prepareAllRomaneios(programacaoId: string, filtro: string,
       where programacao_id=${programacaoId}
       order by pedido,item
     `;
+  }
+
+  // Confere a fonte de expedição com todos os itens operacionais registrados:
+  // não basta haver alguma linha do pedido, todas as famílias devem coincidir.
+  const linhasPCP = await db`
+    select pedido,categoria,descricao,produto,material,medida,quantidade
+    from pcp_produtos
+    where programacao_id=${programacaoId}
+  `;
+  const divergencias = auditarCoberturaRomaneio(linhasPCP as any[], rows as any[]);
+  if (divergencias.length) {
+    return {
+      total: new Set((linhasPCP as any[]).map((x) => String(x.pedido))).size,
+      preparados: 0, atencao: divergencias.length, preProntos: 0, prontos: 0,
+      erros: divergencias.map((d) => ({pedido:d.pedido,erro:d.mensagem})),
+    };
   }
 
   const grouped = new Map<string, any[]>();

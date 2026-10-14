@@ -6,6 +6,8 @@ import {
 } from "@/lib/romaneio/parser";
 import { sanitizeConfig } from "@/lib/romaneio/settings";
 import { ensurePreparedRomaneiosTable } from "@/lib/romaneio/prepared";
+import { auditarCoberturaRomaneio } from "@/lib/romaneio/source-audit";
+import { canGenerate } from "@/lib/romaneio/validation";
 import type {
   LogisticsConfig,
   MountType,
@@ -29,6 +31,8 @@ export async function POST(req: Request) {
     const fd = await req.formData();
     const pedido = String(fd.get("pedido") || "").trim();
     const mach = fd.get("usinagem");
+    const clienteInformado = String(fd.get("cliente") || "").trim().slice(0, 240);
+    const destinoInformado = String(fd.get("destino") || "").trim().slice(0, 240);
 
     if (!pedido) {
       return NextResponse.json(
@@ -141,6 +145,16 @@ export async function POST(req: Request) {
       );
     }
 
+    const [pcpRows] = await Promise.all([
+      db`select pedido,categoria,descricao,produto,material,medida,quantidade
+         from pcp_produtos where programacao_id=${programacaoId} and pedido=${pedido}`
+    ]);
+    const divergencias = auditarCoberturaRomaneio(pcpRows as any[], rows as any[]);
+    if (divergencias.length) return NextResponse.json({
+      error: "Itens ou quantidades divergentes entre programação e fonte do romaneio. Corrija antes de gerar.",
+      divergencias
+    }, {status:422});
+
     const first: any = rows[0];
     const machBuf =
       mach instanceof File
@@ -154,8 +168,8 @@ export async function POST(req: Request) {
     const result = buildProcessingFromFilterProducts(
       {
         orderNumber: pedido,
-        client: String(first.pedido_cliente || ""),
-        destination: "",
+        client: clienteInformado || String(first.pedido_cliente || ""),
+        destination: destinoInformado,
         products: rows.map((row: any) => ({
           item: row.item,
           produto: row.produto,
@@ -181,6 +195,12 @@ export async function POST(req: Request) {
         orderOptions,
       }
     );
+
+    if (!canGenerate(result)) {
+      return NextResponse.json({
+        error: "Romaneio incompleto: existe item da origem sem vínculo ou divergência de classificação. Revise antes da emissão."
+      },{status:422});
+    }
 
     if (mach instanceof File) {
       await db`
@@ -212,7 +232,7 @@ export async function POST(req: Request) {
       values(
         ${programacaoId},
         ${pedido},
-        ${String(first.pedido_cliente || "")},
+        ${result.client},
         ${tipoPedido},
         ${mountType},
         ${statusRomaneio},

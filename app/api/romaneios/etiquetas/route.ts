@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { createLabelsWorkbook } from "@/lib/romaneio/labels";
+import { canGenerate } from "@/lib/romaneio/validation";
 import type { ProcessingResult } from "@/lib/romaneio/types";
 
 export const runtime = "nodejs";
@@ -16,6 +17,13 @@ export async function POST(req: Request) {
         { error: "Nenhum romaneio processado." },
         { status: 400 }
       );
+    }
+
+    if (!canGenerate(data)) {
+      return NextResponse.json({ error: "O romaneio contém peças não conferidas. Corrija a origem antes de gerar etiquetas." }, { status: 409 });
+    }
+    if (!data.client?.trim() || !data.destination?.trim()) {
+      return NextResponse.json({ error: "Cliente e destino são obrigatórios para emitir etiquetas." }, { status: 409 });
     }
 
     const buffer = await createLabelsWorkbook(data);

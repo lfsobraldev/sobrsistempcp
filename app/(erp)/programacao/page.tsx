@@ -8,6 +8,7 @@ import { Badge, Card, DataTable, Field, PageHeader, StatCard, type Tone } from "
 import { LABELS } from "@/lib/metrics";
 import { modeloProduto } from "@/lib/presentation";
 import { resumoPorSetor } from "@/lib/programacao-auditoria";
+import { auditarCoberturaRomaneio } from "@/lib/romaneio/source-audit";
 import { compareProduto } from "@/lib/sort";
 import { familiaIndustrial } from "@/lib/domain/industrial";
 
@@ -300,6 +301,7 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
   const ferragens = (d.romaneioProdutos || []).filter((p) => familiaIndustrial(p) === "FERRAGENS");
   const itensPreview = [...d.produtos, ...ferragens].sort(compareProduto);
   const resumoSetores = resumoPorSetor(d.produtos);
+  const auditoriaRomaneio = auditarCoberturaRomaneio(d.produtos, d.romaneioProdutos || (d.filtro === "PEDIDO" ? d.produtos : []));
   const totalPendencias = resumoSetores.reduce((n, setor) => n + setor.materiaisAusentes + setor.medidasAusentes, 0);
 
   return (
@@ -311,7 +313,7 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
         </div>
         <div className="ph-actions">
           <button onClick={back}>Voltar</button>
-          <button className="primary" disabled={busy} onClick={release}>{busy ? "Liberando…" : "Liberar para a fábrica"}</button>
+          <button className="primary" disabled={busy || auditoriaRomaneio.length > 0} onClick={release}>{busy ? "Liberando…" : "Liberar para a fábrica"}</button>
         </div>
       </div>
 
@@ -343,6 +345,24 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
         {totalPendencias > 0 && (
           <p className="muted"><b>{totalPendencias}</b> campo(s) ausente(s) nas linhas por operação. Revise a tabela de itens antes de imprimir; uma peça pode aparecer em mais de um setor.</p>
         )}
+      </Card>
+
+      <Card title="Auditoria da fonte de romaneios" subtitle="Conferência por pedido e família: PCP × fonte completa do Consistem" className="mb">
+        {auditoriaRomaneio.length > 0 ? (
+          <>
+            <p className="muted"><b>{auditoriaRomaneio.length} divergência(s)</b> detectada(s). A liberação fica bloqueada até corrigir o arquivo ou a leitura.</p>
+            <DataTable head={["Pedido", "Família", "PCP", "Romaneio", "Diferença"]}>
+              {auditoriaRomaneio.slice(0, 100).map((d, i) => (
+                <tr key={`${d.pedido}-${d.familia}-${i}`}>
+                  <td>{d.pedido}</td><td>{d.familia}</td>
+                  <td className="num">{d.quantidadePCP}</td>
+                  <td className="num">{d.quantidadeRomaneio}</td>
+                  <td><Badge tone="danger">{d.diferenca}</Badge></td>
+                </tr>
+              ))}
+            </DataTable>
+          </>
+        ) : <p className="muted">Quantidades conferidas por família entre programação e romaneios. Ferragens são tratadas somente no romaneio.</p>}
       </Card>
 
       {correcoes.length > 0 && (
