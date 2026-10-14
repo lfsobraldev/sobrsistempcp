@@ -37,7 +37,8 @@ export function auditarCoberturaRomaneio(
   const atual = totalPorFamilia(produtos, true);
   const completa = totalPorFamilia(fonte, true);
   const pendencias: DivergenciaFonte[] = [];
-  for (const [key, qtdPCP] of atual) {
+  for (const key of new Set([...atual.keys(), ...completa.keys()])) {
+    const qtdPCP = atual.get(key) ?? 0;
     const [pedido, familia] = JSON.parse(key) as [string, string];
     const qtdRomaneio = completa.get(key) ?? 0;
     const diff = Math.round((qtdPCP - qtdRomaneio) * 1000) / 1000;
