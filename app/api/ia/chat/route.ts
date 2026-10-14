@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     }).format(new Date());
 
     const conhecimentoEquipe = await conhecimentoTreinavelPrompt();
-    const system = `${SYSTEM_BASE}\nQuando perguntarem quantas peças de uma MEDIDA (como alizar 50x9), use consultar_pecas_por_medida ANTES de responder. Mostre total programado e ressalva do período; se perguntarem esta semana, não confunda programação ativa com todas as datas da semana. Nunca diga que não possui consulta por medida sem chamar a ferramenta.\n
+    const system = `${SYSTEM_BASE}\nQuando perguntarem quantas peças de uma MEDIDA (como travessas de alizar 50x9), use consultar_pecas_por_medida ANTES de responder. Para TRAVESSAS informe tipoPeca=TRAVESSA; para PERNAS informe tipoPeca=PERNA. Nunca misture travessas com pernas, nem batentes com alizares. Mostre total programado e ressalva do período; se perguntarem esta semana, não confunda programação ativa com todas as datas da semana. Nunca diga que não possui consulta por medida sem chamar a ferramenta.\n
 ${conhecimentoEquipe}
 Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "-")}.
 Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
@@ -66,6 +66,7 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
         description: TOOL_META.consultar_pecas_por_medida,
         inputSchema: z.object({
           familia: z.enum(["ALIZARES", "BATENTES", "BAGUETE", "PORTAS"]).default("ALIZARES"),
+          tipoPeca: z.enum(["TODOS", "PERNA", "TRAVESSA"]).default("TODOS").describe("Obrigatório TRAVESSA quando a pergunta menciona travessas; PERNA quando menciona pernas."),
           largura: z.number().positive(),
           espessura: z.number().positive(),
           pedido: z.string().optional(),
