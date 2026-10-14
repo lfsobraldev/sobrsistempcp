@@ -19,13 +19,13 @@ export async function POST(req:Request) {
     await requireRoles(["PCP"]);
     const fd=await req.formData();
     const file=fd.get("arquivo");
-    if(!(file instanceof File) || !/\\.xlsx?$/i.test(file.name)) return NextResponse.json({error:"Envie a planilha XLSX/XLS com Código e Narrativa."},{status:400});
+    if(!(file instanceof File) || !/\.xlsx?$/i.test(file.name)) return NextResponse.json({error:"Envie a planilha XLSX/XLS com Código e Narrativa."},{status:400});
     if(file.size>25*1024*1024) return NextResponse.json({error:"Planilha acima do limite de 25 MB."},{status:413});
     const workbook=XLSX.read(Buffer.from(await file.arrayBuffer()),{type:"buffer",cellDates:false});
     const sheet=workbook.Sheets[workbook.SheetNames[0]];
     if(!sheet) return NextResponse.json({error:"Planilha sem aba de produtos."},{status:400});
     const raw=XLSX.utils.sheet_to_json<(string|number)[]>(sheet,{header:1,defval:"",raw:false});
-    const headers=(raw[0]||[]).map(v=>String(v).trim().normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toUpperCase());
+    const headers=(raw[0]||[]).map(v=>String(v).trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase());
     const indexCodigo=headers.indexOf("CODIGO"), indexNarrativa=headers.indexOf("NARRATIVA");
     if(indexCodigo<0 || indexNarrativa<0) return NextResponse.json({error:"Cabeçalhos Código e Narrativa não identificados na primeira linha."},{status:400});
     const itens=consolidarCatalogo(raw.slice(1).map(x=>({codigo:String(x[indexCodigo]??""),narrativa:String(x[indexNarrativa]??"")})));
