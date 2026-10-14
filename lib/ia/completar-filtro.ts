@@ -17,7 +17,7 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   const alteracoes: Alteracao[] = [];
   const descricao = String(p.descricao || "");
   const texto = normal(descricao);
-  const marco = /BATENTE|MARCO/.test(normal(String(p.categoria || ""))) || /^(?:CJ\s+M|M(?:\s+(?:P|T|CJ))?)\s/.test(texto) || /\b\d{3,4}X\d{2,3}X30\s+(?:42X10|S\/(?:REB|RB))\b/.test(texto);
+  const marco = /BATENTE|MARCO/.test(normal(String(p.categoria || ""))) || /^(?:CJ\s+M|M(?:\s+(?:P|T|CJ))?)\s/.test(texto) || /\b\d{3,4}X\d{2,3}X30\s+(?:42X10|S\/(?:REB|RB))\b/.test(texto) || /MARCO EM/.test(normal(String(p.produto || "")));
   const alizar = /ALIZAR/.test(normal(String(p.categoria || ""))) || /^A\s/.test(texto);
   const baguete = /BAGUETE/.test(normal(String(p.categoria || ""))) || /\bBAGUETE\b/.test(texto);
   const admiteRebaixo = marco && !alizar && !baguete;
@@ -46,6 +46,27 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   if (admiteRebaixo && rebaixo) preencher("rebaixo", /^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
   const cor = texto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
   if (cor) preencher("cor", cor, cor);
+  // Regras homologadas por PRODUTO (coluna H do Consistem). Só usam o nome do produto
+  // da própria linha e só preenchem campos vazios.
+  const nomeProduto = normal(String(p.produto || ""));
+  const porProduto = (campo: Campo, valor: string) => {
+    if (!vazio(produto[campo])) return;
+    produto[campo] = valor;
+    alteracoes.push({ id: p.id, campo, valor, evidencia: String(p.produto), metodo: "REGRA" });
+  };
+  if (/FOLHA DE PORTA ESTRUTURADA/.test(nomeProduto)) {
+    porProduto("tipo", "C/FRISO");
+    porProduto("canal", "C/USINAGEM PARCIAL");
+  } else if (/COLMEIA|HIVE/.test(nomeProduto) && /FOLHA DE PORTA|KIT MONTADO/.test(nomeProduto)) {
+    porProduto("tipo", "LISA");
+  } else if (/MARCO EM MADEIRA DE PINUS/.test(nomeProduto)) {
+    // Grafia "MADADEIRA" é a que já existe na planilha da fábrica; manter idêntica.
+    porProduto("tipo", "MADADEIRA DE PINUS");
+    if (/^C\/REB/.test(produto.rebaixo)) porProduto("canal", "C/BORRACHA I APLICADA");
+  } else if (/MARCO EM MDF ULTRA/.test(nomeProduto)) {
+    porProduto("tipo", "MDF ULTRA");
+    if (/^C\/REB/.test(produto.rebaixo)) porProduto("canal", "C/BORRACHA I APLICADA");
+  }
   // Siglas de rebaixo de alizares (RT/RTO) exigem confirmação na nomenclatura
   // oficial da fábrica; não inferir a partir de RT OL R80 ou abreviações similares.
   // Nunca adivinhar canal: R2L e abreviações semelhantes não comprovam canal de borracha.
