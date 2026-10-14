@@ -33,14 +33,15 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   // Reconhecer UL/ULTR somente como token final entre parênteses (nunca palavras aleatórias).
   const ultraAbreviado = texto.match(/(?:\(|\s)(U|UL|ULT|ULTR)(?:\s*\)?)$/)?.[1] || "";
   const ultraEmToken = texto.match(/(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=\s|\)|$)/)?.[0]?.trim() || "";
-  const material = texto.match(/\bMDF\s+(?:ULTRA|STD|RU)\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b/)?.[0] || ultraAbreviado || ultraEmToken;
+  const material = texto.match(/\bMDF\s+(?:ULTRA|STD|RU|PREMIUM|PREM)\b|\bPREMIUM\b|\bPREM\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b|\bPINUS\b/)?.[0] || ultraAbreviado || ultraEmToken;
   if (material) {
-    const nomeMaterial = material === "ULTRA" || Boolean((ultraAbreviado || ultraEmToken) && (material === ultraAbreviado || material === ultraEmToken)) ? "MDF ULTRA" : material === "STD" ? "MDF STD" : material;
+    const ehPremium = /^(?:MDF\s+)?PREM(?:IUM)?$/.test(material);
+    const nomeMaterial = ehPremium ? "MDF PREMIUM" : material === "ULTRA" || Boolean((ultraAbreviado || ultraEmToken) && (material === ultraAbreviado || material === ultraEmToken)) ? "MDF ULTRA" : material === "STD" ? "MDF STD" : material;
     preencher("material", nomeMaterial, material);
     // No Consistem, Tipo pode ser REG 2L, LISA, MDF ULTRA etc.; nunca assumir
     // que significa estrutura colmeia. Só completar como material para marcos/batentes.
-    if (marco && /^(MDF|ULTRA|STD|RU)\b/.test(material)) preencher("tipo", nomeMaterial, material);
-    if (alizar && (/\b(?:STD|ULTRA|MDF|RU)\b/.test(material) || Boolean(ultraAbreviado || ultraEmToken))) preencher("tipo", nomeMaterial === "MDF ULTRA" ? "ULTRA" : material === "MDF STD" ? "STD" : material, material);
+    if (marco && /^(MDF|ULTRA|STD|RU|PREM)/.test(material)) preencher("tipo", nomeMaterial, material);
+    if (alizar && (/\b(?:STD|ULTRA|MDF|RU|PREMIUM|PREM)\b/.test(material) || Boolean(ultraAbreviado || ultraEmToken))) preencher("tipo", ehPremium ? "PREMIUM" : nomeMaterial === "MDF ULTRA" ? "ULTRA" : material === "MDF STD" ? "STD" : material, material);
   }
   const rebaixo = texto.match(/\bS\/(?:REB|RB)\b|\b(?:C\/REB\s*)?42\s*X\s*10\b/)?.[0] || "";
   if (admiteRebaixo && rebaixo) preencher("rebaixo", /^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
@@ -54,18 +55,23 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
     produto[campo] = valor;
     alteracoes.push({ id: p.id, campo, valor, evidencia: String(p.produto), metodo: "REGRA" });
   };
-  if (/FOLHA DE PORTA ESTRUTURADA/.test(nomeProduto)) {
+  const comRebaixo = () => /^C\/REB/.test(produto.rebaixo);
+  const estruturada = /FOLHA DE PORTA ESTRUTURADA/.test(nomeProduto) || /^FO\s+POR\s+EST\b/.test(texto);
+  const lisa = (/COLMEIA|HIVE/.test(nomeProduto) && /FOLHA DE PORTA|KIT MONTADO/.test(nomeProduto)) || /^FO\s+POR\s+(?:COL|HI\s*C|HIVE)\b/.test(texto);
+  const marcoMdf = nomeProduto.match(/MARCO EM MDF\s+(ULTRA|STD|PREMIUM|RU)\b/)?.[1] || "";
+  if (estruturada) {
     porProduto("tipo", "C/FRISO");
     porProduto("canal", "C/USINAGEM PARCIAL");
-  } else if (/COLMEIA|HIVE/.test(nomeProduto) && /FOLHA DE PORTA|KIT MONTADO/.test(nomeProduto)) {
+  } else if (lisa) {
     porProduto("tipo", "LISA");
   } else if (/MARCO EM MADEIRA DE PINUS/.test(nomeProduto)) {
     // Grafia "MADADEIRA" é a que já existe na planilha da fábrica; manter idêntica.
     porProduto("tipo", "MADADEIRA DE PINUS");
-    if (/^C\/REB/.test(produto.rebaixo)) porProduto("canal", "C/BORRACHA I APLICADA");
-  } else if (/MARCO EM MDF ULTRA/.test(nomeProduto)) {
-    porProduto("tipo", "MDF ULTRA");
-    if (/^C\/REB/.test(produto.rebaixo)) porProduto("canal", "C/BORRACHA I APLICADA");
+    if (comRebaixo()) porProduto("canal", "C/BORRACHA I APLICADA");
+  } else if (marcoMdf) {
+    porProduto("tipo", "MDF " + marcoMdf);
+    // Canal de borracha só confirmado para ULTRA; STD, PREMIUM e RU ficam só com o Tipo.
+    if (marcoMdf === "ULTRA" && comRebaixo()) porProduto("canal", "C/BORRACHA I APLICADA");
   }
   // Siglas de rebaixo de alizares (RT/RTO) exigem confirmação na nomenclatura
   // oficial da fábrica; não inferir a partir de RT OL R80 ou abreviações similares.
@@ -100,7 +106,7 @@ export async function completarFiltro(
   const relevantes: Campo[] = ["material", "medida"];
   const candidatos = produtos.filter((p) =>
     relevantes.some((campo) => vazio(p[campo])) &&
-    /\b(?:MDF|ULTRA|STD|RU|HDF)\b|\d{3,4}[xX×]\d{2,4}/i.test(String(p.descricao || ""))
+    /\b(?:MDF|ULTRA|STD|RU|HDF|PREMIUM|PREM)\b|\d{3,4}[xX×]\d{2,4}/i.test(String(p.descricao || ""))
   );
   if (usarIA && candidatos.length) {
     assertGatewayConfigured();
