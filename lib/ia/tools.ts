@@ -19,6 +19,7 @@ const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
   consultar_pecas_por_medida: "Consulta diretamente os itens da programação ativa filtrados por família, largura e espessura (por exemplo alizares 50x9), com quantidade por pedido e OF e saldo de embalagem quando existir. Nunca confundir esta programação com a semana inteira.",
+  simular_programacao_urgente: "Simula uma programação urgente de um pedido existente na programação ativa, consulta operações com saldo, máquinas/setores envolvidos e filas fixadas. Somente leitura: não altera prioridades nem libera produção.",
   resumo_metros_lineares: "Calcula os metros lineares físicos da programação ativa, por pedido ou total, com comprimento x quantidade e itens sem medida identificados.",
   resumo_producao: "Resumo da programação ativa: filtro, turno, total de pedidos/OFs/peças e progresso por processo.",
   buscar_pedido: "Detalhes de um pedido na programação ativa: itens/OFs, prioridade e andamento por processo.",
@@ -167,6 +168,50 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         });
       }
 
+      case "simular_programacao_urgente": {
+        if (!["PCP", "GERENTE", "ENCARREGADO"].includes(ctx.user.perfil))
+          return { erro: "Sem permissão para simular programação urgente." };
+        const pedido = String(input.pedido || "").trim();
+        if (!pedido || pedido.length > 80) return { erro: "Informe um pedido válido." };
+        const { db, pg } = await programacaoAtiva();
+        if (!pg) return { erro: "Nenhuma programação ativa disponível." };
+        const items = await db`
+          select p.of,p.categoria,p.descricao,p.medida,p.material,p.quantidade::float quantidade,
+            o.processo,o.status,o.ordem_fila,
+            o.quantidade_planejada::float planejado,o.quantidade_produzida::float produzido,
+            coalesce(o.fixada,false) fixada
+          from pcp_produtos p
+          join pcp_operacoes o on o.produto_id=p.id
+          where p.programacao_id=${pg.id} and p.pedido=${pedido}
+          order by o.processo,o.ordem_fila
+        `;
+        if (!items.length) return { erro: "Pedido sem operações na programação ativa.", pedido, filtro: pg.filtro };
+        const pendentes = items.filter((o: any) =>
+          o.status !== "CONCLUIDA" && Number(o.planejado) > Number(o.produzido));
+        const setores = [...new Set(pendentes.map((o: any) => String(o.processo)))];
+        const filasFixadas = setores.length ? await db`
+          select o.processo,count(*)::int operacoes_fixadas
+          from pcp_operacoes o join pcp_produtos p on p.id=o.produto_id
+          where p.programacao_id=${pg.id}
+            and o.processo=any(${setores}) and coalesce(o.fixada,false)=true
+            and p.pedido<>${pedido} and o.status<>'CONCLUIDA'
+          group by o.processo
+        ` : [];
+        return {
+          simulacao: true, alteraDados: false, pedido, filtro: pg.filtro,
+          dataProgramacao: pg.data_programacao, turno: pg.turno,
+          operacoesPendentes: pendentes.map((o: any) => ({
+            of:o.of, descricao:o.descricao, familia:familiaIndustrial(o),
+            material:o.material, medida:o.medida, processo:o.processo,
+            filaAtual:Number(o.ordem_fila), fixada:Boolean(o.fixada),
+            saldo:Math.max(0,Number(o.planejado)-Number(o.produzido)),
+          })).slice(0,150),
+          totalOperacoesPendentes:pendentes.length, setores,
+          restricoesFilasFixadas: filasFixadas,
+          proximoPasso: "Conferir capacidade, operações precedentes e prioridades; solicitar aprovação explícita e usar fluxo próprio de alteração. Nenhuma fila foi alterada.",
+          observacao: "Não é uma programação otimizada APS; é prévia informativa baseada na programação ativa."
+        };
+      }
       case "planejar_fabrica": {
         const { db, pg } = await programacaoAtiva();
         if (!pg) return j({ erro: "Nenhuma programação ativa." });
