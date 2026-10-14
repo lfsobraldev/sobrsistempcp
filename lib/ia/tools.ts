@@ -19,6 +19,9 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  consultar_catalogo: "Consulta código e narrativa do catálogo mestre permanente da engenharia; informa conflito e variantes em vez de inventar especificações.",
+  consultar_conhecimento: "Recupera conteúdo e exemplos que a equipe cadastrou na base de treinamento da Sobral IA, identificando a fonte do procedimento.",
+  consultar_periodo: "Consulta programação histórica por datas, produto, peça e medida; não confunde programação ativa com semana. Retorna total por dia e pedido.",
   gerar_documentos_pedido: "Gera links autenticados para o romaneio e as etiquetas Excel de um pedido REAL da programação ativa, usando somente o gerador oficial e romaneio previamente processado; não inventa itens.",
   planejamento_capacidade: "Analisa gargalos reais, capacidade por turno, saldos, filas fixadas e sequência sugerida por processo. Não altera produção; sinaliza setores sem capacidade cadastrada.",
   consultar_pecas_por_medida: "Consulta peças EXATAMENTE por família, tipo PERNA ou TRAVESSA e perfil largura x espessura (ex.: travessas de alizar 50x9). Nunca somar pernas quando solicitado travessas. Para semana, declarar claramente que o dado é só da programação ativa, não o total semanal.",
@@ -51,6 +54,69 @@ const j = <T,>(v: T): T => v;
 export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<unknown> {
   try {
     switch (name) {
+      case "consultar_catalogo": {
+        const codigo=String(input.codigo||"").trim().replace(/\\.0$/,"").toUpperCase().slice(0,80);
+        if(!codigo) return {erro:"Informe o código do produto."};
+        const db=sql();
+        const rows=await db`
+          select c.codigo,c.narrativa,c.conflito,c.vazio,c.variantes,
+                 v.ativo_em as catalogoAtualizadoEm
+          from pcp_catalogo_produtos c join pcp_catalogo_versoes v on v.id=c.versao
+          where v.status='ATIVA' and c.codigo=${codigo} limit 1
+        `;
+        return rows.length?{fonte:"Catálogo Mestre de Produtos",registro:rows[0]}:
+          {fonte:"Catálogo Mestre de Produtos",erro:"Código não encontrado no catálogo ativo.",codigo};
+      }
+      case "consultar_conhecimento": {
+        const assunto=String(input.assunto||"").trim().slice(0,120);
+        if(assunto.length<2) return {erro:"Informe um assunto com pelo menos dois caracteres."};
+        const busca="%"+assunto.replace(/[%_]/g,"")+"%";
+        const db=sql();
+        const rows=await db`
+          select titulo,area,regra,exemplo,observacao,atualizado_em
+          from pcp_ia_conhecimento
+          where ativo=true and (titulo ilike ${busca} or regra ilike ${busca} or exemplo ilike ${busca})
+          order by prioridade desc,atualizado_em desc limit 12
+        `;
+        return {fonte:"Biblioteca de conhecimento cadastrada pela equipe",assunto,resultados:rows};
+      }
+      case "consultar_periodo": {
+        const inicio = String(input.inicio || "");
+        const fim = String(input.fim || "");
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(inicio) || !/^\d{4}-\d{2}-\d{2}$/.test(fim) || inicio > fim || !Number.isFinite(Date.parse(inicio)) || !Number.isFinite(Date.parse(fim)) || (Date.parse(fim)-Date.parse(inicio))>93*86400000) return { erro: "Período inválido; informe datas YYYY-MM-DD de até 93 dias." };
+        const familia = String(input.familia || "ALIZARES").toUpperCase();
+        const peca = String(input.peca || "TODOS").toUpperCase();
+        const largura = Number(input.largura || 0), espessura = Number(input.espessura || 0);
+        const db = sql();
+        const rows = await db`
+          select pg.data_programacao::text as dia, p.pedido, p.of, p.categoria, p.produto, p.tipo, p.descricao, p.medida, p.quantidade::float as quantidade
+          from pcp_produtos p join pcp_programacoes pg on pg.id=p.programacao_id
+          where pg.data_programacao::date >= ${inicio}::date and pg.data_programacao::date <= ${fim}::date
+            and pg.status in ('ATIVA','ENCERRADA')
+            and pg.id = (select pg2.id from pcp_programacoes pg2
+              where pg2.data_programacao::date=pg.data_programacao::date
+                and pg2.status in ('ATIVA','ENCERRADA')
+              order by pg2.criado_em desc limit 1)
+          order by pg.data_programacao,p.pedido limit 15000
+        `;
+        const { familiaIndustrial, tipoPeca, medidaDoItem } = await import("@/lib/domain/industrial");
+        const porDia: Record<string,number> = {}, porPedido: Record<string,number> = {}, porOF: Record<string,number> = {};
+        let total=0, linhas=0;
+        for (const p of rows) {
+          if (familiaIndustrial(p)!==familia || (peca!=="TODOS" && tipoPeca(p)!==peca)) continue;
+          const [,l,e]=medidaDoItem(p);
+          if ((largura && largura!==l) || (espessura && espessura!==e)) continue;
+          const q=Number(p.quantidade||0);
+          total+=q; linhas++;
+          porDia[p.dia]=(porDia[p.dia]||0)+q;
+          porPedido[p.pedido]=(porPedido[p.pedido]||0)+q;
+          const chaveOF=String(p.pedido)+"/"+String(p.of || "SEM OF");
+          porOF[chaveOF]=(porOF[chaveOF]||0)+q;
+        }
+        return { fonte:"programações salvas por data",inicio,fim,familia,peca,largura,espessura,totalProgramadoPecas:total,linhas,porDia,porPedido,porOF,
+          alerta:rows.length>=15000?"Limite de 15 mil registros, total possivelmente incompleto":null,
+          criterio:"Última programação cadastrada por dia. Quantidade programada não representa necessariamente saldo pendente." };
+      }
       case "consultar_pecas_por_medida": {
         const { db, pg } = await programacaoAtiva();
         if (!pg) return { erro: "Nenhuma programação ativa." };
