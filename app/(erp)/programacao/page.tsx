@@ -16,6 +16,9 @@ export default function Programacao() {
   const { refresh, toast, pg } = useOps();
   const [mode, setMode] = useState<"FILTRO" | "PEDIDO">("FILTRO");
   const [filter, setFilter] = useState<File | null>(null);
+  const [catalogoFile, setCatalogoFile] = useState<File | null>(null);
+  const [catalogoBusy, setCatalogoBusy] = useState(false);
+  const [catalogoResumo, setCatalogoResumo] = useState("");
   const [pedido, setPedido] = useState<File | null>(null);
   const [usinagem, setUsinagem] = useState<File | null>(null);
   const [draft, setDraft] = useState<ImportResult | null>(null);
@@ -27,6 +30,25 @@ export default function Programacao() {
   const [turno, setTurno] = useState("A");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [descricaoExpandida, setDescricaoExpandida] = useState(true);
+
+  async function cadastrarCatalogo() {
+    if(!catalogoFile || catalogoBusy) return;
+    setCatalogoBusy(true);
+    setCatalogoResumo("Importando e conferindo os códigos...");
+    try {
+      const fd = new FormData();
+      fd.append("arquivo", catalogoFile);
+      const r = await fetch("/api/catalogo-produtos",{method:"POST",body:fd});
+      const j = await r.json();
+      if(!r.ok) throw new Error(j.error || "Falha ao cadastrar catálogo.");
+      const msg = `${j.total.toLocaleString("pt-BR")} códigos cadastrados · ${j.conflitos} conflitos · ${j.semNarrativa} sem narrativa`;
+      setCatalogoResumo(msg);
+      toast("success","Catálogo atualizado. Os próximos filtros consultarão as narrativas.");
+    } catch(e:any) {
+      setCatalogoResumo("");
+      toast("error",e.message || "Falha ao cadastrar produtos.");
+    } finally {setCatalogoBusy(false);}
+  }
 
   async function process() {
     setRequisicaoId("");
@@ -200,6 +222,16 @@ export default function Programacao() {
           </button>
         ) : undefined}
       />
+
+      <Card title="Catálogo Mestre de Produtos" subtitle="Cadastro de Código + Narrativa completa do Consistem" className="mb">
+        <div className="row" style={{alignItems:"center",flexWrap:"wrap"}}>
+          <input type="file" accept=".xlsx,.xls" disabled={catalogoBusy} onChange={(e)=>setCatalogoFile(e.target.files?.[0] || null)} aria-label="Planilha do catálogo" />
+          <button type="button" disabled={!catalogoFile || catalogoBusy} onClick={()=>void cadastrarCatalogo()}>
+            <UploadCloud /> {catalogoBusy ? "Cadastrando catálogo…" : "Cadastrar / atualizar produtos"}
+          </button>
+        </div>
+        <p className="muted">{catalogoResumo || "Importe Eng Empresa 34.xlsx uma vez. Nas próximas programações, o código Produto recuperará automaticamente a narrativa cadastrada. Códigos conflitantes são ignorados e apresentados para conferência."}</p>
+      </Card>
 
       {!draft ? (
         <div className="split-form" style={{ gridTemplateColumns: "minmax(0,3fr) minmax(0,2fr)" }}>
