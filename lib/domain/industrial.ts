@@ -204,7 +204,8 @@ export function familiaIndustrial(
    */
   if (
     /\bBAGUETE\b/.test(primary) ||
-    /^BAG\b/.test(desc)
+    /^BAG(?:U(?:ETE)?)?\b/.test(desc) ||
+    (/\bBAGUETE\b/.test(text) && !/\bKIT\b/.test(primary))
   ) {
     return "BAGUETE";
   }
