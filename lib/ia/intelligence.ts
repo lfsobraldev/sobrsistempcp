@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { projetarFilaPorCapacidade } from "@/lib/ia/capacity-projection";
 
 export function localHoje() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -303,21 +304,29 @@ export async function planejarFabrica(
     porProcesso.set(key, [...(porProcesso.get(key) || []), item]);
   }
 
-  const sequencias = [...porProcesso.entries()].map(([processo, itens]) => ({
-    processo,
-    capacidade: capacidade.find((c: any) => c.processo === processo) || null,
-    filaSugerida: itens
-      .sort((a, b) => {
-        if (a.fixada !== b.fixada) return a.fixada ? -1 : 1;
-        if (a.fixada && b.fixada) return a.ordemFilaAtual - b.ordemFilaAtual;
-        return (
-          b.scorePrioridade - a.scorePrioridade ||
-          (a.diasParaEntrega ?? 9999) - (b.diasParaEntrega ?? 9999) ||
-          a.ordemFilaAtual - b.ordemFilaAtual
-        );
-      })
-      .slice(0, 25),
-  }));
+  const sequencias = [...porProcesso.entries()].map(([processo, itens]) => {
+    const cap = capacidade.find((c: any) => c.processo === processo) || null;
+    const filaOrdenada = itens.sort((a, b) => {
+      if (a.fixada !== b.fixada) return a.fixada ? -1 : 1;
+      if (a.fixada && b.fixada) return a.ordemFilaAtual - b.ordemFilaAtual;
+      return (
+        b.scorePrioridade - a.scorePrioridade ||
+        (a.diasParaEntrega ?? 9999) - (b.diasParaEntrega ?? 9999) ||
+        a.ordemFilaAtual - b.ordemFilaAtual
+      );
+    });
+    const projetadas = projetarFilaPorCapacidade(filaOrdenada, cap?.capacidadeTurno);
+    return {
+      processo,
+      capacidade: cap,
+      totalPedidosNaFila: filaOrdenada.length,
+      turnosMinimosEstimados: cap?.capacidadeTurno
+        ? Math.ceil(filaOrdenada.reduce((sum, item) => sum + item.saldo, 0) / cap.capacidadeTurno)
+        : null,
+      filaSugerida: projetadas.slice(0, 25),
+      ressalva: "Projeção por capacidade agregada do processo. Sem setups, paradas, transferências, dependências ou disponibilidade específica de cada máquina.",
+    };
+  });
 
   return {
     programacao: pg,
