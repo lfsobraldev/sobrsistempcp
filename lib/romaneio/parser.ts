@@ -780,7 +780,7 @@ function buildUnmachinedFilterRows(sourceRows: Array<{
     );
 
     return {
-      sourceItems: source.originalItem ? [source.originalItem] : [],
+      sourceItems: [source.item],
       sourceCode: source.code,
       sourceCodes: source.code ? [source.code] : [],
       quantity: source.quantity,
@@ -831,7 +831,6 @@ export function buildProcessingFromFilterProducts(
   }
 ): ProcessingResult {
   const duplicateCount = new Map<string, number>();
-  const exactSeen = new Set<string>();
 
   const sourceRows = input.products
     .map((product, index) => {
@@ -842,10 +841,8 @@ export function buildProcessingFromFilterProducts(
       const category = categoryFromFilterProduct(product);
       const measure = clean(product.medida || "");
 
-      const exactKey = [originalItem, code, norm(description), norm(measure), quantity, category].join("|");
-      if (originalItem && exactSeen.has(exactKey)) return null;
-      if (originalItem) exactSeen.add(exactKey);
-
+      // Não descartar linhas idênticas: OFs distintas podem ter mesmo item, código,
+      // descrição e quantidade. Toda linha física deve chegar ao romaneio.
       const baseKey = originalItem || `SEMITEM-${index + 1}`;
       const seen = (duplicateCount.get(baseKey) || 0) + 1;
       duplicateCount.set(baseKey, seen);
@@ -878,6 +875,11 @@ export function buildProcessingFromFilterProducts(
     quantity: row.quantity,
   }));
 
+  // Nunca aceitar silenciosamente a perda de linhas positivas da fonte.
+  const fisicas = input.products.filter((p) => Number(p.quantidade || 0) > 0);
+  if (fisicas.length !== sourceRows.length) {
+    throw new Error(`Romaneio incompleto: ${fisicas.length - sourceRows.length} linha(s) com quantidade positiva ficaram sem descrição ou identificação. Confira a origem.`);
+  }
   const items = allItems;
   const machining = parseMachining(machiningBuffer);
   const warnings: string[] = [];
@@ -1075,6 +1077,16 @@ export function buildProcessingFromFilterProducts(
     romaneioStyle: config.romaneioStyle,
     labelStyle: config.labelStyle,
   };
+
+  // Sem usinagem cada peça física de origem deve ser preservada, mesmo que
+  // várias linhas iguais sejam consolidadas no mesmo produto/pallet.
+  if (!machiningBuffer) {
+    const origemQtd = sourceRows.reduce((n, r) => n + r.quantity, 0);
+    const geradaQtd = rows.reduce((n, r) => n + Number(r.quantity || 0), 0);
+    if (origemQtd !== geradaQtd) {
+      throw new Error(`Romaneio incompleto: origem ${origemQtd} peças, resultado ${geradaQtd}. Geração bloqueada.`);
+    }
+  }
 
   const result = applyLogistics(base, mountType, config);
 
