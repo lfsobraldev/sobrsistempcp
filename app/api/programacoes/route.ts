@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
 import { prepareAllRomaneios } from "@/lib/romaneio/prepared";
+import { auditarCoberturaRomaneio } from "@/lib/romaneio/source-audit";
 import { completarFiltro } from "@/lib/ia/completar-filtro";
 import type { Produto } from "@/types/pcp";
 
@@ -29,6 +30,19 @@ export async function POST(req: Request) {
       produtos: complemento.produtos,
       romaneioProdutos: romaneio?.produtos ?? entrada.romaneioProdutos,
     };
+    // A lista produtiva e a lista física dos romaneios têm propósitos diferentes.
+    // A auditoria impede publicar um filtro cuja fonte de expedição perdeu
+    // portas, batentes, alizares, bandeiras, kits ou outros componentes.
+    const fonteCompleta = Array.isArray(b.romaneioProdutos) && b.romaneioProdutos.length
+      ? b.romaneioProdutos
+      : b.origem === "FILTRO" ? [] : b.produtos;
+    const divergenciasFonte = auditarCoberturaRomaneio(b.produtos, fonteCompleta || []);
+    if (divergenciasFonte.length) {
+      return NextResponse.json({
+        error: "A programação contém peças ausentes ou divergentes na fonte do romaneio. Corrija a importação antes de liberar.",
+        divergencias: divergenciasFonte.slice(0, 100),
+      }, {status: 422});
+    }
     // Auditoria recebida da prévia: não é autorização para editar registros.
     // Apenas referências que conferem com os próprios produtos são registradas.
     const permitidosAuditoria = new Set(["tipo", "material", "medida", "cor", "acabamento", "rebaixo", "canal"]);
