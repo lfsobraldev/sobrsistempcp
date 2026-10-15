@@ -150,28 +150,6 @@ function conjuntosPedido(produtos: Produto[]) {
   return {conjuntos,desmembrados,restantes,estoque,faltas:COMPONENTES_CONJUNTO.filter(x=>Math.floor(estoque[x]/COMPOSICAO[x])===conjuntos),alizarIndefinido};
 }
 
-// Quando o Consistem não traz a folha da porta no filtro, estimar kits
-// por componentes de batente, sem contar cada perna/travessa como um kit.
-function kitsPrevistosPedido(produtos: Produto[]) {
-  const portas = produtos.filter(p => familiaIndustrial(p) === "PORTAS")
-    .reduce((s,p) => s + n(p.quantidade), 0);
-  if (portas > 0) return portas;
-
-  const conjuntosExplicitos = produtos.filter(p => {
-    const texto = [p.categoria, p.descricao, p.tipo].filter(Boolean).join(" ").toUpperCase();
-    return /\b(CONJUNTO|CJ)\b/.test(texto)
-      && !/\b(KIT\s*(?:DE\s*)?CORRER|FERRAG|ACESSORIO)\b/.test(texto);
-  }).reduce((s,p) => s + n(p.quantidade),0);
-  if (conjuntosExplicitos > 0) return conjuntosExplicitos;
-
-  const batentes = produtos.filter(p => familiaIndustrial(p) === "BATENTES");
-  const pernas = batentes.filter(p => tipoPeca(p) === "PERNA").reduce((s,p) => s + n(p.quantidade),0);
-  const travessas = batentes.filter(p => tipoPeca(p) === "TRAVESSA").reduce((s,p) => s + n(p.quantidade),0);
-  if (pernas > 0 && travessas > 0) return Math.min(Math.floor(pernas / 2), travessas);
-  // Sem evidência suficiente, não inventar quantidade.
-  return 0;
-}
-
 function statusPedido(produtos: Produto[]) {
   const ops = produtos.flatMap((p) => p.operacoes);
   if (!ops.length) return "SEM ROTA";
@@ -263,7 +241,7 @@ export default function ProgramacaoGerentePage() {
           ofs: new Set(itens.map((p) => p.of).filter(Boolean)).size,
           m3: itens.reduce((s, p) => s + m3Produto(p), 0),
           ml: itens.reduce((s, p) => s + mlProduto(p), 0),
-          kits: kitsPrevistosPedido(itens),
+          kits: itens.filter(p=>familiaIndustrial(p)==="PORTAS").reduce((sum,p)=>sum+n(p.quantidade),0),
           conjuntosCompletosEstimados: conjuntosPedido(itens).conjuntos,
           kitsDesmembrados: conjuntosPedido(itens).desmembrados,
           componentesConjunto: conjuntosPedido(itens),
@@ -507,7 +485,7 @@ export default function ProgramacaoGerentePage() {
         <article>
           <span>CONJUNTOS PREVISTOS</span>
           <b>{fmt(kits)}</b>
-          <small>portas; ou conjuntos/batentes quando não há folha no filtro</small>
+          <small>1 porta = 1 conjunto previsto, por pedido</small>
         </article>
         <article><span>PORTAS SEM CONJUNTO COMPLETO</span><b>{fmt(kitsDesmembrados)}</b><small>faltam componentes; não são kits confirmados</small></article>
         <article><span>COMPOSIÇÃO COMPLETA ESTIMADA</span><b>{fmt(conjuntosCompletosEstimados)}</b><small>conferência dos componentes, não reduz o total previsto</small></article>
