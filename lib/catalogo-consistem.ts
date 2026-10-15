@@ -72,7 +72,7 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
   copy.categoria=categoriaIndustrial({...copy, categoria:""});
   // Exigir as três dimensões. Um valor 2110x50 vindo do filtro não
   // pode ter precedência sobre o 2110x50x9 do catálogo.
-  const medidaCompleta=narrativa.match(/\b(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{1,3}(?:[.,]\d+)?)\b/);
+  const medidaCompleta=narrativa.match(/\b(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{1,3}(?:[.,]\d+)?)(?=\s*MM\b|\b)/);
   if(medidaCompleta) {
     const catalogoMedida=medidaCompleta.slice(1,4).map(v=>String(Number(v.replace(",",".")))).join("x");
     const medidaOriginal=String(p.medida || "").match(/^\s*(\d{2,4})\s*[xX×]\s*(\d{2,4})\s*[xX×]\s*(\d{1,3})\s*$/);
