@@ -89,7 +89,7 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         };
       }
       case "consultar_catalogo": {
-        const codigo=String(input.codigo||"").trim().replace(/\\.0$/,"").toUpperCase().slice(0,80);
+        const codigo=String(input.codigo||"").trim().replace(/\.0$/,"").toUpperCase().slice(0,80);
         if(!codigo) return {erro:"Informe o código do produto."};
         const db=sql();
         const rows=await db`
