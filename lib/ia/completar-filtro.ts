@@ -52,12 +52,19 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   const rebaixo = texto.match(/\bREBAIXO\s*(?:DE\s*)?(\d{2}\s*[X×]\s*\d{1,2})(?:\s*MM)?/)?.[1]
     || texto.match(/\bS\/(?:REB|RB)\b|\b(?:C\/REB\s*)?42\s*X\s*10\b/)?.[0] || "";
   if (admiteRebaixo && rebaixo) {
-    preencher("rebaixo", /^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, "").replace(/\s/g,"").replace("×","X"), rebaixo);
+    const valor=/^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, "").replace(/\s/g,"").replace("×","X");
+    if (/\bREBAIXO\s*(?:DE\s*)?\d{2}/.test(texto) && !/^(?:C\/REB|S\/REB)/i.test(String(produto.rebaixo||"").trim())) {
+      produto.rebaixo=valor;
+      alteracoes.push({ id:p.id,campo:"rebaixo",valor,evidencia:rebaixo,metodo:"REGRA" });
+    } else preencher("rebaixo",valor,rebaixo);
   }
   const revestimento = texto.match(/\b(?:RECOBERT[OA]|REVESTID[OA])\s+(?:EM\s+)?(PET|TXT|BP)(?:\s+([A-Z0-9À-Ú ]+?))?(?=\s*\/|\s*\(|$)/);
   const corRevestimento = revestimento ? [revestimento[1],revestimento[2]?.trim()].filter(Boolean).join(" ") : "";
   const cor = corRevestimento || contexto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
-  if (cor) preencher("cor", cor, cor);
+  if (cor && corRevestimento && /^(?:PET|TXT|BP)\s*\d+$/i.test(String(produto.cor||"").trim())) {
+    produto.cor=cor;
+    alteracoes.push({ id:p.id,campo:"cor",valor:cor,evidencia:corRevestimento,metodo:"REGRA" });
+  } else if (cor) preencher("cor", cor, cor);
   // PET, TXT e BP são revestimentos, não matéria-prima.
   const anterior = String(produto.material || "").trim().toUpperCase();
   if (/^(?:PET|TXT|BP)(?:\s|$)/.test(anterior)) {
