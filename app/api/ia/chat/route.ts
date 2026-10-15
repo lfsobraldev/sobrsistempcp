@@ -253,12 +253,16 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
       system,
       messages,
       tools: aiTools,
-      stopWhen: stepCountIs(10),
-      reasoning: "high",
-      maxOutputTokens: 5000,
+      stopWhen: stepCountIs(5),
+      maxOutputTokens: 2200,
+      abortSignal: AbortSignal.timeout(48_000),
     });
 
-    const text = result.text.trim() || "Não consegui concluir uma resposta fundamentada. Tente formular a consulta com mais detalhes.";
+    const text = result.text.trim();
+    if (!text) {
+      console.error("[SOBRAL_IA_EMPTY]", { steps: result.steps.length, finishReason: result.finishReason });
+      return NextResponse.json({ error: "O modelo não retornou texto. Tente novamente; se persistir, verifique o AI Gateway nos logs da Vercel." }, { status: 502 });
+    }
 
     try {
       await sql()`insert into pcp_ia_log(usuario, pergunta, resposta, anexos)
@@ -280,9 +284,21 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
     });
   } catch (e: any) {
     const notConfigured = e?.message === "IA_NAO_CONFIGURADA";
+    const timedOut = e?.name === "TimeoutError" || e?.name === "AbortError";
+    const raw = String(e?.message || "");
+    const authFailed = /unauthorized|authentication|invalid.api.key|401|403|oidc/i.test(raw);
+    console.error("[SOBRAL_IA_CHAT_ERROR]", {
+      type: e?.name || "Error",
+      status: e?.statusCode || e?.status || null,
+      message: raw.slice(0, 500),
+    });
     const msg = notConfigured
-      ? "Vercel AI Gateway não configurado para este ambiente."
-      : e?.message || "Falha ao consultar a IA.";
-    return NextResponse.json({ error: msg }, { status: notConfigured ? 503 : 500 });
+      ? "AI Gateway sem credenciais configuradas. Confira OIDC ou AI_GATEWAY_API_KEY na Vercel."
+      : timedOut
+      ? "A consulta ultrapassou 48 segundos. Tente uma pergunta mais curta ou verifique a latência do Gateway."
+      : authFailed
+      ? "Autenticação do AI Gateway recusada. Confira as credenciais e a conexão OIDC da Vercel."
+      : "Falha ao consultar a Sobral IA. Consulte o log SOBRAL_IA_CHAT_ERROR na Vercel.";
+    return NextResponse.json({ error: msg }, { status: notConfigured ? 503 : timedOut ? 504 : 502 });
   }
 }
