@@ -242,7 +242,8 @@ export default function ProgramacaoGerentePage() {
           ofs: new Set(itens.map((p) => p.of).filter(Boolean)).size,
           m3: itens.reduce((s, p) => s + m3Produto(p), 0),
           ml: itens.reduce((s, p) => s + mlProduto(p), 0),
-          kits: conjuntosPedido(itens).conjuntos,
+          kits: itens.filter(p=>familiaIndustrial(p)==="PORTAS").reduce((sum,p)=>sum+n(p.quantidade),0),
+          conjuntosCompletosEstimados: conjuntosPedido(itens).conjuntos,
           kitsDesmembrados: conjuntosPedido(itens).desmembrados,
           componentesConjunto: conjuntosPedido(itens),
           usinagem: itens.some((p) => p.usinagemPlanilha),
@@ -315,6 +316,7 @@ export default function ProgramacaoGerentePage() {
   const pendUsinagem = pedidos.filter((p) => !p.usinagem).length;
   const kits = pedidos.reduce((s, p) => s + p.kits, 0);
   const kitsDesmembrados = pedidos.reduce((s,p) => s + p.kitsDesmembrados,0);
+  const conjuntosCompletosEstimados = pedidos.reduce((sum,p) => sum + p.conjuntosCompletosEstimados,0);
   const volume = pedidos.reduce((s, p) => s + p.m3, 0);
   const metrosLineares = pedidos.reduce((s, p) => s + p.ml, 0);
   const consumoMaterial = useMemo(() => {
@@ -482,12 +484,12 @@ export default function ProgramacaoGerentePage() {
           <small>com carga programada</small>
         </article>
         <article>
-          <span>CONJUNTOS POSSÍVEIS</span>
+          <span>CONJUNTOS PREVISTOS</span>
           <b>{fmt(kits)}</b>
-          <small>limite por componentes de cada pedido; não confirma montagem</small>
+          <small>1 porta = 1 conjunto previsto, por pedido</small>
         </article>
         <article><span>PORTAS SEM CONJUNTO COMPLETO</span><b>{fmt(kitsDesmembrados)}</b><small>faltam componentes; não são kits confirmados</small></article>
-        <article><span>PORTAS PROGRAMADAS</span><b>{fmt(kits + kitsDesmembrados)}</b><small>limite máximo teórico; não é total de kits</small></article>
+        <article><span>COMPOSIÇÃO COMPLETA ESTIMADA</span><b>{fmt(conjuntosCompletosEstimados)}</b><small>conferência dos componentes, não reduz o total previsto</small></article>
         <article>
           <span>USINAGEM PENDENTE</span>
           <b>{pendUsinagem}</b>
@@ -579,7 +581,7 @@ export default function ProgramacaoGerentePage() {
                   <th className="num">OFs</th>
                   <th className="num">m³</th>
                   <th className="num">mL</th>
-                  <th className="num">COMPLETOS</th><th className="num">PORTAS SEM CONJUNTO</th>
+                  <th className="num">CONJUNTOS PREVISTOS</th><th className="num">PORTAS SEM CONJUNTO</th>
                   <th>USINAGEM</th>
                   <th>ALIZAR</th>
                   <th>BATENTES</th>
@@ -609,7 +611,7 @@ export default function ProgramacaoGerentePage() {
                       <td className="num">{pedido.ofs}</td>
                       <td className="num">{pedido.m3.toFixed(3)}</td>
                       <td className="num">{pedido.ml.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="num"><b>{fmt(pedido.kits)}</b><details><summary>Componentes</summary><div style={{minWidth:240,textAlign:"left"}}>{COMPONENTES_CONJUNTO.map(nome=><div key={nome}>{nome}: {fmt(pedido.componentesConjunto.estoque[nome])} peças (exige {COMPOSICAO[nome]} por conjunto; comporta {fmt(Math.floor(pedido.componentesConjunto.estoque[nome] / COMPOSICAO[nome]))} conjuntos)</div>)}{pedido.componentesConjunto.alizarIndefinido>0&&<div>Alizares cujo L maior/menor não foi identificado: {fmt(pedido.componentesConjunto.alizarIndefinido)}</div>}<div>Limitante(s): {pedido.componentesConjunto.faltas.join(", ")}</div><small>Conjuntos de portas, não kits de correr. Outras composições precisam de regras próprias. Composição: 1 porta, 2 pernas batente, 1 travessa batente, 2 pernas alizar L maior, 2 L menor, 1 travessa alizar L maior e 1 L menor.</small></div></details></td><td className="num"><b>{fmt(pedido.kitsDesmembrados)}</b><small> portas sem conjunto completo</small></td>
+                      <td className="num"><b>{fmt(pedido.kits)}</b><details><summary>Componentes</summary><div style={{minWidth:240,textAlign:"left"}}>{COMPONENTES_CONJUNTO.map(nome=><div key={nome}>{nome}: {fmt(pedido.componentesConjunto.estoque[nome])} peças (exige {COMPOSICAO[nome]} por conjunto; comporta {fmt(Math.floor(pedido.componentesConjunto.estoque[nome] / COMPOSICAO[nome]))} conjuntos)</div>)}{pedido.componentesConjunto.alizarIndefinido>0&&<div>Alizares cujo L maior/menor não foi identificado: {fmt(pedido.componentesConjunto.alizarIndefinido)}</div>}<div>Limitante(s): {pedido.componentesConjunto.faltas.join(", ")}</div><small>Cada porta do pedido corresponde a um conjunto previsto. A conferência dos componentes não reduz essa previsão. Composição: 1 porta, 2 pernas batente, 1 travessa batente, 2 pernas alizar L maior, 2 L menor, 1 travessa alizar L maior e 1 L menor.</small></div></details></td><td className="num"><b>{fmt(pedido.kitsDesmembrados)}</b><small> portas sem conjunto completo</small></td>
                       <td>
                         <span className={`managerFlag ${pedido.usinagem ? "ok" : "pending"}`}>
                           {pedido.usinagem ? "SIM" : "NÃO"}

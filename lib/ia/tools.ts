@@ -28,7 +28,7 @@ export const TOOL_META = {
   planejamento_capacidade: "Analisa gargalos reais, capacidade por turno, saldos, filas fixadas e sequência sugerida por processo. Não altera produção; sinaliza setores sem capacidade cadastrada.",
   consultar_pecas_por_medida: "Consulta peças EXATAMENTE por família, tipo PERNA ou TRAVESSA e perfil largura x espessura (ex.: travessas de alizar 50x9). Nunca somar pernas quando solicitado travessas. Para semana, declarar claramente que o dado é só da programação ativa, não o total semanal.",
   simular_programacao_urgente: "Simula uma programação urgente de um pedido existente na programação ativa, consulta operações com saldo, máquinas/setores envolvidos e filas fixadas. Somente leitura: não altera prioridades nem libera produção.",
-  resumo_metros_lineares: "Calcula os metros lineares físicos da programação ativa, por pedido ou total, com comprimento x quantidade e itens sem medida identificados.",
+  resumo_metros_lineares: "Consulta consumo físico por pedido ou total da programação ativa, separando PINUS, ULTRA, STD e não classificados pelo código e narrativa do Catálogo Mestre. Mostra peças, metros lineares e faltas de medida.",
   resumo_producao: "Resumo da programação ativa: filtro, turno, total de pedidos/OFs/peças e progresso por processo.",
   buscar_pedido: "Detalhes de um pedido na programação ativa: itens/OFs, prioridade e andamento por processo.",
   listar_andon: "Chamados Andon abertos (paradas/problemas na produção).",
@@ -209,21 +209,28 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         const { db, pg } = await programacaoAtiva();
         if (!pg) return { erro: "Nenhuma programação ativa." };
         const pedido = String(input.pedido || "").trim();
-        const rows = pedido ? await db`select pedido,of,categoria,descricao,medida,quantidade::float quantidade from pcp_produtos where programacao_id=${pg.id} and pedido=${pedido}` : await db`select pedido,of,categoria,descricao,medida,quantidade::float quantidade from pcp_produtos where programacao_id=${pg.id}`;
+        const rows = pedido ? await db`select pedido,of,produto,categoria,descricao,medida,material,tipo,quantidade::float quantidade from pcp_produtos where programacao_id=${pg.id} and pedido=${pedido}` : await db`select pedido,of,produto,categoria,descricao,medida,material,tipo,quantidade::float quantidade from pcp_produtos where programacao_id=${pg.id}`;
+        const { enriquecerComCatalogo } = await import("@/lib/catalogo-consistem");
+        const enriquecidos = await enriquecerComCatalogo(rows as any[],db);
         const { medidaDoItem, familiaIndustrial } = await import("@/lib/domain/industrial");
         let total = 0;
         const semMedida: string[] = [];
         const porPedido: Record<string,number> = {};
-        for (const p of rows) {
+        const porMaterial: Record<string,{pecas:number;metrosLineares:number}> = {STD:{pecas:0,metrosLineares:0},ULTRA:{pecas:0,metrosLineares:0},PINUS:{pecas:0,metrosLineares:0},NAO_CLASSIFICADO:{pecas:0,metrosLineares:0}};
+        for (const p of enriquecidos.produtos) {
           const familia = familiaIndustrial(p);
           if (!["BATENTES","ALIZARES","BAGUETE","KIT CORRER"].includes(familia)) continue;
           const [comp] = medidaDoItem(p);
           if (!(comp > 0)) { semMedida.push(String(p.of || p.pedido)); continue; }
           const ml = comp / 1000 * Number(p.quantidade || 0);
           total += ml;
+          const descricaoMaterial=[p.material,p.tipo,p.descricao].filter(Boolean).join(" ").toUpperCase();
+          const material = /\bPINUS\b/.test(descricaoMaterial)?"PINUS":/\bULTRA\b/.test(descricaoMaterial)?"ULTRA":/\bSTD\b|\bSTANDARD\b/.test(descricaoMaterial)?"STD":"NAO_CLASSIFICADO";
+          porMaterial[material].pecas+=Number(p.quantidade||0);
+          porMaterial[material].metrosLineares+=ml;
           porPedido[p.pedido] = (porPedido[p.pedido] || 0) + ml;
         }
-        return { filtro: pg.filtro, pedido: pedido || null, unidade:"mL", total: Math.round(total*1000)/1000, porPedido, semMedida: semMedida.slice(0,50), metodologia:"Quantidade física x comprimento (mm)/1000; não duplicar pelas operações." };
+        return { filtro: pg.filtro, pedido: pedido || null, unidade:"mL", total: Math.round(total*1000)/1000, porPedido, porMaterial, semMedida: semMedida.slice(0,50), metodologia:"Quantidade física x comprimento (mm)/1000; não duplicar pelas operações." };
       }
       case "resumo_producao": {
         const { db, pg } = await programacaoAtiva();

@@ -4,14 +4,19 @@
  */
 export const FACTORY_KNOWLEDGE = `
 FORMAÇÃO DE CONJUNTOS POR PEDIDO
+- REGRA GERENCIAL DE QUANTIDADE: cada PORTA do pedido representa exatamente 1 CONJUNTO PREVISTO / KIT DE PORTA para o cliente montar na obra. Se um pedido tem 66 portas, mostrar 66 conjuntos previstos. Total geral = somatório de portas por pedido; não usar mínimo dos componentes para o campo principal. Não confundir previsão de kits com kits físicos completos montados.
 - Não confundir produto KIT DE CORRER com conjunto de portas: conjunto é composto de 1 porta, 2 pernas de batente, 1 travessa de batente, 2 pernas de alizar L maior, 2 pernas de alizar L menor, 1 travessa de alizar L maior e 1 travessa de alizar L menor.
 - Somar componentes exclusivamente dentro do mesmo pedido, jamais compensar faltas entre pedidos/clientes. Quando descrições coincidirem mas códigos forem diferentes, preservar ambas as linhas e quantidades.
 - A estimativa provisória de conjuntos completos é o mínimo disponível entre as seis categorias, considerando a proporção 1 porta, 2 pernas de batente, 1 travessa de batente, 2 pernas de alizar L maior, 2 pernas de alizar L menor, 1 travessa de alizar L maior e 1 travessa de alizar L menor por conjunto; só afirmar quantidade final quando a engenharia validar a quantidade real de componentes por conjunto e os tamanhos/acabamentos compatíveis.
 - Apresentar a contagem por componente, o gargalo e alizares cujo lado L não puder ser reconhecido. Nunca dizer que conjunto planejado está montado, entregue ou disponível em estoque.
 CONJUNTOS DESMEMBRADOS
-- Diferenciar conjuntos completos, que atendem toda a composição 1-2-1-2-2-1-1, de desmembrados, que são estimativa por componentes restantes depois de descontar peças usadas nos completos.
-- Cada porta corresponde a no máximo um kit de porta. Por pedido: conjuntos completos = mínimo das disponibilidades de cada componente dividido pela necessidade da composição; kits desmembrados = número de portas menos conjuntos completos (mínimo zero). Total estimado = completos + desmembrados = número de portas. Sobras de componentes sem porta não geram kits. Não afirmar que kits incompletos estão montados.
+- Diferenciar CONJUNTOS PREVISTOS (quantidade de portas), composição completa estimada (conferência das outras peças) e composição pendente/desmembrada (portas menos composição completa). Nunca abater conjuntos previstos porque faltam componentes identificados.
+- Cada porta corresponde exatamente a um conjunto PREVISTO de porta no pedido. Por pedido: conjuntos completos = mínimo das disponibilidades de cada componente dividido pela necessidade da composição; kits desmembrados = número de portas menos conjuntos completos (mínimo zero). Total estimado = completos + desmembrados = número de portas. Sobras de componentes sem porta não geram kits. Não afirmar que kits incompletos estão montados.
 - Kits de correr e outros kits técnicos possuem composição diferente: não incluí-los como conjuntos de porta sem regra técnica específica.
+CONSULTAS INTELIGENTES E CONFIABILIDADE
+- Para perguntas do gerente sobre materiais, separar sempre PINUS, ULTRA e STD em categorias diferentes. Se a narrativa do Catálogo Mestre registrar apenas MDF, não inferir STD ou ULTRA.
+- Para consumos por material e peça, agrupar por pedido/código/família, diferenciar unidades (peças, mL, m³), e apontar desconhecidos. Quando pergunta envolver produção real de vários filtros, declarar que a programação ativa sozinha não representa todos os filtros do dia e que a API de apontamentos Consistem ainda é necessária.
+- Usar ferramentas de consulta disponíveis para responder apenas o que está no banco do sistema; perguntas sem ferramenta ou cobertura suficiente devem apresentar a limitação, não inventar números/status. Respeitar perfil e sigilo. Não confundir prevista, produzida, apontada, expedida e estoque.
 GESTÃO DE MATÉRIA-PRIMA — PROGRAMAÇÃO DO GERENTE
 - A necessidade de compra deve ser apresentada por TIPO DE PEÇA e MATERIAL, não somente somando STD/ULTRA/PINUS: Perna de alizar ULTRA, Travessa de alizar STD, Perna de batente ULTRA etc.; incluir baguete, suporte de trilho e kit de correr separadamente.
 - Para cada grupo informe peças e metros lineares físicos (comprimento em milímetros / 1000 × quantidade); NÃO multiplicar pela quantidade de operações.
