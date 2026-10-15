@@ -262,7 +262,7 @@ export function familiaIndustrial(
     /^FO P\b/.test(desc) ||
     /^FP\b/.test(desc) ||
     /^FPC\b/.test(desc) ||
-    /^FOL[ .]/.test(desc) ||
+    /^FOL(?:HA)?(?:\\s+PORTA|[ .])/.test(desc) ||
     /^F P P\b/.test(desc)
   ) {
     return "PORTAS";
