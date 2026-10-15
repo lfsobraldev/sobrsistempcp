@@ -78,16 +78,16 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
   else if (/\b(?:MDF\s+)?(?:STD|STANDARD)\b/.test(evidenciaMaterial)) copy.material="MDF STD";
   else if (/\bMDF\b/.test(evidenciaMaterial)) copy.material="MDF";
   // Campos industriais extraídos da narrativa completa do mesmo código.
-  const rebaixoExplicito=evidenciaMaterial.match(/\\bREBAIXO\\s*(?:DE\\s*)?(\\d{2}\\s*[X×]\\s*\\d{1,2})(?:\\s*MM)?/);
-  if(rebaixoExplicito) copy.rebaixo="C/REB "+rebaixoExplicito[1].replace(/\\s/g,"").replace("×","X");
-  else if(/\\bSEM\\s+REBAIXO\\b|\\bS\\/REB\\b/.test(evidenciaMaterial)) copy.rebaixo="S/REB";
-  const revestimento=evidenciaMaterial.match(/\\b(?:RECOBERT[OA]|REVESTID[OA])\\s+(?:EM\\s+)?(PET|TXT|BP)(?:\\s+(.+?))?(?=\\s*\\(|\\s*\\/|$)/);
+  const rebaixoExplicito=evidenciaMaterial.match(/\bREBAIXO\s*(?:DE\s*)?(\d{2}\s*[X×]\s*\d{1,2})(?:\s*MM)?/);
+  if(rebaixoExplicito) copy.rebaixo="C/REB "+rebaixoExplicito[1].replace(/\s/g,"").replace("×","X");
+  else if(/\bSEM\s+REBAIXO\b|\bS\/REB\b/.test(evidenciaMaterial)) copy.rebaixo="S/REB";
+  const revestimento=evidenciaMaterial.match(/\b(?:RECOBERT[OA]|REVESTID[OA])\s+(?:EM\s+)?(PET|TXT|BP)(?:\s+(.+?))?(?=\s*\(|\s*\/|$)/);
   if(revestimento){
     const nome=(revestimento[2]||"").trim();
     copy.cor=[revestimento[1],nome].filter(Boolean).join(" ");
   }
   // PET/TXT/BP são revestimentos, não material estrutural.
-  if(/^(?:PET|TXT|BP)(?:\\s|$)/.test(String(copy.material||"").trim().toUpperCase())){
+  if(/^(?:PET|TXT|BP)(?:\s|$)/.test(String(copy.material||"").trim().toUpperCase())){
     copy.material="";
   }
   if (!String(copy.tipo || "").trim() && String(copy.material || "").trim()) copy.tipo=copy.material;
