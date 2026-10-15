@@ -24,6 +24,7 @@ import { exportarCompleto } from "@/lib/export";
 import {
   familiaIndustrial,
   medidaDoItem,
+  tipoPeca,
 } from "@/lib/domain/industrial";
 import { familiaProduto } from "@/lib/sort";
 
@@ -43,7 +44,7 @@ type ExcecaoPeca = {
   status: string;
 };
 
-type ViewMode = "PEDIDOS" | "SETORES" | "SEQUENCIAMENTO";
+type ViewMode = "PEDIDOS" | "MATERIA" | "SETORES" | "SEQUENCIAMENTO";
 
 function n(v: unknown) {
   const x = Number(v || 0);
@@ -148,6 +149,7 @@ export default function ProgramacaoGerentePage() {
   const produtos = pg?.produtos || [];
 
   const [view, setView] = useState<ViewMode>("PEDIDOS");
+  const [filtroMateria, setFiltroMateria] = useState("TODOS");
   const [search, setSearch] = useState("");
   const [processo, setProcesso] = useState("TODOS");
   const [pedidoAberto, setPedidoAberto] = useState("");
@@ -289,6 +291,7 @@ export default function ProgramacaoGerentePage() {
   const metrosLineares = pedidos.reduce((s, p) => s + p.ml, 0);
   const consumoMaterial = useMemo(() => {
     const dados = { STD: { pecas: 0, ml: 0 }, ULTRA: { pecas: 0, ml: 0 }, PINUS: { pecas: 0, ml: 0 } };
+    const grupos = new Map<string, { peca: string; material: "STD" | "ULTRA" | "PINUS"; pecas: number; ml: number }>();
     let semClassificacao = 0;
     let semComprimento = 0;
     const pendencias: { pedido: string; of: string; codigo: string; descricao: string; familia: string; material: string; medida: string; quantidade: number; motivo: string }[] = [];
@@ -296,6 +299,19 @@ export default function ProgramacaoGerentePage() {
       if (!["BATENTES", "ALIZARES", "BAGUETE", "KIT CORRER"].includes(familiaIndustrial(p))) continue;
       const material = materialDaLinha(p);
       const comprimento = medidaDoItem(p)[0];
+      const familia = familiaIndustrial(p);
+      const categoria = String(p.categoria || "").toUpperCase();
+      const peca = familia === "ALIZARES" ? `${tipoPeca(p) === "PERNA" ? "Perna" : "Travessa"} de alizar`
+        : familia === "BATENTES" ? `${tipoPeca(p) === "PERNA" ? "Perna" : "Travessa"} de batente`
+        : familia === "BAGUETE" ? "Baguete"
+        : categoria.includes("SUPORTE") || /SUPORTE.*TRILHO/i.test(p.descricao) ? "Suporte de trilho" : "Kit de correr";
+      if (material) {
+        const chave = `${peca}|${material}`;
+        const grupo = grupos.get(chave) || { peca, material, pecas: 0, ml: 0 };
+        grupo.pecas += n(p.quantidade);
+        if (comprimento > 0) grupo.ml += comprimento / 1000 * n(p.quantidade);
+        grupos.set(chave, grupo);
+      }
       if (!material) semClassificacao += n(p.quantidade);
       else {
         dados[material].pecas += n(p.quantidade);
@@ -309,7 +325,7 @@ export default function ProgramacaoGerentePage() {
         motivo: [!material ? "Material não classificado como STD, ULTRA ou PINUS" : "", !(comprimento > 0) ? "Comprimento ausente/inválido" : ""].filter(Boolean).join(" + "),
       });
     }
-    return { dados, semClassificacao, semComprimento, pendencias };
+    return { dados, grupos: [...grupos.values()].sort((a,b) => a.peca.localeCompare(b.peca,"pt-BR") || a.material.localeCompare(b.material)), semClassificacao, semComprimento, pendencias };
   }, [produtos]);
 
   async function exportar() {
@@ -416,7 +432,10 @@ export default function ProgramacaoGerentePage() {
         </div>
       </section>
 
-      <section className="managerKpis">
+      <nav className="managerViewTabs" aria-label="Subabas da programação gerencial" style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+        {([["PEDIDOS","Pedidos e visão geral"],["MATERIA","Matéria-prima"],["SETORES","Setores / Máquinas"],["SEQUENCIAMENTO","Sequenciamento"]] as const).map(([id,label]) => <button key={id} type="button" className={view===id?"active":""} onClick={()=>setView(id)}>{label}</button>)}
+      </nav>
+      {view === "PEDIDOS" && <section className="managerKpis">
         <article>
           <span>PEDIDOS DO DIA</span>
           <b>{pedidos.length}</b>
@@ -462,15 +481,17 @@ export default function ProgramacaoGerentePage() {
           <b>{volume.toFixed(3)}</b>
           <small>m³ estimados</small>
         </article>
-      </section>
+      </section>}
 
-      <Panel title="Necessidade de matéria-prima" subtitle="Peças e metros lineares físicos por material, sem multiplicar por operações. Utilize como referência de solicitação de matéria-prima.">
+      {view === "MATERIA" && (
+      <Panel title="Necessidade de matéria-prima" subtitle="Consumo previsto separado por família da peça e material. Metros lineares = comprimento em metros × quantidade de peças. Não multiplica por operações.">
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",marginBottom:12}}><label htmlFor="filtro-materia">Filtrar material</label><select id="filtro-materia" value={filtroMateria} onChange={e=>setFiltroMateria(e.target.value)}><option value="TODOS">Todos os materiais</option><option value="STD">STD</option><option value="ULTRA">ULTRA</option><option value="PINUS">PINUS</option></select></div>
         <div className="tableWrap">
           <table>
-            <thead><tr><th>MATERIAL</th><th className="num">PEÇAS</th><th className="num">METROS LINEARES (m)</th></tr></thead>
+            <thead><tr><th>PEÇA / PERFIL</th><th>MATERIAL</th><th className="num">PEÇAS</th><th className="num">METROS LINEARES (m)</th></tr></thead>
             <tbody>
-              {(["STD", "ULTRA", "PINUS"] as const).map((tipo) => (
-                <tr key={tipo}><td><b>{tipo}</b></td><td className="num">{fmt(consumoMaterial.dados[tipo].pecas)}</td><td className="num">{consumoMaterial.dados[tipo].ml.toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>
+              {consumoMaterial.grupos.filter(x => filtroMateria === "TODOS" || x.material === filtroMateria).map((x) => (
+                <tr key={`${x.peca}-${x.material}`}><td><b>{x.peca}</b></td><td>{x.material}</td><td className="num">{fmt(x.pecas)}</td><td className="num"><b>{x.ml.toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b></td></tr>
               ))}
             </tbody>
           </table>
@@ -484,28 +505,9 @@ export default function ProgramacaoGerentePage() {
         </>}
       </Panel>
 
-      <div className="managerToolbar">
-        <div className="managerViewTabs">
-          <button
-            className={view === "PEDIDOS" ? "active" : ""}
-            onClick={() => setView("PEDIDOS")}
-          >
-            <Boxes /> Pedidos
-          </button>
-          <button
-            className={view === "SETORES" ? "active" : ""}
-            onClick={() => setView("SETORES")}
-          >
-            <Factory /> Setores / Máquinas
-          </button>
-          <button
-            className={view === "SEQUENCIAMENTO" ? "active" : ""}
-            onClick={() => setView("SEQUENCIAMENTO")}
-          >
-            <Route /> Sequenciamento
-          </button>
-        </div>
+      )}
 
+      {view !== "MATERIA" && <div className="managerToolbar">
         <div className="managerFilters">
           <label>
             <Search />
@@ -527,7 +529,7 @@ export default function ProgramacaoGerentePage() {
             </select>
           </label>
         </div>
-      </div>
+      </div>}
 
       {view === "PEDIDOS" && (
         <Panel
