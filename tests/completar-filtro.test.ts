@@ -150,3 +150,24 @@ test("alizar reconhece U UL ULT e ULTR isolados como Ultra", () => {
   const p = completarPorRegras(produto("outro", "FERRAGEM COD U300", { categoria: "FERRAGEM" })).produto;
   assert.equal(p.material, "");
 });
+
+
+test("Líderes: recupera rebaixo, cor e material sem confundir PET com estrutura",()=>{
+  const p=produto("REC-1","TRAVESSA DE BATENTE 747X110X30MM / REBAIXO 42X10MM / REGULAGEM 2 LADOS / CANAL BORRACHA I APLICADA / RECOBERTO PET BRANCO",{
+    categoria:"BATENTE",material:"PET",rebaixo:"",cor:""
+  });
+  const x=completarPorRegras(p).produto;
+  assert.equal(x.medida,"747x110x30");
+  assert.equal(x.rebaixo,"C/REB 42X10");
+  assert.equal(x.cor,"PET BRANCO");
+  assert.equal(x.material,"");
+});
+test("Líderes: extrai PINUS explicitamente mesmo que campo venha como PET",()=>{
+  const p=produto("REC-2","PERNA DE BATENTE EM MADEIRA DE PINUS 2110X110X30MM / REBAIXO 42X10MM / RECOBERTO PET BRANCO",{
+    categoria:"BATENTE",material:"PET"
+  });
+  const x=completarPorRegras(p).produto;
+  assert.equal(x.material,"PINUS");
+  assert.equal(x.rebaixo,"C/REB 42X10");
+  assert.equal(x.cor,"PET BRANCO");
+});
