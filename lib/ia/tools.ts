@@ -107,10 +107,16 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         const busca="%"+assunto.replace(/[%_]/g,"")+"%";
         const db=sql();
         const rows=await db`
-          select titulo,area,regra,exemplo,observacao,atualizado_em
-          from pcp_ia_conhecimento
-          where ativo=true and (titulo ilike ${busca} or regra ilike ${busca} or exemplo ilike ${busca})
-          order by prioridade desc,atualizado_em desc limit 12
+          with q as (select websearch_to_tsquery('portuguese',${assunto}) termos)
+          select k.id,k.titulo,k.area,k.situacao,k.regra,k.exemplo,k.observacao,k.atualizado_em,
+                 ts_rank(to_tsvector('portuguese',concat_ws(' ',k.titulo,k.area,k.situacao,k.regra,k.exemplo,k.observacao)),q.termos) relevancia
+          from pcp_ia_conhecimento k cross join q
+          where k.ativo=true and (
+            to_tsvector('portuguese',concat_ws(' ',k.titulo,k.area,k.situacao,k.regra,k.exemplo,k.observacao))
+            @@ q.termos
+            or k.titulo ilike ${busca} or k.regra ilike ${busca}
+          )
+          order by relevancia desc,k.prioridade desc,k.atualizado_em desc limit 12
         `;
         return {fonte:"Biblioteca de conhecimento cadastrada pela equipe",assunto,resultados:rows};
       }
