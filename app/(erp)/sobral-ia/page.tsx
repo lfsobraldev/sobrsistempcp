@@ -120,7 +120,7 @@ export default function SobralIAPage(){
    const r=await fetch("/api/ia/feedback",{cache:"no-store"});
    if(r.ok){const j=await r.json();setFeedbackItens(j.itens||[]);}
  }
- async function revisarFeedback(id:string,status:"ANALISADO"|"DESCARTADO"){
+ async function revisarFeedback(id:string,status:"ANALISADO"|"DESCARTADO"|"APROVADO"){
    const r=await fetch("/api/ia/feedback",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({id,status})});
    const j=await r.json();
    if(!r.ok)return toast("error",j.error||"Falha ao revisar.");
@@ -301,11 +301,12 @@ export default function SobralIAPage(){
    </>}
   </section>:<div className="sobral-training-v2">
    {canTrain&&<section className="card" style={{marginBottom:16}}>
-    <div className="card-head"><div><h3>Correções enviadas pela equipe</h3><p>Revise o feedback e, se correto, registre o aprendizado na Base de Conhecimento.</p></div><button onClick={()=>void carregarFeedback()}>Carregar correções</button></div>
+    <div className="card-head"><div><h3>Correções enviadas pela equipe</h3><p>Revise cada correção. Ao aprovar, ela passa a integrar a Base de Conhecimento utilizada pela IA nas próximas perguntas.</p></div><button onClick={()=>void carregarFeedback()}>Carregar correções</button></div>
     <div className="card-body">
      {feedbackItens.filter(f=>f.status==="PENDENTE").slice(0,20).map(f=><div key={f.id} style={{padding:"12px 0",borderBottom:"1px solid var(--border,#ddd)"}}>
       <b>{f.usuario}</b><p><strong>Pergunta:</strong> {f.pergunta}</p><p><strong>Correção proposta:</strong> {f.correcao}</p>
       <button onClick={()=>{setEdit({titulo:"Correção validada: "+f.pergunta.slice(0,90),area:"GERAL",situacao:f.pergunta,regra:f.correcao,exemplo:"",observacao:"Fonte: feedback de "+f.usuario,ativo:true,prioridade:50});toast("success","Confira e salve no editor para homologar.");}}>Preparar conhecimento</button>
+      <button onClick={()=>void revisarFeedback(f.id,"APROVADO")}>Aprovar e ensinar IA</button>
       <button onClick={()=>void revisarFeedback(f.id,"ANALISADO")}>Marcar analisada</button>
       <button onClick={()=>void revisarFeedback(f.id,"DESCARTADO")}>Descartar</button>
      </div>)}
