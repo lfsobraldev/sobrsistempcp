@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { session } from "@/lib/auth";
+import { enriquecerComCatalogo } from "@/lib/catalogo-consistem";
 
 /**
  * Corrige programações antigas que ainda possuem:
@@ -822,6 +823,9 @@ export async function GET() {
         })),
     }));
 
+    // Reconsulta o Catálogo Mestre por código ao abrir a programação ativa;
+    // atualiza as descrições técnicas sem mudar OF, pedido, quantidades nem operações salvas.
+    const enriquecidos = await enriquecerComCatalogo(produtos, db);
     return NextResponse.json(
       {
         programacao: {
@@ -842,7 +846,7 @@ export async function GET() {
             inconsistenciasRota: Number(pg.import_inconsistencias),
             processos: pg.import_processos || {},
           },
-          produtos,
+          produtos: enriquecidos.produtos,
         },
       },
       {

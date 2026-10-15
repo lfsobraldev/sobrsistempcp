@@ -314,6 +314,8 @@ export default function ProgramacaoGerentePage() {
     const pendencias: { pedido: string; of: string; codigo: string; descricao: string; familia: string; material: string; medida: string; quantidade: number; motivo: string }[] = [];
     for (const p of produtos) {
       if (!["BATENTES", "ALIZARES", "BAGUETE", "KIT CORRER"].includes(familiaIndustrial(p))) continue;
+      // Ferragens, roldanas e conjuntos de acessórios não consomem perfil linear.
+      if (/FERRAGENS?|ROLDANAS?|PARAFUSOS?|FECHADURAS?/i.test([p.descricao,p.categoria].join(" "))) continue;
       const material = materialDaLinha(p);
       const comprimento = medidaDoItem(p)[0];
       const familia = familiaIndustrial(p);
