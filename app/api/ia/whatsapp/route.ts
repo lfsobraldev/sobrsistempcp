@@ -7,9 +7,24 @@ export const maxDuration=60;
 
 export async function GET(req:Request) {
   const params=new URL(req.url).searchParams;
-  if(process.env.WHATSAPP_VERIFY_TOKEN && params.get("hub.mode")==="subscribe" && params.get("hub.verify_token")===process.env.WHATSAPP_VERIFY_TOKEN)
-    return new Response(params.get("hub.challenge")||"",{status:200});
-  return new Response("Forbidden",{status:403});
+  const mode=params.get("hub.mode");
+  const provided=params.get("hub.verify_token");
+  const challenge=params.get("hub.challenge");
+  const expected=process.env.WHATSAPP_VERIFY_TOKEN;
+  // Never log the secret, provided token, challenge or full request URL.
+  const reason=!expected?"VERIFY_TOKEN_NOT_CONFIGURED":
+    mode!=="subscribe"?"INVALID_MODE":
+    provided===null?"VERIFY_TOKEN_MISSING":
+    provided!==expected?"VERIFY_TOKEN_MISMATCH":
+    challenge===null?"CHALLENGE_MISSING":"OK";
+  console.info("[WhatsApp webhook verification]",{
+    result:reason,
+    hasChallenge:challenge!==null,
+    hasVerifyToken:provided!==null,
+    environment:process.env.VERCEL_ENV||"unknown"
+  });
+  if(reason==="OK")return new Response(challenge!,{status:200,headers:{"Content-Type":"text/plain; charset=utf-8","Cache-Control":"no-store"}});
+  return new Response("Forbidden",{status:403,headers:{"Cache-Control":"no-store"}});
 }
 export async function POST(req:Request) {
   const raw=await req.text();
