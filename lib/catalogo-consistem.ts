@@ -69,11 +69,11 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
   }
   // Classificação explícita da narrativa prevalece sobre MDF genérico e siglas truncadas.
   // A cor/revestimento PET ou TXT nunca representa o material estrutural.
-  const evidenciaMaterial=narrativa.normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toUpperCase();
-  if (/\\b(?:MADEIRA\\s+DE\\s+)?PINUS\\b/.test(evidenciaMaterial)) copy.material="PINUS";
-  else if (/\\b(?:MDF\\s+)?ULTRA\\b/.test(evidenciaMaterial)) copy.material="MDF ULTRA";
-  else if (/\\b(?:MDF\\s+)?(?:STD|STANDARD)\\b/.test(evidenciaMaterial)) copy.material="MDF STD";
-  else if (/\\bMDF\\b/.test(evidenciaMaterial)) copy.material="MDF";
+  const evidenciaMaterial=narrativa.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
+  if (/\b(?:MADEIRA\s+DE\s+)?PINUS\b/.test(evidenciaMaterial)) copy.material="PINUS";
+  else if (/\b(?:MDF\s+)?ULTRA\b/.test(evidenciaMaterial)) copy.material="MDF ULTRA";
+  else if (/\b(?:MDF\s+)?(?:STD|STANDARD)\b/.test(evidenciaMaterial)) copy.material="MDF STD";
+  else if (/\bMDF\b/.test(evidenciaMaterial)) copy.material="MDF";
   if (!String(copy.tipo || "").trim() && String(copy.material || "").trim()) copy.tipo=copy.material;
   // Reclassifica família pelo nome completo cadastrado no código.
   copy.categoria=categoriaIndustrial({...copy, categoria:""});
