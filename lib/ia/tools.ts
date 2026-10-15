@@ -102,7 +102,43 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
             c.codigo as codigo_catalogo,c.narrativa,c.conflito,c.vazio
           from pcp_produtos p
           left join pcp_catalogo_produtos c
-            on c.codigo=upper(case when right(trim(p.produto),2)='.0' then left(trim(p.produto),length(trim(p.produto))-2) else trim(p.produto) end)
+            on c.codigo=upper(case when right(trim(p.produto),2)='.0'
+               then left(trim(p.produto),length(trim(p.produto))-2) else trim(p.produto) end)
+            and c.versao=(select id from pcp_catalogo_versoes where status='ATIVA' order by ativo_em desc limit 1)
+          where p.programacao_id=${pg.id}
+            and (${pedido}='' or p.pedido=${pedido})
+            and (${setor}='' or exists(
+              select 1 from pcp_operacoes o where o.produto_id=p.id and o.processo=${setor}
+            ))
+          order by p.pedido,p.of,p.produto limit 5000
+        `;
+        const contagem = { linhas: dados.length, semCodigo:0, naoEncontrados:0, conflitos:0, semMedida:0, semMaterial:0 };
+        const pendencias: Array<{pedido:string;of:string;codigo:string;motivos:string[]}> = [];
+        for (const row of dados) {
+          const codigo = normalizarCodigo(row.produto);
+          const motivos:string[] = [];
+          if (!codigo) { contagem.semCodigo++; motivos.push("Código vazio"); }
+          else if (!row.codigo_catalogo) { contagem.naoEncontrados++; motivos.push("Código não encontrado no catálogo ativo"); }
+          else if (row.conflito || row.vazio || !row.narrativa) { contagem.conflitos++; motivos.push("Narrativa vazia ou conflitante"); }
+          const original = { produto:codigo, pedido:row.pedido,of:row.of,descricao:row.descricao,
+            categoria:row.categoria,medida:row.medida,material:row.material,tipo:row.tipo,
+            descricaoModelo:row.descricao_modelo,outrasCaracteristicas:row.outras_caracteristicas,
+            quantidade:row.quantidade,operacoes:[] } as any;
+          const preenchido = row.codigo_catalogo && !row.conflito && !row.vazio && row.narrativa
+            ? enriquecerProdutoPeloRegistro(original,{ codigo, narrativa:String(row.narrativa), conflito:false,vazio:false })
+            : original;
+          if (!String(preenchido.medida||"").trim()) {contagem.semMedida++;motivos.push("Medida não identificada");}
+          if (!String(preenchido.material||"").trim()) {contagem.semMaterial++;motivos.push("Material não identificado");}
+          if (motivos.length && pendencias.length<100) pendencias.push({
+            pedido:String(row.pedido||""),of:String(row.of||""),codigo,motivos
+          });
+        }
+        return { fonte:"Programação ativa confrontada com Catálogo Mestre por código",
+          filtro:pg.filtro, setor:setor||"TODOS",pedido:pedido||"TODOS",contagem,
+          pendenciasExemplo:pendencias,limiteConsulta:5000,
+          observacao:"Primeiras 100 pendências; consulta limitada a 5000 linhas. Sem adivinhar especificações." };
+      }
+      case "consultar_catalogo": {
         const codigo=String(input.codigo||"").trim().replace(/\.0$/,"").toUpperCase().slice(0,80);
         if(!codigo) return {erro:"Informe o código do produto."};
         const db=sql();
