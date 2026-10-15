@@ -58,6 +58,16 @@ export default function Lideres() {
     [baseRows]
   );
 
+  const pendenciasTecnicas = useMemo(() => {
+    return products.filter(p => p.operacoes.some(o => o.processo === proc)).filter(p => {
+      const descricao = String(p.descricao || "").trim();
+      return !descricao || !String(p.medida || "").trim() || !String(p.material || "").trim();
+    }).map(p => ({ codigo: p.produto, pedido: p.pedido, of: p.of,
+      campos: [!String(p.descricao || "").trim() ? "Descrição" : "", !String(p.medida || "").trim() ? "Medida" : "",
+        !String(p.material || "").trim() ? "Material" : ""].filter(Boolean).join(", ")
+    }));
+  }, [products, proc]);
+
   const rows = useMemo(() => {
     const q = busca.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
@@ -270,6 +280,12 @@ export default function Lideres() {
         </div>
       </section>
 
+      {!!pendenciasTecnicas.length && <details className="card mb" style={{padding:16}}>
+        <summary><b>Conferência do catálogo: {pendenciasTecnicas.length} linha(s) com campos técnicos ausentes neste setor</b></summary>
+        <p className="muted">Dados ausentes na programação ativa ou sem especificação no catálogo. Verifique o código no Catálogo Mestre. Não são preenchidos com valores presumidos.</p>
+        <div style={{overflowX:"auto",maxHeight:300}}><table><thead><tr><th>Código</th><th>Pedido</th><th>OF</th><th>Campos para conferir</th></tr></thead>
+          <tbody>{pendenciasTecnicas.map((x,i)=><tr key={i}><td>{x.codigo}</td><td>{x.pedido}</td><td>{x.of}</td><td>{x.campos}</td></tr>)}</tbody></table></div>
+      </details>}
       <TableScroll className="leader">
         <table>
           <thead>

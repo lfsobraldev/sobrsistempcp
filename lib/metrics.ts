@@ -316,6 +316,7 @@ function consolidate(
       );
 
     const key = [
+      produto.produto, // preservar códigos diferentes mesmo se a narrativa técnica estiver incompleta
       familia,
       produto.categoria,
       produto.material,

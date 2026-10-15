@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { session } from "@/lib/auth";
 import { enriquecerComCatalogo } from "@/lib/catalogo-consistem";
+import { completarPorRegras } from "@/lib/ia/completar-filtro";
 
 /**
  * Corrige programações antigas que ainda possuem:
@@ -826,6 +827,7 @@ export async function GET() {
     // Reconsulta o Catálogo Mestre por código ao abrir a programação ativa;
     // atualiza as descrições técnicas sem mudar OF, pedido, quantidades nem operações salvas.
     const enriquecidos = await enriquecerComCatalogo(produtos, db);
+    const produtosCompletados = enriquecidos.produtos.map(p => completarPorRegras(p).produto);
     return NextResponse.json(
       {
         programacao: {
@@ -846,7 +848,7 @@ export async function GET() {
             inconsistenciasRota: Number(pg.import_inconsistencias),
             processos: pg.import_processos || {},
           },
-          produtos: enriquecidos.produtos,
+          produtos: produtosCompletados,
         },
       },
       {
