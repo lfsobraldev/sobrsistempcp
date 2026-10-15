@@ -134,9 +134,9 @@ function conjuntosPedido(produtos: Produto[]) {
       .join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
     // Catálogo: "L (menor)", "L(menor)", "L MENOR", "L-MAIOR", "L. MAIOR".
     // Não usar "menor" isolado para evitar atribuir lado de outra peça.
-    const maior=/\bL[\s.\/-]*\(?\s*(?:MAIOR|GRANDE)\s*\)?\b/.test(txt)
+    const maior=/\bL[\s.\/-]*\(?\s*(?:MAIOR|GRANDE)\s*\)?(?=\W|$)/.test(txt)
       || /\bL[\s.\/-]*(?:MAIOR|GRANDE)\b/.test(txt);
-    const menor=/\bL[\s.\/-]*\(?\s*(?:MENOR|PEQUENO)\s*\)?\b/.test(txt)
+    const menor=/\bL[\s.\/-]*\(?\s*(?:MENOR|PEQUENO)\s*\)?(?=\W|$)/.test(txt)
       || /\bL[\s.\/-]*(?:MENOR|PEQUENO)\b/.test(txt);
     if(maior===menor){alizarIndefinido+=q;continue;}
     const trav=tipoPeca(p)==="TRAVESSA";
