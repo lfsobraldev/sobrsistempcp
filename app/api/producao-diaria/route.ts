@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { requireRoles, session } from "@/lib/auth";
 
 async function tabela(db: ReturnType<typeof sql>) {
+  await db`create table if not exists pcp_metas_padrao_setor (processo varchar(80) primary key, meta numeric(16,3) not null, atualizado_por varchar(120) not null default '', atualizado_em timestamptz not null default now())`;
   await db`create table if not exists pcp_producao_diaria_maquina (
     data date not null, processo varchar(80) not null, maquina varchar(120) not null,
     turno varchar(20) not null, produzido numeric(16,3) not null default 0,
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
     const inicio=url.searchParams.get("inicio");
     const fim=url.searchParams.get("fim");
     const valido=(v:string|null)=>Boolean(v && /^\d{4}-\d{2}-\d{2}$/.test(v));
-    const [registros,metas,capacidades]=await Promise.all([
+    const [registros,metas,capacidades,padroes]=await Promise.all([
       valido(inicio)&&valido(fim)
         ? db`select data::text as data,processo,maquina,turno,produzido,atualizado_por from pcp_producao_diaria_maquina where data between ${inicio}::date and ${fim}::date order by data desc,processo,maquina,turno`
         : db`select data::text as data,processo,maquina,turno,produzido,atualizado_por from pcp_producao_diaria_maquina where data >= current_date - interval '6 days' order by data desc,processo,maquina,turno`,
@@ -28,8 +29,9 @@ export async function GET(req: Request) {
         ? db`select data::text as data,processo,maquina,turno,meta from pcp_metas_maquina where data between ${inicio}::date and ${fim}::date order by data desc`
         : db`select data::text as data,processo,maquina,turno,meta from pcp_metas_maquina where data >= current_date - interval '6 days' order by data desc`,
       db`select processo,maquina,turno,pecas_hora from pcp_capacidades_maquina order by processo,maquina,turno`,
+      db`select processo,meta from pcp_metas_padrao_setor order by processo`,
     ]);
-    return NextResponse.json({registros,metas,capacidades},{headers:{"Cache-Control":"no-store"}});
+    return NextResponse.json({registros,metas,capacidades,padroes},{headers:{"Cache-Control":"no-store"}});
   } catch(e:any) {return NextResponse.json({error:e.message||"Falha ao consultar."},{status:500});}
 }
 export async function POST(req:Request) {
@@ -37,6 +39,13 @@ export async function POST(req:Request) {
     const s=await requireRoles(["PCP"]);
     const b=await req.json();
     const data=String(b.data||""),processo=String(b.processo||"").trim(),maquina=String(b.maquina||"").trim(),turno=String(b.turno||"A").trim();
+    const db=sql();await tabela(db);
+    if(b.tipo==="META_PADRAO"){
+      const valor=Number(b.meta);
+      if(!processo||processo.length>80||b.meta===""||!Number.isSafeInteger(valor)||valor<0)return NextResponse.json({error:"Informe setor e meta diária válida."},{status:400});
+      await db`insert into pcp_metas_padrao_setor(processo,meta,atualizado_por) values(${processo},${valor},${s.usuario}) on conflict(processo) do update set meta=excluded.meta,atualizado_por=excluded.atualizado_por,atualizado_em=now()`;
+      return NextResponse.json({ok:true});
+    }
     const produzido=b.produzido===""||b.produzido==null?null:Number(b.produzido);
     const meta=b.meta===""||b.meta==null?null:Number(b.meta);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(data)||!processo||!maquina||!turno||processo.length>80||maquina.length>120||turno.length>20)
@@ -46,12 +55,13 @@ export async function POST(req:Request) {
     if(meta!==null&&(!Number.isFinite(meta)||meta<0||!Number.isInteger(meta)))
       return NextResponse.json({error:"Meta inválida."},{status:400});
     if(produzido===null&&meta===null)return NextResponse.json({error:"Informe a meta ou a produção."},{status:400});
-    const db=sql();await tabela(db);
     if(produzido!==null) await db`insert into pcp_producao_diaria_maquina(data,processo,maquina,turno,produzido,atualizado_por)
       values(${data}::date,${processo},${maquina},${turno},${produzido},${s.usuario})
       on conflict(data,processo,maquina,turno) do update set produzido=excluded.produzido,atualizado_por=excluded.atualizado_por,atualizado_em=now()`;
-    if(meta!==null) await db`insert into pcp_metas_maquina(data,processo,maquina,turno,meta,atualizado_por)
-      values(${data}::date,${processo},${maquina},${turno},${meta},${s.usuario})
+    const [padrao]=await db`select meta from pcp_metas_padrao_setor where processo=${processo}`;
+    const metaDia=meta!==null?meta:(padrao?Number(padrao.meta):null);
+    if(metaDia!==null) await db`insert into pcp_metas_maquina(data,processo,maquina,turno,meta,atualizado_por)
+      values(${data}::date,${processo},${maquina},${turno},${metaDia},${s.usuario})
       on conflict(data,processo,maquina,turno) do update set meta=excluded.meta,atualizado_por=excluded.atualizado_por,atualizado_em=now()`;
     return NextResponse.json({ok:true});
   } catch(e:any) {return NextResponse.json({error:e.message||"Falha ao salvar."},{status:e.message==="SEM_PERMISSAO"?403:500});}

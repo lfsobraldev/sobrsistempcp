@@ -13,10 +13,12 @@ const key=(x:{data:string;processo:string;maquina:string;turno:string})=>[x.data
 const fmt=(n:number)=>n.toLocaleString("pt-BR",{maximumFractionDigits:0});
 export default function Config(){
   const {toast}=useOps();
-  const [tab,setTab]=useState<"DIARIO"|"HISTORICO">("DIARIO");
+  const [tab,setTab]=useState<"METAS"|"DIARIO"|"HISTORICO">("METAS");
   const [registros,setRegistros]=useState<Row[]>([]);
   const [metas,setMetas]=useState<Meta[]>([]);
   const [capacidades,setCapacidades]=useState<Cap[]>([]);
+  const [padroes,setPadroes]=useState<{processo:string;meta:number}[]>([]);
+  const [editandoMeta,setEditandoMeta]=useState<Record<string,string>>({});
   const [loading,setLoading]=useState(false);
   const [data,setData]=useState(today());
   const [setor,setSetor]=useState<string>(PROCESSOS[0]||"RECOBRIDORA");
@@ -29,10 +31,11 @@ export default function Config(){
     const begin=[start.getFullYear(),String(start.getMonth()+1).padStart(2,"0"),String(start.getDate()).padStart(2,"0")].join("-");
     const r=await fetch("/api/producao-diaria?inicio="+begin+"&fim="+end,{cache:"no-store"});
     const j=await r.json();
-    if(r.ok){setRegistros(j.registros||[]);setMetas(j.metas||[]);setCapacidades(j.capacidades||[]);}
+    if(r.ok){setRegistros(j.registros||[]);setMetas(j.metas||[]);setCapacidades(j.capacidades||[]);setPadroes(j.padroes||[]);}
     else toast("error",j.error||"Falha ao consultar dados");
   }
   useEffect(()=>{void load();},[]);
+  const mapaPadroes=useMemo(()=>new Map(padroes.map(x=>[x.processo,Number(x.meta)])),[padroes]);
   const mapaMetas=useMemo(()=>new Map(metas.map(m=>[key(m),Number(m.meta)])),[metas]);
   const metaSelecionada=metas.find(x=>x.data.slice(0,10)===data&&x.processo===setor&&x.turno===turno&&x.maquina===setor);
   const producaoSelecionada=registros.find(x=>x.data.slice(0,10)===data&&x.processo===setor&&x.turno===turno&&x.maquina===setor);
@@ -42,15 +45,25 @@ export default function Config(){
     setProduzido(String(x.produzido));setMeta(String(mapaMetas.get(key(x))??""));setTab("DIARIO");
   }
   async function salvar(){
-    if(!produzido.trim()&&!meta.trim())return toast("error","Informe a meta ou a produção do dia.");
+    if(!produzido.trim())return toast("error","Informe a produção realizada.");
     setLoading(true);
     try {
-      const r=await fetch("/api/producao-diaria",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({data,processo:setor,maquina:setor,turno,produzido,meta})});
+      const r=await fetch("/api/producao-diaria",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({data,processo:setor,maquina:setor,turno,produzido,meta:null})});
       const j=await r.json();
       if(!r.ok)throw Error(j.error||"Falha ao salvar");
-      toast("success","Dados salvos para o setor, turno e data.");
+      toast("success","Produção registrada. A meta geral do setor será utilizada automaticamente.");
       await load();
     }catch(e:any){toast("error",e.message);}finally{setLoading(false);}
+  }
+  async function salvarPadrao(processo:string){
+    const valor=editandoMeta[processo]??String(mapaPadroes.get(processo)??"");
+    if(!valor.trim()||!Number.isSafeInteger(Number(valor))||Number(valor)<0)return toast("error","Informe uma meta válida em peças.");
+    setLoading(true);
+    try{
+      const res=await fetch("/api/producao-diaria",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({tipo:"META_PADRAO",processo,meta:Number(valor)})});
+      const json=await res.json();if(!res.ok)throw Error(json.error||"Falha ao salvar");
+      toast("success","Meta geral salva para "+(LABELS[processo]||processo));await load();
+    }catch(e:any){toast("error",e.message)}finally{setLoading(false)}
   }
   const semana=useMemo(()=>{
     const d=new Date();const out=[] as {data:string;meta:number;produzido:number}[];
@@ -64,22 +77,23 @@ export default function Config(){
   const max=Math.max(1,...semana.flatMap(x=>[x.meta,x.produzido]));
   return <><PageHeader eyebrow="Gestão industrial" title="Metas e produção por setor" description="Cadastre metas, registre peças produzidas por dia e acompanhe a semana por setor e turno. Os lançamentos são manuais e não duplicam apontamentos de OF."/>
     <div className="row" style={{gap:8,flexWrap:"wrap",marginBottom:16}}>
+      <button className={tab==="METAS"?"primary":"secondary"} onClick={()=>setTab("METAS")}>Metas gerais por setor</button>
       <button className={tab==="DIARIO"?"primary":"secondary"} onClick={()=>setTab("DIARIO")}>Lançamento diário</button>
       <button className={tab==="HISTORICO"?"primary":"secondary"} onClick={()=>setTab("HISTORICO")}>Gráficos e histórico</button>
     </div>
-    {tab==="DIARIO"&&<Card title="Meta e produção do dia" subtitle="Cada registro corresponde a um setor, turno e data; salvar novamente atualiza o valor anterior.">
+    {tab==="METAS"&&<Card title="Configuração geral de metas por setor" subtitle="Cadastre uma meta diária padrão por setor. Ela será aplicada aos lançamentos de produção; não é necessário repetir a meta todos os dias.">
+      <div style={{overflowX:"auto"}}><table style={{width:"100%"}}><thead><tr><th>Setor</th><th>Meta diária (peças)</th><th>Ação</th></tr></thead><tbody>
+        {PROCESSOS.map(processo=><tr key={processo}><td>{LABELS[processo]||processo}</td><td><input aria-label={"Meta diária "+(LABELS[processo]||processo)} type="number" min="0" step="1" value={editandoMeta[processo]??String(mapaPadroes.get(processo)??"")} onChange={e=>setEditandoMeta(old=>({...old,[processo]:e.target.value}))} placeholder="Definir meta"/></td><td><button className="primary" disabled={loading} onClick={()=>void salvarPadrao(processo)}>Salvar meta</button></td></tr>)}
+      </tbody></table></div>
+    </Card>}
+    {tab==="DIARIO"&&<Card title="Lançamento da produção realizada" subtitle="A meta é configurada na aba Metas gerais por setor. Cada registro corresponde a um setor, turno e data; salvar novamente atualiza o valor anterior.">
       <div className="form-grid">
         <Field label="Data"><input type="date" value={data} onChange={e=>setData(e.target.value)}/></Field>
         <Field label="Setor / processo"><select value={setor} onChange={e=>selecionarSetor(e.target.value)}>{PROCESSOS.map(x=><option key={x} value={x}>{LABELS[x]||x}</option>)}</select></Field>
         <Field label="Turno"><select value={turno} onChange={e=>setTurno(e.target.value)}><option>A</option><option>B</option><option>C</option></select></Field>
-        <Field label="Meta do dia (peças)"><input type="number" min="0" step="1" value={meta} onChange={e=>setMeta(e.target.value)} placeholder="Opcional"/></Field>
+
         <Field label="Produção realizada (peças)"><input type="number" min="0" step="1" value={produzido} onChange={e=>setProduzido(e.target.value)} placeholder="Quantidade real"/></Field>
-      </div><p className="muted">Meta cadastrada: {metaSelecionada ? fmt(Number(metaSelecionada.meta))+" peças" : "não cadastrada"} · Produção lançada: {producaoSelecionada ? fmt(Number(producaoSelecionada.produzido))+" peças" : "não lançada"}. Você pode salvar apenas a meta e registrar a produção depois.</p><div className="row" style={{justifyContent:"flex-end",marginTop:16}}><button className="primary" disabled={loading} onClick={()=>void salvar()}>{loading?"Salvando...":"Salvar lançamento"}</button></div>
-      <h3 className="sectionTitle">Configuração das metas por setor</h3>
-      <p className="muted">Selecione um setor para definir sua meta diária. Cada setor e turno é configurado individualmente.</p>
-      <div style={{overflowX:"auto"}}><table style={{width:"100%"}}><thead><tr><th>Setor</th><th>Meta cadastrada na data</th><th>Produzido</th><th>Ação</th></tr></thead><tbody>
-        {PROCESSOS.map(x=>{const m=metas.find(y=>y.data.slice(0,10)===data&&y.processo===x&&y.turno===turno&&y.maquina===x);const real=registros.find(y=>y.data.slice(0,10)===data&&y.processo===x&&y.turno===turno&&y.maquina===x);return <tr key={x}><td>{LABELS[x]||x}</td><td>{m?fmt(Number(m.meta))+" peças":"Não definida"}</td><td>{real?fmt(Number(real.produzido))+" peças":"—"}</td><td><button className="secondary" onClick={()=>{selecionarSetor(x);setMeta(m?String(m.meta):"");setProduzido(real?String(real.produzido):"");}}>Configurar</button></td></tr>})}
-      </tbody></table></div>
+      </div><p className="muted">Meta geral do setor: {mapaPadroes.has(setor) ? fmt(mapaPadroes.get(setor)!)+" peças/dia" : "não configurada"} · Produção lançada: {producaoSelecionada ? fmt(Number(producaoSelecionada.produzido))+" peças" : "não lançada"}. Você pode salvar apenas a meta e registrar a produção depois.</p><div className="row" style={{justifyContent:"flex-end",marginTop:16}}><button className="primary" disabled={loading} onClick={()=>void salvar()}>{loading?"Salvando...":"Salvar lançamento"}</button></div>
       <h3 className="sectionTitle">Lançamentos recentes</h3>
       <div style={{overflowX:"auto"}}><table style={{width:"100%"}}><thead><tr><th>Data</th><th>Setor</th><th>Turno</th><th>Meta</th><th>Produzido</th><th>Atingimento</th><th></th></tr></thead><tbody>
         {registros.map(x=>{const m=mapaMetas.get(key(x));return <tr key={key(x)}><td>{x.data.slice(0,10).split("-").reverse().join("/")}</td><td>{LABELS[x.processo]||x.processo}</td><td>{x.turno}</td><td>{m===undefined?"—":fmt(m)}</td><td>{fmt(Number(x.produzido))}</td><td>{m?Math.round(Number(x.produzido)/m*100)+"%":"—"}</td><td><button className="secondary" onClick={()=>selecionarRegistro(x)}>Editar</button></td></tr>})}
