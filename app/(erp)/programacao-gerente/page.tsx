@@ -116,29 +116,30 @@ function batentesPedido(produtos: Produto[]) {
   });
 }
 
-type ConjuntoComponente = "PORTAS" | "PERNAS BATENTE" | "TRAVESSAS BATENTE" | "ALIZAR L MAIOR" | "ALIZAR L MENOR" | "TRAVESSAS ALIZAR";
-const COMPONENTES_CONJUNTO: ConjuntoComponente[] = ["PORTAS","PERNAS BATENTE","TRAVESSAS BATENTE","ALIZAR L MAIOR","ALIZAR L MENOR","TRAVESSAS ALIZAR"];
+type ConjuntoComponente = "PORTAS" | "PERNAS BATENTE" | "PERNA ALIZAR L MAIOR" | "PERNA ALIZAR L MENOR" | "TRAVESSA ALIZAR L MAIOR" | "TRAVESSA ALIZAR L MENOR";
+const COMPOSICAO: Record<ConjuntoComponente,number> = {
+  "PORTAS":1,"PERNAS BATENTE":2,"PERNA ALIZAR L MAIOR":2,
+  "PERNA ALIZAR L MENOR":2,"TRAVESSA ALIZAR L MAIOR":1,"TRAVESSA ALIZAR L MENOR":1
+};
+const COMPONENTES_CONJUNTO = Object.keys(COMPOSICAO) as ConjuntoComponente[];
 function conjuntosPedido(produtos: Produto[]) {
-  const estoque = Object.fromEntries(COMPONENTES_CONJUNTO.map(x => [x,0])) as Record<ConjuntoComponente,number>;
+  const estoque=Object.fromEntries(COMPONENTES_CONJUNTO.map(x=>[x,0])) as Record<ConjuntoComponente,number>;
   let alizarIndefinido=0;
-  for (const p of produtos) {
-    const familia = familiaIndustrial(p);
-    const qtd=n(p.quantidade);
-    if (familia === "PORTAS") estoque["PORTAS"]+=qtd;
-    if (familia === "BATENTES") estoque[tipoPeca(p) === "TRAVESSA" ? "TRAVESSAS BATENTE" : "PERNAS BATENTE"]+=qtd;
-    if (familia === "ALIZARES") {
-      if (tipoPeca(p) === "TRAVESSA") { estoque["TRAVESSAS ALIZAR"]+=qtd; continue; }
-      const texto = [p.descricao,p.descricaoModelo,p.outrasCaracteristicas,p.categoria].join(" ").toUpperCase();
-      if (/L\\s*(?:MAIOR|GRANDE)\\b/.test(texto)) estoque["ALIZAR L MAIOR"]+=qtd;
-      else if (/L\\s*(?:MENOR|PEQUENO)\\b/.test(texto)) estoque["ALIZAR L MENOR"]+=qtd;
-      else alizarIndefinido+=qtd;
-    }
+  for(const p of produtos) {
+    const f=familiaIndustrial(p), q=n(p.quantidade);
+    if(f==="PORTAS") {estoque.PORTAS+=q;continue;}
+    if(f==="BATENTES") {if(tipoPeca(p)==="PERNA") estoque["PERNAS BATENTE"]+=q;continue;}
+    if(f!=="ALIZARES") continue;
+    const txt=[p.descricao,p.categoria,p.outrasCaracteristicas].join(" ").toUpperCase();
+    const maior=txt.includes("L MAIOR")||txt.includes("L GRANDE");
+    const menor=txt.includes("L MENOR")||txt.includes("L PEQUENO");
+    if(maior===menor){alizarIndefinido+=q;continue;}
+    const trav=tipoPeca(p)==="TRAVESSA";
+    const key:ConjuntoComponente=trav?(maior?"TRAVESSA ALIZAR L MAIOR":"TRAVESSA ALIZAR L MENOR"):(maior?"PERNA ALIZAR L MAIOR":"PERNA ALIZAR L MENOR");
+    estoque[key]+=q;
   }
-  // Uma unidade de cada componente: estimativa conservadora de conjunto completo,
-  // sem cruzar pedidos e sem transformar produtos isolados em kits finalizados.
-  const conjuntos=Math.min(...COMPONENTES_CONJUNTO.map(x=>estoque[x]));
-  const faltas=COMPONENTES_CONJUNTO.filter(x=>estoque[x]===conjuntos);
-  return { conjuntos, estoque, faltas, alizarIndefinido };
+  const conjuntos=Math.min(...COMPONENTES_CONJUNTO.map(x=>Math.floor(estoque[x]/COMPOSICAO[x])));
+  return {conjuntos,estoque,faltas:COMPONENTES_CONJUNTO.filter(x=>Math.floor(estoque[x]/COMPOSICAO[x])===conjuntos),alizarIndefinido};
 }
 
 function statusPedido(produtos: Produto[]) {
@@ -593,7 +594,7 @@ export default function ProgramacaoGerentePage() {
                       <td className="num">{pedido.ofs}</td>
                       <td className="num">{pedido.m3.toFixed(3)}</td>
                       <td className="num">{pedido.ml.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="num"><b>{fmt(pedido.kits)}</b><details><summary>Componentes</summary><div style={{minWidth:240,textAlign:"left"}}>{COMPONENTES_CONJUNTO.map(nome=><div key={nome}>{nome}: {fmt(pedido.componentesConjunto.estoque[nome])}</div>)}{pedido.componentesConjunto.alizarIndefinido>0&&<div>Alizares L sem identificação: {fmt(pedido.componentesConjunto.alizarIndefinido)}</div>}<small>Estimativa: 1 peça por componente. Conferir composição técnica antes de liberar compra.</small></div></details></td>
+                      <td className="num"><b>{fmt(pedido.kits)}</b><details><summary>Componentes</summary><div style={{minWidth:240,textAlign:"left"}}>{COMPONENTES_CONJUNTO.map(nome=><div key={nome}>{nome}: {fmt(pedido.componentesConjunto.estoque[nome])}</div>)}{pedido.componentesConjunto.alizarIndefinido>0&&<div>Alizares L sem identificação: {fmt(pedido.componentesConjunto.alizarIndefinido)}</div>}<small>Composição: 1 porta, 2 pernas batente, 2 pernas alizar L maior, 2 L menor, 1 travessa alizar L maior e 1 L menor.</small></div></details></td>
                       <td>
                         <span className={`managerFlag ${pedido.usinagem ? "ok" : "pending"}`}>
                           {pedido.usinagem ? "SIM" : "NÃO"}
