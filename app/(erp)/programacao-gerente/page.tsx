@@ -292,7 +292,7 @@ export default function ProgramacaoGerentePage() {
     let semClassificacao = 0;
     let semComprimento = 0;
     for (const p of produtos) {
-      if (![\"BATENTES\", \"ALIZARES\", \"BAGUETE\", \"KIT CORRER\"].includes(familiaIndustrial(p))) continue;
+      if (!["BATENTES", "ALIZARES", "BAGUETE", "KIT CORRER"].includes(familiaIndustrial(p))) continue;
       const material = materialDaLinha(p);
       if (!material) { semClassificacao += n(p.quantidade); continue; }
       dados[material].pecas += n(p.quantidade);
