@@ -51,6 +51,8 @@ export default function SobralIAPage(){
  const [corrigindo,setCorrigindo]=useState<number|null>(null);
  const [textoCorrecao,setTextoCorrecao]=useState("");
  const [feedbackItens,setFeedbackItens]=useState<any[]>([]);
+ const [historico,setHistorico]=useState<any[]>([]);
+ const [mostraHistorico,setMostraHistorico]=useState(false);
  const [regras,setRegras]=useState<Regra[]>([]);
  const [canTrain,setCanTrain]=useState(false);
  const [area,setArea]=useState("TODAS");
@@ -73,7 +75,7 @@ export default function SobralIAPage(){
    const r=await fetch("/api/ia/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({path:"/sobral-ia",messages:next.map(({role,content})=>({role,content}))})});
    const raw=await r.text();let j:any={};try{j=raw?JSON.parse(raw):{}}catch{throw new Error("Resposta inválida da IA.")}
    if(!r.ok)throw new Error(j.error||"Falha na IA.");
-   setMsgs([...next,{role:"assistant",content:String(j.reply||"Pronto."),anexos:Array.isArray(j.attachments)?j.attachments:[]}]);
+   setMsgs([...next,{role:"assistant",content:String(j.reply||"Não foi possível concluir uma resposta fundamentada."),anexos:Array.isArray(j.attachments)?j.attachments:[]}]);
   }catch(e:any){setMsgs([...next,{role:"assistant",content:`⚠ ${e.message}`}])}finally{setBusy(false)}
  }
 
@@ -107,6 +109,12 @@ export default function SobralIAPage(){
    if(!r.ok)return toast("error",j.error||"Falha ao enviar correção.");
    toast("success","Correção registrada para revisão da equipe.");
    setCorrigindo(null);setTextoCorrecao("");
+ }
+ async function carregarHistorico(id:string){
+   const r=await fetch("/api/ia/conhecimento/historico?id="+encodeURIComponent(id),{cache:"no-store"});
+   const j=await r.json();
+   if(!r.ok)return toast("error",j.error||"Falha ao carregar histórico.");
+   setHistorico(j.historico||[]);setMostraHistorico(true);
  }
  async function carregarFeedback(){
    const r=await fetch("/api/ia/feedback",{cache:"no-store"});
@@ -313,6 +321,18 @@ export default function SobralIAPage(){
     <section className="card sobral-training-form training-editor">
      <div className="card-head"><div><span className="eyebrow">EDITOR DE CONHECIMENTO</span><h3>{edit.id?"Editar regra existente":"Ensinar nova regra"}</h3><p>Descreva quando a regra se aplica e o comportamento correto.</p></div><span className="training-editor-icon"><GraduationCap/></span></div>
      <div className="card-body">
+      {canTrain&&edit.id&&<button onClick={()=>void carregarHistorico(edit.id!)}>Ver histórico e versões deste conhecimento</button>}
+      {mostraHistorico&&edit.id&&<div className="card" style={{padding:12,marginBottom:12}}>
+       <b>Histórico de alterações</b>
+       <button className="ghost" onClick={()=>setMostraHistorico(false)}>Ocultar</button>
+       {!historico.length&&<p>Não há versões registradas para este conhecimento.</p>}
+       {historico.map((h:any)=><div key={h.id} style={{borderBottom:"1px solid var(--border,#ddd)",padding:"8px 0"}}>
+        <b>{h.evento} · {h.autor}</b>
+        <small> · {new Date(h.criado_em).toLocaleString("pt-BR")}</small>
+        <div><strong>Anterior:</strong> {h.anterior?.regra||"Não havia registro"}</div>
+        <div><strong>Posterior:</strong> {h.posterior?.regra||"Não disponível"}</div>
+       </div>)}
+      </div>}
       {!canTrain&&<div className="notice warning">Somente PCP e Gerente podem cadastrar ou editar regras.</div>}
       <div className="form-grid two"><label className="field"><span>Título da regra</span><input disabled={!canTrain} value={edit.titulo||""} onChange={e=>setEdit({...edit,titulo:e.target.value})} placeholder="Ex.: Batente RB42 usa Tupia"/></label><label className="field"><span>Área</span><select disabled={!canTrain} value={edit.area||"GERAL"} onChange={e=>setEdit({...edit,area:e.target.value})}>{AREAS.map(a=><option key={a}>{a}</option>)}</select></label></div>
       <label className="field"><span>Quando se aplica?</span><textarea disabled={!canTrain} value={edit.situacao||""} onChange={e=>setEdit({...edit,situacao:e.target.value})} placeholder="Ex.: batente perna com rebaixo RB42..."/></label>
@@ -326,7 +346,7 @@ export default function SobralIAPage(){
     <section className="card sobral-training-list training-library">
      <div className="card-head"><div><span className="eyebrow">BIBLIOTECA DE REGRAS</span><h3>Conhecimento da fábrica</h3><p>Clique em uma regra para revisar ou editar.</p></div><select value={area} onChange={e=>setArea(e.target.value)}><option>TODAS</option>{AREAS.map(a=><option key={a}>{a}</option>)}</select></div>
      <div className="training-rule-list training-rule-list-v2">
-      {filtradas.map(r=><button key={r.id} className="training-rule-card training-rule-card-v2" onClick={()=>canTrain&&setEdit(r)}><div className="training-rule-topline"><Badge tone={r.ativo?"success":"neutral"}>{r.ativo?"ATIVA":"INATIVA"}</Badge><span className="training-area">{r.area}</span><span className="training-priority">P{r.prioridade}</span></div><b>{r.titulo}</b><p>{r.regra}</p>{r.exemplo&&<small>Ex.: {r.exemplo}</small>}</button>)}
+      {filtradas.map(r=><button key={r.id} className="training-rule-card training-rule-card-v2" onClick={()=>{if(canTrain){setEdit(r);setMostraHistorico(false)}}}><div className="training-rule-topline"><Badge tone={r.ativo?"success":"neutral"}>{r.ativo?"ATIVA":"INATIVA"}</Badge><span className="training-area">{r.area}</span><span className="training-priority">P{r.prioridade}</span></div><b>{r.titulo}</b><p>{r.regra}</p>{r.exemplo&&<small>Ex.: {r.exemplo}</small>}</button>)}
       {!filtradas.length&&<div className="empty training-empty"><GraduationCap/><b>Nenhuma regra cadastrada</b><span>Cadastre a primeira regra para começar a construir a inteligência específica da fábrica.</span></div>}
      </div>
     </section>

@@ -1,15 +1,30 @@
 import { sql } from "@/lib/db";
 
-export async function conhecimentoTreinavelPrompt(limit = 80) {
+export async function conhecimentoTreinavelPrompt(pergunta = "", limit = 12) {
   try {
     const db = sql();
-    const rows = await db`
-      select titulo,area,situacao,regra,exemplo,observacao,prioridade
-      from pcp_ia_conhecimento
-      where ativo=true
-      order by prioridade desc, atualizado_em desc
-      limit ${limit}
-    `;
+    const texto=String(pergunta||"").trim().slice(0,600);
+    const rows = texto
+      ? await db`
+        select titulo,area,situacao,regra,exemplo,observacao,prioridade,atualizado_em
+        from pcp_ia_conhecimento
+        where ativo=true and
+          to_tsvector('portuguese', concat_ws(' ',titulo,area,situacao,regra,exemplo,observacao))
+          @@ websearch_to_tsquery('portuguese',${texto})
+        order by
+          ts_rank(
+            to_tsvector('portuguese',concat_ws(' ',titulo,area,situacao,regra,exemplo,observacao)),
+            websearch_to_tsquery('portuguese',${texto})
+          ) desc,
+          prioridade desc, atualizado_em desc
+        limit ${Math.max(1,Math.min(30,limit))}
+      `
+      : await db`
+        select titulo,area,situacao,regra,exemplo,observacao,prioridade,atualizado_em
+        from pcp_ia_conhecimento
+        where ativo=true order by prioridade desc,atualizado_em desc
+        limit ${Math.max(1,Math.min(12,limit))}
+      `;
     if (!rows.length) return "";
 
     const body = rows.map((r:any, i:number) => {
@@ -24,8 +39,8 @@ export async function conhecimentoTreinavelPrompt(limit = 80) {
     }).join("\n\n");
 
     return `
-CONHECIMENTO ENSINADO PELA EQUIPE
-As regras abaixo foram cadastradas pela equipe da fábrica e complementam o manual técnico.
+CONHECIMENTO DA EQUIPE RECUPERADO PARA A CONSULTA
+As referências abaixo foram cadastradas pela equipe. Elas são informações de apoio, não dados de produção atuais.
 - Trate-as como regras operacionais internas.
 - Se uma regra ensinada conflitar com dados reais do banco, não altere o dado: explique o conflito.
 - Se duas regras ensinadas conflitarem entre si, priorize a de maior prioridade e sinalize a divergência.
