@@ -48,13 +48,25 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
     if (marco && /^(MDF|ULTRA|STD|RU|PREM)/.test(material)) preencher("tipo", nomeMaterial, material);
     if (alizar && (/\b(?:STD|ULTRA|MDF|RU|PREMIUM|PREM)\b/.test(material) || Boolean(ultraAbreviado || ultraEmToken))) preencher("tipo", ehPremium ? "PREMIUM" : nomeMaterial === "MDF ULTRA" ? "ULTRA" : material === "MDF STD" ? "STD" : material, material);
   }
-  const rebaixo = texto.match(/\bS\/(?:REB|RB)\b|\b(?:C\/REB\s*)?42\s*X\s*10\b/)?.[0] || "";
-  if (admiteRebaixo && rebaixo) preencher("rebaixo", /^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
-  // Cores compostas do catálogo (ex.: PET BRANCO CARRARA PREMIUM) não
-  // podem ser truncadas em apenas "BRANCO".
-  const corRevestimento = contexto.match(/\b(?:RECOBERT[OA]|REVESTID[OA])\s+(?:EM\s+)?((?:PET|TXT|BP)\s+[A-ZÀ-Ú0-9 ]+?)(?=\s*\(PECA|\s*\(PEC|\s*$)/)?.[1]?.trim() || "";
+  // Ler descrições completas de todas as famílias e setores, não apenas siglas do filtro.
+  const rebaixo = texto.match(/\bREBAIXO\s*(?:DE\s*)?(\d{2}\s*[X×]\s*\d{1,2})(?:\s*MM)?/)?.[1]
+    || texto.match(/\bS\/(?:REB|RB)\b|\b(?:C\/REB\s*)?42\s*X\s*10\b/)?.[0] || "";
+  if (admiteRebaixo && rebaixo) {
+    preencher("rebaixo", /^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, "").replace(/\s/g,"").replace("×","X"), rebaixo);
+  }
+  const revestimento = texto.match(/\b(?:RECOBERT[OA]|REVESTID[OA])\s+(?:EM\s+)?(PET|TXT|BP)(?:\s+([A-Z0-9À-Ú ]+?))?(?=\s*\/|\s*\(|$)/);
+  const corRevestimento = revestimento ? [revestimento[1],revestimento[2]?.trim()].filter(Boolean).join(" ") : "";
   const cor = corRevestimento || contexto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
   if (cor) preencher("cor", cor, cor);
+  // PET, TXT e BP são revestimentos, não matéria-prima.
+  const anterior = String(produto.material || "").trim().toUpperCase();
+  if (/^(?:PET|TXT|BP)(?:\s|$)/.test(anterior)) {
+    const materialExplicito = contexto.match(/\bMADEIRA\s+DE\s+PINUS\b|\bMDF\s+(?:ULTRA|STD|STANDARD)\b|\bPINUS\b|\bULTRA\b|\bSTD\b/)?.[0];
+    produto.material = materialExplicito
+      ? (/PINUS/.test(materialExplicito) ? "PINUS" : /ULTRA/.test(materialExplicito) ? "MDF ULTRA" : "MDF STD")
+      : "";
+    alteracoes.push({ id:p.id,campo:"material",valor:produto.material,evidencia:materialExplicito||anterior,metodo:"REGRA" });
+  }
   // Regras homologadas por PRODUTO (coluna H do Consistem). Só usam o nome do produto
   // da própria linha e só preenchem campos vazios.
   const nomeProduto = normal(String(p.produto || ""));
