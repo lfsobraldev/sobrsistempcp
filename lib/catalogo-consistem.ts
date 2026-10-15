@@ -27,8 +27,11 @@ export async function ensureCatalogo(db = sql()) {
   await db`create table if not exists pcp_catalogo_versoes (
     id uuid primary key, status text not null default 'PREPARANDO',
     criado_em timestamptz not null default now(), ativo_em timestamptz,
-    total integer not null default 0, conflitos integer not null default 0
+    total integer not null default 0, conflitos integer not null default 0,
+    total_linhas integer not null default 0, linhas_sem_codigo integer not null default 0
   )`;
+  await db`alter table pcp_catalogo_versoes add column if not exists total_linhas integer not null default 0`;
+  await db`alter table pcp_catalogo_versoes add column if not exists linhas_sem_codigo integer not null default 0`;
   await db`create table if not exists pcp_catalogo_produtos (
     versao uuid not null references pcp_catalogo_versoes(id) on delete cascade,
     codigo text not null, narrativa text not null default '',

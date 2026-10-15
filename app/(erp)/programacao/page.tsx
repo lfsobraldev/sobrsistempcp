@@ -22,7 +22,7 @@ export default function Programacao() {
   useEffect(() => {
     fetch("/api/catalogo-produtos",{cache:"no-store"})
       .then(async r=>{if(!r.ok) return null;return r.json();})
-      .then(j=>{if(j?.ativo) setCatalogoResumo(`Catálogo permanente ativo: ${Number(j.ativo.total||0).toLocaleString("pt-BR")} códigos cadastrados · ${Number(j.ativo.conflitos||0)} conflitos. Não precisa reenviar para novos filtros.`);})
+      .then(j=>{if(j?.ativo) setCatalogoResumo(`Catálogo ativo: ${Number(j.ativo.total_linhas||0)>0?Number(j.ativo.total_linhas).toLocaleString("pt-BR")+" linhas importadas · ":""}${Number(j.ativo.total||0).toLocaleString("pt-BR")} códigos únicos · ${Number(j.ativo.conflitos||0).toLocaleString("pt-BR")} códigos com narrativas divergentes. ${Number(j.ativo.total_linhas||0)>0?"":"Reimporte o catálogo para conferir o total de linhas da planilha. "}Não precisa reenviar para cada filtro.`);})
       .catch(()=>{});
   }, []);
 
@@ -48,7 +48,7 @@ export default function Programacao() {
       const r = await fetch("/api/catalogo-produtos",{method:"POST",body:fd});
       const j = await r.json();
       if(!r.ok) throw new Error(j.error || "Falha ao cadastrar catálogo.");
-      const msg = `${j.total.toLocaleString("pt-BR")} códigos cadastrados · ${j.conflitos} conflitos · ${j.semNarrativa} sem narrativa`;
+      const msg = `${j.totalLinhas.toLocaleString("pt-BR")} linhas importadas · ${j.total.toLocaleString("pt-BR")} códigos únicos · ${j.linhasRepetidas.toLocaleString("pt-BR")} linhas de códigos repetidos · ${j.conflitos} códigos com narrativas divergentes · ${j.linhasSemCodigo} linhas sem código · ${j.semNarrativa} sem narrativa`;
       setCatalogoResumo(msg);
       toast("success","Catálogo atualizado. Os próximos filtros consultarão as narrativas.");
     } catch(e:any) {
@@ -237,7 +237,7 @@ export default function Programacao() {
             <UploadCloud /> {catalogoBusy ? "Cadastrando catálogo…" : "Cadastrar / atualizar produtos"}
           </button>
         </div>
-        <p className="muted">{catalogoResumo || "Importe Eng Empresa 34.xlsx uma vez. Nas próximas programações, o código Produto recuperará automaticamente a narrativa cadastrada. Códigos conflitantes são ignorados e apresentados para conferência."}</p>
+        <p className="muted">{catalogoResumo || "Importe Eng Empresa 34.xlsx uma vez. Nas próximas programações, o código Produto recuperará automaticamente a narrativa cadastrada. Códigos com narrativas divergentes só são usados quando a variante puder ser identificada com segurança; os demais são sinalizados para conferência."}</p>
       </Card>
 
       {!draft ? (
