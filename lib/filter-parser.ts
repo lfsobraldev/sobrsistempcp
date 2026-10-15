@@ -536,10 +536,7 @@ function material(
       field(r, "Tipo")
     );
 
-  const d =
-    up(
-      field(r, "Descrição")
-    );
+  const d = up([field(r, "Descrição"), field(r, "Descrição Modelo"), field(r, "Outras Características"), field(r, "Produto")].join(" "));
 
   if (
     tipo.includes(
@@ -583,6 +580,7 @@ function material(
     return "MDF ULTRA";
   }
 
+  if (d.includes("STD")) return "MDF STD";
   if (
     d.includes(
       "PINUS"

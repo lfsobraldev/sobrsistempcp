@@ -17,23 +17,28 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   const alteracoes: Alteracao[] = [];
   const descricao = String(p.descricao || "");
   const texto = normal(descricao);
+  // Descrição abreviada pode omitir medidas, acabamento e material.
+  // Complementar apenas a partir dos campos da PRÓPRIA linha, nunca de outra peça.
+  const fontes = [descricao, p.descricaoModelo, p.outrasCaracteristicas, p.tipo, p.produto]
+    .filter(Boolean).map(String);
+  const contexto = normal(fontes.join(" "));
   const marco = /BATENTE|MARCO/.test(normal(String(p.categoria || ""))) || /^(?:CJ\s+M|M(?:\s+(?:P|T|CJ))?)\s/.test(texto) || /\b\d{3,4}X\d{2,3}X30\s+(?:42X10|S\/(?:REB|RB))\b/.test(texto) || /MARCO EM/.test(normal(String(p.produto || "")));
   const alizar = /ALIZAR/.test(normal(String(p.categoria || ""))) || /^A\s/.test(texto);
-  const baguete = /BAGUETE/.test(normal(String(p.categoria || ""))) || /\bBAGUETE\b/.test(texto);
+  const baguete = /BAGUETE/.test(normal(String(p.categoria || ""))) || /\bBAGUETE\b/.test(contexto);
   const admiteRebaixo = marco && !alizar && !baguete;
   const preencher = (campo: Campo, valor: string, evidencia: string) => {
-    if (!vazio(produto[campo]) || !valor || !evidencia || !evidenciaPresente(descricao, evidencia)) return;
+    if (!vazio(produto[campo]) || !valor || !evidencia || !evidenciaPresente(fontes.join(" "), evidencia)) return;
     produto[campo] = valor;
     alteracoes.push({ id: p.id, campo, valor, evidencia, metodo: "REGRA" });
   };
   // Medida é inferida da descrição da própria peça; a dimensão original da fonte tem precedência.
-  const medida = descricao.match(/\b\d{2,4}\s*[xX×]\s*\d{2,4}(?:\s*[xX×]\s*\d{1,3})?\b/)?.[0] || "";
+  const medida = fontes.map(f => f.match(/\b\d{2,4}\s*[xX×]\s*\d{2,4}(?:\s*[xX×]\s*\d{1,3})?\b/)?.[0]).find(Boolean) || "";
   if (medida) preencher("medida", medida.replace(/\s*[xX×]\s*/g, "x"), medida);
   // O Filtro 53 possui descrições truncadas na ORIGEM, como BCO(UL e BCO(ULTR.
   // Reconhecer UL/ULTR somente como token final entre parênteses (nunca palavras aleatórias).
   const ultraAbreviado = texto.match(/(?:\(|\s)(U|UL|ULT|ULTR)(?:\s*\)?)$/)?.[1] || "";
   const ultraEmToken = texto.match(/(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=\s|\)|$)/)?.[0]?.trim() || "";
-  const material = texto.match(/\bMDF\s+(?:ULTRA|STD|RU|PREMIUM|PREM)\b|\bPREMIUM\b|\bPREM\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b|\bPINUS\b/)?.[0] || ultraAbreviado || ultraEmToken;
+  const material = contexto.match(/\bMDF\s+(?:ULTRA|STD|RU|PREMIUM|PREM)\b|\bPREMIUM\b|\bPREM\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b|\bPINUS\b/)?.[0] || ultraAbreviado || ultraEmToken;
   if (material) {
     const ehPremium = /^(?:MDF\s+)?PREM(?:IUM)?$/.test(material);
     const nomeMaterial = ehPremium ? "MDF PREMIUM" : material === "ULTRA" || Boolean((ultraAbreviado || ultraEmToken) && (material === ultraAbreviado || material === ultraEmToken)) ? "MDF ULTRA" : material === "STD" ? "MDF STD" : material;
@@ -45,7 +50,7 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   }
   const rebaixo = texto.match(/\bS\/(?:REB|RB)\b|\b(?:C\/REB\s*)?42\s*X\s*10\b/)?.[0] || "";
   if (admiteRebaixo && rebaixo) preencher("rebaixo", /^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
-  const cor = texto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
+  const cor = contexto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
   if (cor) preencher("cor", cor, cor);
   // Regras homologadas por PRODUTO (coluna H do Consistem). Só usam o nome do produto
   // da própria linha e só preenchem campos vazios.

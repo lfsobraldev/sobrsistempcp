@@ -68,9 +68,10 @@ function mlProduto(p: Produto) {
   return comprimento > 0 ? (comprimento / 1000) * n(p.quantidade) : 0;
 }
 
-function materialDaLinha(p: Produto): "ULTRA" | "STD" | null {
+function materialDaLinha(p: Produto): "ULTRA" | "STD" | "PINUS" | null {
   const texto = [p.material, p.tipo, p.descricao, p.descricaoModelo, p.outrasCaracteristicas]
     .filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  if (/\bPINUS\b/.test(texto)) return "PINUS";
   if (/\b(?:MDF\s+)?STD\b/.test(texto)) return "STD";
   if (/\b(?:MDF\s+)?ULTRA\b/.test(texto)) return "ULTRA";
   if (/(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(texto)
@@ -82,7 +83,7 @@ function materialPedido(produtos: Produto[]) {
   const tipos = new Set(produtos.map(materialDaLinha).filter(Boolean));
   return tipos.has("ULTRA") && tipos.has("STD") ? "ULTRA/STD"
     : tipos.has("ULTRA") ? "ULTRA"
-    : tipos.has("STD") ? "STD" : "-";
+    : tipos.has("STD") ? "STD" : tipos.has("PINUS") ? "PINUS" : "-";
 }
 
 function alizaresPedido(produtos: Produto[]) {
@@ -286,6 +287,21 @@ export default function ProgramacaoGerentePage() {
   const kits = pedidos.reduce((s, p) => s + p.kits, 0);
   const volume = pedidos.reduce((s, p) => s + p.m3, 0);
   const metrosLineares = pedidos.reduce((s, p) => s + p.ml, 0);
+  const consumoMaterial = useMemo(() => {
+    const dados = { STD: { pecas: 0, ml: 0 }, ULTRA: { pecas: 0, ml: 0 }, PINUS: { pecas: 0, ml: 0 } };
+    let semClassificacao = 0;
+    let semComprimento = 0;
+    for (const p of produtos) {
+      if (![\"BATENTES\", \"ALIZARES\", \"BAGUETE\", \"KIT CORRER\"].includes(familiaIndustrial(p))) continue;
+      const material = materialDaLinha(p);
+      if (!material) { semClassificacao += n(p.quantidade); continue; }
+      dados[material].pecas += n(p.quantidade);
+      const comprimento = medidaDoItem(p)[0];
+      if (comprimento > 0) dados[material].ml += comprimento / 1000 * n(p.quantidade);
+      else semComprimento += n(p.quantidade);
+    }
+    return { dados, semClassificacao, semComprimento };
+  }, [produtos]);
 
   async function exportar() {
     if (!produtos.length) return;
@@ -438,6 +454,20 @@ export default function ProgramacaoGerentePage() {
           <small>m³ estimados</small>
         </article>
       </section>
+
+      <Panel title="Necessidade de matéria-prima" subtitle="Peças e metros lineares físicos por material, sem multiplicar por operações. Utilize como referência de solicitação de matéria-prima.">
+        <div className="tableWrap">
+          <table>
+            <thead><tr><th>MATERIAL</th><th className="num">PEÇAS</th><th className="num">METROS LINEARES (m)</th></tr></thead>
+            <tbody>
+              {(["STD", "ULTRA", "PINUS"] as const).map((tipo) => (
+                <tr key={tipo}><td><b>{tipo}</b></td><td className="num">{fmt(consumoMaterial.dados[tipo].pecas)}</td><td className="num">{consumoMaterial.dados[tipo].ml.toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {(consumoMaterial.semClassificacao > 0 || consumoMaterial.semComprimento > 0) && <p>Conferir antes de comprar: {fmt(consumoMaterial.semClassificacao)} peça(s) sem material identificado e {fmt(consumoMaterial.semComprimento)} peça(s) sem comprimento válido. Não foram estimadas.</p>}
+      </Panel>
 
       <div className="managerToolbar">
         <div className="managerViewTabs">
