@@ -32,7 +32,7 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
     alteracoes.push({ id: p.id, campo, valor, evidencia, metodo: "REGRA" });
   };
   // Medida é inferida da descrição da própria peça; a dimensão original da fonte tem precedência.
-  const medida = fontes.map(f => f.match(/\b\d{2,4}\s*[xX×]\s*\d{2,4}(?:\s*[xX×]\s*\d{1,3})?\b/)?.[0]).find(Boolean) || "";
+  const medida = fontes.map(f => f.match(/\b\d{2,4}\s*[xX×]\s*\d{2,4}(?:\s*[xX×]\s*\d{1,3})?(?=\s*MM\b|\b)/)?.[0]).find(Boolean) || "";
   if (medida) preencher("medida", medida.replace(/\s*[xX×]\s*/g, "x"), medida);
   // O Filtro 53 possui descrições truncadas na ORIGEM, como BCO(UL e BCO(ULTR.
   // Reconhecer UL/ULTR somente como token final entre parênteses (nunca palavras aleatórias).
