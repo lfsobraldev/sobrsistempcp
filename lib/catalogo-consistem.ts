@@ -67,12 +67,19 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
   for (const campo of campos) {
     if(String(preenchido[campo]??"").trim()) (copy as any)[campo]=preenchido[campo];
   }
+  // Classificação explícita da narrativa prevalece sobre MDF genérico e siglas truncadas.
+  // A cor/revestimento PET ou TXT nunca representa o material estrutural.
+  const evidenciaMaterial=narrativa.normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toUpperCase();
+  if (/\\b(?:MADEIRA\\s+DE\\s+)?PINUS\\b/.test(evidenciaMaterial)) copy.material="PINUS";
+  else if (/\\b(?:MDF\\s+)?ULTRA\\b/.test(evidenciaMaterial)) copy.material="MDF ULTRA";
+  else if (/\\b(?:MDF\\s+)?(?:STD|STANDARD)\\b/.test(evidenciaMaterial)) copy.material="MDF STD";
+  else if (/\\bMDF\\b/.test(evidenciaMaterial)) copy.material="MDF";
   if (!String(copy.tipo || "").trim() && String(copy.material || "").trim()) copy.tipo=copy.material;
   // Reclassifica família pelo nome completo cadastrado no código.
   copy.categoria=categoriaIndustrial({...copy, categoria:""});
   // Exigir as três dimensões. Um valor 2110x50 vindo do filtro não
   // pode ter precedência sobre o 2110x50x9 do catálogo.
-  const medidaCompleta=narrativa.match(/\b(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{1,3}(?:[.,]\d+)?)(?=\s*MM\b|\b)/);
+  const medidaCompleta=narrativa.match(/\b(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{1,3}(?:[.,]\d+)?)(?=\s*MM\b|\b)/i);
   if(medidaCompleta) {
     const catalogoMedida=medidaCompleta.slice(1,4).map(v=>String(Number(v.replace(",",".")))).join("x");
     const medidaOriginal=String(p.medida || "").match(/^\s*(\d{2,4})\s*[xX×]\s*(\d{2,4})\s*[xX×]\s*(\d{1,3})\s*$/);

@@ -28,3 +28,19 @@ test("suporte trilho usa narrativa completa do código do catálogo",()=>{
   assert.equal(x.quantidade,3);
   assert.equal(x.of,"456");
 });
+
+test("catálogo separa revestimento de material estrutural em todos os setores",()=>{
+  const casos=[
+    {narrativa:"ALIZAR L MAIOR MDF ULTRA 2200x50x9MM RECOBERTO PET BRANCO",esperado:"MDF ULTRA",medida:"2200x50x9"},
+    {narrativa:"TRAVESSA BATENTE MDF STANDARD 900x130x30MM",esperado:"MDF STD",medida:"900x130x30"},
+    {narrativa:"BAGUETE EM MADEIRA DE PINUS 2100x30x15MM RECOBERTO PET BRANCO",esperado:"PINUS",medida:"2100x30x15"},
+    {narrativa:"SUPORTE DE TRILHO MDF 2200x55x45MM RECOBERTO PET BRANCO",esperado:"MDF",medida:"2200x55x45"},
+  ];
+  for(const [i,c] of casos.entries()){
+    const p={id:String(i),produto:String(90000+i),pedido:"P1",of:"OF",descricao:"CURTA",material:"",medida:"",quantidade:2,operacoes:[]} as Produto;
+    const out=enriquecerProdutoPeloRegistro(p,{codigo:p.produto,narrativa:c.narrativa,conflito:false,vazio:false});
+    assert.equal(out.material,c.esperado,c.narrativa);
+    assert.equal(out.medida,c.medida,c.narrativa);
+    assert.equal(out.quantidade,2);
+  }
+});

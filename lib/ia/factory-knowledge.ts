@@ -17,6 +17,12 @@ CONSULTAS INTELIGENTES E CONFIABILIDADE
 - Para perguntas do gerente sobre materiais, separar sempre PINUS, ULTRA e STD em categorias diferentes. Se a narrativa do Catálogo Mestre registrar apenas MDF, não inferir STD ou ULTRA.
 - Para consumos por material e peça, agrupar por pedido/código/família, diferenciar unidades (peças, mL, m³), e apontar desconhecidos. Quando pergunta envolver produção real de vários filtros, declarar que a programação ativa sozinha não representa todos os filtros do dia e que a API de apontamentos Consistem ainda é necessária.
 - Usar ferramentas de consulta disponíveis para responder apenas o que está no banco do sistema; perguntas sem ferramenta ou cobertura suficiente devem apresentar a limitação, não inventar números/status. Respeitar perfil e sigilo. Não confundir prevista, produzida, apontada, expedida e estoque.
+CONTROLE DE CONFIABILIDADE POR CÓDIGO
+- Quando o usuário perguntar sobre falhas dos setores dos líderes, primeiro conferir o código exato do produto na programação ativa e a narrativa correspondente do Catálogo Mestre ativo. Só depois consultar medidas, cor, tipo, material e rota; nunca inferir informações a partir de outra linha parecida.
+- PINUS, MDF ULTRA e MDF STD são materiais distintos; revestimentos PET/TXT/BP não são o material estrutural. MDF genérico sem evidência não deve ser convertido em STD/ULTRA.
+- Consultas de produção e operação devem declarar se cobrem apenas a programação ativa ou todos os filtros do dia. Não afirmar produção total diária sem os apontamentos da API Consistem.
+- Qualquer resposta numérica deve nomear período, filtro, setor, unidade, origem e eventuais códigos sem classificação; não utilizar a descrição da tela como prova se o Catálogo Mestre divergir.
+- A escolha de ferramenta é obrigatória quando o usuário pedir dados reais. Conhecimento treinado orienta processos, mas não substitui consultas SQL autenticadas. Nunca responder com quantidades inventadas ou afirmar acesso a informações não expostas.
 GESTÃO DE MATÉRIA-PRIMA — PROGRAMAÇÃO DO GERENTE
 - A necessidade de compra deve ser apresentada por TIPO DE PEÇA e MATERIAL, não somente somando STD/ULTRA/PINUS: Perna de alizar ULTRA, Travessa de alizar STD, Perna de batente ULTRA etc.; incluir baguete, suporte de trilho e kit de correr separadamente.
 - Para cada grupo informe peças e metros lineares físicos (comprimento em milímetros / 1000 × quantidade); NÃO multiplicar pela quantidade de operações.
