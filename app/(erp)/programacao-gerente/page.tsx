@@ -20,7 +20,7 @@ import { useOps } from "@/components/operational-provider";
 import { Panel } from "@/components/ui";
 import type { Produto } from "@/types/pcp";
 import { LABELS, resumoMaquinas } from "@/lib/metrics";
-import { exportarCompleto } from "@/lib/export";
+import { baixarPlanilhaProducao } from "@/lib/planilha";
 import {
   familiaIndustrial,
   medidaDoItem,
@@ -363,7 +363,7 @@ export default function ProgramacaoGerentePage() {
     if (!produtos.length) return;
     setBusy(true);
     try {
-      await exportarCompleto(produtos);
+      await baixarPlanilhaProducao(produtos, { arquivo: "Controle_Producao", somenteControle: true });
     } finally {
       setBusy(false);
     }
