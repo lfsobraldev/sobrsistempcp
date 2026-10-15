@@ -16,9 +16,12 @@ const txt=(s:unknown)=>String(s??"").trim().toUpperCase();
 
 function suporta(maquina:MaquinaAPS, tarefa:TarefaAPS) {
   if (txt(maquina.processo)!==txt(tarefa.processo))return false;
-  const compat=Array.isArray(maquina.compatibilidades)
-    ? maquina.compatibilidades.filter((v):v is string=>typeof v==="string"&&Boolean(v.trim()))
+  const declaradas=maquina.compatibilidades;
+  if(declaradas!=null && !Array.isArray(declaradas))return false;
+  const compat=Array.isArray(declaradas)
+    ? declaradas.filter((v):v is string=>typeof v==="string"&&Boolean(v.trim()))
     : [];
+  if(Array.isArray(declaradas) && declaradas.length && compat.length!==declaradas.length)return false;
   if(!compat.length)return true;
   const atributos=[tarefa.produto,tarefa.categoria,tarefa.material,tarefa.cor].map(txt);
   return compat.some(c=>atributos.includes(txt(c)));
