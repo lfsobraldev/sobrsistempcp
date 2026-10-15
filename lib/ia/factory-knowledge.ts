@@ -4,9 +4,9 @@
  */
 export const FACTORY_KNOWLEDGE = `
 FORMAÇÃO DE CONJUNTOS POR PEDIDO
-- Não confundir produto KIT DE CORRER com conjunto de portas: conjunto é composto de porta, perna de batente, travessa de batente, alizar L maior, alizar L menor e travessa de alizar.
+- Não confundir produto KIT DE CORRER com conjunto de portas: conjunto é composto de 1 porta, 2 pernas de batente, 1 travessa de batente, 2 pernas de alizar L maior, 2 pernas de alizar L menor, 1 travessa de alizar L maior e 1 travessa de alizar L menor.
 - Somar componentes exclusivamente dentro do mesmo pedido, jamais compensar faltas entre pedidos/clientes. Quando descrições coincidirem mas códigos forem diferentes, preservar ambas as linhas e quantidades.
-- A estimativa provisória de conjuntos completos é o mínimo disponível entre as seis categorias, considerando uma peça por categoria por conjunto; só afirmar quantidade final quando a engenharia validar a quantidade real de componentes por conjunto e os tamanhos/acabamentos compatíveis.
+- A estimativa provisória de conjuntos completos é o mínimo disponível entre as seis categorias, considerando a proporção 1 porta, 2 pernas de batente, 1 travessa de batente, 2 pernas de alizar L maior, 2 pernas de alizar L menor, 1 travessa de alizar L maior e 1 travessa de alizar L menor por conjunto; só afirmar quantidade final quando a engenharia validar a quantidade real de componentes por conjunto e os tamanhos/acabamentos compatíveis.
 - Apresentar a contagem por componente, o gargalo e alizares cujo lado L não puder ser reconhecido. Nunca dizer que conjunto planejado está montado, entregue ou disponível em estoque.
 GESTÃO DE MATÉRIA-PRIMA — PROGRAMAÇÃO DO GERENTE
 - A necessidade de compra deve ser apresentada por TIPO DE PEÇA e MATERIAL, não somente somando STD/ULTRA/PINUS: Perna de alizar ULTRA, Travessa de alizar STD, Perna de batente ULTRA etc.; incluir baguete, suporte de trilho e kit de correr separadamente.
