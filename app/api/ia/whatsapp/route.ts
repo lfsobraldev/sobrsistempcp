@@ -1,6 +1,6 @@
 import {NextResponse,after} from "next/server";
 import {sql} from "@/lib/db";
-import {verifyMetaSignature,whatsappUser,textMessages,whatsappAnswer} from "@/lib/ia/whatsapp";
+import {verifyMetaSignature,whatsappUser,whatsappAuthorizationDiagnostic,textMessages,whatsappAnswer} from "@/lib/ia/whatsapp";
 import {answerWhatsapp} from "@/lib/ia/whatsapp-engine";
 export const runtime="nodejs";
 export const maxDuration=60;
@@ -34,7 +34,7 @@ async function processarWhatsapp(messages:ReturnType<typeof textMessages>) {
       const user=whatsappUser(message.from,process.env.WHATSAPP_ALLOWED_USERS_JSON);
       if(!user) {
         console.warn("[WhatsApp] sender not authorized",{
-          messageId:message.id,allowlistConfigured:!!process.env.WHATSAPP_ALLOWED_USERS_JSON
+          messageId:message.id,...whatsappAuthorizationDiagnostic(message.from,process.env.WHATSAPP_ALLOWED_USERS_JSON)
         });
         continue;
       }
