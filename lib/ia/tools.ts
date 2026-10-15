@@ -19,6 +19,7 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  mapa_fontes_sistema: "Lista as fontes e módulos disponíveis ao usuário, suas capacidades de consulta e limites; use quando a pergunta for vaga ou atravessar várias áreas.",
   consultar_panorama_pecas: "Investiga livremente produtos e peças da programação ativa, cruzando Catálogo Mestre, pedido, setor, texto e material PINUS/ULTRA/STD. Retorna totais físicos, famílias, pedidos e códigos.",
   simular_aps_maquinas: "Simula capacidade finita por máquina e turno, com eficiência, setup e compatibilidades reais cadastradas. Somente leitura. Informa máquinas sobrecarregadas e operações sem máquina adequada, sem alterar filas.",
   diagnostico_integrado: "Gera diagnóstico real da programação ativa com capacidade por setor, riscos de pedidos e plano de produção; não inventa dados faltantes e não altera a fábrica.",
@@ -76,6 +77,10 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           avisos: resultado.avisos,
           ressalva: "Tempos em turnos relativos, não são horários de entrega confirmados. Não altera programação."
         };
+      }
+      case "mapa_fontes_sistema": {
+        const {fontesAcessiveis,RESTRICOES_FUNDAMENTAIS}=await import("@/lib/ia/source-catalog");
+        return {fontes:fontesAcessiveis(ctx.user.perfil),restricoes:RESTRICOES_FUNDAMENTAIS};
       }
       case "consultar_panorama_pecas": {
         if(!allowedPath(ctx.user.perfil,"/lideres"))return {erro:"Sem permissão para consultar as peças da programação."};
