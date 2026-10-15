@@ -46,3 +46,9 @@ test("simulacao nao altera tarefas originais",()=>{
  simularCapacidadeMaquinas(tarefas,[m("M1")]);
  assert.equal(tarefas[0].quantidade,150);
 });
+
+test("nao libera maquina com formato de compatibilidade desconhecido",()=>{
+ const r=simularCapacidadeMaquinas([t("1",10)],[{...m("M1"),compatibilidades:[{material:"MDF"}]}]);
+ assert.equal(r.alocacoes.length,0);
+ assert.equal(r.pendentes.length,1);
+});
