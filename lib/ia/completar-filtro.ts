@@ -38,10 +38,10 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   // Reconhecer UL/ULTR somente como token final entre parênteses (nunca palavras aleatórias).
   const ultraAbreviado = contexto.match(/(?:\(|\s)(U|UL|ULT|ULTR)(?:\s*\)?)$/)?.[1] || "";
   const ultraEmToken = contexto.match(/(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=\s|\)|$)/)?.[0]?.trim() || "";
-  const material = contexto.match(/\bMDF\s+(?:ULTRA|STD|RU|PREMIUM|PREM)\b|\bPREMIUM\b|\bPREM\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b|\bPINUS\b/)?.[0] || ultraAbreviado || ultraEmToken;
+  const material = contexto.match(/\bMADEIRA\s+DE\s+PINUS\b|\bMDF\s+(?:ULTRA|STD|STANDARD|RU|PREMIUM|PREM)\b|\bPINUS\b|\bULTRA\b|\bSTD\b|\bSTANDARD\b|\bRU\b|\bHDF\b|\bMDF\b/)?.[0] || ultraAbreviado || ultraEmToken;
   if (material) {
     const ehPremium = /^(?:MDF\s+)?PREM(?:IUM)?$/.test(material);
-    const nomeMaterial = ehPremium ? "MDF PREMIUM" : material === "ULTRA" || Boolean((ultraAbreviado || ultraEmToken) && (material === ultraAbreviado || material === ultraEmToken)) ? "MDF ULTRA" : material === "STD" ? "MDF STD" : material;
+    const nomeMaterial = /PINUS/.test(material) ? "PINUS" : ehPremium ? "MDF PREMIUM" : material === "ULTRA" || Boolean((ultraAbreviado || ultraEmToken) && (material === ultraAbreviado || material === ultraEmToken)) ? "MDF ULTRA" : /^(?:MDF )?(?:STD|STANDARD)$/.test(material) ? "MDF STD" : material;
     preencher("material", nomeMaterial, material);
     // No Consistem, Tipo pode ser REG 2L, LISA, MDF ULTRA etc.; nunca assumir
     // que significa estrutura colmeia. Só completar como material para marcos/batentes.
@@ -50,11 +50,15 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   }
   const rebaixo = texto.match(/\bS\/(?:REB|RB)\b|\b(?:C\/REB\s*)?42\s*X\s*10\b/)?.[0] || "";
   if (admiteRebaixo && rebaixo) preencher("rebaixo", /^S\/(?:REB|RB)$/.test(rebaixo) ? "S/REB" : "C/REB " + rebaixo.replace(/^C\/REB\s*/, ""), rebaixo);
-  const cor = contexto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
+  // Cores compostas do catálogo (ex.: PET BRANCO CARRARA PREMIUM) não
+  // podem ser truncadas em apenas "BRANCO".
+  const corRevestimento = contexto.match(/\b(?:RECOBERT[OA]|REVESTID[OA])\s+(?:EM\s+)?((?:PET|TXT|BP)\s+[A-ZÀ-Ú0-9 ]+?)(?=\s*\(PECA|\s*\(PEC|\s*$)/)?.[1]?.trim() || "";
+  const cor = corRevestimento || contexto.match(/\b(?:PRETO TURIM|CARVALHO MALVA|CEDRO ARANA|BRANCA|BRANCO|PRETA|PRETO|CINZA|TAUARI|CEDRINHO|CUMARU)\b/)?.[0] || "";
   if (cor) preencher("cor", cor, cor);
   // Regras homologadas por PRODUTO (coluna H do Consistem). Só usam o nome do produto
   // da própria linha e só preenchem campos vazios.
   const nomeProduto = normal(String(p.produto || ""));
+  if (/\bMADEIRA DE PINUS\b/.test(contexto) && vazio(produto.tipo)) preencher("tipo", "MADEIRA DE PINUS", "MADEIRA DE PINUS");
   const familiaComplementar = /BAGUETE|SUPORTE TRILHO|KIT CORRER/i.test(String(p.categoria || "")) || /BAGUETE|SUPORTE DE? TRILHO|KIT DE? CORRER/i.test(contexto);
   if (familiaComplementar && !vazio(produto.material) && /^(?:MDF|U|UL|ULT|ULTR)$/i.test(String(produto.material).trim()) && /\b(?:ULTRA|STD|PINUS)\b/.test(contexto)) {
     const especifico = contexto.match(/\b(?:ULTRA|STD|PINUS)\b/)?.[0];

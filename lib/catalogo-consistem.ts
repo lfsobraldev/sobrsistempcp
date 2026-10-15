@@ -1,6 +1,7 @@
 import { sql } from "@/lib/db";
 import type { Produto } from "@/types/pcp";
 import { completarPorRegras } from "@/lib/ia/completar-filtro";
+import { categoriaIndustrial } from "@/lib/domain/industrial";
 
 export const normalizarCodigo = (v: unknown) => String(v ?? "").trim().replace(/\.0$/, "").toUpperCase();
 const chaveNarrativa = (v:string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/\s+/g," ").trim();
@@ -57,15 +58,18 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
   const narrativa=ref.narrativa;
   // Catálogo cadastrado por código exato é a fonte de descrição técnica.
   // O Consistem continua responsável por pedido, OF, quantidade e rota.
-  const base={...p, descricao:narrativa, medida:"",material:"",cor:"",acabamento:"",rebaixo:"",canal:""};
+  const base={...p, descricao:narrativa, tipo:"",medida:"",material:"",cor:"",acabamento:"",rebaixo:"",canal:""};
   const preenchido=completarPorRegras(base).produto;
   const copy={...p, descricao:narrativa};
+  // O código é a chave: dados técnicos da narrativa do catálogo têm prioridade
+  // sobre classificações abreviadas ou incorretas da programação do Consistem.
   const campos=("tipo material cor acabamento rebaixo canal").split(" ") as Array<keyof Produto>;
   for (const campo of campos) {
-    if(!String(copy[campo]??"").trim() && String(preenchido[campo]??"").trim()) {
-      (copy as any)[campo]=preenchido[campo];
-    }
+    if(String(preenchido[campo]??"").trim()) (copy as any)[campo]=preenchido[campo];
   }
+  if (!String(copy.tipo || "").trim() && String(copy.material || "").trim()) copy.tipo=copy.material;
+  // Reclassifica família pelo nome completo cadastrado no código.
+  copy.categoria=categoriaIndustrial({...copy, categoria:""});
   // Exigir as três dimensões. Um valor 2110x50 vindo do filtro não
   // pode ter precedência sobre o 2110x50x9 do catálogo.
   const medidaCompleta=narrativa.match(/\b(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{2,4}(?:[.,]\d+)?)\s*[xX×]\s*(\d{1,3}(?:[.,]\d+)?)\b/);
@@ -81,13 +85,8 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
   } else if(!String(copy.medida||"").trim() && String(preenchido.medida||"").trim()) {
     copy.medida=preenchido.medida;
   }
-  // O material vem preferencialmente da narrativa completa se a
-  // descrição truncada produzir um código incompleto ou genérico.
-  const materialCatalogo=String(preenchido.material||"").trim();
-  const materialAtual=String(copy.material||"").trim();
-  if(materialCatalogo && (!materialAtual || /^(?:U|UL|ULT|ULTR|MDF)$/i.test(materialAtual))) {
-    copy.material=materialCatalogo;
-  }
+  // Campos sem evidência na narrativa ficam como estavam; não se inventa dado.
+  // Pedido, OF, código, quantidade e operações sempre permanecem da linha original.
   return copy;
 }
 

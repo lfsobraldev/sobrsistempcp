@@ -14,3 +14,17 @@ test("catalogo preserva códigos e identifica narrativas conflitantes",()=>{
   assert.equal(a.find(x=>x.codigo==="810")?.vazio,true);
   assert.equal(normalizarCodigo("000012"),"000012");
 });
+
+// Catálogo por código deve completar perfis especiais sem depender da descrição curta do filtro.
+import { enriquecerProdutoPeloRegistro } from "../lib/catalogo-consistem";
+import type { Produto } from "../types/pcp";
+test("suporte trilho usa narrativa completa do código do catálogo",()=>{
+  const p={id:"linha1",produto:"987124",descricao:"SUP TRILHO",medida:"",tipo:"",material:"",cor:"",categoria:"OUTROS",quantidade:3,pedido:"123",of:"456",operacoes:[]} as Produto;
+  const x=enriquecerProdutoPeloRegistro(p,{codigo:"987124",narrativa:"SUPORTE DO TRILHO (KIT DE CORRER) EM MADEIRA DE PINUS COM 2200x55x45MM RECOBERTO PET BRANCO CARRARA PREMIUM (PEÇA B)",conflito:false,vazio:false});
+  assert.equal(x.medida,"2200x55x45");
+  assert.equal(x.material,"PINUS");
+  assert.equal(x.cor,"PET BRANCO CARRARA PREMIUM");
+  assert.equal(x.tipo,"MADEIRA DE PINUS");
+  assert.equal(x.quantidade,3);
+  assert.equal(x.of,"456");
+});
