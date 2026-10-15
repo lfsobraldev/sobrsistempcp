@@ -116,14 +116,29 @@ function batentesPedido(produtos: Produto[]) {
   });
 }
 
-function kitsPedido(produtos: Produto[]) {
-  return produtos
-    .filter((p) => {
-      const family = familiaIndustrial(p);
-      const category = String(p.categoria || "").toUpperCase();
-      return family === "KIT CORRER" && !category.includes("SUPORTE");
-    })
-    .reduce((sum, p) => sum + n(p.quantidade), 0);
+type ConjuntoComponente = "PORTAS" | "PERNAS BATENTE" | "TRAVESSAS BATENTE" | "ALIZAR L MAIOR" | "ALIZAR L MENOR" | "TRAVESSAS ALIZAR";
+const COMPONENTES_CONJUNTO: ConjuntoComponente[] = ["PORTAS","PERNAS BATENTE","TRAVESSAS BATENTE","ALIZAR L MAIOR","ALIZAR L MENOR","TRAVESSAS ALIZAR"];
+function conjuntosPedido(produtos: Produto[]) {
+  const estoque = Object.fromEntries(COMPONENTES_CONJUNTO.map(x => [x,0])) as Record<ConjuntoComponente,number>;
+  let alizarIndefinido=0;
+  for (const p of produtos) {
+    const familia = familiaIndustrial(p);
+    const qtd=n(p.quantidade);
+    if (familia === "PORTAS") estoque["PORTAS"]+=qtd;
+    if (familia === "BATENTES") estoque[tipoPeca(p) === "TRAVESSA" ? "TRAVESSAS BATENTE" : "PERNAS BATENTE"]+=qtd;
+    if (familia === "ALIZARES") {
+      if (tipoPeca(p) === "TRAVESSA") { estoque["TRAVESSAS ALIZAR"]+=qtd; continue; }
+      const texto = [p.descricao,p.descricaoModelo,p.outrasCaracteristicas,p.categoria].join(" ").toUpperCase();
+      if (/L\\s*(?:MAIOR|GRANDE)\\b/.test(texto)) estoque["ALIZAR L MAIOR"]+=qtd;
+      else if (/L\\s*(?:MENOR|PEQUENO)\\b/.test(texto)) estoque["ALIZAR L MENOR"]+=qtd;
+      else alizarIndefinido+=qtd;
+    }
+  }
+  // Uma unidade de cada componente: estimativa conservadora de conjunto completo,
+  // sem cruzar pedidos e sem transformar produtos isolados em kits finalizados.
+  const conjuntos=Math.min(...COMPONENTES_CONJUNTO.map(x=>estoque[x]));
+  const faltas=COMPONENTES_CONJUNTO.filter(x=>estoque[x]===conjuntos);
+  return { conjuntos, estoque, faltas, alizarIndefinido };
 }
 
 function statusPedido(produtos: Produto[]) {
@@ -217,7 +232,8 @@ export default function ProgramacaoGerentePage() {
           ofs: new Set(itens.map((p) => p.of).filter(Boolean)).size,
           m3: itens.reduce((s, p) => s + m3Produto(p), 0),
           ml: itens.reduce((s, p) => s + mlProduto(p), 0),
-          kits: kitsPedido(itens),
+          kits: conjuntosPedido(itens).conjuntos,
+          componentesConjunto: conjuntosPedido(itens),
           usinagem: itens.some((p) => p.usinagemPlanilha),
           alizares: alizaresPedido(itens),
           batentes: batentesPedido(itens),
@@ -452,9 +468,9 @@ export default function ProgramacaoGerentePage() {
           <small>com carga programada</small>
         </article>
         <article>
-          <span>KITS</span>
+          <span>CONJUNTOS POSSÍVEIS</span>
           <b>{fmt(kits)}</b>
-          <small>conjuntos</small>
+          <small>estimativa por pedido · peças previstas</small>
         </article>
         <article>
           <span>USINAGEM PENDENTE</span>
@@ -547,7 +563,7 @@ export default function ProgramacaoGerentePage() {
                   <th className="num">OFs</th>
                   <th className="num">m³</th>
                   <th className="num">mL</th>
-                  <th className="num">KITS</th>
+                  <th className="num">CONJUNTOS</th>
                   <th>USINAGEM</th>
                   <th>ALIZAR</th>
                   <th>BATENTES</th>
@@ -577,7 +593,7 @@ export default function ProgramacaoGerentePage() {
                       <td className="num">{pedido.ofs}</td>
                       <td className="num">{pedido.m3.toFixed(3)}</td>
                       <td className="num">{pedido.ml.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="num"><b>{fmt(pedido.kits)}</b></td>
+                      <td className="num"><b>{fmt(pedido.kits)}</b><details><summary>Componentes</summary><div style={{minWidth:240,textAlign:"left"}}>{COMPONENTES_CONJUNTO.map(nome=><div key={nome}>{nome}: {fmt(pedido.componentesConjunto.estoque[nome])}</div>)}{pedido.componentesConjunto.alizarIndefinido>0&&<div>Alizares L sem identificação: {fmt(pedido.componentesConjunto.alizarIndefinido)}</div>}<small>Estimativa: 1 peça por componente. Conferir composição técnica antes de liberar compra.</small></div></details></td>
                       <td>
                         <span className={`managerFlag ${pedido.usinagem ? "ok" : "pending"}`}>
                           {pedido.usinagem ? "SIM" : "NÃO"}
