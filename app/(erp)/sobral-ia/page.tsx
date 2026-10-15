@@ -51,6 +51,8 @@ export default function SobralIAPage(){
  const [corrigindo,setCorrigindo]=useState<number|null>(null);
  const [textoCorrecao,setTextoCorrecao]=useState("");
  const [feedbackItens,setFeedbackItens]=useState<any[]>([]);
+ const [historico,setHistorico]=useState<any[]>([]);
+ const [mostraHistorico,setMostraHistorico]=useState(false);
  const [regras,setRegras]=useState<Regra[]>([]);
  const [canTrain,setCanTrain]=useState(false);
  const [area,setArea]=useState("TODAS");
@@ -107,6 +109,12 @@ export default function SobralIAPage(){
    if(!r.ok)return toast("error",j.error||"Falha ao enviar correção.");
    toast("success","Correção registrada para revisão da equipe.");
    setCorrigindo(null);setTextoCorrecao("");
+ }
+ async function carregarHistorico(id:string){
+   const r=await fetch("/api/ia/conhecimento/historico?id="+encodeURIComponent(id),{cache:"no-store"});
+   const j=await r.json();
+   if(!r.ok)return toast("error",j.error||"Falha ao carregar histórico.");
+   setHistorico(j.historico||[]);setMostraHistorico(true);
  }
  async function carregarFeedback(){
    const r=await fetch("/api/ia/feedback",{cache:"no-store"});
@@ -313,6 +321,18 @@ export default function SobralIAPage(){
     <section className="card sobral-training-form training-editor">
      <div className="card-head"><div><span className="eyebrow">EDITOR DE CONHECIMENTO</span><h3>{edit.id?"Editar regra existente":"Ensinar nova regra"}</h3><p>Descreva quando a regra se aplica e o comportamento correto.</p></div><span className="training-editor-icon"><GraduationCap/></span></div>
      <div className="card-body">
+      {canTrain&&edit.id&&<button onClick={()=>void carregarHistorico(edit.id!)}>Ver histórico e versões deste conhecimento</button>}
+      {mostraHistorico&&edit.id&&<div className="card" style={{padding:12,marginBottom:12}}>
+       <b>Histórico de alterações</b>
+       <button className="ghost" onClick={()=>setMostraHistorico(false)}>Ocultar</button>
+       {!historico.length&&<p>Não há versões registradas para este conhecimento.</p>}
+       {historico.map((h:any)=><div key={h.id} style={{borderBottom:"1px solid var(--border,#ddd)",padding:"8px 0"}}>
+        <b>{h.evento} · {h.autor}</b>
+        <small> · {new Date(h.criado_em).toLocaleString("pt-BR")}</small>
+        <div><strong>Anterior:</strong> {h.anterior?.regra||"Não havia registro"}</div>
+        <div><strong>Posterior:</strong> {h.posterior?.regra||"Não disponível"}</div>
+       </div>)}
+      </div>}
       {!canTrain&&<div className="notice warning">Somente PCP e Gerente podem cadastrar ou editar regras.</div>}
       <div className="form-grid two"><label className="field"><span>Título da regra</span><input disabled={!canTrain} value={edit.titulo||""} onChange={e=>setEdit({...edit,titulo:e.target.value})} placeholder="Ex.: Batente RB42 usa Tupia"/></label><label className="field"><span>Área</span><select disabled={!canTrain} value={edit.area||"GERAL"} onChange={e=>setEdit({...edit,area:e.target.value})}>{AREAS.map(a=><option key={a}>{a}</option>)}</select></label></div>
       <label className="field"><span>Quando se aplica?</span><textarea disabled={!canTrain} value={edit.situacao||""} onChange={e=>setEdit({...edit,situacao:e.target.value})} placeholder="Ex.: batente perna com rebaixo RB42..."/></label>
