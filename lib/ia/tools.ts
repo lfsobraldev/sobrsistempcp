@@ -19,6 +19,7 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  simular_aps_maquinas: "Simula capacidade finita por máquina e turno, com eficiência, setup e compatibilidades reais cadastradas. Somente leitura. Informa máquinas sobrecarregadas e operações sem máquina adequada, sem alterar filas.",
   diagnostico_integrado: "Gera diagnóstico real da programação ativa com capacidade por setor, riscos de pedidos e plano de produção; não inventa dados faltantes e não altera a fábrica.",
   consultar_catalogo: "Consulta código e narrativa do catálogo mestre permanente da engenharia; informa conflito e variantes em vez de inventar especificações.",
   consultar_conhecimento: "Recupera conteúdo e exemplos que a equipe cadastrou na base de treinamento da Sobral IA, identificando a fonte do procedimento.",
@@ -55,6 +56,25 @@ const j = <T,>(v: T): T => v;
 export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<unknown> {
   try {
     switch (name) {
+      case "simular_aps_maquinas": {
+        const { consultarAPS } = await import("@/lib/ia/aps-service");
+        const resultado = await consultarAPS();
+        if ("erro" in resultado) return resultado;
+        return {
+          fonte: resultado.fonte,
+          programacao: resultado.programacao,
+          confianca: resultado.confianca,
+          incompleto: resultado.incompleto,
+          totalOperacoesConsultadas: resultado.totalOperacoesConsultadas,
+          maquinas: resultado.porMaquina,
+          totalAlocacoes: resultado.alocacoes.length,
+          alocacoesExemplo: resultado.alocacoes.slice(0,40),
+          totalPendencias: resultado.pendentes.length,
+          pendenciasExemplo: resultado.pendentes.slice(0,40),
+          avisos: resultado.avisos,
+          ressalva: "Tempos em turnos relativos, não são horários de entrega confirmados. Não altera programação."
+        };
+      }
       case "diagnostico_integrado": {
         const { db, pg } = await programacaoAtiva();
         if (!pg) return { erro: "Nenhuma programação ativa. Não é possível diagnosticar a fábrica sem dados." };
