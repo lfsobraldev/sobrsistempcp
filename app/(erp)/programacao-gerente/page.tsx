@@ -484,10 +484,10 @@ export default function ProgramacaoGerentePage() {
         <article>
           <span>CONJUNTOS POSSÍVEIS</span>
           <b>{fmt(kits)}</b>
-          <small>estimativa por pedido · peças previstas</small>
+          <small>limite por componentes de cada pedido; não confirma montagem</small>
         </article>
-        <article><span>KITS DESMEMBRADOS</span><b>{fmt(kitsDesmembrados)}</b><small>portas sem composição completa, por pedido</small></article>
-        <article><span>TOTAL ESTIMADO</span><b>{fmt(kits + kitsDesmembrados)}</b><small>total de portas consideradas; não são kits montados</small></article>
+        <article><span>PORTAS SEM CONJUNTO COMPLETO</span><b>{fmt(kitsDesmembrados)}</b><small>faltam componentes; não são kits confirmados</small></article>
+        <article><span>PORTAS PROGRAMADAS</span><b>{fmt(kits + kitsDesmembrados)}</b><small>limite máximo teórico; não é total de kits</small></article>
         <article>
           <span>USINAGEM PENDENTE</span>
           <b>{pendUsinagem}</b>
@@ -579,7 +579,7 @@ export default function ProgramacaoGerentePage() {
                   <th className="num">OFs</th>
                   <th className="num">m³</th>
                   <th className="num">mL</th>
-                  <th className="num">COMPLETOS</th><th className="num">DESMEMBRADOS</th>
+                  <th className="num">COMPLETOS</th><th className="num">PORTAS SEM CONJUNTO</th>
                   <th>USINAGEM</th>
                   <th>ALIZAR</th>
                   <th>BATENTES</th>
