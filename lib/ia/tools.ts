@@ -87,7 +87,8 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         const {db,pg}=await programacaoAtiva();
         if(!pg)return {erro:"Nenhuma programação ativa."};
         const pedido=String(input.pedido||"").trim().slice(0,80);
-        const setor=String(input.setor||"").trim().slice(0,80);
+        const {processoConhecido,correspondeConsulta}=await import("@/lib/ia/query-language");
+        const setor=processoConhecido(String(input.setor||"").trim().slice(0,80));
         const busca=String(input.busca||"").trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().slice(0,120);
         const material=String(input.material||"TODOS").toUpperCase();
         if(!["TODOS","PINUS","STD","ULTRA","NAO_CLASSIFICADO"].includes(material))return {erro:"Material inválido"};
@@ -106,7 +107,7 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         let totalPecas=0,naoClassificadas=0,linhas=0;
         for(const p of enriched.produtos){
           const texto=[p.descricao,p.categoria,p.material,p.medida,p.cor,p.produto].filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
-          if(busca&&!texto.includes(busca))continue;
+          if(busca&&!correspondeConsulta(texto,busca))continue;
           const m=String(p.material||"").toUpperCase();
           const tipo=/\bPINUS\b/.test(m)?"PINUS":/\bULTRA\b/.test(m)?"ULTRA":/\b(?:STD|STANDARD)\b/.test(m)?"STD":"NAO_CLASSIFICADO";
           if(material!=="TODOS"&&tipo!==material)continue;
