@@ -23,6 +23,7 @@ import { useOps } from "@/components/operational-provider";
 import { Badge, Card, DataTable, PageHeader, Progress, StatCard, type Tone } from "@/components/ui";
 import { LABELS, resumoMaquinas } from "@/lib/metrics";
 import { fmt, fmtPct, pct } from "@/lib/format";
+import { diagnosticarSetores, resumoIndustrial } from "@/lib/industrial/opportunity";
 
 type Controle = {
   pedido: string;
@@ -75,6 +76,8 @@ export default function Dashboard() {
   const produtos = pg?.produtos || [];
   const maquinas = useMemo(() => resumoMaquinas(produtos), [produtos]);
   const operacoes = produtos.flatMap((p) => p.operacoes);
+  const diagnosticoSetores = useMemo(() => diagnosticarSetores(produtos), [produtos]);
+  const oportunidades = useMemo(() => resumoIndustrial(diagnosticoSetores), [diagnosticoSetores]);
 
   const [gestao, setGestao] = useState<{ controles: Controle[]; excecoes: Excecao[] }>({
     controles: [],
@@ -251,6 +254,21 @@ export default function Dashboard() {
         <StatCard icon={<Factory />} label="Setores ativos" value={maquinas.length} hint="com carga programada" />
         <StatCard icon={<Wrench />} label="Refugo" value={fmt(refugo)} hint={`${fmt(saldo)} peças restantes`} tone={refugo ? "warning" : "neutral"} />
       </section>
+
+      <Card title="Gestão de gargalos e oportunidades" subtitle="Análise operacional inspirada nas práticas de PCP, MES e melhoria contínua. Fonte: filtro ativo, não telemetria em tempo real.">
+        <p className="muted">Saldo por operação: {fmt(oportunidades.saldoOperacoes)} · Bloqueios/divergências: {fmt(oportunidades.pecasBloqueadasOuDivergentes)} · Setores com saldo: {oportunidades.setoresComPendencias}</p>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%"}}>
+            <thead><tr><th>Setor</th><th>Saldo</th><th>Bloqueadas / divergentes</th><th>Urgências</th><th>Ação sugerida</th></tr></thead>
+            <tbody>{diagnosticoSetores.slice(0,12).map(setor=><tr key={setor.processo}>
+              <td>{LABELS[setor.processo]||setor.processo}</td>
+              <td>{fmt(setor.saldo)}</td><td>{fmt(setor.bloqueado+setor.divergencia)}</td>
+              <td>{setor.prioridades}</td><td>{setor.recomendacao}</td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+        <p className="muted">{oportunidades.ressalva}</p>
+      </Card>
 
       <Card
         subtitle="Inteligência operacional"
