@@ -19,6 +19,7 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  oportunidades_industriais: "Analisa saldos, bloqueios, divergências, urgências e gargalos por setor na programação ativa; recomenda ações sem alegar produtividade, OEE ou lucro real.",
   mapa_fontes_sistema: "Lista as fontes e módulos disponíveis ao usuário, suas capacidades de consulta e limites; use quando a pergunta for vaga ou atravessar várias áreas.",
   consultar_panorama_pecas: "Investiga livremente produtos e peças da programação ativa, cruzando Catálogo Mestre, pedido, setor, texto e material PINUS/ULTRA/STD. Retorna totais físicos, famílias, pedidos e códigos.",
   simular_aps_maquinas: "Simula capacidade finita por máquina e turno, com eficiência, setup e compatibilidades reais cadastradas. Somente leitura. Informa máquinas sobrecarregadas e operações sem máquina adequada, sem alterar filas.",
@@ -77,6 +78,24 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           avisos: resultado.avisos,
           ressalva: "Tempos em turnos relativos, não são horários de entrega confirmados. Não altera programação."
         };
+      }
+      case "oportunidades_industriais": {
+        if(!allowedPath(ctx.user.perfil,"/dashboard")&&!allowedPath(ctx.user.perfil,"/programacao-gerente"))
+          return {erro:"Sem permissão para análise gerencial."};
+        const {db,pg}=await programacaoAtiva();
+        if(!pg)return {erro:"Nenhuma programação ativa."};
+        const records=await db`select p.pedido,p.prioridade,o.processo,o.status,
+          o.quantidade_planejada::float planejada,o.quantidade_produzida::float produzida,o.quantidade_refugo::float refugo
+          from pcp_operacoes o join pcp_produtos p on p.id=o.produto_id
+          where p.programacao_id=${pg.id} limit 20001`;
+        if(records.length>20000)return {erro:"Mais de 20.000 operações; informe filtro menor antes de consolidar."};
+        const {diagnosticarSetores,resumoIndustrial}=await import("@/lib/industrial/opportunity");
+        const setores=diagnosticarSetores(records.map((r:any)=>({
+          prioridade:r.prioridade,operacoes:[{processo:r.processo,status:r.status,
+            quantidadePlanejada:r.planejada,quantidadeProduzida:r.produzida,quantidadeRefugo:r.refugo}]
+        })) as any);
+        return {fonte:"Operações da programação ativa",filtro:pg.filtro,resumo:resumoIndustrial(setores),
+          setores,metodologia:"Saldo de operações e riscos; não representa custo, lucro ou volume produzido no dia."};
       }
       case "mapa_fontes_sistema": {
         const {fontesAcessiveis,RESTRICOES_FUNDAMENTAIS}=await import("@/lib/ia/source-catalog");
