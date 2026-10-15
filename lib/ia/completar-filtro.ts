@@ -36,8 +36,8 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   if (medida) preencher("medida", medida.replace(/\s*[xX×]\s*/g, "x"), medida);
   // O Filtro 53 possui descrições truncadas na ORIGEM, como BCO(UL e BCO(ULTR.
   // Reconhecer UL/ULTR somente como token final entre parênteses (nunca palavras aleatórias).
-  const ultraAbreviado = texto.match(/(?:\(|\s)(U|UL|ULT|ULTR)(?:\s*\)?)$/)?.[1] || "";
-  const ultraEmToken = texto.match(/(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=\s|\)|$)/)?.[0]?.trim() || "";
+  const ultraAbreviado = contexto.match(/(?:\(|\s)(U|UL|ULT|ULTR)(?:\s*\)?)$/)?.[1] || "";
+  const ultraEmToken = contexto.match(/(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=\s|\)|$)/)?.[0]?.trim() || "";
   const material = contexto.match(/\bMDF\s+(?:ULTRA|STD|RU|PREMIUM|PREM)\b|\bPREMIUM\b|\bPREM\b|\bULTRA\b|\bSTD\b|\bRU\b|\bHDF\b|\bMDF\b|\bPINUS\b/)?.[0] || ultraAbreviado || ultraEmToken;
   if (material) {
     const ehPremium = /^(?:MDF\s+)?PREM(?:IUM)?$/.test(material);
@@ -55,6 +55,18 @@ export function completarPorRegras(p: Produto): { produto: Produto; alteracoes: 
   // Regras homologadas por PRODUTO (coluna H do Consistem). Só usam o nome do produto
   // da própria linha e só preenchem campos vazios.
   const nomeProduto = normal(String(p.produto || ""));
+  const familiaComplementar = /BAGUETE|SUPORTE TRILHO|KIT CORRER/i.test(String(p.categoria || "")) || /BAGUETE|SUPORTE DE? TRILHO|KIT DE? CORRER/i.test(contexto);
+  if (familiaComplementar && !vazio(produto.material) && /^(?:MDF|U|UL|ULT|ULTR)$/i.test(String(produto.material).trim()) && /\b(?:ULTRA|STD|PINUS)\b/.test(contexto)) {
+    const especifico = contexto.match(/\b(?:ULTRA|STD|PINUS)\b/)?.[0];
+    if (especifico) {
+      produto.material = especifico === "PINUS" ? "PINUS" : "MDF " + especifico;
+      alteracoes.push({ id: p.id, campo: "material", valor: produto.material, evidencia: especifico, metodo: "REGRA" });
+    }
+  }
+  if (familiaComplementar && vazio(produto.tipo) && !vazio(produto.material)) {
+    produto.tipo = produto.material;
+    alteracoes.push({ id: p.id, campo: "tipo", valor: produto.tipo, evidencia: String(p.material || contexto), metodo: "REGRA" });
+  }
   const porProduto = (campo: Campo, valor: string) => {
     if (!vazio(produto[campo])) return;
     produto[campo] = valor;

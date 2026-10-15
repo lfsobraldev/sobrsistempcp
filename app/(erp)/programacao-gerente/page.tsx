@@ -291,16 +291,25 @@ export default function ProgramacaoGerentePage() {
     const dados = { STD: { pecas: 0, ml: 0 }, ULTRA: { pecas: 0, ml: 0 }, PINUS: { pecas: 0, ml: 0 } };
     let semClassificacao = 0;
     let semComprimento = 0;
+    const pendencias: { pedido: string; of: string; codigo: string; descricao: string; familia: string; material: string; medida: string; quantidade: number; motivo: string }[] = [];
     for (const p of produtos) {
       if (!["BATENTES", "ALIZARES", "BAGUETE", "KIT CORRER"].includes(familiaIndustrial(p))) continue;
       const material = materialDaLinha(p);
-      if (!material) { semClassificacao += n(p.quantidade); continue; }
-      dados[material].pecas += n(p.quantidade);
       const comprimento = medidaDoItem(p)[0];
-      if (comprimento > 0) dados[material].ml += comprimento / 1000 * n(p.quantidade);
-      else semComprimento += n(p.quantidade);
+      if (!material) semClassificacao += n(p.quantidade);
+      else {
+        dados[material].pecas += n(p.quantidade);
+        if (comprimento > 0) dados[material].ml += comprimento / 1000 * n(p.quantidade);
+      }
+      if (!(comprimento > 0)) semComprimento += n(p.quantidade);
+      if (!material || !(comprimento > 0)) pendencias.push({
+        pedido: p.pedido, of: p.of, codigo: p.produto, descricao: p.descricao,
+        familia: familiaIndustrial(p), material: p.material || "", medida: p.medida || "",
+        quantidade: n(p.quantidade),
+        motivo: [!material ? "Material não classificado como STD, ULTRA ou PINUS" : "", !(comprimento > 0) ? "Comprimento ausente/inválido" : ""].filter(Boolean).join(" + "),
+      });
     }
-    return { dados, semClassificacao, semComprimento };
+    return { dados, semClassificacao, semComprimento, pendencias };
   }, [produtos]);
 
   async function exportar() {
@@ -466,7 +475,13 @@ export default function ProgramacaoGerentePage() {
             </tbody>
           </table>
         </div>
-        {(consumoMaterial.semClassificacao > 0 || consumoMaterial.semComprimento > 0) && <p>Conferir antes de comprar: {fmt(consumoMaterial.semClassificacao)} peça(s) sem material identificado e {fmt(consumoMaterial.semComprimento)} peça(s) sem comprimento válido. Não foram estimadas.</p>}
+        {(consumoMaterial.semClassificacao > 0 || consumoMaterial.semComprimento > 0) && <>
+          <p>Conferir antes de comprar: {fmt(consumoMaterial.semClassificacao)} peça(s) sem classificação STD/ULTRA/PINUS e {fmt(consumoMaterial.semComprimento)} peça(s) sem comprimento válido. Os dois grupos podem se sobrepor.</p>
+          <details><summary>Ver exatamente quais peças estão pendentes ({consumoMaterial.pendencias.length} linhas)</summary>
+            <div className="tableWrap"><table><thead><tr><th>PEDIDO</th><th>OF</th><th>CÓDIGO</th><th>FAMÍLIA</th><th>DESCRIÇÃO</th><th>MATERIAL ORIGINAL</th><th>MEDIDA ORIGINAL</th><th className="num">PEÇAS</th><th>MOTIVO</th></tr></thead>
+            <tbody>{consumoMaterial.pendencias.map((x, i) => <tr key={i}><td>{x.pedido}</td><td>{x.of}</td><td>{x.codigo}</td><td>{x.familia}</td><td>{x.descricao}</td><td>{x.material || "—"}</td><td>{x.medida || "—"}</td><td className="num">{fmt(x.quantidade)}</td><td>{x.motivo}</td></tr>)}</tbody></table></div>
+          </details>
+        </>}
       </Panel>
 
       <div className="managerToolbar">
