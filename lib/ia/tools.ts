@@ -19,6 +19,7 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  consultar_panorama_pecas: "Investiga livremente produtos e peças da programação ativa, cruzando Catálogo Mestre, pedido, setor, texto e material PINUS/ULTRA/STD. Retorna totais físicos, famílias, pedidos e códigos.",
   simular_aps_maquinas: "Simula capacidade finita por máquina e turno, com eficiência, setup e compatibilidades reais cadastradas. Somente leitura. Informa máquinas sobrecarregadas e operações sem máquina adequada, sem alterar filas.",
   diagnostico_integrado: "Gera diagnóstico real da programação ativa com capacidade por setor, riscos de pedidos e plano de produção; não inventa dados faltantes e não altera a fábrica.",
   consultar_catalogo: "Consulta código e narrativa do catálogo mestre permanente da engenharia; informa conflito e variantes em vez de inventar especificações.",
@@ -75,6 +76,47 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           avisos: resultado.avisos,
           ressalva: "Tempos em turnos relativos, não são horários de entrega confirmados. Não altera programação."
         };
+      }
+      case "consultar_panorama_pecas": {
+        const {db,pg}=await programacaoAtiva();
+        if(!pg)return {erro:"Nenhuma programação ativa."};
+        const pedido=String(input.pedido||"").trim().slice(0,80);
+        const setor=String(input.setor||"").trim().slice(0,80);
+        const busca=String(input.busca||"").trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().slice(0,120);
+        const material=String(input.material||"TODOS").toUpperCase();
+        if(!["TODOS","PINUS","STD","ULTRA","NAO_CLASSIFICADO"].includes(material))return {erro:"Material inválido"};
+        const rows=await db`select p.id,p.pedido,p.of,p.produto,p.descricao,p.categoria,p.material,p.tipo,p.medida,p.cor,p.acabamento,p.rebaixo,p.quantidade::float quantidade
+          from pcp_produtos p where p.programacao_id=${pg.id}
+            and (${pedido}='' or p.pedido=${pedido})
+            and (${setor}='' or exists(select 1 from pcp_operacoes o where o.produto_id=p.id and o.processo=${setor}))
+          order by p.pedido,p.of limit 5001`;
+        if(rows.length>5000)return {erro:"Mais de 5000 linhas: informe um setor ou pedido para obter resultado completo.",filtro:pg.filtro};
+        const {enriquecerComCatalogo}=await import("@/lib/catalogo-consistem");
+        const {familiaIndustrial}=await import("@/lib/domain/industrial");
+        const enriched=await enriquecerComCatalogo(rows.map(p=>({...p,operacoes:[]})) as any[],db);
+        const grupos=new Map<string,{material:string;familia:string;pecas:number;linhas:number}>();
+        const pedidos=new Map<string,number>();
+        const exemplos:Array<{pedido:string;of:string;codigo:string;descricao:string;material:string;quantidade:number}>=[];
+        let totalPecas=0,naoClassificadas=0,linhas=0;
+        for(const p of enriched.produtos){
+          const texto=[p.descricao,p.categoria,p.material,p.medida,p.cor,p.produto].filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
+          if(busca&&!texto.includes(busca))continue;
+          const m=String(p.material||"").toUpperCase();
+          const tipo=/\bPINUS\b/.test(m)?"PINUS":/\bULTRA\b/.test(m)?"ULTRA":/\b(?:STD|STANDARD)\b/.test(m)?"STD":"NAO_CLASSIFICADO";
+          if(material!=="TODOS"&&tipo!==material)continue;
+          const familia=familiaIndustrial(p),q=Number(p.quantidade||0),chave=tipo+"|"+familia;
+          const registro=grupos.get(chave)||{material:tipo,familia,pecas:0,linhas:0};
+          registro.pecas+=q;registro.linhas++;grupos.set(chave,registro);
+          pedidos.set(String(p.pedido),(pedidos.get(String(p.pedido))||0)+q);
+          totalPecas+=q;linhas++;if(tipo==="NAO_CLASSIFICADO")naoClassificadas+=q;
+          if(exemplos.length<30)exemplos.push({pedido:String(p.pedido),of:String(p.of||""),codigo:String(p.produto||""),descricao:String(p.descricao||""),material:tipo,quantidade:q});
+        }
+        return {fonte:"Programação ativa e Catálogo Mestre por código",filtro:pg.filtro,
+          pedido:pedido||null,setor:setor||null,busca:busca||null,material,linhas,totalPecas,naoClassificadas,
+          porMaterialEFamilia:[...grupos.values()].sort((a,b)=>b.pecas-a.pecas),
+          porPedido:[...pedidos].map(([pedido,pecas])=>({pedido,pecas})).sort((a,b)=>b.pecas-a.pecas).slice(0,40),
+          exemplos,codigosNaoEncontrados:enriched.naoEncontrados.slice(0,30),
+          ressalva:"São peças programadas no filtro ativo, NÃO apontamentos reais nem todos os filtros do dia. Não somar setores como se fossem peças distintas."};
       }
       case "diagnostico_integrado": {
         const { db, pg } = await programacaoAtiva();
