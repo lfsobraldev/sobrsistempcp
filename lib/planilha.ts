@@ -3759,7 +3759,7 @@ function montarProgramacaoGerente(
       const familia = familiaIndustrial(p);
       const categoria = limpar(p.categoria).toUpperCase();
 
-      if (familia === "KIT CORRER" && !categoria.includes("SUPORTE")) {
+      if (familia === "PORTAS") {
         kits += Number(p.quantidade || 0);
       }
 
