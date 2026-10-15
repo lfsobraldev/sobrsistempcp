@@ -45,6 +45,9 @@ export default function SobralIAPage(){
  const [centro,setCentro]=useState<any>(null);
  const [centroBusy,setCentroBusy]=useState(false);
  const [centroErro,setCentroErro]=useState("");
+ const [aps,setAps]=useState<any>(null);
+ const [apsBusy,setApsBusy]=useState(false);
+ const [apsErro,setApsErro]=useState("");
  const [corrigindo,setCorrigindo]=useState<number|null>(null);
  const [textoCorrecao,setTextoCorrecao]=useState("");
  const [feedbackItens,setFeedbackItens]=useState<any[]>([]);
@@ -72,6 +75,17 @@ export default function SobralIAPage(){
    if(!r.ok)throw new Error(j.error||"Falha na IA.");
    setMsgs([...next,{role:"assistant",content:String(j.reply||"Pronto."),anexos:Array.isArray(j.attachments)?j.attachments:[]}]);
   }catch(e:any){setMsgs([...next,{role:"assistant",content:`⚠ ${e.message}`}])}finally{setBusy(false)}
+ }
+
+ async function carregarAPS(){
+  setApsBusy(true);setApsErro("");
+  try{
+   const r=await fetch("/api/ia/aps",{cache:"no-store"});
+   const j=await r.json();
+   if(!r.ok)throw new Error(j.error||"Falha ao simular máquinas.");
+   setAps(j);
+  }catch(e:any){setApsErro(e.message||"Falha na simulação.");}
+  finally{setApsBusy(false);}
  }
 
  async function carregarCentro(){
@@ -252,6 +266,27 @@ export default function SobralIAPage(){
       {(centro.plano?.sequencias||[]).map((s:any,i:number)=><div key={i} style={{padding:"12px 0",borderBottom:"1px solid var(--border,#ddd)"}}>
        <b>{s.processo}</b><div>{(s.filaSugerida||[]).slice(0,8).map((p:any)=>"Pedido "+p.pedido+" ("+p.prioridade+")").join(" → ")||"Sem saldo pendente"}</div>
       </div>)}
+     </div>
+    </section>
+    <section className="card">
+     <div className="card-head">
+      <div><h3>APS — Simulação de máquinas</h3><p>Distribuição por capacidade, eficiência, tempo de preparação e compatibilidades cadastradas.</p></div>
+      <button className="primary" disabled={apsBusy} onClick={()=>void carregarAPS()}><Gauge/> {apsBusy?"Simulando…":"Simular máquinas"}</button>
+     </div>
+     <div className="card-body">
+      {apsErro&&<div className="notice warning">{apsErro}</div>}
+      {!aps&&!apsErro&&<p>Execute uma simulação para avaliar a carga por máquina, sem modificar a programação liberada.</p>}
+      {aps&&<>
+       <p><b>{aps.totalAlocacoes}</b> operações alocadas · <b>{aps.totalPendentes}</b> sem máquina compatível · Turno: {aps.programacao?.turno}</p>
+       {(aps.porMaquina||[]).map((m:any,i:number)=><div key={i} style={{padding:"10px 0",borderBottom:"1px solid var(--border,#ddd)"}}>
+        <b>{m.processo} — {m.maquina}</b>
+        <div>{m.pecas} peças · {m.tarefas} operações · {m.turnosEstimados} turnos relativos estimados</div>
+        <small>{m.ocupacaoMinutos} min de carga / {m.minutosDisponiveisPorTurno} min disponíveis por turno</small>
+       </div>)}
+       {!!aps.pendentes?.length&&<div className="notice warning">Pendências sem capacidade/compatibilidade: {aps.pendentes.slice(0,12).map((p:any)=>p.processo+" / "+p.pedido).join(", ")}</div>}
+       <p style={{opacity:.75}}>Simulação condicional. Não considera dependências entre setores, paradas, manutenção ou calendário; sem alterar filas e OFs.</p>
+       {aps.incompleto&&<div className="notice warning">Há mais de 10 mil operações; a simulação está incompleta.</div>}
+      </>}
      </div>
     </section>
     <p style={{opacity:.75}}>Consulta: {centro.consultadoEm?new Date(centro.consultadoEm).toLocaleString("pt-BR"):"—"}. Os indicadores não representam produção em tempo real sem apontamentos atualizados.</p>
