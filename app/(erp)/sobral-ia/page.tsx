@@ -75,7 +75,7 @@ export default function SobralIAPage(){
    const r=await fetch("/api/ia/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({path:"/sobral-ia",messages:next.map(({role,content})=>({role,content}))})});
    const raw=await r.text();let j:any={};try{j=raw?JSON.parse(raw):{}}catch{throw new Error("Resposta inválida da IA.")}
    if(!r.ok)throw new Error(j.error||"Falha na IA.");
-   setMsgs([...next,{role:"assistant",content:String(j.reply||"Pronto."),anexos:Array.isArray(j.attachments)?j.attachments:[]}]);
+   setMsgs([...next,{role:"assistant",content:String(j.reply||"Não foi possível concluir uma resposta fundamentada."),anexos:Array.isArray(j.attachments)?j.attachments:[]}]);
   }catch(e:any){setMsgs([...next,{role:"assistant",content:`⚠ ${e.message}`}])}finally{setBusy(false)}
  }
 
@@ -346,7 +346,7 @@ export default function SobralIAPage(){
     <section className="card sobral-training-list training-library">
      <div className="card-head"><div><span className="eyebrow">BIBLIOTECA DE REGRAS</span><h3>Conhecimento da fábrica</h3><p>Clique em uma regra para revisar ou editar.</p></div><select value={area} onChange={e=>setArea(e.target.value)}><option>TODAS</option>{AREAS.map(a=><option key={a}>{a}</option>)}</select></div>
      <div className="training-rule-list training-rule-list-v2">
-      {filtradas.map(r=><button key={r.id} className="training-rule-card training-rule-card-v2" onClick={()=>canTrain&&setEdit(r)}><div className="training-rule-topline"><Badge tone={r.ativo?"success":"neutral"}>{r.ativo?"ATIVA":"INATIVA"}</Badge><span className="training-area">{r.area}</span><span className="training-priority">P{r.prioridade}</span></div><b>{r.titulo}</b><p>{r.regra}</p>{r.exemplo&&<small>Ex.: {r.exemplo}</small>}</button>)}
+      {filtradas.map(r=><button key={r.id} className="training-rule-card training-rule-card-v2" onClick={()=>{if(canTrain){setEdit(r);setMostraHistorico(false)}}}><div className="training-rule-topline"><Badge tone={r.ativo?"success":"neutral"}>{r.ativo?"ATIVA":"INATIVA"}</Badge><span className="training-area">{r.area}</span><span className="training-priority">P{r.prioridade}</span></div><b>{r.titulo}</b><p>{r.regra}</p>{r.exemplo&&<small>Ex.: {r.exemplo}</small>}</button>)}
       {!filtradas.length&&<div className="empty training-empty"><GraduationCap/><b>Nenhuma regra cadastrada</b><span>Cadastre a primeira regra para começar a construir a inteligência específica da fábrica.</span></div>}
      </div>
     </section>
