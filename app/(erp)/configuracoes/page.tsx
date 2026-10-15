@@ -34,18 +34,21 @@ export default function Config(){
   }
   useEffect(()=>{void load();},[]);
   const mapaMetas=useMemo(()=>new Map(metas.map(m=>[key(m),Number(m.meta)])),[metas]);
+  const metaSelecionada=metas.find(x=>x.data.slice(0,10)===data&&x.processo===setor&&x.turno===turno&&x.maquina===setor);
+  const producaoSelecionada=registros.find(x=>x.data.slice(0,10)===data&&x.processo===setor&&x.turno===turno&&x.maquina===setor);
+  function selecionarSetor(processo:string){setSetor(processo);setMeta("");setProduzido("");}
   function selecionarRegistro(x:Row){
     setData(x.data.slice(0,10));setSetor(x.processo);setTurno(x.turno);
     setProduzido(String(x.produzido));setMeta(String(mapaMetas.get(key(x))??""));setTab("DIARIO");
   }
   async function salvar(){
-    if(!produzido.trim())return toast("error","Informe a produção do dia. Use zero quando não houver produção.");
+    if(!produzido.trim()&&!meta.trim())return toast("error","Informe a meta ou a produção do dia.");
     setLoading(true);
     try {
       const r=await fetch("/api/producao-diaria",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({data,processo:setor,maquina:setor,turno,produzido,meta})});
       const j=await r.json();
       if(!r.ok)throw Error(j.error||"Falha ao salvar");
-      toast("success","Produção e meta registradas para o setor, turno e data.");
+      toast("success","Dados salvos para o setor, turno e data.");
       await load();
     }catch(e:any){toast("error",e.message);}finally{setLoading(false);}
   }
@@ -67,11 +70,16 @@ export default function Config(){
     {tab==="DIARIO"&&<Card title="Meta e produção do dia" subtitle="Cada registro corresponde a um setor, turno e data; salvar novamente atualiza o valor anterior.">
       <div className="form-grid">
         <Field label="Data"><input type="date" value={data} onChange={e=>setData(e.target.value)}/></Field>
-        <Field label="Setor / processo"><select value={setor} onChange={e=>setSetor(e.target.value)}>{PROCESSOS.map(x=><option key={x} value={x}>{LABELS[x]||x}</option>)}</select></Field>
+        <Field label="Setor / processo"><select value={setor} onChange={e=>selecionarSetor(e.target.value)}>{PROCESSOS.map(x=><option key={x} value={x}>{LABELS[x]||x}</option>)}</select></Field>
         <Field label="Turno"><select value={turno} onChange={e=>setTurno(e.target.value)}><option>A</option><option>B</option><option>C</option></select></Field>
         <Field label="Meta do dia (peças)"><input type="number" min="0" step="1" value={meta} onChange={e=>setMeta(e.target.value)} placeholder="Opcional"/></Field>
         <Field label="Produção realizada (peças)"><input type="number" min="0" step="1" value={produzido} onChange={e=>setProduzido(e.target.value)} placeholder="Quantidade real"/></Field>
-      </div><div className="row" style={{justifyContent:"flex-end",marginTop:16}}><button className="primary" disabled={loading} onClick={()=>void salvar()}>{loading?"Salvando...":"Salvar lançamento"}</button></div>
+      </div><p className="muted">Meta cadastrada: {metaSelecionada ? fmt(Number(metaSelecionada.meta))+" peças" : "não cadastrada"} · Produção lançada: {producaoSelecionada ? fmt(Number(producaoSelecionada.produzido))+" peças" : "não lançada"}. Você pode salvar apenas a meta e registrar a produção depois.</p><div className="row" style={{justifyContent:"flex-end",marginTop:16}}><button className="primary" disabled={loading} onClick={()=>void salvar()}>{loading?"Salvando...":"Salvar lançamento"}</button></div>
+      <h3 className="sectionTitle">Configuração das metas por setor</h3>
+      <p className="muted">Selecione um setor para definir sua meta diária. Cada setor e turno é configurado individualmente.</p>
+      <div style={{overflowX:"auto"}}><table style={{width:"100%"}}><thead><tr><th>Setor</th><th>Meta cadastrada na data</th><th>Produzido</th><th>Ação</th></tr></thead><tbody>
+        {PROCESSOS.map(x=>{const m=metas.find(y=>y.data.slice(0,10)===data&&y.processo===x&&y.turno===turno&&y.maquina===x);const real=registros.find(y=>y.data.slice(0,10)===data&&y.processo===x&&y.turno===turno&&y.maquina===x);return <tr key={x}><td>{LABELS[x]||x}</td><td>{m?fmt(Number(m.meta))+" peças":"Não definida"}</td><td>{real?fmt(Number(real.produzido))+" peças":"—"}</td><td><button className="secondary" onClick={()=>{selecionarSetor(x);setMeta(m?String(m.meta):"");setProduzido(real?String(real.produzido):"");}}>Configurar</button></td></tr>})}
+      </tbody></table></div>
       <h3 className="sectionTitle">Lançamentos recentes</h3>
       <div style={{overflowX:"auto"}}><table style={{width:"100%"}}><thead><tr><th>Data</th><th>Setor</th><th>Turno</th><th>Meta</th><th>Produzido</th><th>Atingimento</th><th></th></tr></thead><tbody>
         {registros.map(x=>{const m=mapaMetas.get(key(x));return <tr key={key(x)}><td>{x.data.slice(0,10).split("-").reverse().join("/")}</td><td>{LABELS[x.processo]||x.processo}</td><td>{x.turno}</td><td>{m===undefined?"—":fmt(m)}</td><td>{fmt(Number(x.produzido))}</td><td>{m?Math.round(Number(x.produzido)/m*100)+"%":"—"}</td><td><button className="secondary" onClick={()=>selecionarRegistro(x)}>Editar</button></td></tr>})}

@@ -37,16 +37,17 @@ export async function POST(req:Request) {
     const s=await requireRoles(["PCP"]);
     const b=await req.json();
     const data=String(b.data||""),processo=String(b.processo||"").trim(),maquina=String(b.maquina||"").trim(),turno=String(b.turno||"A").trim();
-    const produzido=b.produzido===""?NaN:Number(b.produzido);
+    const produzido=b.produzido===""||b.produzido==null?null:Number(b.produzido);
     const meta=b.meta===""||b.meta==null?null:Number(b.meta);
     if(!/^\d{4}-\d{2}-\d{2}$/.test(data)||!processo||!maquina||!turno||processo.length>80||maquina.length>120||turno.length>20)
       return NextResponse.json({error:"Informe data, setor, máquina e turno válidos."},{status:400});
-    if(!Number.isFinite(produzido)||produzido<0||(!Number.isInteger(produzido)))
+    if(produzido!==null&&(!Number.isFinite(produzido)||produzido<0||!Number.isInteger(produzido)))
       return NextResponse.json({error:"Informe a quantidade produzida em peças inteiras."},{status:400});
     if(meta!==null&&(!Number.isFinite(meta)||meta<0||!Number.isInteger(meta)))
       return NextResponse.json({error:"Meta inválida."},{status:400});
+    if(produzido===null&&meta===null)return NextResponse.json({error:"Informe a meta ou a produção."},{status:400});
     const db=sql();await tabela(db);
-    await db`insert into pcp_producao_diaria_maquina(data,processo,maquina,turno,produzido,atualizado_por)
+    if(produzido!==null) await db`insert into pcp_producao_diaria_maquina(data,processo,maquina,turno,produzido,atualizado_por)
       values(${data}::date,${processo},${maquina},${turno},${produzido},${s.usuario})
       on conflict(data,processo,maquina,turno) do update set produzido=excluded.produzido,atualizado_por=excluded.atualizado_por,atualizado_em=now()`;
     if(meta!==null) await db`insert into pcp_metas_maquina(data,processo,maquina,turno,meta,atualizado_por)
