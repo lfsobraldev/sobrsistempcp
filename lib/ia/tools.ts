@@ -102,7 +102,7 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
             c.codigo as codigo_catalogo,c.narrativa,c.conflito,c.vazio
           from pcp_produtos p
           left join pcp_catalogo_produtos c
-            on c.codigo=upper(regexp_replace(trim(p.produto), '\\.0
+            on c.codigo=upper(case when right(trim(p.produto),2)='.0' then left(trim(p.produto),length(trim(p.produto))-2) else trim(p.produto) end)
         const codigo=String(input.codigo||"").trim().replace(/\.0$/,"").toUpperCase().slice(0,80);
         if(!codigo) return {erro:"Informe o código do produto."};
         const db=sql();
