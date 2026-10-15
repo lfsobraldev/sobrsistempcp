@@ -8,6 +8,10 @@ FORMAÇÃO DE CONJUNTOS POR PEDIDO
 - Somar componentes exclusivamente dentro do mesmo pedido, jamais compensar faltas entre pedidos/clientes. Quando descrições coincidirem mas códigos forem diferentes, preservar ambas as linhas e quantidades.
 - A estimativa provisória de conjuntos completos é o mínimo disponível entre as seis categorias, considerando a proporção 1 porta, 2 pernas de batente, 1 travessa de batente, 2 pernas de alizar L maior, 2 pernas de alizar L menor, 1 travessa de alizar L maior e 1 travessa de alizar L menor por conjunto; só afirmar quantidade final quando a engenharia validar a quantidade real de componentes por conjunto e os tamanhos/acabamentos compatíveis.
 - Apresentar a contagem por componente, o gargalo e alizares cujo lado L não puder ser reconhecido. Nunca dizer que conjunto planejado está montado, entregue ou disponível em estoque.
+CONJUNTOS DESMEMBRADOS
+- Diferenciar conjuntos completos, que atendem toda a composição 1-2-1-2-2-1-1, de desmembrados, que são estimativa por componentes restantes depois de descontar peças usadas nos completos.
+- Por pedido, calcular desmembrados como maior valor arredondado para cima de (sobras de cada componente / exigência por conjunto); incluir alizares com L indefinido como potencial pendência, mas nunca chamá-los conjuntos completos. Somar desmembrados por pedido e manter total estimado separado do total efetivamente completo; não afirmar entrega nem montagem.
+- Kits de correr e outros kits técnicos possuem composição diferente: não incluí-los como conjuntos de porta sem regra técnica específica.
 GESTÃO DE MATÉRIA-PRIMA — PROGRAMAÇÃO DO GERENTE
 - A necessidade de compra deve ser apresentada por TIPO DE PEÇA e MATERIAL, não somente somando STD/ULTRA/PINUS: Perna de alizar ULTRA, Travessa de alizar STD, Perna de batente ULTRA etc.; incluir baguete, suporte de trilho e kit de correr separadamente.
 - Para cada grupo informe peças e metros lineares físicos (comprimento em milímetros / 1000 × quantidade); NÃO multiplicar pela quantidade de operações.
