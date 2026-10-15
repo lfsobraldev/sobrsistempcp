@@ -39,3 +39,22 @@ test("Excel gerencial contém medidas completas de alizares e batentes, sem mist
   assert.equal(pedido200!.getCell(16).value, "STD");
   assert.equal(pedido200!.getCell(15).value, "");
 });
+
+
+test("Filtro 54: exportação de gerente mantém apenas controle e não infla kits", () => {
+  const produtos = [
+    p("27019", "OF-PORTA", "", "FOLHA PORTA SEMI 2100X800X35 GD COLADA", "2100x800x35", 8),
+    p("27019", "OF-ALIZAR", "ALIZARES", "PE AL 2200X50X9 RTO LME", "2200x50x9", 16),
+    p("27019", "OF-KITCORRER", "KIT CORRER", "KIT DE CORRER", "", 30),
+  ];
+  const wb = montarPlanilha(ExcelJS, produtos, { somenteControle: true });
+  assert.deepEqual(wb.worksheets.map(ws => ws.name), ["CONTROLE PRODUÇÃO"]);
+  const ws = wb.getWorksheet("CONTROLE PRODUÇÃO")!;
+  const allValues = ws.getRows(1, ws.rowCount)!.flatMap(row =>
+    row.values ? (row.values as unknown[]).map(v => String(v ?? "")) : []
+  );
+  assert.ok(allValues.includes("27019"));
+  const pedidoRow = ws.getRows(1, ws.rowCount)!.find(row => String(row.getCell(1).value) === "27019");
+  assert.ok(pedidoRow);
+  assert.equal(pedidoRow!.getCell(2).value, 8);
+});
