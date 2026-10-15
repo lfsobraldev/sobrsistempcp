@@ -38,7 +38,7 @@ const menus: MenuGroup[] = [
       { path: "/historico", label: "Histórico", icon: History },
     ],
   },
-  { label: "Sistema", items: [{ path: "/configuracoes", label: "Configurações", icon: Settings }] },
+
 ];
 
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets" };
