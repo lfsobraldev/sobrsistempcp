@@ -145,9 +145,9 @@ function conjuntosPedido(produtos: Produto[]) {
   }
   const conjuntos=Math.min(...COMPONENTES_CONJUNTO.map(x=>Math.floor(estoque[x]/COMPOSICAO[x])));
   const restantes=Object.fromEntries(COMPONENTES_CONJUNTO.map(x=>[x,Math.max(0,estoque[x]-conjuntos*COMPOSICAO[x])])) as Record<ConjuntoComponente,number>;
-  // Estimativa separada: maior necessidade equivalente entre sobras.
-  // Não conta novamente peças dos conjuntos completos nem mistura pedidos.
-  const desmembrados=Math.max(0,...COMPONENTES_CONJUNTO.map(x=>Math.ceil(restantes[x]/COMPOSICAO[x])),Math.ceil(alizarIndefinido/4));
+  // Cada porta corresponde a no máximo um kit. As portas sem conjunto
+  // completo são kits desmembrados; sobras de alizares/batentes não criam kits.
+  const desmembrados=Math.max(0,estoque.PORTAS-conjuntos);
   return {conjuntos,desmembrados,restantes,estoque,faltas:COMPONENTES_CONJUNTO.filter(x=>Math.floor(estoque[x]/COMPOSICAO[x])===conjuntos),alizarIndefinido};
 }
 
@@ -486,8 +486,8 @@ export default function ProgramacaoGerentePage() {
           <b>{fmt(kits)}</b>
           <small>estimativa por pedido · peças previstas</small>
         </article>
-        <article><span>KITS DESMEMBRADOS</span><b>{fmt(kitsDesmembrados)}</b><small>estimativa das peças restantes por pedido</small></article>
-        <article><span>TOTAL ESTIMADO</span><b>{fmt(kits + kitsDesmembrados)}</b><small>completos + desmembrados; não são kits prontos</small></article>
+        <article><span>KITS DESMEMBRADOS</span><b>{fmt(kitsDesmembrados)}</b><small>portas sem composição completa, por pedido</small></article>
+        <article><span>TOTAL ESTIMADO</span><b>{fmt(kits + kitsDesmembrados)}</b><small>total de portas consideradas; não são kits montados</small></article>
         <article>
           <span>USINAGEM PENDENTE</span>
           <b>{pendUsinagem}</b>
@@ -609,7 +609,7 @@ export default function ProgramacaoGerentePage() {
                       <td className="num">{pedido.ofs}</td>
                       <td className="num">{pedido.m3.toFixed(3)}</td>
                       <td className="num">{pedido.ml.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="num"><b>{fmt(pedido.kits)}</b><details><summary>Componentes</summary><div style={{minWidth:240,textAlign:"left"}}>{COMPONENTES_CONJUNTO.map(nome=><div key={nome}>{nome}: {fmt(pedido.componentesConjunto.estoque[nome])} peças (exige {COMPOSICAO[nome]} por conjunto; comporta {fmt(Math.floor(pedido.componentesConjunto.estoque[nome] / COMPOSICAO[nome]))} conjuntos)</div>)}{pedido.componentesConjunto.alizarIndefinido>0&&<div>Alizares cujo L maior/menor não foi identificado: {fmt(pedido.componentesConjunto.alizarIndefinido)}</div>}<div>Limitante(s): {pedido.componentesConjunto.faltas.join(", ")}</div><small>Conjuntos de portas, não kits de correr. Outras composições precisam de regras próprias. Composição: 1 porta, 2 pernas batente, 1 travessa batente, 2 pernas alizar L maior, 2 L menor, 1 travessa alizar L maior e 1 L menor.</small></div></details></td><td className="num"><b>{fmt(pedido.kitsDesmembrados)}</b><small> estimativa de sobras</small></td>
+                      <td className="num"><b>{fmt(pedido.kits)}</b><details><summary>Componentes</summary><div style={{minWidth:240,textAlign:"left"}}>{COMPONENTES_CONJUNTO.map(nome=><div key={nome}>{nome}: {fmt(pedido.componentesConjunto.estoque[nome])} peças (exige {COMPOSICAO[nome]} por conjunto; comporta {fmt(Math.floor(pedido.componentesConjunto.estoque[nome] / COMPOSICAO[nome]))} conjuntos)</div>)}{pedido.componentesConjunto.alizarIndefinido>0&&<div>Alizares cujo L maior/menor não foi identificado: {fmt(pedido.componentesConjunto.alizarIndefinido)}</div>}<div>Limitante(s): {pedido.componentesConjunto.faltas.join(", ")}</div><small>Conjuntos de portas, não kits de correr. Outras composições precisam de regras próprias. Composição: 1 porta, 2 pernas batente, 1 travessa batente, 2 pernas alizar L maior, 2 L menor, 1 travessa alizar L maior e 1 L menor.</small></div></details></td><td className="num"><b>{fmt(pedido.kitsDesmembrados)}</b><small> portas sem conjunto completo</small></td>
                       <td>
                         <span className={`managerFlag ${pedido.usinagem ? "ok" : "pending"}`}>
                           {pedido.usinagem ? "SIM" : "NÃO"}

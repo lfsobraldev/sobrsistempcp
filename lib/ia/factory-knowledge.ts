@@ -10,7 +10,7 @@ FORMAÇÃO DE CONJUNTOS POR PEDIDO
 - Apresentar a contagem por componente, o gargalo e alizares cujo lado L não puder ser reconhecido. Nunca dizer que conjunto planejado está montado, entregue ou disponível em estoque.
 CONJUNTOS DESMEMBRADOS
 - Diferenciar conjuntos completos, que atendem toda a composição 1-2-1-2-2-1-1, de desmembrados, que são estimativa por componentes restantes depois de descontar peças usadas nos completos.
-- Por pedido, calcular desmembrados como maior valor arredondado para cima de (sobras de cada componente / exigência por conjunto); incluir alizares com L indefinido como potencial pendência, mas nunca chamá-los conjuntos completos. Somar desmembrados por pedido e manter total estimado separado do total efetivamente completo; não afirmar entrega nem montagem.
+- Cada porta corresponde a no máximo um kit de porta. Por pedido: conjuntos completos = mínimo das disponibilidades de cada componente dividido pela necessidade da composição; kits desmembrados = número de portas menos conjuntos completos (mínimo zero). Total estimado = completos + desmembrados = número de portas. Sobras de componentes sem porta não geram kits. Não afirmar que kits incompletos estão montados.
 - Kits de correr e outros kits técnicos possuem composição diferente: não incluí-los como conjuntos de porta sem regra técnica específica.
 GESTÃO DE MATÉRIA-PRIMA — PROGRAMAÇÃO DO GERENTE
 - A necessidade de compra deve ser apresentada por TIPO DE PEÇA e MATERIAL, não somente somando STD/ULTRA/PINUS: Perna de alizar ULTRA, Travessa de alizar STD, Perna de batente ULTRA etc.; incluir baguete, suporte de trilho e kit de correr separadamente.
