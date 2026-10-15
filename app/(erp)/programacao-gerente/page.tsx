@@ -69,12 +69,13 @@ function mlProduto(p: Produto) {
   return comprimento > 0 ? (comprimento / 1000) * n(p.quantidade) : 0;
 }
 
-function materialDaLinha(p: Produto): "ULTRA" | "STD" | "PINUS" | null {
+function materialDaLinha(p: Produto): "ULTRA" | "STD" | "MDF" | "PINUS" | null {
   const texto = [p.material, p.tipo, p.descricao, p.descricaoModelo, p.outrasCaracteristicas]
     .filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
   if (/\bPINUS\b/.test(texto)) return "PINUS";
   if (/\b(?:MDF\s+)?STD\b/.test(texto)) return "STD";
   if (/\b(?:MDF\s+)?ULTRA\b/.test(texto)) return "ULTRA";
+  if (/\bMDF\b/.test(texto)) return "MDF";
   if (/(?:^|[\s(])(?:U|UL|ULT|ULTR)(?=[\s)]|$)/.test(texto)
     && ["ALIZARES", "BATENTES", "BAGUETE"].includes(familiaIndustrial(p))) return "ULTRA";
   return null;
@@ -82,9 +83,7 @@ function materialDaLinha(p: Produto): "ULTRA" | "STD" | "PINUS" | null {
 
 function materialPedido(produtos: Produto[]) {
   const tipos = new Set(produtos.map(materialDaLinha).filter(Boolean));
-  return tipos.has("ULTRA") && tipos.has("STD") ? "ULTRA/STD"
-    : tipos.has("ULTRA") ? "ULTRA"
-    : tipos.has("STD") ? "STD" : tipos.has("PINUS") ? "PINUS" : "-";
+  return ["ULTRA", "STD", "MDF", "PINUS"].filter(tipo => tipos.has(tipo as "ULTRA" | "STD" | "MDF" | "PINUS")).join("/") || "-";
 }
 
 function alizaresPedido(produtos: Produto[]) {
@@ -149,6 +148,28 @@ function conjuntosPedido(produtos: Produto[]) {
   // completo são kits desmembrados; sobras de alizares/batentes não criam kits.
   const desmembrados=Math.max(0,estoque.PORTAS-conjuntos);
   return {conjuntos,desmembrados,restantes,estoque,faltas:COMPONENTES_CONJUNTO.filter(x=>Math.floor(estoque[x]/COMPOSICAO[x])===conjuntos),alizarIndefinido};
+}
+
+// Quando o Consistem não traz a folha da porta no filtro, estimar kits
+// por componentes de batente, sem contar cada perna/travessa como um kit.
+function kitsPrevistosPedido(produtos: Produto[]) {
+  const portas = produtos.filter(p => familiaIndustrial(p) === "PORTAS")
+    .reduce((s,p) => s + n(p.quantidade), 0);
+  if (portas > 0) return portas;
+
+  const conjuntosExplicitos = produtos.filter(p => {
+    const texto = [p.categoria, p.descricao, p.tipo].filter(Boolean).join(" ").toUpperCase();
+    return /\b(CONJUNTO|CJ)\b/.test(texto)
+      && !/\b(KIT\s*(?:DE\s*)?CORRER|FERRAG|ACESSORIO)\b/.test(texto);
+  }).reduce((s,p) => s + n(p.quantidade),0);
+  if (conjuntosExplicitos > 0) return conjuntosExplicitos;
+
+  const batentes = produtos.filter(p => familiaIndustrial(p) === "BATENTES");
+  const pernas = batentes.filter(p => tipoPeca(p) === "PERNA").reduce((s,p) => s + n(p.quantidade),0);
+  const travessas = batentes.filter(p => tipoPeca(p) === "TRAVESSA").reduce((s,p) => s + n(p.quantidade),0);
+  if (pernas > 0 && travessas > 0) return Math.min(Math.floor(pernas / 2), travessas);
+  // Sem evidência suficiente, não inventar quantidade.
+  return 0;
 }
 
 function statusPedido(produtos: Produto[]) {
@@ -242,7 +263,7 @@ export default function ProgramacaoGerentePage() {
           ofs: new Set(itens.map((p) => p.of).filter(Boolean)).size,
           m3: itens.reduce((s, p) => s + m3Produto(p), 0),
           ml: itens.reduce((s, p) => s + mlProduto(p), 0),
-          kits: itens.filter(p=>familiaIndustrial(p)==="PORTAS").reduce((sum,p)=>sum+n(p.quantidade),0),
+          kits: kitsPrevistosPedido(itens),
           conjuntosCompletosEstimados: conjuntosPedido(itens).conjuntos,
           kitsDesmembrados: conjuntosPedido(itens).desmembrados,
           componentesConjunto: conjuntosPedido(itens),
@@ -320,8 +341,8 @@ export default function ProgramacaoGerentePage() {
   const volume = pedidos.reduce((s, p) => s + p.m3, 0);
   const metrosLineares = pedidos.reduce((s, p) => s + p.ml, 0);
   const consumoMaterial = useMemo(() => {
-    const dados = { STD: { pecas: 0, ml: 0 }, ULTRA: { pecas: 0, ml: 0 }, PINUS: { pecas: 0, ml: 0 } };
-    const grupos = new Map<string, { peca: string; material: "STD" | "ULTRA" | "PINUS"; pecas: number; ml: number }>();
+    const dados = { STD: { pecas: 0, ml: 0 }, ULTRA: { pecas: 0, ml: 0 }, MDF: { pecas: 0, ml: 0 }, PINUS: { pecas: 0, ml: 0 } };
+    const grupos = new Map<string, { peca: string; material: "STD" | "ULTRA" | "MDF" | "PINUS"; pecas: number; ml: number }>();
     let semClassificacao = 0;
     let semComprimento = 0;
     const pendencias: { pedido: string; of: string; codigo: string; descricao: string; familia: string; material: string; medida: string; quantidade: number; motivo: string }[] = [];
@@ -354,7 +375,7 @@ export default function ProgramacaoGerentePage() {
         pedido: p.pedido, of: p.of, codigo: p.produto, descricao: p.descricao,
         familia: familiaIndustrial(p), material: p.material || "", medida: p.medida || "",
         quantidade: n(p.quantidade),
-        motivo: [!material ? "Material não classificado como STD, ULTRA ou PINUS" : "", !(comprimento > 0) ? "Comprimento ausente/inválido" : ""].filter(Boolean).join(" + "),
+        motivo: [!material ? "Material não classificado como STD, ULTRA, MDF ou PINUS" : "", !(comprimento > 0) ? "Comprimento ausente/inválido" : ""].filter(Boolean).join(" + "),
       });
     }
     return { dados, grupos: [...grupos.values()].sort((a,b) => a.peca.localeCompare(b.peca,"pt-BR") || a.material.localeCompare(b.material)), semClassificacao, semComprimento, pendencias };
@@ -486,7 +507,7 @@ export default function ProgramacaoGerentePage() {
         <article>
           <span>CONJUNTOS PREVISTOS</span>
           <b>{fmt(kits)}</b>
-          <small>1 porta = 1 conjunto previsto, por pedido</small>
+          <small>portas; ou conjuntos/batentes quando não há folha no filtro</small>
         </article>
         <article><span>PORTAS SEM CONJUNTO COMPLETO</span><b>{fmt(kitsDesmembrados)}</b><small>faltam componentes; não são kits confirmados</small></article>
         <article><span>COMPOSIÇÃO COMPLETA ESTIMADA</span><b>{fmt(conjuntosCompletosEstimados)}</b><small>conferência dos componentes, não reduz o total previsto</small></article>
@@ -519,7 +540,7 @@ export default function ProgramacaoGerentePage() {
 
       {view === "MATERIA" && (
       <Panel title="Necessidade de matéria-prima" subtitle="Consumo previsto separado por família da peça e material. Metros lineares = comprimento em metros × quantidade de peças. Não multiplica por operações.">
-        <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",marginBottom:12}}><label htmlFor="filtro-materia">Filtrar material</label><select id="filtro-materia" value={filtroMateria} onChange={e=>setFiltroMateria(e.target.value)}><option value="TODOS">Todos os materiais</option><option value="STD">STD</option><option value="ULTRA">ULTRA</option><option value="PINUS">PINUS</option></select></div>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center",marginBottom:12}}><label htmlFor="filtro-materia">Filtrar material</label><select id="filtro-materia" value={filtroMateria} onChange={e=>setFiltroMateria(e.target.value)}><option value="TODOS">Todos os materiais</option><option value="STD">STD</option><option value="ULTRA">ULTRA</option><option value="MDF">MDF</option><option value="PINUS">PINUS</option></select></div>
         <div className="tableWrap">
           <table>
             <thead><tr><th>PEÇA / PERFIL</th><th>MATERIAL</th><th className="num">PEÇAS</th><th className="num">METROS LINEARES (m)</th></tr></thead>
