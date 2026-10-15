@@ -6,7 +6,7 @@ import { useOps } from "@/components/operational-provider";
 import { LABELS, leaderPlanRows, leaderReleasedRows } from "@/lib/metrics";
 import { PROCESSOS } from "@/lib/processos";
 import { fmt, fmtPct, pct } from "@/lib/format";
-import { exportarSetor } from "@/lib/export";
+import { exportarExcel } from "@/lib/export";
 import { Badge, Card, DataTable, Empty, Field, PageHeader, Segmented, StatCard } from "@/components/ui";
 import { TableScroll } from "@/components/table-scroll";
 import type { MontagemEngenharia, TipoPedido } from "@/types/pcp";
@@ -146,7 +146,30 @@ export default function Lideres() {
     }
   }
 
-  const exportar = () => exportarSetor(products, proc);
+  // Exportar exatamente a mesma projeção e os mesmos filtros da tabela visível.
+  // Não passar pelo gerador industrial, que possui agrupamentos e colunas distintos.
+  const exportar = async () => {
+    const linhas = rows.map((x) => ({
+      "Peça": x.descricao,
+      "Categoria": x.categoria,
+      "Material": x.material || "-",
+      "Medida": x.medida || "-",
+      "Rebaixo": x.rebaixo || "-",
+      "Acabamento": x.acabamento || "-",
+      "Cor": x.cor || "-",
+      "Planejado": x.quantidade,
+      "Produzido": x.produzido,
+      "Saldo": x.saldo,
+    }));
+    try {
+      await exportarExcel(
+        [{ nome: (LABELS[proc] || proc).slice(0, 31), linhas }],
+        `Lideres_${proc}_${tab === "PLAN" ? "Plano_do_dia" : "Liberado_agora"}`
+      );
+    } catch {
+      toast("error", "Não foi possível exportar a tabela dos líderes.");
+    }
+  };
 
   return (
     <>
