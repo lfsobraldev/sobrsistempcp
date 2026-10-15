@@ -34,16 +34,18 @@ export async function POST(req:Request) {
     return NextResponse.json({error:"WhatsApp not configured"},{status:503});
   let body:any;
   try{body=JSON.parse(raw);}catch{return NextResponse.json({error:"Invalid JSON"},{status:400});}
+  const messages=textMessages(body);
+  console.info("[WhatsApp] received event",{messageCount:messages.length});
   const db=sql();
   await db`create table if not exists pcp_ia_whatsapp_recebidas(id varchar(180) primary key,telefone varchar(20) not null,criado_em timestamptz default now())`;
-  for(const message of textMessages(body)) {
+  for(const message of messages) {
     const user=whatsappUser(message.from,process.env.WHATSAPP_ALLOWED_USERS_JSON);
-    if(!user)continue;
+    if(!user){console.warn("[WhatsApp] sender not authorized",{allowlistConfigured:!!process.env.WHATSAPP_ALLOWED_USERS_JSON});continue;}
     const inserted=await db`insert into pcp_ia_whatsapp_recebidas(id,telefone) values(${message.id},${message.from}) on conflict(id) do nothing returning id`;
-    if(!inserted.length)continue;
+    if(!inserted.length){console.info("[WhatsApp] duplicate message");continue;}
     let answer:string;
     try{answer=await answerWhatsapp(message.text,user);}
-    catch{answer="Não consegui consultar os dados agora. Tente novamente mais tarde.";}
+    catch(error){console.error("[WhatsApp] AI processing failed",error instanceof Error?error.message:"unknown");answer="Não consegui consultar os dados agora. Tente novamente mais tarde.";}
     const version=process.env.WHATSAPP_GRAPH_VERSION||"v23.0";
     const response=await fetch(`https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`,{
       method:"POST",headers:{Authorization:`Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,"Content-Type":"application/json"},
@@ -51,9 +53,10 @@ export async function POST(req:Request) {
     });
     if(!response.ok) {
       await db`delete from pcp_ia_whatsapp_recebidas where id=${message.id}`;
-      console.error("WhatsApp delivery failed",response.status);
+      console.error("[WhatsApp] delivery failed",response.status);
       return NextResponse.json({error:"Delivery failed"},{status:502});
     }
+    console.info("[WhatsApp] reply accepted by Meta");
   }
   return NextResponse.json({ok:true});
 }
