@@ -546,6 +546,7 @@ export type OpcoesPlanilha = {
   setores?: string[];
 
   data?: string;
+  somenteControle?: boolean;
 };
 
 function itensDoSetor(
@@ -3259,27 +3260,10 @@ function montarControle(
         p
       );
 
-    const categoria =
-      limpar(
-        p.categoria
-      ).toUpperCase();
-
-    /*
-     * KIT = conjunto.
-     * Não soma suporte/trilho como se fosse outro kit.
-     */
-    if (
-      familia ===
-        "KIT CORRER" &&
-      !categoria.includes(
-        "SUPORTE"
-      )
-    ) {
-      atual.kits +=
-        Number(
-          p.quantidade ||
-            0
-        );
+    // Quantidade de conjuntos = quantidade de folhas de porta.
+    // Nunca somar kit de correr, ferragens ou componentes de batente.
+    if (familia === "PORTAS") {
+      atual.kits += Number(p.quantidade || 0);
     }
 
     if (
@@ -3301,15 +3285,20 @@ function montarControle(
         medidaDoItem(
           p
         );
+      const medidaCodigo = [p.produto, p.codigoModelo, p.descricaoModelo]
+        .map(valor => String(valor || "").match(/(?:^|[^0-9])(50|60|70|80|90|100|120|150)\s*[xX]\s*(9|12|15)(?![0-9])/))
+        .find(Boolean);
+      const larguraFinal = largura > 0 ? largura : Number(medidaCodigo?.[1] || 0);
+      const espessuraFinal = espessura > 0 ? espessura : Number(medidaCodigo?.[2] || 0);
 
       if (
-        largura >
+        larguraFinal >
           0 &&
-        espessura >
+        espessuraFinal >
           0
       ) {
         atual.alizares.add(
-          `${largura}x${espessura}`
+          `${larguraFinal}x${espessuraFinal}`
         );
       }
     }
@@ -3319,6 +3308,9 @@ function montarControle(
         p.material,
         p.tipo,
         p.descricao,
+        p.produto,
+        p.codigoModelo,
+        p.descricaoModelo,
       ]
         .filter(
           Boolean
@@ -3336,16 +3328,14 @@ function montarControle(
         .toUpperCase();
 
     if (
-      materialTexto.includes(
-        "ULTRA"
-      )
+      /\b(?:ULTRA|ULTR|ULT|UL)\b/.test(materialTexto)
     ) {
       atual.ultra =
         true;
     }
 
     if (
-      /(^|[^A-Z])STD([^A-Z]|$)/.test(
+      /\b(?:STD|STANDARD)\b/.test(
         materialTexto
       )
     ) {
@@ -4226,6 +4216,13 @@ export function montarPlanilha(
   montarLeiaMe(
     wb
   );
+
+  if (opcoes.somenteControle) {
+    // Gerar totais com a mesma base dos setores/líderes e manter apenas a aba solicitada.
+    for (const aba of [...wb.worksheets]) {
+      if (aba.name !== "CONTROLE PRODUÇÃO") wb.removeWorksheet(aba.id);
+    }
+  }
 
   return wb;
 }
