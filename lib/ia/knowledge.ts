@@ -25,6 +25,18 @@ export async function conhecimentoTreinavelPrompt(pergunta = "", limit = 12) {
         where ativo=true order by prioridade desc,atualizado_em desc
         limit ${Math.max(1,Math.min(12,limit))}
       `;
+    // Perguntas naturais costumam combinar termos não cadastrados; se não houver
+    // correspondência textual exata, recupere um conjunto de regras de alta prioridade
+    // como contexto GERAL, sem apresentá-las como resposta ao pedido atual.
+    if (!rows.length && texto) {
+      const fallback=await db`
+        select titulo,area,situacao,regra,exemplo,observacao,prioridade,atualizado_em
+        from pcp_ia_conhecimento
+        where ativo=true and area in ('GERAL','PCP','PRODUCAO')
+        order by prioridade desc,atualizado_em desc limit ${Math.max(1,Math.min(6,limit))}
+      `;
+      rows.push(...fallback);
+    }
     if (!rows.length) return "";
 
     const body = rows.map((r:any, i:number) => {

@@ -78,6 +78,7 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         };
       }
       case "consultar_panorama_pecas": {
+        if(!allowedPath(ctx.user.perfil,"/lideres"))return {erro:"Sem permissão para consultar as peças da programação."};
         const {db,pg}=await programacaoAtiva();
         if(!pg)return {erro:"Nenhuma programação ativa."};
         const pedido=String(input.pedido||"").trim().slice(0,80);
