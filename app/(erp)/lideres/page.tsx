@@ -150,8 +150,7 @@ export default function Lideres() {
   // Não passar pelo gerador industrial, que possui agrupamentos e colunas distintos.
   const exportar = async () => {
     const linhas = rows.map((x) => ({
-      "Peça": x.descricao,
-      "Categoria": x.categoria,
+      "Peça": x.categoria ? `${x.descricao} · ${x.categoria}` : x.descricao,
       "Material": x.material || "-",
       "Medida": x.medida || "-",
       "Rebaixo": x.rebaixo || "-",
