@@ -3276,7 +3276,8 @@ function montarControle(
   });
   ws.autoFilter={from:{row:inicioResumo+1,column:1},to:{row:Math.max(inicioResumo+2,inicioResumo+linhasDetalhadas.length+1),column:13}};
   [28,27,66,15,18,19,23,23,17,22,18,13,24].forEach((w,i)=>ws.getColumn(i+1).width=w);
-  ws.views=[{state:"frozen",ySplit:inicioResumo+1,xSplit:1,showGridLines:false}];
+  // Não congelar dezenas de linhas: isso bloqueia a rolagem no Excel.
+  ws.views=[{state:"normal",showGridLines:false}];
   ws.pageSetup={orientation:"landscape",paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0};
 
 }
