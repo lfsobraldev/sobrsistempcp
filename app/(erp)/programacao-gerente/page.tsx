@@ -1,5 +1,7 @@
 "use client";
 
+import {contagemKitsPedido} from "@/lib/industrial/kits";
+
 import { useEffect, useMemo, useState } from "react";
 import {
   Boxes,
@@ -183,6 +185,8 @@ export default function ProgramacaoGerentePage() {
     excecoes: [],
   });
   const [savingPrazo, setSavingPrazo] = useState("");
+  const [locais, setLocais] = useState<Record<string, string>>({});
+  const [savingLocal, setSavingLocal] = useState("");
 
   useEffect(() => {
     let ativo = true;
@@ -239,9 +243,14 @@ export default function ProgramacaoGerentePage() {
           processos,
           pecas,
           ofs: new Set(itens.map((p) => p.of).filter(Boolean)).size,
+          listaOfs: [...new Set(itens.map((p) => String(p.of || "").trim()).filter(Boolean))]
+            .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true })),
+          localMontagem:
+            locais[pedido] ?? (itens.find((p) => p.localMontagem)?.localMontagem || ""),
           m3: itens.reduce((s, p) => s + m3Produto(p), 0),
           ml: itens.reduce((s, p) => s + mlProduto(p), 0),
-          kits: itens.filter(p=>familiaIndustrial(p)==="PORTAS").reduce((sum,p)=>sum+n(p.quantidade),0),
+          kits: contagemKitsPedido(itens).kits,
+          kitsAvulsos: contagemKitsPedido(itens).avulsos,
           conjuntosCompletosEstimados: conjuntosPedido(itens).conjuntos,
           kitsDesmembrados: conjuntosPedido(itens).desmembrados,
           componentesConjunto: conjuntosPedido(itens),
@@ -264,10 +273,13 @@ export default function ProgramacaoGerentePage() {
           excecoes,
         };
       })
-      .sort((a, b) =>
-        a.pedido.localeCompare(b.pedido, "pt-BR", { numeric: true })
-      );
-  }, [produtos, gestao]);
+      .sort((a, b) => {
+        // Menor número primeiro (25560, 25561, 25562...); não numéricos ao final.
+        const na = /^\d+$/.test(a.pedido) ? Number(a.pedido) : Infinity;
+        const nb = /^\d+$/.test(b.pedido) ? Number(b.pedido) : Infinity;
+        return na - nb || a.pedido.localeCompare(b.pedido, "pt-BR", { numeric: true });
+      });
+  }, [produtos, gestao, locais]);
 
   const processos = useMemo(
     () => [...new Set(produtos.flatMap((p) => p.operacoes.map((o) => o.processo)))],
@@ -363,9 +375,32 @@ export default function ProgramacaoGerentePage() {
     if (!produtos.length) return;
     setBusy(true);
     try {
-      await baixarPlanilhaProducao(produtos, { arquivo: "Controle_Producao", somenteControle: true });
+      await baixarPlanilhaProducao(
+        produtos.map((p) => (locais[p.pedido] !== undefined ? { ...p, localMontagem: locais[p.pedido] } : p)),
+        { arquivo: "Controle_Producao", somenteControle: true }
+      );
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function salvarLocal(pedido: string, valor: string, atual: string) {
+    const local = valor.replace(/\s+/g, " ").trim();
+    if (local === atual) return;
+    setSavingLocal(pedido);
+    try {
+      const r = await fetch("/api/pedidos/local-montagem", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ pedido, local }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Falha ao salvar local de montagem.");
+      setLocais((a) => ({ ...a, [pedido]: local }));
+    } catch (e: any) {
+      alert(e?.message || "Falha ao salvar local de montagem.");
+    } finally {
+      setSavingLocal("");
     }
   }
 
@@ -569,6 +604,9 @@ export default function ProgramacaoGerentePage() {
           title="Pedidos programados"
           subtitle="Uma linha por pedido. Clique para abrir a rota completa das peças."
         >
+          <datalist id="locaisMontagem">
+            {["HS", "Timadel", "Estância", "Revenda", "Complemento"].map((x) => <option key={x} value={x} />)}
+          </datalist>
           <div className="tableWrap managerOrdersTable">
             <table>
               <thead>
@@ -577,7 +615,8 @@ export default function ProgramacaoGerentePage() {
                   <th>PRIOR.</th>
                   <th>TIPO</th>
                   <th className="num">PEÇAS</th>
-                  <th className="num">OFs</th>
+                  <th>OF</th>
+                  <th>LOCAL MONTAGEM</th>
                   <th className="num">m³</th>
                   <th className="num">mL</th>
                   <th className="num">CONJUNTOS PREVISTOS</th><th className="num">PORTAS SEM CONJUNTO</th>
@@ -607,10 +646,23 @@ export default function ProgramacaoGerentePage() {
                       </td>
                       <td>{pedido.tipo}</td>
                       <td className="num">{fmt(pedido.pecas)}</td>
-                      <td className="num">{pedido.ofs}</td>
+                      <td className="managerOfCell" title={pedido.listaOfs.join(", ")}>{pedido.listaOfs.length ? pedido.listaOfs.join(", ") : "-"}</td>
+                      <td>
+                        <input
+                          className="managerLocalInput"
+                          list="locaisMontagem"
+                          defaultValue={pedido.localMontagem}
+                          key={`${pedido.pedido}-${pedido.localMontagem}`}
+                          placeholder="—"
+                          maxLength={60}
+                          disabled={savingLocal === pedido.pedido}
+                          onBlur={(e) => salvarLocal(pedido.pedido, e.target.value, pedido.localMontagem)}
+                          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                        />
+                      </td>
                       <td className="num">{pedido.m3.toFixed(3)}</td>
                       <td className="num">{pedido.ml.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td className="num"><b>{fmt(pedido.kits)}</b><details><summary>Componentes</summary><div style={{minWidth:240,textAlign:"left"}}>{COMPONENTES_CONJUNTO.map(nome=><div key={nome}>{nome}: {fmt(pedido.componentesConjunto.estoque[nome])} peças (exige {COMPOSICAO[nome]} por conjunto; comporta {fmt(Math.floor(pedido.componentesConjunto.estoque[nome] / COMPOSICAO[nome]))} conjuntos)</div>)}{pedido.componentesConjunto.alizarIndefinido>0&&<div>Alizares cujo L maior/menor não foi identificado: {fmt(pedido.componentesConjunto.alizarIndefinido)}</div>}<div>Limitante(s): {pedido.componentesConjunto.faltas.join(", ")}</div><small>Cada porta do pedido corresponde a um conjunto previsto. A conferência dos componentes não reduz essa previsão. Composição: 1 porta, 2 pernas batente, 1 travessa batente, 2 pernas alizar L maior, 2 L menor, 1 travessa alizar L maior e 1 L menor.</small></div></details></td><td className="num"><b>{fmt(pedido.kitsDesmembrados)}</b><small> portas sem conjunto completo</small></td>
+                      <td className="num"><b>{fmt(pedido.kits)}</b>{pedido.kitsAvulsos>0&&<small> kits avulsos estimados</small>}<details><summary>Componentes</summary><div style={{minWidth:240,textAlign:"left"}}>{COMPONENTES_CONJUNTO.map(nome=><div key={nome}>{nome}: {fmt(pedido.componentesConjunto.estoque[nome])} peças (exige {COMPOSICAO[nome]} por conjunto; comporta {fmt(Math.floor(pedido.componentesConjunto.estoque[nome] / COMPOSICAO[nome]))} conjuntos)</div>)}{pedido.componentesConjunto.alizarIndefinido>0&&<div>Alizares cujo L maior/menor não foi identificado: {fmt(pedido.componentesConjunto.alizarIndefinido)}</div>}<div>Limitante(s): {pedido.componentesConjunto.faltas.join(", ")}</div><small>Cada porta do pedido corresponde a um conjunto previsto. A conferência dos componentes não reduz essa previsão. Composição: 1 porta, 2 pernas batente, 1 travessa batente, 2 pernas alizar L maior, 2 L menor, 1 travessa alizar L maior e 1 L menor.</small></div></details></td><td className="num"><b>{fmt(pedido.kitsDesmembrados)}</b><small> portas sem conjunto completo</small></td>
                       <td>
                         <span className={`managerFlag ${pedido.usinagem ? "ok" : "pending"}`}>
                           {pedido.usinagem ? "SIM" : "NÃO"}
@@ -674,7 +726,7 @@ export default function ProgramacaoGerentePage() {
 
                     {pedidoAberto === pedido.pedido && (
                       <tr key={`${pedido.pedido}-detail`} className="managerDetailRow">
-                        <td colSpan={17}>
+                        <td colSpan={19}>
                           <div className="managerOrderDetail">
                             <div className="managerOrderRoute">
                               <header>

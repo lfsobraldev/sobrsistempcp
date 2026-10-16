@@ -763,11 +763,21 @@ export async function GET() {
       add column if not exists usinagem_planilha boolean not null default false
     `;
 
+    await db`create table if not exists pcp_pedido_local (
+      pedido varchar(60) primary key,
+      local_montagem varchar(60) not null default '',
+      atualizado_por varchar(80),
+      atualizado_em timestamptz not null default now()
+    )`;
+
+    // Pedidos sempre do menor para o maior número (ordem numérica, não textual).
     const products = await db`
-      select *
-      from pcp_produtos
-      where programacao_id = ${programacaoId}
-      order by pedido, item
+      select p.*, coalesce(l.local_montagem, '') as local_montagem
+      from pcp_produtos p
+      left join pcp_pedido_local l on l.pedido = p.pedido
+      where p.programacao_id = ${programacaoId}
+      order by (case when p.pedido ~ '^[0-9]{1,18}$' then p.pedido::numeric end) nulls last,
+               p.pedido, p.item
     `;
 
     const ops = await db`
@@ -804,6 +814,7 @@ export async function GET() {
       prioridade: p.prioridade,
       tipoPedido: p.tipo_pedido || "NORMAL",
       montagemEngenharia: p.montagem_engenharia || "MONTADO_HS",
+      localMontagem: p.local_montagem || "",
       usinagemPlanilha: Boolean(p.usinagem_planilha),
       operacoes: ops
         .filter((o: any) => o.produto_id === p.id)

@@ -290,7 +290,7 @@ export default function Lideres() {
         <table>
           <thead>
             <tr>
-              <th>Peça</th><th>Material</th><th>Medida</th><th>Rebaixo</th><th>Acabamento</th><th>Cor</th>
+              <th>Peça</th><th>OF</th><th>Material</th><th>Medida</th><th>Rebaixo</th><th>Acabamento</th><th>Cor</th>
               <th className="num">Planejado</th><th className="num">Produzido</th><th className="num">Saldo</th>
             </tr>
           </thead>
@@ -298,6 +298,7 @@ export default function Lideres() {
             {rows.map((x) => (
               <tr key={x.key}>
                 <td><b>{x.descricao}</b> <Badge>{x.categoria}</Badge></td>
+                <td className="mono" title={x.listaOfs.join(", ")} style={{maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.listaOfs.length ? x.listaOfs.join(", ") : "-"}</td>
                 <td>{x.material || "-"}</td>
                 <td className="mono">{x.medida || "-"}</td>
                 <td>{x.rebaixo || "-"}</td>
@@ -312,7 +313,7 @@ export default function Lideres() {
           {!!rows.length && (
             <tfoot>
               <tr>
-                <td colSpan={6}>Total</td>
+                <td colSpan={7}>Total</td>
                 <td className="num">{fmt(soma(rows, "quantidade"))}</td>
                 <td className="num">{fmt(soma(rows, "produzido"))}</td>
                 <td className="num">{fmt(soma(rows, "saldo"))}</td>

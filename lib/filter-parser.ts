@@ -772,13 +772,32 @@ export async function parseFiltro(
     );
   }
 
+  // Linhas sem Descrição usam Descrição Modelo/Produto da MESMA linha, em vez de serem descartadas.
+  const descricaoLinha = (r: Record<string, any>) =>
+    clean(field(r, "Descrição")) || clean(field(r, "Descrição Modelo")) || clean(field(r, "Produto"));
+  // OF: pelo cabeçalho; se o arquivo vier sem cabeçalho reconhecível, usa a coluna Q (17ª) do Consistem.
+  const ofDaLinha = (r: Record<string, any>) => {
+    const porCabecalho = clean(field(r, "OF's"));
+    if (porCabecalho) return porCabecalho;
+    if (findKey(r, FIELD_ALIAS["OF's"] || ["OF's"])) return "";
+    const v = clean(Object.values(r)[16]);
+    return /^\d{3,}(?:\s*[,;/]\s*\d{3,})*$/.test(v) ? v : "";
+  };
+  const descartadas: { motivo: string; amostra: string }[] = [];
   const valid = rows.filter((r) => {
     const pedido = clean(field(r, "Pedido"));
-    const descricao = clean(field(r, "Descrição"));
+    const descricao = descricaoLinha(r);
     const quantidade = num(field(r, "Quantidade Pecas"));
-    const of = clean(field(r, "OF's"));
+    const of = ofDaLinha(r);
 
-    return !!pedido && !!descricao && (quantidade > 0 || !!of);
+    const ok = !!pedido && !!descricao && (quantidade > 0 || !!of);
+    if (!ok && (pedido || descricao || quantidade > 0 || of)) {
+      descartadas.push({
+        motivo: !pedido ? "sem pedido" : !descricao ? "sem descrição" : "sem quantidade e sem OF",
+        amostra: [pedido, of, descricao].filter(Boolean).join(" | ").slice(0, 80),
+      });
+    }
+    return ok;
   });
 
   if (!valid.length) {
@@ -828,7 +847,7 @@ export async function parseFiltro(
         ),
 
       descricao:
-        clean(field(r, "Descrição")),
+        descricaoLinha(r),
 
       tipo:
         clean(
@@ -870,10 +889,7 @@ export async function parseFiltro(
           field(r, "Status Engenharia")
         ),
 
-      of:
-        clean(
-          field(r, "OF's")
-        ),
+      of: ofDaLinha(r),
 
       percentualProduto:
         num(
@@ -1363,6 +1379,10 @@ export async function parseFiltro(
 
     produtos,
     romaneioProdutos,
+    linhasDescartadas: descartadas.length,
+    avisos: descartadas.length
+      ? [`${descartadas.length} linha(s) do arquivo não puderam ser importadas (ex.: ${descartadas.slice(0, 3).map((d) => `${d.motivo}: ${d.amostra}`).join("; ")}).`]
+      : [],
   };
 
   return {

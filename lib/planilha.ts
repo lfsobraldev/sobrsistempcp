@@ -1,3 +1,4 @@
+import {contagemKitsPedido} from "@/lib/industrial/kits";
 import type ExcelJS from "exceljs";
 import type { Produto } from "@/types/pcp";
 
@@ -309,6 +310,11 @@ const COLS:
     h: "Observação",
     w: 30,
   },
+  {
+    h: "Local de Montagem",
+    w: 20,
+    align: "center",
+  },
 ];
 
 const C = {
@@ -335,6 +341,7 @@ const C = {
   prod: 17,
   saldo: 18,
   obs: 19,
+  local: 20,
 };
 
 const ENTRADA = [
@@ -1375,6 +1382,7 @@ function montarAbaSetor(
         },
 
         null,
+        limpar(p.localMontagem),
       ];
 
       valores.forEach(
@@ -3262,9 +3270,6 @@ function montarControle(
 
     // Quantidade de conjuntos = quantidade de folhas de porta.
     // Nunca somar kit de correr, ferragens ou componentes de batente.
-    if (familia === "PORTAS") {
-      atual.kits += Number(p.quantidade || 0);
-    }
 
 
     if (
@@ -3349,6 +3354,8 @@ function montarControle(
       atual
     );
   }
+
+  for(const resumo of pedidosResumo.values())resumo.kits=contagemKitsPedido(validos.filter(p=>limpar(p.pedido)===resumo.pedido)).kits;
 
   const linhasPedido =
     [
@@ -3656,7 +3663,7 @@ function montarProgramacaoGerente(
   const border = fino("FF7F7F7F");
 
   const widths = [
-    12, 14, 14, 46, 9, 9, 28, 12, 11, 12, 11, 10, 12, 25, 25, 15, 38, 16,
+    12, 14, 14, 46, 9, 9, 28, 12, 11, 12, 11, 10, 12, 25, 25, 15, 38, 16, 30, 20,
   ];
 
   widths.forEach((w, i) => {
@@ -3690,6 +3697,8 @@ function montarProgramacaoGerente(
     "Material",
     "Observações",
     "Valor",
+    "OF's",
+    "Local de Montagem",
   ];
 
   const row1 = ws.getRow(1);
@@ -3713,7 +3722,7 @@ function montarProgramacaoGerente(
   row1.getCell(16).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00B0F0" } };
 
   const row2 = ws.getRow(2);
-  ["", "", "", "", "", "", "", "Total", "Cliente", "Fábrica", "", "", "", "", "", "", "", "", ""]
+  ["", "", "", "", "", "", "", "Total", "Cliente", "Fábrica", "", "", "", "", "", "", "", "", "", "", ""]
     .forEach((v, i) => {
       const cell = row2.getCell(i + 1);
       cell.value = v;
@@ -3745,7 +3754,7 @@ function montarProgramacaoGerente(
     const row = ws.getRow(rowNum);
 
     let totalM3 = 0;
-    let kits = 0;
+    let kits = contagemKitsPedido(itens).kits;
     let temUsinagem = false;
     let ultra = false;
     let std = false;
@@ -3760,9 +3769,7 @@ function montarProgramacaoGerente(
       const familia = familiaIndustrial(p);
       const categoria = limpar(p.categoria).toUpperCase();
 
-      if (familia === "PORTAS") {
-        kits += Number(p.quantidade || 0);
-      }
+
 
       if (p.usinagemPlanilha) temUsinagem = true;
 
@@ -3820,6 +3827,9 @@ function montarProgramacaoGerente(
       material,   // P Material
       "",         // Q Observações
       null,       // R Valor
+      [...new Set(itens.map((x) => limpar(x.of)).filter(Boolean))]
+        .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true })).join(", "), // S OF's
+      limpar(itens.find((x) => limpar(x.localMontagem))?.localMontagem), // T Local de Montagem (manual)
     ];
 
     values.forEach((value, i) => {
@@ -3830,7 +3840,7 @@ function montarProgramacaoGerente(
       cell.alignment = {
         vertical: "middle",
         horizontal: [4, 7, 16].includes(i + 1) ? "left" : "center",
-        wrapText: [4, 7, 14, 15, 17].includes(i + 1),
+        wrapText: [4, 7, 14, 15, 17, 19].includes(i + 1),
       };
       cell.border = { top: border, bottom: border, left: border, right: border };
     });
@@ -3859,7 +3869,7 @@ function montarProgramacaoGerente(
 
   ws.autoFilter = {
     from: { row: 1, column: 1 },
-    to: { row: Math.max(3, rowNum - 1), column: 18 },
+    to: { row: Math.max(3, rowNum - 1), column: 20 },
   };
 
   ws.pageSetup = {

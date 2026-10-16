@@ -13,7 +13,7 @@ export type Produto = {
   id:string; filtro:string; pedido:string; item:string; produto:string; descricao:string; tipo:string; canal:string;
   rebaixo:string; acabamento:string; cor:string; quantidade:number; pedidoCliente:string; statusEngenharia:string;
   of:string; percentualProduto:number; codigoModelo:string; descricaoModelo:string; outrasCaracteristicas:string;
-  categoria:string; material:string; medida:string; prioridade:Prioridade; tipoPedido?:TipoPedido; montagemEngenharia?:MontagemEngenharia; usinagemPlanilha?:boolean; operacoes:Operacao[];
+  categoria:string; material:string; medida:string; prioridade:Prioridade; tipoPedido?:TipoPedido; montagemEngenharia?:MontagemEngenharia; localMontagem?:string; usinagemPlanilha?:boolean; operacoes:Operacao[];
 };
 export type DiagnosticoImportacao = {
   linhas:number; pedidos:number; ofs:number; pecas:number; operacoes:number; semRota:number; inconsistenciasRota:number;
@@ -23,7 +23,7 @@ export type Programacao = {
   id:string; filtro:string; data:string; turno:string; status:string; origem:string; criadoEm?:string;
   diagnostico?:DiagnosticoImportacao; produtos:Produto[];
 };
-export type ImportResult = DiagnosticoImportacao & { filtro:string; produtos:Produto[]; romaneioProdutos?:Produto[] };
+export type ImportResult = DiagnosticoImportacao & { filtro:string; produtos:Produto[]; romaneioProdutos?:Produto[]; linhasDescartadas?:number; avisos?:string[] };
 export type Sessao = { usuario:string; perfil:Perfil; processos:string[] };
 export type Andon = { id:string; operacao_id:string; processo:string; motivo:string; observacao:string; status:string;
   usuario_abertura:string; criado_em:string; pedido?:string; of?:string; categoria?:string; prioridade?:string; responsavel?:string;

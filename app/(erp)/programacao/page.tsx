@@ -11,6 +11,7 @@ import { resumoPorSetor } from "@/lib/programacao-auditoria";
 import { auditarCoberturaRomaneio } from "@/lib/romaneio/source-audit";
 import { compareProduto } from "@/lib/sort";
 import { familiaIndustrial } from "@/lib/domain/industrial";
+import { contagemKitsPedido } from "@/lib/industrial/kits";
 
 export default function Programacao() {
   const { refresh, toast, pg } = useOps();
@@ -443,12 +444,7 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
         <DataTable head={["Pedido", "Qtd. kits", "Planilha usinagem", "Medidas de alizar", "Material"]}>
           {pedidosOrdenados.map((pedidoNumero) => {
             const produtos = d.produtos.filter((p) => p.pedido === pedidoNumero);
-            const kits = produtos
-              .filter((p) => {
-                const categoria = String(p.categoria || "").toUpperCase();
-                return categoria.includes("KIT CORRER") && !categoria.includes("SUPORTE");
-              })
-              .reduce((sum, p) => sum + Number(p.quantidade || 0), 0);
+            const kits = contagemKitsPedido(produtos).kits;
             const medidasAlizar = [...new Set(
               produtos
                 .filter((p) => String(p.categoria || "").toUpperCase().startsWith("ALIZAR"))

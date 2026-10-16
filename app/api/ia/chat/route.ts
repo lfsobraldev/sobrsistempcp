@@ -6,6 +6,7 @@ import { assertGatewayConfigured, MODEL, SYSTEM_BASE } from "@/lib/ia/claude";
 import { runTool, TOOL_META, type Attachment } from "@/lib/ia/tools";
 import { sql } from "@/lib/db";
 import { conhecimentoTreinavelPrompt } from "@/lib/ia/knowledge";
+import { compactarHistorico, saudacaoSimples, selecionarFerramentas } from "@/lib/ia/roteador";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const incoming = Array.isArray(body.messages) ? body.messages.slice(-20) : [];
-    const messages = incoming
+    const messagesFull = incoming
       .filter(
         (m: any) =>
           (m.role === "user" || m.role === "assistant") &&
@@ -44,6 +45,7 @@ export async function POST(req: Request) {
         content: String(m.content).slice(0, 20_000),
       }));
 
+    const messages = compactarHistorico(messagesFull);
     if (!messages.length || messages[messages.length - 1].role !== "user") {
       return NextResponse.json({ error: "Mensagem inválida." }, { status: 400 });
     }
@@ -55,7 +57,9 @@ export async function POST(req: Request) {
       timeStyle: "short",
     }).format(new Date());
 
-    const conhecimentoEquipe = await conhecimentoTreinavelPrompt(messages[messages.length-1].content, 12);
+    const perguntaAtual = messages[messages.length - 1].content;
+    const simples = saudacaoSimples(perguntaAtual);
+    const conhecimentoEquipe = simples ? "" : await conhecimentoTreinavelPrompt(perguntaAtual.slice(0, 600), 8);
     const system = `${SYSTEM_BASE}
 Em perguntas sobre eficiência, gargalos, aumentar produção, metas, bloqueios ou oportunidades, use oportunidades_industriais; não estime lucro sem custos e receitas. Quando não souber onde encontrar um dado, use mapa_fontes_sistema para decidir as fontes disponíveis antes de consultar. Para perguntas livres sobre peças, famílias, materiais, pedidos, código, setor, cor e quantidades, consulte consultar_panorama_pecas sem exigir frases exatas; combine com outras ferramentas se necessário. Sempre cite o escopo da programação ativa e nunca confunda planejado com produção apontada.\nQuando perguntarem quantas peças de uma MEDIDA (como travessas de alizar 50x9), use consultar_pecas_por_medida ANTES de responder. Para TRAVESSAS informe tipoPeca=TRAVESSA; para PERNAS informe tipoPeca=PERNA. Nunca misture travessas com pernas, nem batentes com alizares. Mostre total programado e ressalva do período; se perguntarem esta semana, não confunda programação ativa com todas as datas da semana. Para perguntas sobre alocação, setup, disponibilidade ou distribuição entre máquinas, use simular_aps_maquinas e deixe claro que é cenário estimado, sem dependências entre processos ou horários reais. Para diagnósticos abrangentes, riscos e gargalos da fábrica use diagnostico_integrado e explique a origem e as limitações dos dados. Quando pedirem descrição completa, material ou divergência de código, use consultar_catalogo. Quando perguntarem por produtos incompletos, erros em setores, códigos sem material/medida ou cobertura do catálogo, use diagnosticar_catalogo_setores antes de responder, com setor ou pedido quando informado. Para procedimentos ensinados pela equipe use consultar_conhecimento. Para consultas por semana, mês ou datas, utilize consultar_periodo com as datas locais reais; não trate apenas o filtro ativo como período inteiro. Nunca diga que não possui consulta por medida sem chamar a ferramenta.\n
 ${conhecimentoEquipe}
@@ -63,6 +67,11 @@ Usuário: ${s.usuario} (perfil ${s.perfil}). Tela atual: ${String(body.path || "
 Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
 
     const aiTools = {
+      auditar_consistencia: tool({
+        description: TOOL_META.auditar_consistencia,
+        inputSchema: z.object({ pedido: z.string().max(80).optional() }),
+        execute: async (input) => runTool("auditar_consistencia", input, { user: s, attachments }),
+      }),
       simular_aps_maquinas: tool({
         description: TOOL_META.simular_aps_maquinas,
         inputSchema: z.object({}),
@@ -252,9 +261,9 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
       model: MODEL,
       system,
       messages,
-      tools: aiTools,
-      stopWhen: stepCountIs(5),
-      maxOutputTokens: 2200,
+      tools: simples ? {} : selecionarFerramentas(perguntaAtual, aiTools),
+      stopWhen: stepCountIs(4),
+      maxOutputTokens: /detalh|complet|lista|todos|relat[oó]rio/i.test(perguntaAtual) ? 2200 : 1400,
       abortSignal: AbortSignal.timeout(48_000),
     });
 

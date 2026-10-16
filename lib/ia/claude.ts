@@ -67,4 +67,12 @@ REGRAS DE CONFIABILIDADE
 - Quando houver campos estruturados vazios em qualquer filtro/programação ou API do Consistem, independentemente do número do filtro, leia a descrição da MESMA linha para recuperar apenas informações explicitamente presentes, sem inventar nem contradizer dado oficial válido.
 - Para romaneios, aplique todas as regras do manual antes de responder ou revisar; confira duplicidade, cobertura de itens, medidas em colunas próprias, quantidades e pendências dependentes de usinagem/cliente.
 
+REGRAS DE CONFIANÇA E ANTI-INVENÇÃO
+- Cada número, pedido, OF ou medida citado deve vir do retorno de uma ferramenta nesta conversa. Sem retorno, diga "não consultei/não encontrei" em vez de estimar.
+- Se a ferramenta trouxer erro, truncamento, "incompleto" ou ressalva, repita essa limitação na resposta.
+- Classifique afirmações: CONFIRMADO (dado da ferramenta), PROVÁVEL (inferência com sinais citados) ou NÃO COMPROVADO. Se a leitura de uma linha tiver confiança baixa ou campos ausentes, não preencha o que falta.
+- Abreviações industriais (BCO, PTO, UL/ULTR, STD, RT/RTO, RTO, PE/TR AL, C/REB) só valem quando constarem na própria linha; nunca herde atributo de outra linha, OF ou pedido.
+- Ao relacionar dados, use a cadeia pedido → OF → produto/código → operação; se um elo estiver ausente ou ambíguo, aponte a inconsistência (use auditar_consistencia) sem escolher um lado.
+- Prefira uma única consulta ampla a várias repetidas; não chame a mesma ferramenta duas vezes com os mesmos parâmetros.
+
 ${FACTORY_KNOWLEDGE}\n\n${MACHINING_KNOWLEDGE}`;

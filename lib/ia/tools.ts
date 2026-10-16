@@ -19,6 +19,7 @@ export type ToolCtx = { user: Sessao; attachments: Attachment[] };
 const WRITE_ROLES = ["PCP", "GERENTE", "ENCARREGADO"];
 
 export const TOOL_META = {
+  auditar_consistencia: "Audita a programação ativa: OF em vários pedidos, linhas repetidas, itens sem rota, quantidade de operação divergente, produção acima do planejado e leituras de baixa confiança. Somente leitura; use para perguntas sobre inconsistências, erros e qualidade dos dados.",
   oportunidades_industriais: "Analisa saldos, bloqueios, divergências, urgências e gargalos por setor na programação ativa; recomenda ações sem alegar produtividade, OEE ou lucro real.",
   mapa_fontes_sistema: "Lista as fontes e módulos disponíveis ao usuário, suas capacidades de consulta e limites; use quando a pergunta for vaga ou atravessar várias áreas.",
   consultar_panorama_pecas: "Investiga livremente produtos e peças da programação ativa, cruzando Catálogo Mestre, pedido, setor, texto e material PINUS/ULTRA/STD. Retorna totais físicos, famílias, pedidos e códigos.",
@@ -115,8 +116,8 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           from pcp_produtos p where p.programacao_id=${pg.id}
             and (${pedido}='' or p.pedido=${pedido})
             and (${setor}='' or exists(select 1 from pcp_operacoes o where o.produto_id=p.id and o.processo=${setor}))
-          order by p.pedido,p.of limit 5001`;
-        if(rows.length>5000)return {erro:"Mais de 5000 linhas: informe um setor ou pedido para obter resultado completo.",filtro:pg.filtro};
+          order by p.pedido,p.of limit 20001`;
+        if(rows.length>20000)return {erro:"Mais de 20000 linhas: informe um setor ou pedido para obter resultado completo.",filtro:pg.filtro};
         const {enriquecerComCatalogo}=await import("@/lib/catalogo-consistem");
         const {familiaIndustrial}=await import("@/lib/domain/industrial");
         const enriched=await enriquecerComCatalogo(rows.map(p=>({...p,operacoes:[]})) as any[],db);
@@ -143,6 +144,20 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
           porPedido:[...pedidos].map(([pedido,pecas])=>({pedido,pecas})).sort((a,b)=>b.pecas-a.pecas).slice(0,40),
           exemplos,codigosNaoEncontrados:enriched.naoEncontrados.slice(0,30),
           ressalva:"São peças programadas no filtro ativo, NÃO apontamentos reais nem todos os filtros do dia. Não somar setores como se fossem peças distintas."};
+      }
+      case "auditar_consistencia": {
+        if(!allowedPath(ctx.user.perfil,"/lideres"))return {erro:"Sem permissão para auditar a programação."};
+        const { db, pg } = await programacaoAtiva();
+        if (!pg) return { erro: "Nenhuma programação ativa." };
+        const pedido = String(input.pedido || "").trim().slice(0, 80);
+        const rows = await db`select p.id,p.pedido,p.of,p.item,p.produto,p.descricao,p.material,p.medida,p.quantidade::float quantidade,
+            coalesce((select json_agg(json_build_object('quantidadePlanejada',o.quantidade_planejada::float,'quantidadeProduzida',o.quantidade_produzida::float))
+              from pcp_operacoes o where o.produto_id=p.id),'[]'::json) operacoes
+          from pcp_produtos p where p.programacao_id=${pg.id} and (${pedido}='' or p.pedido=${pedido}) order by p.pedido,p.of limit 20001`;
+        if (rows.length > 20000) return { erro: "Mais de 20000 linhas: informe um pedido para auditar.", filtro: pg.filtro };
+        const { auditarRelacoes } = await import("@/lib/ia/validacao");
+        return { fonte: "Programação ativa", filtro: pg.filtro, pedido: pedido || null, ...auditarRelacoes(rows as any[]),
+          ressalva: "Achados são indícios a conferir; nenhum dado foi alterado. Não afirme erro sem citar o achado." };
       }
       case "diagnostico_integrado": {
         const { db, pg } = await programacaoAtiva();

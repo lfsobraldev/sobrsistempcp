@@ -19,7 +19,7 @@ test("catalogo preserva códigos e identifica narrativas conflitantes",()=>{
 import { enriquecerProdutoPeloRegistro } from "../lib/catalogo-consistem";
 import type { Produto } from "../types/pcp";
 test("suporte trilho usa narrativa completa do código do catálogo",()=>{
-  const p={id:"linha1",produto:"987124",descricao:"SUP TRILHO",medida:"",tipo:"",material:"",cor:"",categoria:"OUTROS",quantidade:3,pedido:"123",of:"456",operacoes:[]} as Produto;
+  const p={id:"linha1",produto:"987124",descricao:"SUP TRILHO",medida:"",tipo:"",material:"",cor:"",categoria:"OUTROS",quantidade:3,pedido:"123",of:"456",operacoes:[]} as unknown as Produto;
   const x=enriquecerProdutoPeloRegistro(p,{codigo:"987124",narrativa:"SUPORTE DO TRILHO (KIT DE CORRER) EM MADEIRA DE PINUS COM 2200x55x45MM RECOBERTO PET BRANCO CARRARA PREMIUM (PEÇA B)",conflito:false,vazio:false});
   assert.equal(x.medida,"2200x55x45");
   assert.equal(x.material,"PINUS");
@@ -37,7 +37,7 @@ test("catálogo separa revestimento de material estrutural em todos os setores",
     {narrativa:"SUPORTE DE TRILHO MDF 2200x55x45MM RECOBERTO PET BRANCO",esperado:"MDF",medida:"2200x55x45"},
   ];
   for(const [i,c] of casos.entries()){
-    const p={id:String(i),produto:String(90000+i),pedido:"P1",of:"OF",descricao:"CURTA",material:"",medida:"",quantidade:2,operacoes:[]} as Produto;
+    const p={id:String(i),produto:String(90000+i),pedido:"P1",of:"OF",descricao:"CURTA",material:"",medida:"",quantidade:2,operacoes:[]} as unknown as Produto;
     const out=enriquecerProdutoPeloRegistro(p,{codigo:p.produto,narrativa:c.narrativa,conflito:false,vazio:false});
     assert.equal(out.material,c.esperado,c.narrativa);
     assert.equal(out.medida,c.medida,c.narrativa);

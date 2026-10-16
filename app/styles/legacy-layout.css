@@ -519,3 +519,20 @@
 @media (max-width:1380px){.kpis{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:720px){.kpis{grid-template-columns:1fr 1fr}.operatorBar{align-items:stretch;flex-direction:column}.operatorBar label{width:100%;max-width:none}}
 @media print{.processTabs{display:none}}
+/* Programação do Gerente — tabela ERP compacta */
+.managerOrdersTable{max-height:calc(100vh - 260px);overflow:auto}
+.managerOrdersTable table{min-width:1900px;font-size:12px}
+.managerOrdersTable thead th{height:34px;padding:0 8px;font-size:11px;white-space:nowrap}
+.managerOrdersTable tbody td{height:34px;min-height:34px;padding:4px 8px;white-space:nowrap;vertical-align:middle;font-variant-numeric:tabular-nums}
+.managerOrdersTable thead th:first-child,.managerOrdersTable tbody td:first-child{position:sticky;left:0;z-index:2;background:var(--surface)}
+.managerOrdersTable thead th:first-child{z-index:4}
+.managerOrdersTable .num{text-align:right}
+.managerOrdersTable .managerOfCell{max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.managerOrdersTable .managerLocalInput{width:116px;height:26px;padding:0 6px;font-size:12px}
+.managerOrdersTable td details{position:relative;display:inline-block;margin-left:6px}
+.managerOrdersTable td details summary{cursor:pointer;font-size:11px}
+.managerOrdersTable td details[open]>div{position:absolute;right:0;top:20px;z-index:20;white-space:normal;padding:10px;background:var(--surface);border:1px solid var(--line,#d0d5dd);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.managerOrdersTable td small{font-size:10px}
+.managerPieceTable{max-height:340px;overflow:auto}
+.managerPieceTable tbody td{white-space:nowrap;height:30px;padding:3px 8px;font-variant-numeric:tabular-nums}
+.managerPieceTable tbody td:nth-child(5){white-space:normal;min-width:260px}

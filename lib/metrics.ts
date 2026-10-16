@@ -209,6 +209,8 @@ export function resumoMaquinas(
     ) => ({
       ...row,
 
+        listaOfs: [...row.listaOfs].sort((x, y) => x.localeCompare(y, "pt-BR", { numeric: true })),
+
       progresso:
         row.pecasPlanejadas
           ? Math.round(
@@ -340,6 +342,8 @@ function consolidate(
         refugo;
 
       existing.ofs++;
+      const ofLinha = String(produto.of ?? "").trim();
+      if (ofLinha && !existing.listaOfs.includes(ofLinha)) existing.listaOfs.push(ofLinha);
     } else {
       map.set(
         key,
@@ -392,6 +396,8 @@ function consolidate(
           refugo,
 
           ofs: 1,
+
+          listaOfs: String(produto.of ?? "").trim() ? [String(produto.of).trim()] : ([] as string[]),
         }
       );
     }
