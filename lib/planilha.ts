@@ -3038,10 +3038,6 @@ function montarControle(
         "0"
       );
 
-      const familias = resumoFamilias.get(item.pedido) || {};
-      const colunas = ["PORTAS", "PERNAS BATENTE", "TRAVESSAS BATENTE", "PERNAS ALIZAR", "TRAVESSAS ALIZAR", "KIT CORRER", "BAGUETES", "FERRAGENS", "OUTROS"];
-      colunas.forEach((grupo, pos) => celula(row, pos + 6, familias[grupo] || 0, "#,##0"));
-
       ws.getRow(
         row
       ).height =
@@ -3599,6 +3595,10 @@ function montarControle(
         undefined,
         true
       );
+
+      const familias = resumoFamilias.get(item.pedido) || {};
+      const colunas = ["PORTAS", "PERNAS BATENTE", "TRAVESSAS BATENTE", "PERNAS ALIZAR", "TRAVESSAS ALIZAR", "KIT CORRER", "BAGUETES", "FERRAGENS", "OUTROS"];
+      colunas.forEach((grupo, pos) => celula(row, pos + 6, familias[grupo] || 0, "#,##0"));
 
       ws.getRow(
         row
