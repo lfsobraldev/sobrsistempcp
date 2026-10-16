@@ -1,5 +1,5 @@
 "use client";
-import {useEffect,useMemo,useState} from "react";
+import {Fragment,useEffect,useMemo,useState} from "react";
 import {RefreshCw} from "lucide-react";
 type Pedido={pedido:string;ofs:number;pecas:number;percentual:number;entrega:{cliente?:string;previsao_saida?:string|null;previsao_entrega?:string|null;observacao?:string;colecao?:string}|null};
 type Etapa={pedido:string;area:string;etapa:string;data_inicio:string|null;data_conclusao:string|null;observacao:string;status:string};
@@ -30,11 +30,11 @@ export default function ApontamentoProducaoResumo({pedidos}:{pedidos:Pedido[]}){
   {erro&&<p className="industrial-error" role="alert">{erro}</p>}
   <div className="apontamento-resumo-scroll"><table className="apontamento-resumo-tabela">
    <thead><tr><th rowSpan={2}>Pedido</th><th rowSpan={2}>Cliente / lote</th>{colunas.map(([id,n])=><th colSpan={2} key={id}>{n}</th>)}<th rowSpan={2}>Observações (Produção)</th><th rowSpan={2}>Grau</th><th rowSpan={2}>Previsão de Finalização</th></tr>
-   <tr>{colunas.map(([id])=><><th key={id+"i"}>Início</th><th key={id+"f"}>Fim</th></>)}</tr></thead>
+   <tr>{colunas.map(([id])=><Fragment key={id}><th>Início</th><th>Fim</th></Fragment>)}</tr></thead>
    <tbody>{rows.map(p=><tr key={p.pedido}><td className="apontamento-resumo-pedido">{p.pedido}</td><td className="apontamento-resumo-lote">{p.entrega?.colecao||p.entrega?.cliente||"—"}</td>
-    {colunas.map(([id])=>{const e=mapa.get(p.pedido+"|"+id);return <><td key={id+"i"} title={e?.data_inicio||"Sem data"}>{data(e?.data_inicio)}</td><td key={id+"f"} title={e?.data_conclusao||"Sem data"}>{data(e?.data_conclusao)}</td></>})}
+    {colunas.map(([id])=>{const e=mapa.get(p.pedido+"|"+id);return <Fragment key={id}><td title={e?.data_inicio||"Sem data"}>{data(e?.data_inicio)}</td><td title={e?.data_conclusao||"Sem data"}>{data(e?.data_conclusao)}</td></Fragment>})}
     <td className="apontamento-resumo-obs">{etapas.filter(e=>e.pedido===p.pedido&&e.observacao).map(e=>e.observacao).filter(Boolean).join(" · ")||p.entrega?.observacao||"—"}</td><td>—</td><td>{p.entrega?.previsao_saida||"—"}</td>
-   </tr>)}{!rows.length&&<tr><td colSpan={27}>Nenhum pedido encontrado.</td></tr>}</tbody>
+   </tr>)}{!rows.length&&<tr><td colSpan={2+colunas.length*2+3}>Nenhum pedido encontrado.</td></tr>}</tbody>
   </table></div><p className="apontamento-resumo-nota">Campos sem registro aparecem como “—”. Grau e lote de produção serão exibidos quando estiverem disponíveis em fonte estruturada; não são calculados ou inventados.</p>
  </section>;
 }
