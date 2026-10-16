@@ -46,6 +46,22 @@ function uniqueGames(rows: PackageRow[]) {
 
 export function validateProcessing(data: ProcessingResult): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
+  // Confere as peças REAIS dos pallets, não apenas o diagnóstico salvo anteriormente.
+  // Um editor ou agrupamento não pode remover portas, marcos ou alizares sem bloquear o Excel.
+  if (data.sourceItems?.length) {
+    const expected = new Set(data.sourceItems);
+    const mapped = new Set(data.packages.flatMap(pkg =>
+      pkg.rows.flatMap(row => row.sourceItems || [])
+    ));
+    const missing = [...expected].filter(item => !mapped.has(item));
+    if (missing.length) {
+      issues.push({
+        severity: "ERROR",
+        code: "SOURCE_ITEMS_MISSING_IN_EXPORT",
+        message: `Romaneio incompleto: ${missing.length} item(ns) da origem ausentes nos pallets (${missing.slice(0, 10).join(", ")}). Reprocesse o pedido antes de exportar.`,
+      });
+    }
+  }
   // A exportação não pode ignorar componentes físicos desvinculados.
   const semVinculo = Number(data.reconciliation?.unmapped || 0);
   if (semVinculo > 0) {
