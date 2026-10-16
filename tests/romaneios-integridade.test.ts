@@ -31,3 +31,17 @@ test("romaneio preserva todas as familias do mesmo pedido", () => {
   assert.equal(result.sourceItemCount,5);
   assert.equal(result.reconciliation?.unmapped,0);
 });
+\n
+test("exportação bloqueia romaneio que perdeu portas mas reteve alizares", async () => {
+  const { canGenerate } = await import("../lib/romaneio/validation");
+  const result = buildProcessingFromFilterProducts({
+    orderNumber:"25981",
+    products:[
+      {item:"1",produto:"P1",descricao:"PORTA 2100x820x35",categoria:"PORTA",quantidade:2,medida:"2100x820x35"},
+      {item:"2",produto:"A1",descricao:"PERNA ALIZAR 2200x50x9",categoria:"ALIZAR • PERNA",quantidade:8,medida:"2200x50x9"},
+    ],
+  });
+  assert.equal(canGenerate(result),true);
+  result.packages.forEach(pkg => { pkg.rows = pkg.rows.filter(row=>!(row.sourceItems||[]).includes("1")); });
+  assert.equal(canGenerate(result),false, "não permitir Excel só de alizares com porta na origem");
+});
