@@ -21,7 +21,7 @@ async function ensure(){
  return db;
 }
 async function permitidas(db:ReturnType<typeof sql>,usuario:string){
- const rows=await db`select etapa from pcp_lider_etapa_acessos where lower(usuario)=lower(${usuario})`;
+ const rows=await db`select a.etapa from pcp_lider_etapa_acessos a join pcp_usuarios u on lower(u.usuario)=lower(a.usuario) where lower(a.usuario)=lower(${usuario}) and u.ativo=true and u.perfil='LIDER_ENTREGAS'`;
  return rows.map(x=>String(x.etapa));
 }
 export async function GET(req:Request){
