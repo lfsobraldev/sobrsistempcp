@@ -50,7 +50,7 @@ const mapInput=(b:any)=>{
 };
 export async function GET(){
  try{
-  await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
+  await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA"]);
   const db=sql();await ensure(db);
   const [active]=await db`select id,filtro from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
   // Para pedidos que reaparecem em filtros diferentes, somente a versão mais
@@ -76,14 +76,19 @@ export async function GET(){
   return NextResponse.json({filtro:active?.filtro||"",pedidos:[...orders.values()].sort((a,b)=>a.pedido.localeCompare(b.pedido,"pt-BR",{numeric:true})),eventos:events},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao consultar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
+function userScope(role:string,comercial:string[],logistica:string[]){return role==="COMERCIAL"?comercial:role==="LOGISTICA"?logistica:null;}
 export async function PUT(req:Request){
  try{
-  const u=await requireRoles(["PCP","GERENTE","ENCARREGADO"]),b=await req.json();
+  const u=await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA"]),b=await req.json();
   const pedido=String(b.pedido||"").trim();
   if(!/^\d{4,10}$/.test(pedido))return NextResponse.json({error:"Informe um número de pedido válido."},{status:400});
-  const data=mapInput(b);
   const db=sql();await ensure(db);
-  const [prev]=await db`select * from pcp_controle_entregas where pedido=${pedido}`;
+  const [prev]=await db`select *,data_saida::text as data_saida,previsao_entrega::text as previsao_entrega,data_entrega::text as data_entrega,data_montagem::text as data_montagem,previsao_saida::text as previsao_saida,previsao_informada::text as previsao_informada from pcp_controle_entregas where pedido=${pedido}`;
+  const comercial=["cliente","representante","tipo_pedido","colecao","status_ferragens","uf","cidade","previsao_informada"];
+  const logistica=["transportadora","nota_fiscal","tipo_frete","data_saida","previsao_entrega","data_entrega","previsao_saida","peso_kg","volume_m3","status"];
+  const limitados=userScope(u.perfil,comercial,logistica);
+  if(limitados && Object.keys(b).some(k=>k!=="pedido"&&!limitados.includes(k)))return NextResponse.json({error:"Campo não permitido para seu setor"},{status:403});
+  const data=mapInput({...prev,...b});
   // Atualização transacional única: histórico e cadastro na mesma operação SQL.
   const payload=JSON.stringify({...data,pedido});
   await db`with dados as(select * from jsonb_to_record(${payload}::jsonb) as x(
