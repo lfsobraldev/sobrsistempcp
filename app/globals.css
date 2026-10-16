@@ -1151,3 +1151,31 @@ body{background-image:none}
  .apontamento-resumo-filtros input{max-width:100%}
  .apontamento-resumo .industrial-panel-title button{min-height:44px}
 }
+
+/* Configurações de acesso e manutenção de líderes */
+.access-config{display:grid;gap:18px;width:100%;max-width:1180px;margin:0 auto;min-width:0}
+.access-config-header{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:24px;border-radius:12px;background:#28533b;color:white}
+.access-config-header small{color:#c1e7d0}.access-config-header h1{font-size:25px;color:white;margin:6px 0}.access-config-header p{color:#d6e9dc;font-size:13px}
+.access-config-header button{color:#28533b;background:white}
+.access-panel{padding:22px;background:#fff;border:1px solid #d5e1d8;border-radius:12px;display:grid;gap:18px;min-width:0}
+.access-panel h2{font-size:18px}
+.access-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.access-fields label{display:grid;gap:6px;font-weight:650}
+.access-fields input,.access-fields select{min-width:0;min-height:42px}
+.access-sectors{border:1px solid #cbded0;border-radius:10px;padding:16px}
+.access-sectors legend{font-size:13px;font-weight:700;padding:0 8px}
+.access-sector-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.access-sector-grid label,.access-status{display:flex;align-items:center;gap:10px;padding:11px;border:1px solid #e0eae3;border-radius:8px;font-size:13px}
+.access-sector-grid input,.access-status input{width:18px;min-width:18px;height:18px}
+.access-buttons,.access-list-head,.access-user-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.access-list-head{justify-content:space-between}
+.access-user-list{display:grid;gap:8px}
+.access-user{display:flex;justify-content:space-between;align-items:center;gap:14px;border:1px solid #e0eae3;border-radius:10px;padding:14px}
+.access-user b{font-size:14px}.access-user p{font-size:12px;color:#52695a;margin:5px 0}
+.access-user small{line-height:1.5;overflow-wrap:anywhere}
+.access-active,.access-inactive{font-size:12px;font-weight:700;padding:5px 9px;border-radius:6px}
+.access-active{background:#e2f1e7;color:#266343}.access-inactive{background:#fce7e7;color:#a03a3a}
+.access-help{font-size:12px;color:#52695a;line-height:1.6}
+.access-success{padding:12px;border-radius:8px;background:#e2f1e7;color:#266343}
+.access-config-link{display:inline-flex;align-items:center;justify-content:center;min-height:39px;padding:0 14px;border:1px solid #d7e2d9;border-radius:7px;background:white;color:#305b40;font-size:13px;font-weight:650}
+@media(max-width:700px){.access-config-header{padding:16px;align-items:stretch;flex-direction:column}.access-config-header h1{font-size:22px}.access-panel{padding:14px}.access-fields{grid-template-columns:1fr}.access-sector-grid{grid-template-columns:1fr}.access-user{align-items:stretch;flex-direction:column}.access-user-actions{justify-content:space-between}.access-config button,.access-config-link{min-height:44px}}
