@@ -11,6 +11,7 @@ const validRoles = new Set([
   "QUALIDADE",
   "COMERCIAL",
   "LOGISTICA",
+  "LIDER_ENTREGAS",
 ]);
 
 export const users = () =>

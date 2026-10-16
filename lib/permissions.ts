@@ -1,7 +1,7 @@
 import type { Perfil } from "@/types/pcp";
 
 const ALL_PCP = [
-  "/dashboard", "/gestao-pedidos", "/integracao-consistem", "/programacao", "/programacao-gerente", "/prioridades", "/criticos", "/lideres",
+  "/dashboard", "/gestao-pedidos", "/apontamento-entregas", "/integracao-consistem", "/programacao", "/programacao-gerente", "/prioridades", "/criticos", "/lideres",
   "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/configuracoes",
 ];
 
@@ -14,6 +14,7 @@ const BY_ROLE: Record<Perfil, string[]> = {
   QUALIDADE: ["/dashboard", "/inspecao-pallets"],
   COMERCIAL: ["/gestao-pedidos"],
   LOGISTICA: ["/gestao-pedidos"],
+  LIDER_ENTREGAS: ["/dashboard", "/gestao-pedidos", "/apontamento-entregas"],
 };
 
 export function allowedPath(role: string, path: string) {

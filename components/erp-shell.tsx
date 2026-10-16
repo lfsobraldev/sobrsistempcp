@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Bell, Boxes, BrainCircuit, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu,
   PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
-  UploadCloud, UsersRound, Truck, type LucideIcon,
+  UploadCloud, UsersRound, Truck, ClipboardCheck, type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { OperationalProvider, useOps } from "@/components/operational-provider";
@@ -26,6 +26,7 @@ const menus: MenuGroup[] = [
       { path: "/integracao-consistem", label: "Integração Consistem", icon: RefreshCw },
       { path: "/programacao-gerente", label: "Programação Gerente", icon: Route },
       { path: "/gestao-pedidos", label: "Gestão de Pedidos e Entregas", icon: Truck },
+      { path: "/apontamento-entregas", label: "Apontamento de Produção", icon: ClipboardCheck },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
       { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },
     ],
@@ -43,7 +44,7 @@ const menus: MenuGroup[] = [
 
 ];
 
-const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/gestao-pedidos", LOGISTICA: "/gestao-pedidos" };
+const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/gestao-pedidos", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas" };
 
 function Inner({ children }: { children: React.ReactNode }) {
   const { me, pg, lastSync, realtimeStatus, refresh, loading } = useOps();
