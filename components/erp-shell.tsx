@@ -50,6 +50,7 @@ function Inner({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [workspaceTabs,setWorkspaceTabs]=useState<{path:string;label:string}[]>([]);
   const [mobileNav, setMobileNav] = useState(false);
   const [query, setQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -60,6 +61,11 @@ function Inner({ children }: { children: React.ReactNode }) {
   );
   const allVisible = useMemo(() => visible.flatMap((g) => g.items), [visible]);
   const current = allVisible.find((i) => i.path === path)?.label || "Central de Produção";
+  useEffect(()=>{
+    if(!me||!allowedPath(me.perfil,path))return;
+    const label=allVisible.find(i=>i.path===path)?.label||path;
+    setWorkspaceTabs(prev=>prev.some(x=>x.path===path)?prev:[...prev,{path,label}].slice(-12));
+  },[path,me,allVisible]);
 
   useEffect(() => {
     if (loading) return;
@@ -148,7 +154,16 @@ function Inner({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="main"><div className={`page ${["/programacao", "/programacao-gerente"].includes(path) ? "industrial-page-area" : ""}`}>{children}</div></main>
+      <main className="main">
+        <nav className="erp-workspace-tabs" aria-label="Guias abertas no sistema">
+          {workspaceTabs.map(tab=><div key={tab.path} className={tab.path===path?"erp-workspace-tab active":"erp-workspace-tab"}>
+            <button type="button" onClick={()=>router.push(tab.path)} title={tab.label}>{tab.label}</button>
+            <button type="button" className="erp-workspace-close" title={"Fechar "+tab.label} aria-label={"Fechar "+tab.label}
+              onClick={()=>{setWorkspaceTabs(prev=>prev.filter(x=>x.path!==tab.path));if(tab.path===path)router.push(workspaceTabs.find(x=>x.path!==tab.path)?.path||"/dashboard")}}>×</button>
+          </div>)}
+        </nav>
+        <div className={`page ${["/programacao", "/programacao-gerente"].includes(path) ? "industrial-page-area" : ""}`}>{children}</div>
+      </main>
       <AiAssistant />
       <RomaneioAIModal />
     </div>
