@@ -531,7 +531,7 @@
 .managerOrdersTable .managerLocalInput{width:116px;height:26px;padding:0 6px;font-size:12px}
 .managerOrdersTable td details{position:relative;display:inline-block;margin-left:6px}
 .managerOrdersTable td details summary{cursor:pointer;font-size:11px}
-.managerOrdersTable td details[open]>div{position:absolute;right:0;top:20px;z-index:20;white-space:normal;padding:10px;background:var(--surface);border:1px solid var(--line,#d0d5dd);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+.managerOrdersTable td details[open]>div{position:absolute;right:0;top:20px;z-index:20;white-space:normal;padding:10px;background:var(--surface);border:1px solid var(--line,#d0ddd5);border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.18)}
 .managerOrdersTable td small{font-size:10px}
 .managerPieceTable{max-height:340px;overflow:auto}
 .managerPieceTable tbody td{white-space:nowrap;height:30px;padding:3px 8px;font-variant-numeric:tabular-nums}
