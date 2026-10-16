@@ -2,3 +2,6 @@ node_modules
 .next
 *.tsbuildinfo
 .env*
+
+# Sessões locais e CSVs do Consistem
+.consistem-local/
