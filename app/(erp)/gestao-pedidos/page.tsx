@@ -47,7 +47,27 @@ export default function GestaoPedidos(){
  {erro&&<p role="alert" className="industrial-error">{erro}</p>}{ok&&<p>{ok}</p>}
  {aba==="CLASSIFICACAO"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>Classificação de destinos e prazos</h2></div><p>As regras de entrega serão consultadas por estado, cidade e faixa de volume. Nesta aba, os prazos cadastrados são administrados separadamente da previsão real, evitando preencher datas fictícias.</p></section>}
  {aba==="FICHA"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>Ficha do Pedido</h2></div><p>Selecione “Detalhes” em um pedido para abrir todas as informações comerciais, produtivas e logísticas na ficha.</p></section>}
-  <div className="industrial-table-wrap"><table className="industrial-table"><thead><tr>{["Pedido","Peças","OFs","Avanço PCP","Situação logística","Montagem","Transportadora","Previsão entrega","Ação"].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{visiveis.map(p=><tr key={p.pedido}><td><strong>{p.pedido}</strong></td><td>{p.pecas.toLocaleString("pt-BR")}</td><td>{p.ofs}</td><td>{p.percentual.toFixed(1)}%</td><td>{statuses.find(x=>x[0]===(p.entrega?.status||"PLANEJADO"))?.[1]}</td><td>{p.entrega?.local_montagem||"—"}</td><td>{p.entrega?.transportadora||"—"}</td><td>{p.entrega?.previsao_entrega||"—"}</td><td><button className="industrial-btn" onClick={()=>escolher(p)}>Detalhes</button></td></tr>)}{!visiveis.length&&<tr><td colSpan={9}>{loading?"Carregando pedidos…":"Nenhum pedido encontrado para os filtros informados."}</td></tr>}</tbody></table></div>
+ <section className="industrial-panel"><div className="industrial-panel-title"><h2>{ABAS.find(([id])=>id===aba)?.[1]||"Pedidos"}</h2><span>{visiveis.length} pedido(s) • clique em editar para atualizar</span></div>
+ <div className="industrial-table-wrap"><table className="industrial-table">
+ <thead><tr>{(aba==="COMERCIAL"?["Pedido","Cliente","Representante","Tipo de pedido","Coleção","Ferragens","Destino","Editar"]:
+ aba==="PCP"?["Pedido","OFs","Peças programadas","Andamento","Montagem","Previsão saída","Editar"]:
+ aba==="SUL"?["Pedido NE","Pedido Sul","Origem","Destino","Montagem","Status","Editar"]:
+ aba==="APONTAMENTO"?["Pedido","OFs","Peças","Avanço oficial","Situação entrega","Editar"]:
+ aba==="MONTAGEM"?["Pedido","Local montagem","Situação montagem","Data montagem","Previsão saída","Editar"]:
+ aba==="LOGISTICA"?["Pedido","Transportadora","Nota fiscal","Frete","Saída","Previsão entrega","Entregue em","Editar"]:
+ ["Pedido","Cliente","Peças","OFs","Avanço PCP","Situação","Previsão entrega","Editar"]).map(h=><th key={h}>{h}</th>)}</tr></thead>
+ <tbody>{visiveis.map(p=><tr key={p.pedido}>
+ {(aba==="COMERCIAL"?[p.pedido,p.entrega?.cliente||"—",p.entrega?.representante||"—",p.entrega?.tipo_pedido||"—",p.entrega?.colecao||"—",p.entrega?.status_ferragens||"—",[p.entrega?.cidade,p.entrega?.uf].filter(Boolean).join(" / ")||"—"]:
+ aba==="PCP"?[p.pedido,p.ofs,p.pecas.toLocaleString("pt-BR"),p.percentual.toFixed(1)+"%",p.entrega?.local_montagem||"—",p.entrega?.previsao_saida||"—"]:
+ aba==="SUL"?[p.pedido,p.entrega?.pedido_sul||"—",p.entrega?.origem_unidade||"—",p.entrega?.destino_unidade||"—",p.entrega?.local_montagem||"—",p.entrega?.status_montagem||"—"]:
+ aba==="APONTAMENTO"?[p.pedido,p.ofs,p.pecas.toLocaleString("pt-BR"),p.percentual.toFixed(1)+"%",p.entrega?.status||"PLANEJADO"]:
+ aba==="MONTAGEM"?[p.pedido,p.entrega?.local_montagem||"—",p.entrega?.status_montagem||"—",p.entrega?.data_montagem||"—",p.entrega?.previsao_saida||"—"]:
+ aba==="LOGISTICA"?[p.pedido,p.entrega?.transportadora||"—",p.entrega?.nota_fiscal||"—",p.entrega?.tipo_frete||"—",p.entrega?.data_saida||"—",p.entrega?.previsao_entrega||"—",p.entrega?.data_entrega||"—"]:
+ [p.pedido,p.entrega?.cliente||"—",p.pecas.toLocaleString("pt-BR"),p.ofs,p.percentual.toFixed(1)+"%",p.entrega?.status||"PLANEJADO",p.entrega?.previsao_entrega||"—"]).map((value,index)=><td key={index}>{value}</td>)}
+ <td><button className="industrial-btn" onClick={()=>escolher(p)}>Editar</button></td>
+ </tr>)}{!visiveis.length&&<tr><td colSpan={9}>{loading?"Carregando pedidos…":"Nenhum pedido nesta área."}</td></tr>}</tbody>
+ </table></div></section>
+
  {aba==="HISTORICO"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>Histórico operacional</h2><span>Últimas 300 alterações</span></div><div className="industrial-table-wrap"><table className="industrial-table"><thead><tr><th>Pedido</th><th>Movimentação</th><th>Responsável</th><th>Data / Hora</th></tr></thead><tbody>{eventos.slice(0,50).map((e,i)=><tr key={i}><td>{e.pedido}</td><td>{e.tipo.replaceAll("_"," ")}</td><td>{e.usuario}</td><td>{new Date(e.criado_em).toLocaleString("pt-BR")}</td></tr>)}{eventos.length===0&&<tr><td colSpan={4}>Ainda não existem alterações registradas neste módulo.</td></tr>}</tbody></table></div></section>}
  {selected&&<section className="industrial-panel" aria-label="Editar controle de entrega"><div className="industrial-panel-title"><h2>Pedido {selected.pedido} · controle de entrega</h2><button className="industrial-btn" onClick={()=>setSelected(null)}>Fechar</button></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:14}}>
  <label style={{display:"grid",gap:6,fontSize:12,fontWeight:700}}>Situação<select value={form.status} onChange={e=>setForm(x=>({...x,status:e.target.value}))}>{statuses.map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
