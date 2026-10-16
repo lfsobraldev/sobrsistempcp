@@ -1024,3 +1024,35 @@ body{background-image:none}
 .sobral-logo{background:var(--erp-brand)!important;color:#fff!important}
 @media(max-width:900px){.shell .page{padding:14px}.industrial-workspace .industrial-hero{padding:18px!important}.login-brand{padding:30px!important}}
 @media(max-width:700px){:is(.shell,.industrial-workspace) :is(.ph,.pageTitle,.managerPageTitle,.industrial-hero){align-items:flex-start!important;flex-direction:column!important}}
+
+/* Apontamento de produção — matriz horizontal legível e modo foco */
+.apontamento-area{width:100%;min-width:0;display:grid;gap:16px}
+.apontamento-heading{background:#315942;color:#fff;border-bottom:3px solid #78aa87;border-radius:10px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.apontamento-heading small{color:#bddbc7;letter-spacing:1.3px;font-weight:800}
+.apontamento-heading h1{font-size:27px;color:white;margin:6px 0}.apontamento-heading p{color:#e9f4ec;font-size:13px}
+.apontamento-actions{display:flex;gap:8px;flex-wrap:wrap}
+.apontamento-actions button{background:#fff;color:#305b40;border:1px solid #d7e2d9;border-radius:7px;white-space:nowrap;min-height:39px}
+.apontamento-toolbar{background:#fff;border:1px solid #d5e1d8;border-radius:9px;padding:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.apontamento-toolbar input{max-width:360px}.apontamento-toolbar select{max-width:260px}
+.apontamento-toolbar span{color:#52705a;font-size:13px;font-weight:650}
+.apontamento-table-wrap{width:100%;max-width:100%;overflow:auto;background:#fff;border:1px solid #d5e1d8;border-radius:9px;max-height:calc(100vh - 285px)}
+.apontamento-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+.apontamento-table thead th{position:sticky;top:0;z-index:2;background:#e8f0e9!important;color:#2b4935!important;font-size:12px;text-align:left;border-bottom:2px solid #bdd1c2;padding:12px 13px;min-width:170px}
+.apontamento-table thead th small{display:block;font-size:10px;font-weight:500;color:#5c7562}
+.apontamento-table th:first-child,.apontamento-table td:first-child{position:sticky;left:0;z-index:3;min-width:110px;background:#f8fbf8!important}
+.apontamento-table th:nth-child(2),.apontamento-table td:nth-child(2){position:sticky;left:110px;z-index:3;min-width:230px;max-width:280px;background:#f8fbf8!important}
+.apontamento-table td{padding:11px 12px;border-bottom:1px solid #e3ebe4;vertical-align:top;white-space:nowrap}
+.apontamento-table tr:hover td{background:#f2f7f2}
+.apontamento-dates{display:flex;flex-direction:column;gap:5px;font-variant-numeric:tabular-nums}
+.apontamento-dates span{color:#405d49;font-size:12px}
+.apontamento-dates button{font-size:11px;padding:3px 8px;min-height:27px;background:#e3efe6;border-color:#b6d3bd;color:#245b37;align-self:flex-start}
+.apontamento-editor{padding:20px;background:#fff;border:1px solid #b8d1bd;border-radius:10px;box-shadow:0 8px 20px #24473210}
+.apontamento-editor>div:first-child{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:15px}
+.apontamento-editor h2{font-size:18px}.apontamento-fields{display:grid;grid-template-columns:repeat(4,minmax(160px,1fr));gap:12px;align-items:end}
+.apontamento-fields label{display:grid;gap:6px;font-weight:650}
+.apontamento-error{color:#a12c26;background:#fff1f0;padding:12px;border-radius:8px}
+.apontamento-focus .shell{grid-template-columns:0px minmax(0,1fr)!important}
+.apontamento-focus .shell .sidenav{display:none!important}
+.apontamento-focus .shell .page{max-width:none!important;padding:12px 16px!important}
+@media(max-width:900px){.apontamento-heading{align-items:flex-start;flex-direction:column}.apontamento-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.apontamento-fields{grid-template-columns:1fr}.apontamento-heading{padding:18px}}
