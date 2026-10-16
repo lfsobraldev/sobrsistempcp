@@ -10,6 +10,8 @@ export default function ApontamentoEntregas(){
  const [busca,setBusca]=useState(""),[setor,setSetor]=useState("TODOS"),[loading,setLoading]=useState(true),[erro,setErro]=useState(""),[msg,setMsg]=useState("");
  const [editando,setEditando]=useState<{pedido:string;etapa:string}|null>(null),[inicio,setInicio]=useState(""),[fim,setFim]=useState(""),[obs,setObs]=useState(""),[salvando,setSalvando]=useState(false);
  const [ocultarMenu,setOcultarMenu]=useState(false);
+ const [cadastros,setCadastros]=useState(Array.from({length:11},(_,i)=>({usuario:"",nome:"",senha:"",etapa:SETORES[i]?.[0]||"EMBALAGEM"})));
+ const [mostrarCadastro,setMostrarCadastro]=useState(false),[criando,setCriando]=useState(false);
  async function carregar(){
   setLoading(true);setErro("");
   try{const [a,b]=await Promise.all([fetch("/api/controle-entregas",{cache:"no-store"}),fetch("/api/controle-entregas/etapas",{cache:"no-store"})]);const [x,y]=await Promise.all([a.json(),b.json()]);
@@ -24,6 +26,13 @@ export default function ApontamentoEntregas(){
   const row=mapa.get(p.pedido+"|"+etapa);
   setEditando({pedido:p.pedido,etapa});setInicio(row?.data_inicio||"");setFim(row?.data_conclusao||"");setObs(row?.observacao||"");setMsg("");setErro("");
  };
+ async function cadastrar(){
+ const dados=cadastros.filter(c=>c.usuario.trim()&&c.nome.trim()&&c.senha);
+ if(!dados.length){setErro("Preencha os usuários, nomes, senhas e setores.");return;}
+ setCriando(true);setErro("");setMsg("");
+ try{const r=await fetch("/api/controle-entregas/usuarios",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({usuarios:dados})});const j=await r.json();if(!r.ok)throw Error(j.error||"Falha ao criar contas");setMsg(j.criados+" usuários criados com permissões restritas.");setMostrarCadastro(false)}
+ catch(e){setErro(e instanceof Error?e.message:"Falha ao cadastrar")}finally{setCriando(false)}
+ }
  async function salvar(){
   if(!editando)return;setSalvando(true);setErro("");setMsg("");
   try{const r=await fetch("/api/controle-entregas/etapas",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({pedido:editando.pedido,area:"PRODUCAO",etapa:editando.etapa,dataInicio:inicio,dataConclusao:fim,observacao:obs,status:fim?"CONCLUIDA":inicio?"EM_ANDAMENTO":"PENDENTE"})});const j=await r.json();if(!r.ok)throw new Error(j.error||"Não foi possível salvar");
@@ -32,7 +41,8 @@ export default function ApontamentoEntregas(){
  }
  return <div className="apontamento-area">
  <header className="apontamento-heading"><div><small>GESTÃO DE ENTREGAS / PRODUÇÃO</small><h1>Apontamento por setor</h1><p>Registro de início e conclusão de cada etapa. Todos visualizam; a edição pertence ao setor autorizado.</p></div>
- <div className="apontamento-actions"><button onClick={()=>{setOcultarMenu(v=>!v);document.documentElement.classList.toggle("apontamento-focus",!ocultarMenu)}}>{ocultarMenu?<PanelLeftOpen/>:<PanelLeftClose/>}{ocultarMenu?"Mostrar menu":"Ampliar área"}</button><button onClick={()=>void carregar()}><RefreshCw/>Atualizar</button></div></header>
+ <div className="apontamento-actions">{me?.perfil==="PCP"&&<button onClick={()=>setMostrarCadastro(v=>!v)}>{mostrarCadastro?"Fechar cadastro":"Gerenciar 11 acessos"}</button>}<button onClick={()=>{setOcultarMenu(v=>!v);document.documentElement.classList.toggle("apontamento-focus",!ocultarMenu)}}>{ocultarMenu?<PanelLeftOpen/>:<PanelLeftClose/>}{ocultarMenu?"Mostrar menu":"Ampliar área"}</button><button onClick={()=>void carregar()}><RefreshCw/>Atualizar</button></div></header>
+ {mostrarCadastro&&me?.perfil==="PCP"&&<section className="apontamento-editor"><h2>Configurar até 11 líderes por setor</h2><p>Informe usuário, nome e senha individual (mínimo 12 caracteres). Cada conta terá permissão de edição apenas para o setor selecionado. Não compartilhe senhas.</p><div className="apontamento-users">{cadastros.map((c,i)=><div key={i}><b>{i+1}</b><input placeholder="Usuário" autoComplete="off" value={c.usuario} onChange={e=>setCadastros(a=>a.map((x,j)=>j===i?{...x,usuario:e.target.value}:x))}/><input placeholder="Nome do líder" value={c.nome} onChange={e=>setCadastros(a=>a.map((x,j)=>j===i?{...x,nome:e.target.value}:x))}/><input type="password" placeholder="Senha individual 12+ caracteres" autoComplete="new-password" value={c.senha} onChange={e=>setCadastros(a=>a.map((x,j)=>j===i?{...x,senha:e.target.value}:x))}/><select value={c.etapa} onChange={e=>setCadastros(a=>a.map((x,j)=>j===i?{...x,etapa:e.target.value}:x))}>{SETORES.map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></div>)}</div><button className="primary" disabled={criando} onClick={()=>void cadastrar()}>{criando?"Criando…":"Cadastrar usuários preenchidos"}</button></section>}
  <div className="apontamento-toolbar"><input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="Pesquisar pedido ou cliente"/><select value={setor} onChange={e=>setSetor(e.target.value)}><option value="TODOS">Todos os setores</option>{SETORES.map(([id,n])=><option key={id} value={id}>{n}</option>)}</select><span>{visiveis.length} pedidos</span><span>{me?.perfil==="LIDER_ENTREGAS"?"Edição restrita ao seu setor":"Visão gerencial"}</span></div>
  {erro&&<p className="apontamento-error" role="alert">{erro}</p>}{msg&&<p role="status">{msg}</p>}
  <div className="apontamento-table-wrap"><table className="apontamento-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>OFs</th><th>Peças</th><th>Avanço PCP</th>{SETORES.filter(([id])=>setor==="TODOS"||id===setor).map(([id,n])=><th key={id}>{n}<small>Início · Fim</small></th>)}</tr></thead><tbody>
