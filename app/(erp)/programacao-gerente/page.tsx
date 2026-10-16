@@ -477,7 +477,7 @@ export default function ProgramacaoGerentePage() {
           </button>
           <button className="primary" disabled={busy} onClick={exportar}>
             <FileSpreadsheet />
-            {busy ? "EXPORTANDO..." : "EXPORTAR EXCEL"}
+            {busy ? "GERANDO PLANILHA..." : "EXPORTAR EXCEL"}
           </button>
         </div>
       </div>

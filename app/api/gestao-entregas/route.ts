@@ -20,6 +20,17 @@ async function ensure(db:ReturnType<typeof sql>){
   atualizado_em timestamptz not null default now(),
   primary key(programacao_id,pedido)
  )`;
+ await db`create table if not exists pcp_entregas_eventos(
+  id uuid primary key default gen_random_uuid(),
+  programacao_id uuid not null references pcp_programacoes(id) on delete cascade,
+  pedido varchar(80) not null,
+  tipo varchar(50) not null,
+  dados_antes jsonb,
+  dados_depois jsonb,
+  usuario varchar(100) not null,
+  criado_em timestamptz not null default now()
+ )`;
+ await db`create index if not exists ix_pcp_entregas_eventos_pedido on pcp_entregas_eventos(programacao_id,pedido,criado_em desc)`;
 }
 export async function GET(){
  try{
@@ -29,8 +40,9 @@ export async function GET(){
   if(!pg)return NextResponse.json({pedidos:[],filtro:""},{headers:{"Cache-Control":"no-store"}});
   const produtos=await db`select pedido,count(*)::int linhas,count(distinct nullif(of,''))::int ofs,coalesce(sum(quantidade),0) pecas,coalesce(avg(percentual_produto),0) percentual from pcp_produtos where programacao_id=${pg.id} group by pedido order by pedido`;
   const entregas=await db`select pedido,transportadora,nota_fiscal,data_saida::text,previsao_entrega::text,data_entrega::text,status,local_montagem,observacao,atualizado_em from pcp_entregas_gestao where programacao_id=${pg.id}`;
+  const eventos=await db`select pedido,tipo,usuario,criado_em from pcp_entregas_eventos where programacao_id=${pg.id} order by criado_em desc limit 300`;
   const mapa=new Map(entregas.map((e:any)=>[String(e.pedido),e]));
-  return NextResponse.json({filtro:pg.filtro,pedidos:produtos.map((p:any)=>({...p,pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:mapa.get(String(p.pedido))||null}))},{headers:{"Cache-Control":"no-store"}});
+  return NextResponse.json({filtro:pg.filtro,eventos,pedidos:produtos.map((p:any)=>({...p,pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:mapa.get(String(p.pedido))||null}))},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e.message==="SEM_PERMISSAO"?"Sem permissão":e.message||"Falha ao carregar"},{status:e.message==="SEM_PERMISSAO"?403:500})}
 }
 export async function PATCH(req:Request){
@@ -48,9 +60,12 @@ export async function PATCH(req:Request){
   if(!pg)return NextResponse.json({error:"Programação ativa não encontrada"},{status:404});
   const existe=await db`select id from pcp_produtos where programacao_id=${pg.id} and pedido=${pedido} limit 1`;
   if(!existe.length)return NextResponse.json({error:"Pedido inexistente na programação ativa"},{status:404});
+  const [anterior]=await db`select transportadora,nota_fiscal,data_saida::text,previsao_entrega::text,data_entrega::text,status,local_montagem,observacao from pcp_entregas_gestao where programacao_id=${pg.id} and pedido=${pedido}`;
   await db`insert into pcp_entregas_gestao(programacao_id,pedido,transportadora,nota_fiscal,data_saida,previsao_entrega,data_entrega,status,local_montagem,observacao,atualizado_por)
    values(${pg.id},${pedido},${tr},${nf},${saida}::date,${prev}::date,${entrega}::date,${status},${local},${obs},${user.usuario})
    on conflict(programacao_id,pedido) do update set transportadora=excluded.transportadora,nota_fiscal=excluded.nota_fiscal,data_saida=excluded.data_saida,previsao_entrega=excluded.previsao_entrega,data_entrega=excluded.data_entrega,status=excluded.status,local_montagem=excluded.local_montagem,observacao=excluded.observacao,atualizado_por=excluded.atualizado_por,atualizado_em=now()`;
+  const depois={transportadora:tr,notaFiscal:nf,dataSaida:saida,previsaoEntrega:prev,dataEntrega:entrega,status,localMontagem:local,observacao:obs};
+  await db`insert into pcp_entregas_eventos(programacao_id,pedido,tipo,dados_antes,dados_depois,usuario) values(${pg.id},${pedido},'ENTREGA_ATUALIZADA',${JSON.stringify(anterior||{})}::jsonb,${JSON.stringify(depois)}::jsonb,${user.usuario})`;
   await publishRealtimeEvent("GESTAO_ATUALIZADA",{pedido,tipo:"ENTREGA"});
   return NextResponse.json({ok:true});
  }catch(e:any){return NextResponse.json({error:e.message==="SEM_PERMISSAO"?"Sem permissão":e.message||"Falha ao salvar"},{status:e.message==="SEM_PERMISSAO"?403:500})}

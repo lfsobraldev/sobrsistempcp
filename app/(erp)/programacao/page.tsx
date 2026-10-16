@@ -354,7 +354,7 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
         </div>
         <div className="ph-actions">
           <button onClick={back}>Voltar</button>
-          <button className="primary" disabled={busy || auditoriaRomaneio.length > 0} onClick={release}>{busy ? "Liberando…" : "Liberar para a fábrica"}</button>
+          <button className="primary" disabled={busy || auditoriaRomaneio.length > 0} onClick={release}>{busy ? "Validando e liberando..." : "Liberar para a fábrica"}</button>
         </div>
       </div>
 
@@ -550,7 +550,7 @@ function Review({ d, busy, back, release, setTipoPedido, correcoes, descricaoExp
 
       <div className="row" style={{ justifyContent: "flex-end" }}>
         <button onClick={back}>Voltar</button>
-        <button className="primary" disabled={busy} onClick={release}>{busy ? "Liberando…" : "Liberar para a fábrica"}</button>
+        <button className="primary" disabled={busy} onClick={release}>{busy ? "Validando e liberando..." : "Liberar para a fábrica"}</button>
       </div>
     </>
   );
