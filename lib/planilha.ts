@@ -3408,7 +3408,7 @@ function montarControle(
     resumoPedidoStart,
     1,
     resumoPedidoStart,
-    5
+    14
   );
 
   const tituloPedidos =
