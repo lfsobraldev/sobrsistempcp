@@ -9,6 +9,8 @@ const validRoles = new Set([
   "LIDER",
   "APONTADOR",
   "QUALIDADE",
+  "COMERCIAL",
+  "LOGISTICA",
 ]);
 
 export const users = () =>
@@ -43,6 +45,8 @@ export const users = () =>
       pass: process.env.QUALIDADE_PASSWORD,
       role: "QUALIDADE" as Perfil,
     },
+    { user: process.env.COMERCIAL_USER, pass: process.env.COMERCIAL_PASSWORD, role: "COMERCIAL" as Perfil },
+    { user: process.env.LOGISTICA_USER, pass: process.env.LOGISTICA_PASSWORD, role: "LOGISTICA" as Perfil },
     {
       user: process.env.ADMIN_USER,
       pass: process.env.ADMIN_INITIAL_PASSWORD,
