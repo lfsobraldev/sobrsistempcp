@@ -12,5 +12,7 @@ export function contagemKitsPedido(itens:PecaKit[]) {
     else if(familia==="KIT CORRER")kitsCorrer+=q;
   }
   const avulsos=portas>0?0:Math.max(Math.ceil(pernasBatente/2),travessasBatente,Math.ceil(pernasAlizar/4),Math.ceil(travessasAlizar/2),kitsCorrer);
-  // Somente folhas de porta entram no total de conjuntos previstos validado contra o PDF.\n  // Avulsos são exibidos separadamente e nunca somados aos conjuntos.\n  return {kits:portas,portas,avulsos,estimado:portas===0&&avulsos>0};
+  // Somente folhas de porta entram no total de conjuntos previstos validado contra o PDF.
+  // Avulsos são exibidos separadamente e nunca somados aos conjuntos.
+  return {kits:portas,portas,avulsos,estimado:portas===0&&avulsos>0};
 }
