@@ -19,7 +19,7 @@ export default function Configuracoes(){
  function novo(){setEditing(false);setForm({...empty,setores:[]});setErro("");setSucesso("")}
  async function salvar(){setErro("");setSucesso("");setBusy(true);try{
   const r=await fetch("/api/controle-entregas/usuarios",{method:editing?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(form)});
-  const j=await r.json();if(!r.ok)throw Error(j.error||"Não foi possível salvar");setSucesso(editing?"Conta atualizada.":"Conta criada.");novo();await carregar();
+  const j=await r.json();if(!r.ok)throw Error(j.error||"Não foi possível salvar");novo();setSucesso(editing?"Conta atualizada.":"Conta criada.");await carregar();
  }catch(e){setErro(e instanceof Error?e.message:"Falha ao salvar")}finally{setBusy(false)}}
  if(me?.perfil!=="PCP")return <main className="access-config"><h1>Configurações de acesso</h1><p>Somente o administrador PCP pode gerenciar usuários.</p></main>;
  return <main className="access-config">
