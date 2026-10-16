@@ -4154,6 +4154,52 @@ function tipoGerencial(p: Produto): string {
 }
 
 /** Livro ERP: inventário físico por pedido/OF, sem arredondar ou presumir tipos. */
+
+/** Visão gerencial ERP: cada pedido x subtipo real, além do detalhamento por OF. */
+function montarResumoTipos(wb: Workbook, produtos: Produto[]) {
+  const ws = wb.addWorksheet("RESUMO POR TIPO",{
+    views:[{state:"frozen",ySplit:4,xSplit:2,showGridLines:false}],
+    properties:{defaultRowHeight:25}
+  });
+  const dados=produtos.filter(produtoEntraPCP).filter(p=>limpar(p.pedido));
+  const agg=new Map<string,{pedido:string;tipo:string;familia:string;quantidade:number;linhas:number;ofs:Set<string>;volume:number}>();
+  for(const p of dados){
+    const tipo=tipoGerencial(p),pedido=limpar(p.pedido),key=JSON.stringify([pedido,tipo]);
+    const atual=agg.get(key)||{pedido,tipo,familia:familiaIndustrial(p),quantidade:0,linhas:0,ofs:new Set<string>(),volume:0};
+    const [c,l,e]=medidaDoItem(p),q=Number(p.quantidade||0);
+    atual.quantidade+=q;atual.linhas++;if(limpar(p.of))atual.ofs.add(limpar(p.of));atual.volume+=m3(c,l,e,q)||0;
+    agg.set(key,atual);
+  }
+  const linhas=[...agg.values()].sort((a,b)=>a.pedido.localeCompare(b.pedido,"pt-BR",{numeric:true})||a.familia.localeCompare(b.familia)||a.tipo.localeCompare(b.tipo));
+  const cols=["PEDIDO","FAMÍLIA","TIPO DE PRODUTO","QTD PROGRAMADA","Nº DE OFS","LINHAS ORIGEM","VOLUME m³"];
+  ws.mergeCells(1,1,1,7);
+  const titulo=ws.getCell(1,1);titulo.value="SOBRAL PCP  |  RESUMO GERENCIAL POR TIPO DE PRODUTO";
+  titulo.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF203146"}};
+  titulo.font={name:"Arial",bold:true,size:16,color:{argb:"FFFFFFFF"}};
+  titulo.alignment={indent:1,vertical:"middle"};
+  ws.getRow(1).height=38;
+  ws.mergeCells(2,1,2,7);
+  ws.getCell(2,1).value="Porta colmeia, Bondol e demais modelos separados por pedido. Filtros nas colunas; total de conjuntos não inclui acessórios.";
+  ws.getCell(2,1).font={name:"Arial",size:10,color:{argb:"FF43566A"}};
+  ws.getRow(2).height=24;
+  const totais=[...new Set(dados.map(p=>limpar(p.pedido)))].length;
+  ws.mergeCells(3,1,3,2);ws.getCell(3,1).value="PEDIDOS: "+totais;
+  ws.mergeCells(3,3,3,4);ws.getCell(3,3).value="TIPOS: "+new Set(linhas.map(x=>x.tipo)).size;
+  ws.mergeCells(3,5,3,7);ws.getCell(3,5).value="QTD DE PEÇAS: "+linhas.reduce((a,b)=>a+b.quantidade,0).toLocaleString("pt-BR");
+  for(const col of [1,3,5]){const cell=ws.getCell(3,col);cell.font={name:"Arial",bold:true,color:{argb:"FF164B71"}};cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFE7F0F6"}};cell.alignment={vertical:"middle",indent:1};}
+  ws.getRow(3).height=29;
+  cols.forEach((h,i)=>{const c=ws.getCell(4,i+1);c.value=h;c.font={name:"Arial",bold:true,color:{argb:"FFFFFFFF"},size:10};c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF345B7E"}};c.alignment={vertical:"middle",wrapText:true};});
+  ws.getRow(4).height=30;
+  linhas.forEach((v,i)=>{
+    const row=ws.getRow(i+5),values=[v.pedido,v.familia,v.tipo,v.quantidade,v.ofs.size,v.linhas,Math.round(v.volume*1000)/1000];
+    values.forEach((x,j)=>{const c=row.getCell(j+1);c.value=x as ExcelJS.CellValue;c.font={name:"Arial",size:11,color:{argb:"FF243B53"}};c.alignment={vertical:"middle",horizontal:j>=3?"right":"left"};if(i%2===1)c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFF0F4F8"}};});
+    row.getCell(4).numFmt="#,##0.###";row.getCell(7).numFmt="#,##0.000";
+  });
+  [16,22,38,22,15,19,20].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  ws.autoFilter={from:{row:4,column:1},to:{row:Math.max(5,linhas.length+4),column:7}};
+  ws.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0};
+}
+
 function montarDetalhamentoGerencial(wb: Workbook, produtos: Produto[]) {
   const ws=wb.addWorksheet("DETALHE DE PEÇAS",{
     views:[{state:"frozen",ySplit:3,xSplit:2,showGridLines:false}],
@@ -4325,6 +4371,7 @@ export function montarPlanilha(
     produtos
   );
 
+  montarResumoTipos(wb, produtos);
   montarDetalhamentoGerencial(wb, produtos);
 
   montarLeiaMe(
