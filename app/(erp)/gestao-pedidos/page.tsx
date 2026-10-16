@@ -1,6 +1,7 @@
 "use client";
 import {useCallback,useEffect,useMemo,useState} from "react";
 import {ClipboardList,RefreshCw,Truck,Search,CalendarClock,PackageCheck} from "lucide-react";
+import ComercialEspecificacoes from "@/components/comercial-especificacoes";
 type Entrega={transportadora:string;nota_fiscal:string;data_saida:string|null;previsao_entrega:string|null;data_entrega:string|null;status:string;local_montagem:string;observacao:string;cliente:string;representante:string;tipo_pedido:string;colecao:string;status_ferragens:string;uf:string;cidade:string;tipo_frete:string;origem_unidade:string;destino_unidade:string;pedido_sul:string;status_montagem:string;data_montagem:string|null;previsao_saida:string|null;volume_m3:string|number|null;peso_kg:string|number|null;previsao_informada:string|null};
 type Etapa={pedido:string;area:string;etapa:string;data_inicio:string|null;data_conclusao:string|null;status:string;observacao:string};
 type Carga={id:string;pedido:string;romaneio:string;quantidade:number;volume_m3:number|null;nota_fiscal:string;transportadora:string;data_saida:string|null;data_entrega:string|null;status:string};
@@ -109,7 +110,8 @@ export default function GestaoPedidos(){
  <button className="industrial-btn primary" disabled={salvandoCarga||!novaCarga.pedido||!novaCarga.quantidade} onClick={()=>void salvarCarga()}>{salvandoCarga?"Registrando…":"Registrar carregamento"}</button>
  </div>
  <div className="industrial-table-wrap" style={{marginTop:14}}><table className="industrial-table"><thead><tr>{["Pedido","Romaneio","Peças","Volume m³","Nota fiscal","Transportadora","Saída","Entrega","Situação"].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{cargas.map(c=><tr key={c.id}><td>{c.pedido}</td><td>{c.romaneio||"—"}</td><td>{c.quantidade}</td><td>{c.volume_m3??"—"}</td><td>{c.nota_fiscal||"—"}</td><td>{c.transportadora||"—"}</td><td>{c.data_saida||"—"}</td><td>{c.data_entrega||"—"}</td><td>{c.status.replaceAll("_"," ")}</td></tr>)}{!cargas.length&&<tr><td colSpan={9}>Nenhum carregamento registrado ainda.</td></tr>}</tbody></table></div></section>}
-  {aba==="CLASSIFICACAO"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>Classificação de destinos e prazos</h2><span>Cadastro persistente por UF, cidade e m³</span></div>
+  {aba==="COMERCIAL"&&<ComercialEspecificacoes pedidos={rows.map(p=>p.pedido)}/>}
+ {aba==="CLASSIFICACAO"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>Classificação de destinos e prazos</h2><span>Cadastro persistente por UF, cidade e m³</span></div>
  <div className="industrial-toolbar">
  {(["uf","cidade","ate10","de10a20","acima20"] as const).map((k,i)=><label key={k} style={{display:"grid",gap:4}}><small>{["UF","Cidade","Até 10 m³ (dias)","De 10 a 20 m³ (dias)","Acima de 20 m³ (dias)"][i]}</small><input type={i<2?"text":"number"} min={0} max={365} value={regra[k]} onChange={e=>setRegra(v=>({...v,[k]:e.target.value}))} style={{width:i===1?195:140}}/></label>)}
  <button className="industrial-btn primary" onClick={()=>void salvarPrazo()} disabled={salvandoPrazo}>Salvar prazo</button>
