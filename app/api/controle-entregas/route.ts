@@ -50,7 +50,7 @@ const mapInput=(b:any)=>{
 };
 export async function GET(){
  try{
-  await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA","LIDER_ENTREGAS"]);
+  const usuarioAtual=await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA","LIDER_ENTREGAS"]);
   const db=sql();await ensure(db);
   const [active]=await db`select id,filtro from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
   // Para pedidos que reaparecem em filtros diferentes, somente a versão mais
@@ -73,7 +73,9 @@ export async function GET(){
   const orders=new Map<string,any>();
   for(const p of pcp)orders.set(String(p.pedido),{pedido:String(p.pedido),linhas:Number(p.linhas),ofs:Number(p.ofs),pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:map.get(String(p.pedido))||null});
   for(const c of controls)if(!orders.has(String(c.pedido)))orders.set(String(c.pedido),{pedido:String(c.pedido),linhas:0,ofs:0,pecas:0,percentual:0,entrega:c});
-  return NextResponse.json({filtro:active?.filtro||"",pedidos:[...orders.values()].sort((a,b)=>a.pedido.localeCompare(b.pedido,"pt-BR",{numeric:true})),eventos:events},{headers:{"Cache-Control":"no-store"}});
+  const pedidos=[...orders.values()].sort((a,b)=>a.pedido.localeCompare(b.pedido,"pt-BR",{numeric:true}));
+  if(usuarioAtual.perfil==="LIDER_ENTREGAS")return NextResponse.json({pedidos:pedidos.map(p=>({pedido:p.pedido,ofs:p.ofs,pecas:p.pecas,percentual:p.percentual,entrega:{cliente:p.entrega?.cliente||""}}))},{headers:{"Cache-Control":"no-store"}});
+  return NextResponse.json({filtro:active?.filtro||"",pedidos,eventos:events},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao consultar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
 function userScope(role:string,comercial:string[],logistica:string[]){return role==="COMERCIAL"?comercial:role==="LOGISTICA"?logistica:null;}
