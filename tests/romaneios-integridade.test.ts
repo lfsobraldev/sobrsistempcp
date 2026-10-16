@@ -31,11 +31,11 @@ test("romaneio preserva todas as familias do mesmo pedido", () => {
   assert.equal(result.sourceItemCount,5);
   assert.equal(result.reconciliation?.unmapped,0);
 });
-\n
+
 test("exportação bloqueia romaneio que perdeu portas mas reteve alizares", async () => {
   const { canGenerate } = await import("../lib/romaneio/validation");
   const result = buildProcessingFromFilterProducts({
-    orderNumber:"25981",
+    orderNumber:"25981",client:"TESTE",
     products:[
       {item:"1",produto:"P1",descricao:"PORTA 2100x820x35",categoria:"PORTA",quantidade:2,medida:"2100x820x35"},
       {item:"2",produto:"A1",descricao:"PERNA ALIZAR 2200x50x9",categoria:"ALIZAR • PERNA",quantidade:8,medida:"2200x50x9"},
