@@ -64,14 +64,14 @@ export async function GET(){
       order by pedido,criado_em desc,programacao_id desc
     )
     select p.pedido,count(*)::int linhas,count(distinct nullif(p.of,''))::int ofs,
-      coalesce(sum(p.quantidade),0) pecas,coalesce(avg(p.percentual_produto),0) percentual
+      coalesce(sum(p.quantidade),0) pecas,coalesce(avg(p.percentual_produto),0) percentual, max(nullif(trim(p.pedido_cliente),'')) as cliente_pcp
     from pcp_produtos p join mais_recente m on m.pedido=p.pedido and m.programacao_id=p.programacao_id
     group by p.pedido`;
   const controls=await db`select *,data_saida::text as data_saida,previsao_entrega::text as previsao_entrega,data_entrega::text as data_entrega,data_montagem::text as data_montagem,previsao_saida::text as previsao_saida,previsao_informada::text as previsao_informada from pcp_controle_entregas order by pedido`;
   const events=await db`select pedido,acao as tipo,usuario,criado_em from pcp_controle_entregas_eventos order by criado_em desc limit 300`;
   const map=new Map(controls.map((x:any)=>[String(x.pedido),x]));
   const orders=new Map<string,any>();
-  for(const p of pcp)orders.set(String(p.pedido),{pedido:String(p.pedido),linhas:Number(p.linhas),ofs:Number(p.ofs),pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:map.get(String(p.pedido))||null});
+  for(const p of pcp)orders.set(String(p.pedido),{pedido:String(p.pedido),linhas:Number(p.linhas),ofs:Number(p.ofs),pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:map.get(String(p.pedido))||null,clientePcp:String(p.cliente_pcp||'')});
   for(const c of controls)if(!orders.has(String(c.pedido)))orders.set(String(c.pedido),{pedido:String(c.pedido),linhas:0,ofs:0,pecas:0,percentual:0,entrega:c});
   return NextResponse.json({filtro:active?.filtro||"",pedidos:[...orders.values()].sort((a,b)=>a.pedido.localeCompare(b.pedido,"pt-BR",{numeric:true})),eventos:events},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao consultar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
