@@ -1,5 +1,6 @@
-import {contagemKitsPedido} from "@/lib/industrial/kits";
 "use client";
+
+import {contagemKitsPedido} from "@/lib/industrial/kits";
 
 import { useEffect, useMemo, useState } from "react";
 import {
