@@ -148,7 +148,7 @@ function Inner({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="main"><div className="page">{children}</div></main>
+      <main className="main"><div className={`page ${["/programacao", "/programacao-gerente"].includes(path) ? "industrial-page-area" : ""}`}>{children}</div></main>
       <AiAssistant />
       <RomaneioAIModal />
     </div>

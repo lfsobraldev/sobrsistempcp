@@ -856,3 +856,25 @@ body{background-image:none}
 .industrial-page-area .page-header h1,.industrial-page-area h1{letter-spacing:-.5px}.industrial-page-area :is(button,input,select,textarea){font-size:14px}.industrial-page-area :is(table,th,td){font-size:13px}.industrial-page-area .card{border-radius:9px}
 @media(max-width:900px){.industrial-steps,.industrial-stat-row{grid-template-columns:1fr 1fr}.industrial-stats{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.industrial-steps,.industrial-stat-row{grid-template-columns:1fr}.industrial-panel{padding:16px}.industrial-hero{padding:20px}.industrial-toolbar{align-items:stretch;flex-direction:column}}
+
+/* Programação operacional e visão gerente — padronização industrial rústica */
+.industrial-page-area{max-width:1800px;font-size:14px;line-height:1.5;color:#283946}
+.industrial-page-area :is(.pageTitle,.managerPageTitle,.ph,.page-header){background:linear-gradient(115deg,#2b3842,#526067)!important;color:#fff!important;padding:22px 26px!important;border:0!important;border-bottom:4px solid #b8a07b!important;border-radius:10px!important;margin-bottom:18px!important;box-shadow:none!important}
+.industrial-page-area :is(.pageTitle,.managerPageTitle,.ph,.page-header) :is(h1,h2,strong,b){font-size:clamp(22px,2vw,30px)!important;color:#fff!important;letter-spacing:-.5px!important}
+.industrial-page-area :is(.pageTitle,.managerPageTitle,.ph,.page-header) :is(p,small,span){color:#e1e9ed!important;font-size:13px!important;line-height:1.5!important}
+.industrial-page-area :is(.card,.panel,.managerPanel){border:1px solid #d5dddd!important;border-radius:10px!important;background:#fff!important;box-shadow:0 2px 12px #24354108!important}
+.industrial-page-area :is(input:not([type="checkbox"]),select,textarea){min-height:40px!important;font-size:14px!important;color:#233947!important;border-color:#bac3c5!important}
+.industrial-page-area :is(button,.btn){min-height:39px!important;font-size:13px!important;font-weight:650!important}
+.industrial-page-area :is(button.primary,.btn-primary){background:#344e59!important;border-color:#344e59!important;color:#fff!important}
+.industrial-page-area :is(table){font-size:13px!important;border-collapse:collapse!important}
+.industrial-page-area :is(th){font-size:12px!important;font-weight:750!important;color:#263b48}
+.industrial-page-area :is(td){font-size:13px!important;line-height:1.5!important}
+.industrial-page-area :is(.tableWrap,.table-scroll){overflow:auto!important;max-width:100%!important;border-radius:9px}
+.industrial-page-area :is(.stat,.metric,.statCard){border-radius:9px}
+.industrial-page-area :is(.drop){border:2px dashed #aebdbe!important;border-radius:10px!important;min-height:115px!important;background:#faf9f6!important}
+.industrial-page-area :is(.drop b){font-size:14px!important}.industrial-page-area :is(.drop small){font-size:12px!important}
+.industrial-page-area :is(.managerPageTitle)>div:first-child>span{color:#dbc29e!important;letter-spacing:1.7px}
+.industrial-page-area :is(.managerOrdersTable) th{white-space:nowrap;padding:11px 12px!important}
+.industrial-page-area :is(.managerOrdersTable) td{padding:11px 12px!important}
+.industrial-page-area :is(.managerLocalInput){min-width:125px}
+@media(max-width:800px){.industrial-page-area :is(.pageTitle,.managerPageTitle,.ph,.page-header){padding:18px!important}.industrial-page-area :is(.pageTitle,.managerPageTitle,.ph,.page-header) h1{font-size:22px!important}}
