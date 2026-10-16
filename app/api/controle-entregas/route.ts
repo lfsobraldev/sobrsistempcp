@@ -53,8 +53,19 @@ export async function GET(){
   await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
   const db=sql();await ensure(db);
   const [active]=await db`select id,filtro from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
-  const pcp=await db`select p.pedido,count(*)::int linhas,count(distinct nullif(p.of,''))::int ofs,coalesce(sum(p.quantidade),0) pecas,coalesce(avg(p.percentual_produto),0) percentual
-    from pcp_produtos p join pcp_programacoes pg on pg.id=p.programacao_id
+  // Para pedidos que reaparecem em filtros diferentes, somente a versão mais
+  // recente entra no resumo. Somar todas as programações inflaria peças e OFs.
+  const pcp=await db`with versoes as (
+      select p.pedido,p.programacao_id,max(pg.criado_em) as criado_em
+      from pcp_produtos p join pcp_programacoes pg on pg.id=p.programacao_id
+      group by p.pedido,p.programacao_id
+    ),mais_recente as (
+      select distinct on(pedido) pedido,programacao_id from versoes
+      order by pedido,criado_em desc,programacao_id desc
+    )
+    select p.pedido,count(*)::int linhas,count(distinct nullif(p.of,''))::int ofs,
+      coalesce(sum(p.quantidade),0) pecas,coalesce(avg(p.percentual_produto),0) percentual
+    from pcp_produtos p join mais_recente m on m.pedido=p.pedido and m.programacao_id=p.programacao_id
     group by p.pedido`;
   const controls=await db`select *,data_saida::text as data_saida,previsao_entrega::text as previsao_entrega,data_entrega::text as data_entrega,data_montagem::text as data_montagem,previsao_saida::text as previsao_saida,previsao_informada::text as previsao_informada from pcp_controle_entregas order by pedido`;
   const events=await db`select pedido,acao as tipo,usuario,criado_em from pcp_controle_entregas_eventos order by criado_em desc limit 300`;
