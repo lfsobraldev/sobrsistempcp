@@ -50,7 +50,7 @@ const mapInput=(b:any)=>{
 };
 export async function GET(){
  try{
-  await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA"]);
+  await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA","LIDER_ENTREGAS"]);
   const db=sql();await ensure(db);
   const [active]=await db`select id,filtro from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
   // Para pedidos que reaparecem em filtros diferentes, somente a versão mais
