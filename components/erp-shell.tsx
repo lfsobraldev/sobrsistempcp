@@ -23,6 +23,7 @@ const menus: MenuGroup[] = [
     label: "Produção",
     items: [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
+      { path: "/integracao-consistem", label: "Integração Consistem", icon: RefreshCw },
       { path: "/programacao-gerente", label: "Programação Gerente", icon: Route },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
       { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },

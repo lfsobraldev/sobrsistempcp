@@ -1,14 +1,14 @@
 import type { Perfil } from "@/types/pcp";
 
 const ALL_PCP = [
-  "/dashboard", "/programacao", "/programacao-gerente", "/prioridades", "/criticos", "/lideres",
+  "/dashboard", "/integracao-consistem", "/programacao", "/programacao-gerente", "/prioridades", "/criticos", "/lideres",
   "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/configuracoes",
 ];
 
 const BY_ROLE: Record<Perfil, string[]> = {
   PCP: ALL_PCP,
-  GERENTE: ["/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia"],
-  ENCARREGADO: ["/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/sobral-ia"],
+  GERENTE: ["/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia"],
+  ENCARREGADO: ["/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/sobral-ia"],
   LIDER: ["/lideres", "/excecoes", "/sobral-ia"],
   APONTADOR: ["/lideres"],
   QUALIDADE: ["/dashboard", "/inspecao-pallets"],
