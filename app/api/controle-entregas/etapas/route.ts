@@ -4,7 +4,7 @@ import {requireRoles} from "@/lib/auth";
 export const runtime="nodejs";
 const AREAS:Record<string,string[]>={
  PRODUCAO_SUL:["LIBERACAO","APONTAMENTO_SUL","DISPONIVEL_EXPEDICAO","CARREGAMENTO_SUL","SAIDA_SUL","CHEGADA_NORDESTE"],
- PRODUCAO:["PREPARACAO","COLAGEM_PORTAS","ESQUADRIAS_BORDAS","RECOBRIDORA_PERFIL","USINAGEM_2","LUSTRACAO","CNC","USINAGEM","PLASTIFICADORA","EMBALAGEM","EXPEDICAO"],
+ PRODUCAO:["PREPARACAO","COLAGEM_PORTAS","ESQUADRIAS_BORDAS","RECOBRIDORA_PERFIL","USINAGEM_2","LUSTRACAO","CNC","USINAGEM","PLASTIFICADORA","PLASTIFICADORA_PORTAS","EMBALAGEM","EXPEDICAO"],
  MONTAGEM:["FINALIZACAO","TRANSPORTE_REDESPACHO","INICIO_MONTAGEM","FIM_MONTAGEM"],
  LOGISTICA:["DISPONIVEL_EXPEDICAO","FATURAMENTO","CARREGAMENTO","SAIDA_EXPEDICAO","ENTREGA_CLIENTE"],
 };
@@ -21,7 +21,7 @@ async function ensure(){
  return db;
 }
 async function permitidas(db:ReturnType<typeof sql>,usuario:string){
- const rows=await db`select etapa from pcp_lider_etapa_acessos where lower(usuario)=lower(${usuario})`;
+ const rows=await db`select a.etapa from pcp_lider_etapa_acessos a join pcp_usuarios u on lower(u.usuario)=lower(a.usuario) where lower(a.usuario)=lower(${usuario}) and u.ativo=true and u.perfil='LIDER_ENTREGAS'`;
  return rows.map(x=>String(x.etapa));
 }
 export async function GET(req:Request){

@@ -31,6 +31,7 @@ const menus: MenuGroup[] = [
       { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },
     ],
   },
+  { label: "Administração", items: [{ path: "/configuracoes", label: "Configurações de Acesso", icon: Settings }] },
   { label: "Inteligência", items: [{ path: "/sobral-ia", label: "Sobral IA", icon: BrainCircuit }] },
   { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }] },
   { label: "Expedição", items: [{ path: "/romaneios", label: "Romaneios", icon: Boxes }] },
