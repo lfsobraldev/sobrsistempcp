@@ -54,7 +54,14 @@ test("Filtro 54: exportação de gerente mantém apenas controle e não infla ki
     row.values ? (row.values as unknown[]).map(v => String(v ?? "")) : []
   );
   assert.ok(allValues.includes("27019"));
-  const pedidoRow = ws.getRows(1, ws.rowCount)!.find(row => String(row.getCell(1).value) === "27019");
-  assert.ok(pedidoRow);
-  assert.equal(pedidoRow!.getCell(2).value, 8);
+  // O resumo gerencial agora é por família + descrição, com pedido na coluna D
+  // e quantidade de peças na coluna I. Kits avulsos não aumentam as portas.
+  const rows=ws.getRows(1,ws.rowCount)!;
+  const porta=rows.find(row=>String(row.getCell(4).value)==="27019"&&String(row.getCell(1).value).includes("PORTAS"));
+  assert.ok(porta);
+  assert.equal(porta!.getCell(9).value,8);
+  const kit=rows.find(row=>String(row.getCell(4).value)==="27019"&&String(row.getCell(1).value).includes("KIT CORRER"));
+  assert.ok(kit);
+  assert.equal(kit!.getCell(9).value,30);
+  assert.equal(wb.worksheets.length,1);
 });
