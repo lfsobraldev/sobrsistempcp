@@ -3038,6 +3038,10 @@ function montarControle(
         "0"
       );
 
+      const familias = resumoFamilias.get(item.pedido) || {};
+      const colunas = ["PORTAS", "PERNAS BATENTE", "TRAVESSAS BATENTE", "PERNAS ALIZAR", "TRAVESSAS ALIZAR", "KIT CORRER", "BAGUETES", "FERRAGENS", "OUTROS"];
+      colunas.forEach((grupo, pos) => celula(row, pos + 6, familias[grupo] || 0, "#,##0"));
+
       ws.getRow(
         row
       ).height =
@@ -3227,6 +3231,29 @@ function montarControle(
    * - Medidas de alizar por pedido
    * - Material ULTRA / STD / ULTRA/STD
    */
+  // Consolidar TODAS as famílias por pedido, sem misturar com a contagem de conjuntos.
+  const resumoFamilias = new Map<string, Record<string, number>>();
+  const classificarResumo = (p: Produto) => {
+    const familia = familiaIndustrial(p);
+    const desc = [p.descricao, p.categoria, p.tipo].join(" ").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toUpperCase();
+    if (familia === "PORTAS") return "PORTAS";
+    if (familia === "BATENTES") return /TRAVESSA|TRAV\\b/.test(desc) ? "TRAVESSAS BATENTE" : "PERNAS BATENTE";
+    if (familia === "ALIZARES") return /TRAVESSA|TRAV\\b/.test(desc) ? "TRAVESSAS ALIZAR" : "PERNAS ALIZAR";
+    if (familia === "KIT CORRER") return "KIT CORRER";
+    if (familia === "BAGUETE") return "BAGUETES";
+    if (/FERRAGEM|DOBRADICA|CONTRATESTA|FECHADURA/.test(desc)) return "FERRAGENS";
+    return "OUTROS";
+  };
+  for (const p of validos) {
+    const pedido = limpar(p.pedido);
+    if (!pedido) continue;
+    const q = Math.max(0, Number(p.quantidade || 0));
+    const grupo = classificarResumo(p);
+    const acc = resumoFamilias.get(pedido) || {};
+    acc[grupo] = (acc[grupo] || 0) + q;
+    resumoFamilias.set(pedido, acc);
+  }
+
   const pedidosResumo =
     new Map<
       string,
@@ -3395,7 +3422,7 @@ function montarControle(
     );
 
   tituloPedidos.value =
-    "RESUMO AUTOMÁTICO POR PEDIDO";
+    "RESUMO COMPLETO DE PEÇAS POR PEDIDO — FILTRE AS COLUNAS";
 
   tituloPedidos.font = {
     name:
@@ -3426,10 +3453,19 @@ function montarControle(
       1,
     [
       "Pedido",
-      "Qtd. Kits",
+      "Conjuntos previstos",
       "Planilha Usinagem",
       "Medidas de Alizar",
       "Material",
+      "Portas",
+      "Pernas batente",
+      "Travessas batente",
+      "Pernas alizar",
+      "Travessas alizar",
+      "Kit correr",
+      "Baguetes",
+      "Ferragens",
+      "Outros",
     ]
   );
 
@@ -3570,6 +3606,14 @@ function montarControle(
         26;
     }
   );
+
+  // Um único autofiltro por aba: usar o quadro de pedidos para filtrar portas,
+  // batentes, alizares, kits e outras famílias independentemente.
+  ws.autoFilter = {
+    from: { row: resumoPedidoStart + 1, column: 1 },
+    to: { row: resumoPedidoStart + 1 + linhasPedido.length, column: 14 },
+  };
+  for (let c = 6; c <= 14; c++) ws.getColumn(c).width = 18;
 
   ws.getColumn(
     1
