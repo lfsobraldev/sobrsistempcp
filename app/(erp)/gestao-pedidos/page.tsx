@@ -2,15 +2,23 @@
 import {useCallback,useEffect,useMemo,useState} from "react";
 import {ClipboardList,RefreshCw,Truck,Search,CalendarClock,PackageCheck} from "lucide-react";
 type Entrega={transportadora:string;nota_fiscal:string;data_saida:string|null;previsao_entrega:string|null;data_entrega:string|null;status:string;local_montagem:string;observacao:string;cliente:string;representante:string;tipo_pedido:string;colecao:string;status_ferragens:string;uf:string;cidade:string;tipo_frete:string;origem_unidade:string;destino_unidade:string;pedido_sul:string;status_montagem:string;data_montagem:string|null;previsao_saida:string|null;volume_m3:string|number|null;peso_kg:string|number|null;previsao_informada:string|null};
+type Etapa={pedido:string;area:string;etapa:string;data_inicio:string|null;data_conclusao:string|null;status:string;observacao:string};
 type Carga={id:string;pedido:string;romaneio:string;quantidade:number;volume_m3:number|null;nota_fiscal:string;transportadora:string;data_saida:string|null;data_entrega:string|null;status:string};
 type RegraPrazo={id:number;uf:string;cidade:string;faixa_ate_10:number;faixa_10_20:number;faixa_acima_20:number};
 type Importacao={previa?:boolean;ok?:boolean;repetido?:boolean;totalNaPlanilha:number;correspondentes:number;foraDaProgramacao:number;linhasPorAba:Record<string,number>;amostra?:{pedido:string;cliente:string}[];naoEncontrados?:string[];atualizados?:number};
 type Evento={pedido:string;tipo:string;usuario:string;criado_em:string};
 type Pedido={pedido:string;linhas:number;ofs:number;pecas:number;percentual:number;entrega:Entrega|null};
+const PROCESSOS:Record<string,{area:string;campos:[string,string][]}>={
+ SUL:{area:"PRODUCAO_SUL",campos:[["LIBERACAO","Liberação Sul"],["APONTAMENTO_SUL","Apontamento Sul"],["DISPONIVEL_EXPEDICAO","Disponível na expedição"],["CARREGAMENTO_SUL","Carregamento Sul"],["SAIDA_SUL","Saída do Sul"],["CHEGADA_NORDESTE","Chegada ao Nordeste"]]},
+ APONTAMENTO:{area:"PRODUCAO",campos:[["PREPARACAO","Preparação"],["COLAGEM_PORTAS","Colagem de portas"],["ESQUADRIAS_BORDAS","Esquadrias de bordas"],["RECOBRIDORA_PERFIL","Recobridora de perfil"],["USINAGEM_2","Usinagem 2"],["LUSTRACAO","Lustração"],["CNC","CNC"],["USINAGEM","Usinagem"],["PLASTIFICADORA","Plastificadora de perfil"],["EMBALAGEM","Embalagem"],["EXPEDICAO","Expedição"]]},
+ MONTAGEM:{area:"MONTAGEM",campos:[["FINALIZACAO","Finalização da produção"],["TRANSPORTE_REDESPACHO","Transporte / redespacho"],["INICIO_MONTAGEM","Início da montagem"],["FIM_MONTAGEM","Conclusão da montagem"]]},
+ LOGISTICA:{area:"LOGISTICA",campos:[["DISPONIVEL_EXPEDICAO","Disponível na expedição"],["FATURAMENTO","Faturamento"],["CARREGAMENTO","Carregamento"],["SAIDA_EXPEDICAO","Saída da expedição"],["ENTREGA_CLIENTE","Entrega ao cliente"]]}
+};
 const ABAS=[["PAINEL","Painel de Entregas"],["COMERCIAL","Comercial"],["PCP","PCP"],["SUL","Produção Sul"],["APONTAMENTO","Apontamento Produção"],["MONTAGEM","Montagem e Redespacho"],["LOGISTICA","Logística"],["FICHA","Ficha do Pedido"],["HISTORICO","Histórico"],["CLASSIFICACAO","Classificação e Prazos"]] as const;
 const statuses=[["PLANEJADO","Planejado"],["EM_PRODUCAO","Em produção"],["AGUARDANDO_MONTAGEM","Aguardando montagem"],["PRONTO_EXPEDICAO","Pronto para expedição"],["EM_TRANSITO","Em trânsito"],["ENTREGA_PARCIAL","Entrega parcial"],["ENTREGUE","Entregue"],["PENDENCIA","Pendência"]];
 const vazio:Entrega={transportadora:"",nota_fiscal:"",data_saida:null,previsao_entrega:null,data_entrega:null,status:"PLANEJADO",local_montagem:"",observacao:"",cliente:"",representante:"",tipo_pedido:"",colecao:"",status_ferragens:"",uf:"",cidade:"",tipo_frete:"",origem_unidade:"",destino_unidade:"",pedido_sul:"",status_montagem:"",data_montagem:null,previsao_saida:null,volume_m3:null,peso_kg:null,previsao_informada:null};
 export default function GestaoPedidos(){
+ const [etapas,setEtapas]=useState<Etapa[]>([]),[pedidoEtapa,setPedidoEtapa]=useState(""),[tipoEtapa,setTipoEtapa]=useState(""),[inicioEtapa,setInicioEtapa]=useState(""),[fimEtapa,setFimEtapa]=useState(""),[statusEtapa,setStatusEtapa]=useState("PENDENTE"),[obsEtapa,setObsEtapa]=useState(""),[salvandoEtapa,setSalvandoEtapa]=useState(false);
  const [cargas,setCargas]=useState<Carga[]>([]),[novaCarga,setNovaCarga]=useState({pedido:"",romaneio:"",quantidade:"",volumeM3:"",notaFiscal:"",transportadora:"",dataSaida:"",dataEntrega:"",status:"PROGRAMADO",observacao:""}),[salvandoCarga,setSalvandoCarga]=useState(false);
  const [arquivo,setArquivo]=useState<File|null>(null),[preImport,setPreImport]=useState<Importacao|null>(null),[importando,setImportando]=useState(false);
  const [regras,setRegras]=useState<RegraPrazo[]>([]),[regra,setRegra]=useState({uf:"",cidade:"",ate10:"",de10a20:"",acima20:""}),[salvandoPrazo,setSalvandoPrazo]=useState(false);
@@ -19,6 +27,7 @@ export default function GestaoPedidos(){
  useEffect(()=>{void load()},[load]);
  useEffect(()=>{if(aba==="CLASSIFICACAO")void fetch("/api/controle-entregas/prazos").then(r=>r.json()).then(j=>{if(j.regras)setRegras(j.regras)}).catch(()=>{})},[aba]);
  useEffect(()=>{if(aba==="LOGISTICA")void fetch("/api/controle-entregas/carregamentos").then(r=>r.json()).then(j=>{if(j.cargas)setCargas(j.cargas)}).catch(()=>{})},[aba]);
+ useEffect(()=>{if(PROCESSOS[aba])void fetch("/api/controle-entregas/etapas").then(r=>r.json()).then(j=>{if(j.etapas)setEtapas(j.etapas)}).catch(()=>{})},[aba]);
  const filtered=useMemo(()=>rows.filter(p=>(!query||[p.pedido,p.entrega?.transportadora,p.entrega?.nota_fiscal].join(" ").toLowerCase().includes(query.toLowerCase()))&&(statusFiltro==="TODOS"||(p.entrega?.status||"PLANEJADO")===statusFiltro)&& (setor==="TODOS" || (setor==="COMERCIAL"&&!p.entrega?.status)|| (setor==="PCP"&&p.ofs>0)||(setor==="MONTAGEM"&&["AGUARDANDO_MONTAGEM"].includes(p.entrega?.status||""))||(setor==="LOGISTICA"&&["PRONTO_EXPEDICAO","EM_TRANSITO","ENTREGA_PARCIAL"].includes(p.entrega?.status||""))||(setor==="ENTREGUE"&&p.entrega?.status==="ENTREGUE"))),[rows,query,statusFiltro,setor]);
  const visiveis=useMemo(()=>filtered.filter(p=>{
    const e=p.entrega;
@@ -38,7 +47,16 @@ export default function GestaoPedidos(){
  try{const fd=new FormData();fd.append("arquivo",arquivo);fd.append("aplicar",String(aplicar));const response=await fetch("/api/controle-entregas/importar",{method:"POST",body:fd});const j=await response.json();if(!response.ok)throw Error(j.error||"Falha ao importar");setPreImport(j);if(aplicar){setOk(j.repetido?"Este arquivo já havia sido importado. Nenhuma alteração foi repetida.":"Pedidos históricos incorporados ao cadastro permanente, sem substituir campos preenchidos.");await load();}}
  catch(e){setErro(e instanceof Error?e.message:"Erro ao importar")}finally{setImportando(false)}
  }
-  async function salvarCarga(){
+  async function salvarEtapa(){
+  const cfg=PROCESSOS[aba];if(!cfg||!pedidoEtapa||!tipoEtapa)return;
+  setSalvandoEtapa(true);setErro("");setOk("");
+  try{
+   const r=await fetch("/api/controle-entregas/etapas",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({pedido:pedidoEtapa,area:cfg.area,etapa:tipoEtapa,dataInicio:inicioEtapa,dataConclusao:fimEtapa,status:statusEtapa,observacao:obsEtapa})});
+   const j=await r.json();if(!r.ok)throw Error(j.error||"Falha ao salvar etapa");
+   setOk("Etapa operacional atualizada.");const x=await fetch("/api/controle-entregas/etapas").then(t=>t.json());setEtapas(x.etapas||[]);
+  }catch(e){setErro(e instanceof Error?e.message:"Falha ao registrar etapa")}finally{setSalvandoEtapa(false)}
+ }
+ async function salvarCarga(){
   setSalvandoCarga(true);setErro("");setOk("");
   try{
    const r=await fetch("/api/controle-entregas/carregamentos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(novaCarga)});
@@ -67,7 +85,21 @@ export default function GestaoPedidos(){
  </section>
   <div className="industrial-toolbar"><button className="industrial-btn primary" onClick={()=>{setNovo(true);setNumeroNovo("");setSelected(null)}}>+ Novo pedido comercial</button><Search size={19}/><input style={{flex:"2",minWidth:200}} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar pedido, transportadora ou NF"/><select value={setor} onChange={e=>setSetor(e.target.value)}>{[["TODOS","Todas as áreas"],["COMERCIAL","Comercial"],["PCP","PCP / Produção"],["MONTAGEM","Montagem"],["LOGISTICA","Logística"],["ENTREGUE","Entregues"]].map(([v,t])=><option key={v} value={v}>{t}</option>)}</select><select value={statusFiltro} onChange={e=>setStatusFiltro(e.target.value)}><option value="TODOS">Todas as situações</option>{statuses.map(([v,t])=><option key={v} value={v}>{t}</option>)}</select><button className="industrial-btn" onClick={()=>void load()} disabled={loading}><RefreshCw size={16}/> Atualizar</button></div>
  {erro&&<p role="alert" className="industrial-error">{erro}</p>}{ok&&<p>{ok}</p>}
- {aba==="LOGISTICA"&&<section className="industrial-panel">
+ {PROCESSOS[aba]&&<section className="industrial-panel">
+ <div className="industrial-panel-title"><h2>Etapas de {ABAS.find(([id])=>id===aba)?.[1]}</h2><span>Datas e acompanhamento por pedido</span></div>
+ {aba==="APONTAMENTO"&&<p style={{fontSize:13,marginBottom:13,color:"#62717a"}}>Marcos de acompanhamento desta área. Os percentuais oficiais continuam vindo dos apontamentos do Consistem; este cadastro não altera as OFs.</p>}
+ <div className="industrial-toolbar">
+ <label style={{display:"grid",gap:5}}><small>Pedido</small><select value={pedidoEtapa} onChange={e=>setPedidoEtapa(e.target.value)}><option value="">Selecionar pedido</option>{rows.map(p=><option key={p.pedido} value={p.pedido}>{p.pedido} — {p.entrega?.cliente||"Cliente não informado"}</option>)}</select></label>
+ <label style={{display:"grid",gap:5}}><small>Etapa</small><select value={tipoEtapa} onChange={e=>setTipoEtapa(e.target.value)}><option value="">Selecionar etapa</option>{PROCESSOS[aba].campos.map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
+ <label style={{display:"grid",gap:5}}><small>Início</small><input type="date" value={inicioEtapa} onChange={e=>setInicioEtapa(e.target.value)}/></label>
+ <label style={{display:"grid",gap:5}}><small>Conclusão</small><input type="date" value={fimEtapa} onChange={e=>setFimEtapa(e.target.value)}/></label>
+ <label style={{display:"grid",gap:5}}><small>Situação</small><select value={statusEtapa} onChange={e=>setStatusEtapa(e.target.value)}>{[["PENDENTE","Pendente"],["EM_ANDAMENTO","Em andamento"],["CONCLUIDA","Concluída"],["BLOQUEADA","Bloqueada"],["NAO_APLICAVEL","Não se aplica"]].map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
+ <label style={{display:"grid",gap:5}}><small>Observações</small><input value={obsEtapa} onChange={e=>setObsEtapa(e.target.value)} placeholder="Ocorrência ou justificativa"/></label>
+ <button className="industrial-btn primary" disabled={!pedidoEtapa||!tipoEtapa||salvandoEtapa} onClick={()=>void salvarEtapa()}>{salvandoEtapa?"Salvando…":"Registrar etapa"}</button>
+ </div>
+ <div className="industrial-table-wrap" style={{marginTop:12}}><table className="industrial-table"><thead><tr>{["Pedido","Etapa","Início","Conclusão","Situação","Observações","Editar"].map(x=><th key={x}>{x}</th>)}</tr></thead><tbody>{etapas.filter(e=>e.area===PROCESSOS[aba].area).map(e=><tr key={e.pedido+e.etapa}><td>{e.pedido}</td><td>{PROCESSOS[aba].campos.find(x=>x[0]===e.etapa)?.[1]||e.etapa}</td><td>{e.data_inicio||"—"}</td><td>{e.data_conclusao||"—"}</td><td>{e.status}</td><td>{e.observacao||"—"}</td><td><button className="industrial-btn" onClick={()=>{setPedidoEtapa(e.pedido);setTipoEtapa(e.etapa);setInicioEtapa(e.data_inicio||"");setFimEtapa(e.data_conclusao||"");setStatusEtapa(e.status);setObsEtapa(e.observacao||"")}}>Editar</button></td></tr>)}{!etapas.some(e=>e.area===PROCESSOS[aba].area)&&<tr><td colSpan={7}>Nenhuma etapa registrada nesta área.</td></tr>}</tbody></table></div>
+ </section>}
+  {aba==="LOGISTICA"&&<section className="industrial-panel">
  <div className="industrial-panel-title"><h2>Carregamentos e entregas parciais</h2><span>Registro independente por remessa</span></div>
  <p style={{marginBottom:12,color:"#60717b",fontSize:13}}>Cada carregamento pode ter quantidade, romaneio, transportadora, nota fiscal e datas diferentes. O histórico fica vinculado ao pedido e não é apagado quando outro filtro é importado.</p>
  <div className="industrial-toolbar">{([
