@@ -3235,10 +3235,10 @@ function montarControle(
   const resumoFamilias = new Map<string, Record<string, number>>();
   const classificarResumo = (p: Produto) => {
     const familia = familiaIndustrial(p);
-    const desc = [p.descricao, p.categoria, p.tipo].join(" ").normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toUpperCase();
+    const desc = [p.descricao, p.categoria, p.tipo].join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
     if (familia === "PORTAS") return "PORTAS";
-    if (familia === "BATENTES") return /TRAVESSA|TRAV\\b/.test(desc) ? "TRAVESSAS BATENTE" : "PERNAS BATENTE";
-    if (familia === "ALIZARES") return /TRAVESSA|TRAV\\b/.test(desc) ? "TRAVESSAS ALIZAR" : "PERNAS ALIZAR";
+    if (familia === "BATENTES") return /TRAVESSA|TRAV\b/.test(desc) ? "TRAVESSAS BATENTE" : "PERNAS BATENTE";
+    if (familia === "ALIZARES") return /TRAVESSA|TRAV\b/.test(desc) ? "TRAVESSAS ALIZAR" : "PERNAS ALIZAR";
     if (familia === "KIT CORRER") return "KIT CORRER";
     if (familia === "BAGUETE") return "BAGUETES";
     if (/FERRAGEM|DOBRADICA|CONTRATESTA|FECHADURA/.test(desc)) return "FERRAGENS";
