@@ -4130,6 +4130,63 @@ function montarLeiaMe(
   );
 }
 
+
+/** Classificação conservadora: produto sem evidência fica em "NÃO IDENTIFICADO". */
+function tipoGerencial(p: Produto): string {
+  const familia = familiaIndustrial(p);
+  const texto = [p.descricao,p.descricaoModelo,p.categoria,p.produto,p.outrasCaracteristicas]
+    .filter(Boolean).join(" ").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toUpperCase();
+  if(familia==="PORTAS"){
+    if(/COLMEIA|COLMEADO|HONEYCOMB/.test(texto)) return "PORTA COLMEIA";
+    if(/BONDOL/.test(texto)) return "PORTA BONDOL";
+    if(/MACICA|MACI[CÇ]A/.test(texto)) return "PORTA MACIÇA";
+    if(/SEMI.?SOLIDA/.test(texto)) return "PORTA SEMISSÓLIDA";
+    if(/SOLIDA/.test(texto)) return "PORTA SÓLIDA";
+    if(/CORRER/.test(texto)) return "PORTA DE CORRER";
+    return "PORTA — TIPO NÃO IDENTIFICADO";
+  }
+  if(familia==="BATENTES") return /TRAVESSA|TRAV\\b/.test(texto)?"BATENTE / TRAVESSA":"BATENTE / PERNA";
+  if(familia==="ALIZARES") return /TRAVESSA|TRAV\\b/.test(texto)?"ALIZAR / TRAVESSA":"ALIZAR / PERNA";
+  if(familia==="BAGUETE")return "BAGUETE";
+  if(familia==="KIT CORRER")return /SUPORTE.*TRILHO/.test(texto)?"SUPORTE DE TRILHO":"KIT DE CORRER";
+  if(/FERRAGEM|DOBRADICA|CONTRATESTA|FECHADURA/.test(texto))return "FERRAGEM";
+  return "OUTROS / CONFERIR";
+}
+
+/** Livro ERP: inventário físico por pedido/OF, sem arredondar ou presumir tipos. */
+function montarDetalhamentoGerencial(wb: Workbook, produtos: Produto[]) {
+  const ws=wb.addWorksheet("DETALHE DE PEÇAS",{
+    views:[{state:"frozen",ySplit:3,xSplit:2,showGridLines:false}],
+    properties:{defaultRowHeight:23},
+  });
+  const h=["PEDIDO","OF","TIPO / SUBTIPO","FAMÍLIA","DESCRIÇÃO ORIGINAL","CÓD. PRODUTO","ITEM","MATERIAL","MEDIDA (mm)","ACABAMENTO","COR","QTD PEÇAS","M³","USINAGEM","MONTAGEM"];
+  ws.mergeCells(1,1,1,h.length);
+  const title=ws.getCell(1,1);
+  title.value="SOBRAL PCP  |  DETALHAMENTO GERENCIAL DE PRODUTOS";
+  title.font={name:"Arial",size:16,bold:true,color:{argb:"FFFFFFFF"}};
+  title.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF203146"}};
+  title.alignment={vertical:"middle",indent:1};
+  ws.getRow(1).height=37;
+  ws.mergeCells(2,1,2,h.length);
+  ws.getCell(2,1).value="Filtro por pedido, subtipo, descrição, material e quantidade. Tipos não identificados são mantidos para conferência; nenhuma peça é inventada.";
+  ws.getCell(2,1).font={name:"Arial",size:10,color:{argb:"FF425466"}};
+  ws.getRow(2).height=24;
+  const rows=produtos.filter(produtoEntraPCP).filter(p=>limpar(p.pedido))
+    .sort((a,b)=>limpar(a.pedido).localeCompare(limpar(b.pedido),"pt-BR",{numeric:true})||tipoGerencial(a).localeCompare(tipoGerencial(b)));
+  h.forEach((value,i)=>{const c=ws.getCell(3,i+1);c.value=value;c.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FF33587A"}};c.font={name:"Arial",bold:true,color:{argb:"FFFFFFFF"},size:10};c.alignment={vertical:"middle",wrapText:true};});
+  ws.getRow(3).height=30;
+  rows.forEach((p,i)=>{
+    const [c,l,e]=medidaDoItem(p),q=Number(p.quantidade||0);
+    const vals=[p.pedido,p.of||"",tipoGerencial(p),familiaIndustrial(p),p.descricao,p.produto||"",p.item||"",p.material||p.tipo||"",[c,l,e].filter(x=>x>0).join("x"),p.acabamento||"",p.cor||"",q,m3(c,l,e,q)||0,p.usinagemPlanilha?"SIM":"NÃO",p.localMontagem||""];
+    const row=ws.getRow(i+4);
+    vals.forEach((v,j)=>{const cell=row.getCell(j+1);cell.value=v as ExcelJS.CellValue;cell.font={name:"Arial",size:10,color:{argb:"FF263746"}};cell.alignment={vertical:"middle",wrapText:j===4};if(i%2===1)cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFF1F5F9"}};});
+    row.getCell(12).numFmt="#,##0.###";row.getCell(13).numFmt="#,##0.000";
+  });
+  [15,17,29,19,58,19,12,16,20,24,20,15,15,14,20].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  ws.autoFilter={from:{row:3,column:1},to:{row:Math.max(4,rows.length+3),column:h.length}};
+  ws.pageSetup={orientation:"landscape",fitToPage:true,fitToWidth:1,fitToHeight:0};
+}
+
 export function montarPlanilha(
   ExcelLib: {
     Workbook:
@@ -4267,6 +4324,8 @@ export function montarPlanilha(
     gerente,
     produtos
   );
+
+  montarDetalhamentoGerencial(wb, produtos);
 
   montarLeiaMe(
     wb
