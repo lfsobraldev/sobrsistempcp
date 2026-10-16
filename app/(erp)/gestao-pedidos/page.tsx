@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useMemo,useState} from "react";
 import {ClipboardList,RefreshCw,Truck,Search,CalendarClock,PackageCheck} from "lucide-react";
 type Entrega={transportadora:string;nota_fiscal:string;data_saida:string|null;previsao_entrega:string|null;data_entrega:string|null;status:string;local_montagem:string;observacao:string;cliente:string;representante:string;tipo_pedido:string;colecao:string;status_ferragens:string;uf:string;cidade:string;tipo_frete:string;origem_unidade:string;destino_unidade:string;pedido_sul:string;status_montagem:string;data_montagem:string|null;previsao_saida:string|null;volume_m3:string|number|null;peso_kg:string|number|null;previsao_informada:string|null};
+type Carga={id:string;pedido:string;romaneio:string;quantidade:number;volume_m3:number|null;nota_fiscal:string;transportadora:string;data_saida:string|null;data_entrega:string|null;status:string};
 type RegraPrazo={id:number;uf:string;cidade:string;faixa_ate_10:number;faixa_10_20:number;faixa_acima_20:number};
 type Importacao={previa?:boolean;ok?:boolean;repetido?:boolean;totalNaPlanilha:number;correspondentes:number;foraDaProgramacao:number;linhasPorAba:Record<string,number>;amostra?:{pedido:string;cliente:string}[];naoEncontrados?:string[];atualizados?:number};
 type Evento={pedido:string;tipo:string;usuario:string;criado_em:string};
@@ -10,12 +11,14 @@ const ABAS=[["PAINEL","Painel de Entregas"],["COMERCIAL","Comercial"],["PCP","PC
 const statuses=[["PLANEJADO","Planejado"],["EM_PRODUCAO","Em produção"],["AGUARDANDO_MONTAGEM","Aguardando montagem"],["PRONTO_EXPEDICAO","Pronto para expedição"],["EM_TRANSITO","Em trânsito"],["ENTREGA_PARCIAL","Entrega parcial"],["ENTREGUE","Entregue"],["PENDENCIA","Pendência"]];
 const vazio:Entrega={transportadora:"",nota_fiscal:"",data_saida:null,previsao_entrega:null,data_entrega:null,status:"PLANEJADO",local_montagem:"",observacao:"",cliente:"",representante:"",tipo_pedido:"",colecao:"",status_ferragens:"",uf:"",cidade:"",tipo_frete:"",origem_unidade:"",destino_unidade:"",pedido_sul:"",status_montagem:"",data_montagem:null,previsao_saida:null,volume_m3:null,peso_kg:null,previsao_informada:null};
 export default function GestaoPedidos(){
+ const [cargas,setCargas]=useState<Carga[]>([]),[novaCarga,setNovaCarga]=useState({pedido:"",romaneio:"",quantidade:"",volumeM3:"",notaFiscal:"",transportadora:"",dataSaida:"",dataEntrega:"",status:"PROGRAMADO",observacao:""}),[salvandoCarga,setSalvandoCarga]=useState(false);
  const [arquivo,setArquivo]=useState<File|null>(null),[preImport,setPreImport]=useState<Importacao|null>(null),[importando,setImportando]=useState(false);
  const [regras,setRegras]=useState<RegraPrazo[]>([]),[regra,setRegra]=useState({uf:"",cidade:"",ate10:"",de10a20:"",acima20:""}),[salvandoPrazo,setSalvandoPrazo]=useState(false);
  const [aba,setAba]=useState<string>("PAINEL");const [novo,setNovo]=useState(false);const [numeroNovo,setNumeroNovo]=useState(""); const [setor,setSetor]=useState("TODOS");const [eventos,setEventos]=useState<Evento[]>([]);const [rows,setRows]=useState<Pedido[]>([]),[filtro,setFiltro]=useState(""),[query,setQuery]=useState(""),[statusFiltro,setStatusFiltro]=useState("TODOS"),[selected,setSelected]=useState<Pedido|null>(null),[form,setForm]=useState<Entrega>(vazio),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true),[erro,setErro]=useState(""),[ok,setOk]=useState("");
  const load=useCallback(async()=>{setLoading(true);try{const r=await fetch("/api/controle-entregas",{cache:"no-store"});const j=await r.json();if(!r.ok)throw Error(j.error||"Falha ao carregar");setRows(j.pedidos||[]);setEventos(j.eventos||[]);setFiltro(j.filtro||"");}catch(e){setErro(e instanceof Error?e.message:"Falha ao carregar")}finally{setLoading(false)}},[]);
  useEffect(()=>{void load()},[load]);
  useEffect(()=>{if(aba==="CLASSIFICACAO")void fetch("/api/controle-entregas/prazos").then(r=>r.json()).then(j=>{if(j.regras)setRegras(j.regras)}).catch(()=>{})},[aba]);
+ useEffect(()=>{if(aba==="LOGISTICA")void fetch("/api/controle-entregas/carregamentos").then(r=>r.json()).then(j=>{if(j.cargas)setCargas(j.cargas)}).catch(()=>{})},[aba]);
  const filtered=useMemo(()=>rows.filter(p=>(!query||[p.pedido,p.entrega?.transportadora,p.entrega?.nota_fiscal].join(" ").toLowerCase().includes(query.toLowerCase()))&&(statusFiltro==="TODOS"||(p.entrega?.status||"PLANEJADO")===statusFiltro)&& (setor==="TODOS" || (setor==="COMERCIAL"&&!p.entrega?.status)|| (setor==="PCP"&&p.ofs>0)||(setor==="MONTAGEM"&&["AGUARDANDO_MONTAGEM"].includes(p.entrega?.status||""))||(setor==="LOGISTICA"&&["PRONTO_EXPEDICAO","EM_TRANSITO","ENTREGA_PARCIAL"].includes(p.entrega?.status||""))||(setor==="ENTREGUE"&&p.entrega?.status==="ENTREGUE"))),[rows,query,statusFiltro,setor]);
  const visiveis=useMemo(()=>filtered.filter(p=>{
    const e=p.entrega;
@@ -35,7 +38,18 @@ export default function GestaoPedidos(){
  try{const fd=new FormData();fd.append("arquivo",arquivo);fd.append("aplicar",String(aplicar));const response=await fetch("/api/gestao-entregas",{method:"POST",body:fd});const j=await response.json();if(!response.ok)throw Error(j.error||"Falha ao importar");setPreImport(j);if(aplicar){setOk(j.repetido?"Este arquivo já havia sido importado. Nenhuma alteração foi repetida.":"Dados compatíveis integrados aos pedidos ativos, sem substituir campos preenchidos.");await load();}}
  catch(e){setErro(e instanceof Error?e.message:"Erro ao importar")}finally{setImportando(false)}
  }
-  async function salvarPrazo(){
+  async function salvarCarga(){
+  setSalvandoCarga(true);setErro("");setOk("");
+  try{
+   const r=await fetch("/api/controle-entregas/carregamentos",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(novaCarga)});
+   const j=await r.json();if(!r.ok)throw Error(j.error||"Não foi possível salvar carregamento");
+   setOk("Carregamento salvo e vinculado ao pedido.");
+   setNovaCarga({pedido:"",romaneio:"",quantidade:"",volumeM3:"",notaFiscal:"",transportadora:"",dataSaida:"",dataEntrega:"",status:"PROGRAMADO",observacao:""});
+   const x=await fetch("/api/controle-entregas/carregamentos").then(v=>v.json());setCargas(x.cargas||[]);
+   await load();
+  }catch(e){setErro(e instanceof Error?e.message:"Falha ao salvar carregamento")}finally{setSalvandoCarga(false)}
+ }
+ async function salvarPrazo(){
   setSalvandoPrazo(true);setErro("");
   try{const r=await fetch("/api/controle-entregas/prazos",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(regra)});const j=await r.json();if(!r.ok)throw Error(j.error||"Não foi possível salvar prazo");setOk("Prazo salvo.");setRegra({uf:"",cidade:"",ate10:"",de10a20:"",acima20:""});const x=await fetch("/api/controle-entregas/prazos").then(v=>v.json());setRegras(x.regras||[]);}
   catch(e){setErro(e instanceof Error?e.message:"Falha ao salvar prazo")}finally{setSalvandoPrazo(false)}
@@ -53,7 +67,17 @@ export default function GestaoPedidos(){
  </section>
   <div className="industrial-toolbar"><button className="industrial-btn primary" onClick={()=>{setNovo(true);setNumeroNovo("");setSelected(null)}}>+ Novo pedido comercial</button><Search size={19}/><input style={{flex:"2",minWidth:200}} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar pedido, transportadora ou NF"/><select value={setor} onChange={e=>setSetor(e.target.value)}>{[["TODOS","Todas as áreas"],["COMERCIAL","Comercial"],["PCP","PCP / Produção"],["MONTAGEM","Montagem"],["LOGISTICA","Logística"],["ENTREGUE","Entregues"]].map(([v,t])=><option key={v} value={v}>{t}</option>)}</select><select value={statusFiltro} onChange={e=>setStatusFiltro(e.target.value)}><option value="TODOS">Todas as situações</option>{statuses.map(([v,t])=><option key={v} value={v}>{t}</option>)}</select><button className="industrial-btn" onClick={()=>void load()} disabled={loading}><RefreshCw size={16}/> Atualizar</button></div>
  {erro&&<p role="alert" className="industrial-error">{erro}</p>}{ok&&<p>{ok}</p>}
- {aba==="CLASSIFICACAO"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>Classificação de destinos e prazos</h2><span>Cadastro persistente por UF, cidade e m³</span></div>
+ {aba==="LOGISTICA"&&<section className="industrial-panel">
+ <div className="industrial-panel-title"><h2>Carregamentos e entregas parciais</h2><span>Registro independente por remessa</span></div>
+ <p style={{marginBottom:12,color:"#60717b",fontSize:13}}>Cada carregamento pode ter quantidade, romaneio, transportadora, nota fiscal e datas diferentes. O histórico fica vinculado ao pedido e não é apagado quando outro filtro é importado.</p>
+ <div className="industrial-toolbar">{([
+ ["pedido","Pedido"],["romaneio","Romaneio / identificação"],["quantidade","Peças expedidas"],["volumeM3","Volume m³"],["notaFiscal","Nota fiscal"],["transportadora","Transportadora"],["dataSaida","Saída"],["dataEntrega","Entrega"]
+ ] as const).map(([k,label])=><label key={k} style={{display:"grid",gap:5}}><small>{label}</small><input type={k==="quantidade"||k==="volumeM3"?"number":k.startsWith("data")?"date":"text"} value={novaCarga[k]} min={0} onChange={e=>setNovaCarga(v=>({...v,[k]:e.target.value}))} style={{width:k==="transportadora"?180:150}}/></label>)}
+ <label style={{display:"grid",gap:5}}><small>Situação</small><select value={novaCarga.status} onChange={e=>setNovaCarga(v=>({...v,status:e.target.value}))}>{[["PROGRAMADO","Programado"],["EM_TRANSITO","Em trânsito"],["ENTREGUE","Entregue"],["CANCELADO","Cancelado"]].map(([k,t])=><option key={k} value={k}>{t}</option>)}</select></label>
+ <button className="industrial-btn primary" disabled={salvandoCarga||!novaCarga.pedido||!novaCarga.quantidade} onClick={()=>void salvarCarga()}>{salvandoCarga?"Registrando…":"Registrar carregamento"}</button>
+ </div>
+ <div className="industrial-table-wrap" style={{marginTop:14}}><table className="industrial-table"><thead><tr>{["Pedido","Romaneio","Peças","Volume m³","Nota fiscal","Transportadora","Saída","Entrega","Situação"].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{cargas.map(c=><tr key={c.id}><td>{c.pedido}</td><td>{c.romaneio||"—"}</td><td>{c.quantidade}</td><td>{c.volume_m3??"—"}</td><td>{c.nota_fiscal||"—"}</td><td>{c.transportadora||"—"}</td><td>{c.data_saida||"—"}</td><td>{c.data_entrega||"—"}</td><td>{c.status.replaceAll("_"," ")}</td></tr>)}{!cargas.length&&<tr><td colSpan={9}>Nenhum carregamento registrado ainda.</td></tr>}</tbody></table></div></section>}
+  {aba==="CLASSIFICACAO"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>Classificação de destinos e prazos</h2><span>Cadastro persistente por UF, cidade e m³</span></div>
  <div className="industrial-toolbar">
  {(["uf","cidade","ate10","de10a20","acima20"] as const).map((k,i)=><label key={k} style={{display:"grid",gap:4}}><small>{["UF","Cidade","Até 10 m³ (dias)","De 10 a 20 m³ (dias)","Acima de 20 m³ (dias)"][i]}</small><input type={i<2?"text":"number"} min={0} max={365} value={regra[k]} onChange={e=>setRegra(v=>({...v,[k]:e.target.value}))} style={{width:i===1?195:140}}/></label>)}
  <button className="industrial-btn primary" onClick={()=>void salvarPrazo()} disabled={salvandoPrazo}>Salvar prazo</button>
