@@ -899,3 +899,46 @@ body{background-image:none}
 .industrial-workspace .industrial-table th{background:#385248!important}
 .industrial-workspace .industrial-upload svg,.industrial-workspace .industrial-steps svg{color:#66806c!important}
 .industrial-workspace .industrial-subtabs button.active{background:#3f604e!important;border-color:#3f604e!important}
+
+/* Guias industriais: faixa horizontal única, sem empilhar e sem quebrar títulos. */
+.erp-workspace-tabs,
+.industrial-workspace .industrial-subtabs{
+ display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+ align-items:stretch!important;justify-content:flex-start!important;
+ width:100%!important;max-width:100%!important;min-width:0!important;
+ overflow-x:auto!important;overflow-y:hidden!important;
+ gap:4px!important;white-space:nowrap!important;
+ scrollbar-width:thin;
+}
+.erp-workspace-tabs{padding:8px 12px 0!important;background:#f0f1ec!important;min-height:48px}
+.erp-workspace-tab{
+ display:inline-flex!important;flex-direction:row!important;align-items:center!important;
+ flex:0 0 auto!important;min-width:0!important;max-width:235px!important;
+ border:1px solid #cbd3cc!important;border-bottom:0!important;
+ border-radius:7px 7px 0 0!important;background:#e4e9e3!important;
+}
+.erp-workspace-tab.active{background:#fff!important;border-top:3px solid #64816e!important}
+.erp-workspace-tab>button:first-child{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;max-width:195px!important;text-align:left!important}
+.erp-workspace-tab .erp-workspace-close{flex:0 0 30px!important;width:30px!important;padding:0!important}
+.industrial-workspace .industrial-subtabs{
+ border:1px solid #d8e1d9!important;border-radius:9px!important;
+ padding:7px!important;background:#fff!important;box-shadow:0 2px 8px #182d2008!important;
+}
+.industrial-workspace .industrial-subtabs button{
+ flex:0 0 auto!important;white-space:nowrap!important;min-height:42px!important;
+ padding:9px 14px!important;font-size:12px!important;font-weight:700!important;
+ background:#f5f7f3!important;border:1px solid transparent!important;border-radius:6px!important;
+ color:#3a5144!important;box-shadow:none!important;
+}
+.industrial-workspace .industrial-subtabs button.active{
+ background:#3e604b!important;color:#fff!important;border-color:#3e604b!important;
+ box-shadow:inset 0 -2px #cdbb94!important;
+}
+.industrial-workspace .industrial-subtabs button:hover:not(.active){background:#e6eee7!important}
+.industrial-workspace{min-width:0!important;width:100%!important}
+.industrial-workspace .industrial-toolbar{min-width:0!important}
+@media(max-width:760px){
+ .erp-workspace-tabs,.industrial-workspace .industrial-subtabs{scroll-snap-type:x proximity}
+ .erp-workspace-tab,.industrial-workspace .industrial-subtabs button{scroll-snap-align:start}
+ .industrial-workspace .industrial-subtabs button{padding:9px 12px!important}
+}
