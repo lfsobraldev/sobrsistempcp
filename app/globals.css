@@ -884,3 +884,18 @@ body{background-image:none}
 .industrial-subtabs button{padding:10px 13px!important;font-size:12px!important;font-weight:700!important;border:1px solid #ced7d8!important;background:#f7f8f7!important;color:#354853!important;border-radius:6px!important;min-height:40px}
 .industrial-subtabs button.active{background:#344b55!important;color:#fff!important;border-color:#344b55!important;box-shadow:inset 0 -3px #c9ae85}
 .industrial-subtabs button:hover:not(.active){background:#ebece9!important}
+
+/* Workspace industrial: múltiplas guias abertas, sem confundir com guias do navegador */
+.erp-workspace-tabs{display:flex;gap:3px;padding:8px 13px 0;background:#e9e7e1;border-bottom:1px solid #c8c9c2;overflow-x:auto;scrollbar-width:thin;position:relative;z-index:2}
+.erp-workspace-tab{display:flex;align-items:center;flex-shrink:0;background:#dadcd8;border:1px solid #c1c8c6;border-bottom:0;border-radius:7px 7px 0 0;min-height:38px}
+.erp-workspace-tab.active{background:#fff;border-top:3px solid #987d4b;box-shadow:0 -1px 6px #00000010}
+.erp-workspace-tab>button{background:transparent!important;border:0!important;color:#384641!important;min-height:33px!important;font-size:12px!important;font-weight:700!important;padding:0 12px!important;white-space:nowrap}
+.erp-workspace-tab.active>button{color:#203b34!important}
+.erp-workspace-tab .erp-workspace-close{padding:0 9px!important;font-size:20px!important;font-weight:400!important;color:#64716c!important}
+.erp-workspace-tab .erp-workspace-close:hover{background:#d9d4cc!important}
+.industrial-workspace .industrial-hero{background:linear-gradient(112deg,#2b3933,#475b4e)!important;border-bottom-color:#b5a17b!important}
+.industrial-workspace .industrial-eyebrow{color:#d6d0b7!important}
+.industrial-workspace .industrial-btn.primary{background:#3f604e!important;border-color:#3f604e!important}
+.industrial-workspace .industrial-table th{background:#385248!important}
+.industrial-workspace .industrial-upload svg,.industrial-workspace .industrial-steps svg{color:#66806c!important}
+.industrial-workspace .industrial-subtabs button.active{background:#3f604e!important;border-color:#3f604e!important}
