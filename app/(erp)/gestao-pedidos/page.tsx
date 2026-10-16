@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useMemo,useState} from "react";
 import {ClipboardList,RefreshCw,Truck,Search,CalendarClock,PackageCheck} from "lucide-react";
 import ComercialEspecificacoes from "@/components/comercial-especificacoes";
+import ApontamentoProducaoResumo from "@/components/apontamento-producao-resumo";
 import {useOps} from "@/components/operational-provider";
 type Entrega={transportadora:string;nota_fiscal:string;data_saida:string|null;previsao_entrega:string|null;data_entrega:string|null;status:string;local_montagem:string;observacao:string;cliente:string;representante:string;tipo_pedido:string;colecao:string;status_ferragens:string;uf:string;cidade:string;tipo_frete:string;origem_unidade:string;destino_unidade:string;pedido_sul:string;status_montagem:string;data_montagem:string|null;previsao_saida:string|null;volume_m3:string|number|null;peso_kg:string|number|null;previsao_informada:string|null};
 type Etapa={pedido:string;area:string;etapa:string;data_inicio:string|null;data_conclusao:string|null;status:string;observacao:string};
@@ -88,7 +89,7 @@ export default function GestaoPedidos(){
  </section>
   <div className="industrial-toolbar"><button className="industrial-btn primary" disabled={me?.perfil==="LIDER_ENTREGAS"} onClick={()=>{setNovo(true);setNumeroNovo("");setSelected(null)}}>+ Novo pedido comercial</button><Search size={19}/><input style={{flex:"2",minWidth:200}} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar pedido, transportadora ou NF"/><select value={setor} onChange={e=>setSetor(e.target.value)}>{[["TODOS","Todas as áreas"],["COMERCIAL","Comercial"],["PCP","PCP / Produção"],["MONTAGEM","Montagem"],["LOGISTICA","Logística"],["ENTREGUE","Entregues"]].map(([v,t])=><option key={v} value={v}>{t}</option>)}</select><select value={statusFiltro} onChange={e=>setStatusFiltro(e.target.value)}><option value="TODOS">Todas as situações</option>{statuses.map(([v,t])=><option key={v} value={v}>{t}</option>)}</select><button className="industrial-btn" onClick={()=>void load()} disabled={loading}><RefreshCw size={16}/> Atualizar</button></div>
  {erro&&<p role="alert" className="industrial-error">{erro}</p>}{ok&&<p>{ok}</p>}
- {PROCESSOS[aba]&&<section className="industrial-panel">
+ {PROCESSOS[aba]&&aba!=="APONTAMENTO"&&<section className="industrial-panel">
  <div className="industrial-panel-title"><h2>Etapas de {ABAS.find(([id])=>id===aba)?.[1]}</h2><span>Datas e acompanhamento por pedido</span></div>
  {aba==="APONTAMENTO"&&<p style={{fontSize:13,marginBottom:13,color:"#62717a"}}>Marcos de acompanhamento desta área. Os percentuais oficiais continuam vindo dos apontamentos do Consistem; este cadastro não altera as OFs.</p>}
  <div className="industrial-toolbar">
@@ -119,7 +120,8 @@ export default function GestaoPedidos(){
  <button className="industrial-btn primary" onClick={()=>void salvarPrazo()} disabled={salvandoPrazo}>Salvar prazo</button>
  </div><div className="industrial-table-wrap" style={{marginTop:13}}><table className="industrial-table"><thead><tr><th>UF</th><th>Cidade</th><th>Até 10 m³</th><th>10 a 20 m³</th><th>Acima 20 m³</th><th>Ação</th></tr></thead><tbody>{regras.map(x=><tr key={x.id}><td>{x.uf}</td><td>{x.cidade}</td><td>{x.faixa_ate_10} dias</td><td>{x.faixa_10_20} dias</td><td>{x.faixa_acima_20} dias</td><td><button className="industrial-btn" onClick={()=>setRegra({uf:x.uf,cidade:x.cidade,ate10:String(x.faixa_ate_10),de10a20:String(x.faixa_10_20),acima20:String(x.faixa_acima_20)})}>Editar</button></td></tr>)}{!regras.length&&<tr><td colSpan={6}>Nenhum prazo cadastrado. Informe os valores confirmados pela logística.</td></tr>}</tbody></table></div></section>}
  {aba==="FICHA"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>Ficha do Pedido</h2></div><p>Selecione “Detalhes” em um pedido para abrir todas as informações comerciais, produtivas e logísticas na ficha.</p></section>}
- <section className="industrial-panel"><div className="industrial-panel-title"><h2>{ABAS.find(([id])=>id===aba)?.[1]||"Pedidos"}</h2><span>{visiveis.length} pedido(s) • clique em editar para atualizar</span></div>
+ {aba==="APONTAMENTO"&&<ApontamentoProducaoResumo pedidos={visiveis}/>}
+ {aba!=="APONTAMENTO"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>{ABAS.find(([id])=>id===aba)?.[1]||"Pedidos"}</h2><span>{visiveis.length} pedido(s) • clique em editar para atualizar</span></div>
  <div className="industrial-table-wrap"><table className="industrial-table">
  <thead><tr>{(aba==="COMERCIAL"?["Pedido","Cliente","Representante","Tipo de pedido","Coleção","Ferragens","Destino","Editar"]:
  aba==="PCP"?["Pedido","OFs","Peças programadas","Andamento","Montagem","Previsão saída","Editar"]:
@@ -138,7 +140,7 @@ export default function GestaoPedidos(){
  [p.pedido,p.entrega?.cliente||"—",p.pecas.toLocaleString("pt-BR"),p.ofs,p.percentual.toFixed(1)+"%",p.entrega?.status||"PLANEJADO",p.entrega?.previsao_entrega||"—"]).map((value,index)=><td key={index}>{value}</td>)}
  <td><button className="industrial-btn" onClick={()=>escolher(p)}>{me?.perfil==="LIDER_ENTREGAS"?"Visualizar":"Editar"}</button></td>
  </tr>)}{!visiveis.length&&<tr><td colSpan={9}>{loading?"Carregando pedidos…":"Nenhum pedido nesta área."}</td></tr>}</tbody>
- </table></div></section>
+ </table></div></section>}
 
  {aba==="HISTORICO"&&<section className="industrial-panel"><div className="industrial-panel-title"><h2>Histórico operacional</h2><span>Últimas 300 alterações</span></div><div className="industrial-table-wrap"><table className="industrial-table"><thead><tr><th>Pedido</th><th>Movimentação</th><th>Responsável</th><th>Data / Hora</th></tr></thead><tbody>{eventos.slice(0,50).map((e,i)=><tr key={i}><td>{e.pedido}</td><td>{e.tipo.replaceAll("_"," ")}</td><td>{e.usuario}</td><td>{new Date(e.criado_em).toLocaleString("pt-BR")}</td></tr>)}{eventos.length===0&&<tr><td colSpan={4}>Ainda não existem alterações registradas neste módulo.</td></tr>}</tbody></table></div></section>}
  {selected&&<section className="industrial-panel" aria-label="Editar controle de entrega"><div className="industrial-panel-title"><h2>Pedido {selected.pedido} · controle de entrega</h2><button className="industrial-btn" onClick={()=>setSelected(null)}>Fechar</button></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:14}}>
