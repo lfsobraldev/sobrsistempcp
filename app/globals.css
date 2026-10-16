@@ -824,3 +824,35 @@ body{background-image:none}
 .ai-message-bullet>span{font-weight:900}
 .ai-message-space{height:5px}
 .ai-message-rendered strong{font-weight:800}
+
+/* Gestão industrial — identidade neutra, tipografia operacional e contraste consistente */
+.industrial-workspace{display:grid;gap:18px;max-width:1700px;margin:0 auto;color:#273442;font-size:14px;line-height:1.5}
+.industrial-hero{padding:25px 30px;background:linear-gradient(110deg,#28343d,#48535a);color:#fff;border-radius:12px;border-bottom:5px solid #bea77f}
+.industrial-hero h1{font-size:clamp(24px,2vw,32px);letter-spacing:-.7px;line-height:1.2;margin:8px 0}.industrial-hero p{color:#e5e9ec;font-size:14px;max-width:920px;margin:0}
+.industrial-eyebrow{font-size:11px;letter-spacing:2px;color:#d9c3a2;font-weight:800}
+.industrial-tags{display:flex;gap:9px;margin-top:17px;flex-wrap:wrap}.industrial-tags span{font-size:11px;border:1px solid #788087;padding:5px 10px;border-radius:5px;background:#ffffff12}
+.industrial-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.industrial-steps>div{background:#fff;border:1px solid #dce0e1;border-radius:10px;padding:20px;display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-height:134px}
+.industrial-steps svg{color:#947a54}.industrial-steps b{font-size:15px}.industrial-steps span{color:#67717a;font-size:12px}
+.industrial-panel{background:#fff;border:1px solid #d7dddf;border-radius:12px;padding:24px;box-shadow:0 2px 10px #28343d08}
+.industrial-panel-title{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}.industrial-panel-title h2{font-size:18px;margin:0;color:#263843}.industrial-panel-title span{font-size:12px;color:#68737b}
+.industrial-upload{border:2px dashed #adb8b8;background:#faf9f6;border-radius:10px;min-height:158px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;position:relative;cursor:pointer;text-align:center;padding:18px}
+.industrial-upload svg{color:#947a54}.industrial-upload strong{font-size:15px}.industrial-upload small{font-size:12px;color:#6c757b}.industrial-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.industrial-actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}.industrial-btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;padding:12px 19px!important;border:1px solid #acb5b8!important;border-radius:7px!important;background:#f8f9fa!important;color:#23333d!important;font-size:14px!important;font-weight:700;min-height:44px}
+.industrial-btn.primary{background:#364b55!important;color:white!important;border-color:#364b55!important}.industrial-btn:disabled{opacity:.52;cursor:not-allowed}
+.industrial-error{display:flex;align-items:center;gap:10px;background:#fff1ee;color:#9d2922;border:1px solid #ffd6ce;padding:13px;border-radius:7px}
+.industrial-results{border:1px solid #d6dfe0;border-radius:10px;padding:18px;margin-top:10px}.industrial-results h3{font-size:17px;margin:0 0 15px}
+.industrial-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.industrial-stats>div{background:#f5f7f6;border-radius:8px;padding:12px}.industrial-stats small{display:block;color:#5a666b}.industrial-stats strong{font-size:23px;font-variant-numeric:tabular-nums}
+.industrial-scroll-list{max-height:260px;overflow:auto}.industrial-scroll-list p{border-bottom:1px solid #e3e7e8;padding:7px 0;margin:0}
+.industrial-helper{border-top:1px solid #e3e7e7;padding-top:13px;color:#58666b;font-size:12px;display:flex;align-items:flex-start;gap:8px}
+.industrial-helper svg{flex:none}.industrial-note{border-left:4px solid #b89d75;padding:15px 20px;background:#f6f2eb;border-radius:0 8px 8px 0}.industrial-note p{margin:5px 0 0;color:#5f665f;font-size:13px}
+.industrial-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:#fff;border:1px solid #d9e0df;padding:15px;border-radius:10px}
+.industrial-toolbar input,.industrial-toolbar select,.industrial-panel input:not([type="file"]),.industrial-panel select,.industrial-panel textarea{min-height:42px;border:1px solid #aebac1;background:#fff;color:#253945;border-radius:6px;padding:9px 11px;font-size:14px}
+.industrial-table-wrap{overflow:auto;border:1px solid #d7dfdf;border-radius:10px;background:#fff;max-width:100%}
+.industrial-table{width:100%;border-collapse:collapse;font-size:13px;min-width:1100px}
+.industrial-table th{position:sticky;top:0;background:#354752;color:#fff;text-transform:uppercase;font-size:11px;letter-spacing:.4px;text-align:left;padding:13px 12px;white-space:nowrap}
+.industrial-table td{padding:12px;border-bottom:1px solid #e6ebed;vertical-align:middle}.industrial-table tr:nth-child(even){background:#f7f9f8}.industrial-table td strong{font-size:13px}
+.industrial-stat-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.industrial-stat-row>div{padding:17px;background:#fff;border:1px solid #d9e0df;border-radius:9px}.industrial-stat-row span{font-size:12px;color:#67747a;display:block}.industrial-stat-row strong{font-size:26px;font-variant-numeric:tabular-nums}
+.industrial-page-area .page-header h1,.industrial-page-area h1{letter-spacing:-.5px}.industrial-page-area :is(button,input,select,textarea){font-size:14px}.industrial-page-area :is(table,th,td){font-size:13px}.industrial-page-area .card{border-radius:9px}
+@media(max-width:900px){.industrial-steps,.industrial-stat-row{grid-template-columns:1fr 1fr}.industrial-stats{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.industrial-steps,.industrial-stat-row{grid-template-columns:1fr}.industrial-panel{padding:16px}.industrial-hero{padding:20px}.industrial-toolbar{align-items:stretch;flex-direction:column}}
