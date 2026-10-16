@@ -11,8 +11,8 @@
   --radius-sm:8px;--radius:10px;--radius-lg:14px;--radius-xl:18px;--radius-full:999px;
 
   /* Primária (verde industrial) */
-  --primary-50:#f3fbf6;--primary-100:#e3f6eb;--primary-200:#ceefdc;--primary-500:#65cc90;
-  --primary-600:#4dc37e;--primary-700:#3db870;--primary-800:#339a5e;
+  --primary-50:#f3fbf6;--primary-100:#e3f6eb;--primary-200:#ceefdc;--primary-500:#4b9368;
+  --primary-600:#397c55;--primary-700:#2f6848;--primary-800:#244f37;
   --primary:#397c55;--primary-hover:#2f6848;--primary-soft:var(--primary-50);--on-primary:#ffffff;
 
   /* Neutros */

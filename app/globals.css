@@ -953,3 +953,74 @@ body{background-image:none}
 .industrial-workspace .industrial-btn.primary,.industrial-workspace .industrial-subtabs button.active{background:#397c55!important;border-color:#397c55!important}
 .erp-workspace-tab.active{border-top-color:#397c55!important}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* SOBRAL ERP — DESIGN SYSTEM UNIFICADO V4
+ * Componentes equivalentes sempre recebem tipografia, espaçamento e superfícies idênticas.
+ */
+:root{
+ --erp-brand:#397c55;--erp-brand-hover:#2f6848;--erp-brand-soft:#e6f1e9;
+ --erp-ink:#233a2c;--erp-muted:#607367;--erp-border:#d5e1d8;
+ --erp-paper:#fff;--erp-canvas:#f4f7f4;--erp-dark:#315942;
+ --primary:#397c55;--primary-hover:#2f6848;--bg:#f4f7f4;
+ --sidebar-bg:#254432;--sidebar-hover:#315b43;--sidebar-active:#397c55;
+ --border:#d5e1d8;--border-strong:#bacbbe;--focus-ring:0 0 0 3px rgba(57,124,85,.2);
+ --radius-sm:6px;--radius:8px;--radius-lg:10px;--radius-xl:12px;
+}
+:is(.shell,.industrial-workspace,.login){font-family:var(--font-sans);color:var(--erp-ink)}
+.shell .main{min-width:0;background:var(--erp-canvas)}
+.shell .page{min-width:0;width:100%;max-width:1800px;margin:0 auto;padding:20px 24px}
+.shell .sidenav{background:var(--sidebar-bg)!important}
+.shell .topbar2{background:#fff!important;border-bottom:1px solid var(--erp-border)!important;min-height:58px}
+.shell .topbar2 h2{color:var(--erp-ink)!important;font-size:16px!important;font-weight:700!important}
+:is(.shell,.industrial-workspace) :is(button.primary,.btn-primary,.industrial-btn.primary){background:var(--erp-brand)!important;color:#fff!important;border-color:var(--erp-brand)!important}
+:is(.shell,.industrial-workspace) :is(button.primary,.btn-primary,.industrial-btn.primary):hover:not(:disabled){background:var(--erp-brand-hover)!important;border-color:var(--erp-brand-hover)!important}
+.shell :is(.panel,.card,.tile,.stat,.kpi,.v12Card,.managerMachineCard,.managerHero,.palletDetail,.programmingSourceCard,.programmingValidationCard),
+.industrial-workspace :is(.industrial-panel,.industrial-stat-row>div,.industrial-steps>div,.industrial-table-wrap){
+ background:#fff!important;border:1px solid var(--erp-border)!important;border-radius:10px!important;box-shadow:0 2px 9px rgba(23,58,34,.045)!important
+}
+:is(.shell,.industrial-workspace) :is(input,select,textarea){border-color:var(--erp-border);border-radius:7px;color:var(--erp-ink);font-size:14px}
+:is(.shell,.industrial-workspace) :is(input,select,textarea):focus{border-color:var(--erp-brand);box-shadow:var(--focus-ring)}
+:is(.shell,.industrial-workspace) :is(th,td){font-size:13px;line-height:1.5}
+:is(.shell,.industrial-workspace) :is(thead th,.industrial-table th){background:#e8f0e9!important;color:#2d4938!important;border-color:var(--erp-border)!important;font-size:12px!important;font-weight:700!important}
+:is(.shell,.industrial-workspace) tbody tr:hover{background:#f1f7f2!important}
+:is(.shell,.industrial-workspace) :is(.ph,.pageTitle,.managerPageTitle,.v12PageTitle,.programmingPageTitle,.v12DashHeader),
+.industrial-workspace .industrial-hero{
+ background:var(--erp-dark)!important;border:1px solid #294d38!important;border-bottom:3px solid #68a57c!important;
+ border-radius:10px!important;padding:21px 24px!important;margin-bottom:16px!important;
+ box-shadow:0 2px 8px rgba(17,50,29,.08)!important;
+ display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important
+}
+:is(.shell,.industrial-workspace) :is(.ph,.pageTitle,.managerPageTitle,.v12PageTitle,.programmingPageTitle,.v12DashHeader,.industrial-hero) :is(h1,h2){
+ color:#fff!important;font-size:clamp(22px,2vw,28px)!important;font-weight:750!important;letter-spacing:-.025em!important
+}
+:is(.shell,.industrial-workspace) :is(.ph,.pageTitle,.managerPageTitle,.v12PageTitle,.programmingPageTitle,.v12DashHeader,.industrial-hero) :is(p,small){
+ color:#e3f0e6!important;font-size:13px!important;line-height:1.5!important
+}
+:is(.shell,.industrial-workspace) :is(.ph-eyebrow,.industrial-eyebrow,.pageTitle>div>span,.managerPageTitle>div>span){
+ color:#bfdac6!important;font-size:11px!important;letter-spacing:1.2px!important;font-weight:750!important
+}
+:is(.shell,.industrial-workspace) :is(.ph,.pageTitle,.managerPageTitle,.industrial-hero) :is(button:not(.primary),.industrial-btn:not(.primary)){
+ border-color:#cbded0!important;background:#fff!important;color:#294d38!important
+}
+.erp-workspace-tabs{display:flex!important;flex-wrap:nowrap!important;gap:4px!important;overflow-x:auto!important;padding:9px 14px 0!important;background:#e8eee9!important;border-bottom:1px solid var(--erp-border)!important}
+.erp-workspace-tab{display:flex!important;flex:0 0 auto!important;align-items:center!important;max-width:235px!important;background:#e0e9e1!important;border:1px solid #c8d8cb!important;border-bottom:0!important;border-radius:7px 7px 0 0!important}
+.erp-workspace-tab.active{background:#fff!important;border-top:3px solid var(--erp-brand)!important}
+.erp-workspace-tab button{min-width:0!important;white-space:nowrap!important;font-size:12px!important}
+.industrial-subtabs{display:flex!important;flex-wrap:nowrap!important;overflow:auto!important;gap:5px!important;padding:8px!important;border-radius:9px!important;background:#fff!important;border:1px solid var(--erp-border)!important}
+.industrial-subtabs button{flex:0 0 auto!important;min-height:39px!important;font-size:12px!important;border-radius:6px!important;background:#f3f7f3!important;border:1px solid transparent!important;color:#365a42!important;padding:8px 12px!important;white-space:nowrap!important}
+.industrial-subtabs button.active{background:var(--erp-brand)!important;color:#fff!important;border-color:var(--erp-brand)!important}
+.industrial-workspace .industrial-tags span{background:rgba(255,255,255,.1)!important;color:#fff!important;border-color:rgba(255,255,255,.4)!important}
+.industrial-workspace .industrial-panel-title h2{font-size:17px!important;color:var(--erp-ink)!important;font-weight:750!important}
+.login{background:var(--erp-canvas)!important}
+.login-brand{background:linear-gradient(160deg,#294c36,#397c55)!important;color:#fff!important;padding:clamp(30px,5vw,80px)!important}
+.login-brand :is(h1,h2){color:#fff!important}
+.login-brand :is(p,li,small){color:#e2f0e6!important}
+.login-form{background:#f4f7f4!important;padding:24px!important}
+.login-card{width:min(440px,100%)!important;background:#fff!important;border:1px solid var(--erp-border)!important;border-radius:14px!important;padding:clamp(24px,3vw,38px)!important;box-shadow:0 12px 40px rgba(24,62,35,.085)!important;gap:18px!important}
+.login-card h2{font-size:25px!important;color:var(--erp-ink)!important}
+.login-card label{font-size:13px!important;font-weight:700!important}
+.login-card input{min-height:45px!important}
+.login-card button.primary{min-height:46px!important}
+.sobral-logo{background:var(--erp-brand)!important;color:#fff!important}
+@media(max-width:900px){.shell .page{padding:14px}.industrial-workspace .industrial-hero{padding:18px!important}.login-brand{padding:30px!important}}
+@media(max-width:700px){:is(.shell,.industrial-workspace) :is(.ph,.pageTitle,.managerPageTitle,.industrial-hero){align-items:flex-start!important;flex-direction:column!important}}
