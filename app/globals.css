@@ -1179,3 +1179,8 @@ body{background-image:none}
 .access-success{padding:12px;border-radius:8px;background:#e2f1e7;color:#266343}
 .access-config-link{display:inline-flex;align-items:center;justify-content:center;min-height:39px;padding:0 14px;border:1px solid #d7e2d9;border-radius:7px;background:white;color:#305b40;font-size:13px;font-weight:650}
 @media(max-width:700px){.access-config-header{padding:16px;align-items:stretch;flex-direction:column}.access-config-header h1{font-size:22px}.access-panel{padding:14px}.access-fields{grid-template-columns:1fr}.access-sector-grid{grid-template-columns:1fr}.access-user{align-items:stretch;flex-direction:column}.access-user-actions{justify-content:space-between}.access-config button,.access-config-link{min-height:44px}}
+
+/* Planilha: material e cliente são informações distintas. */
+.apontamento-resumo-tabela .apontamento-resumo-cliente{min-width:240px;max-width:340px;text-align:left!important;white-space:normal;overflow-wrap:anywhere;font-weight:600}
+.apontamento-resumo-tabela .apontamento-resumo-lote{min-width:170px;max-width:220px;white-space:normal;overflow-wrap:anywhere;text-align:left!important}
+@media(max-width:640px){.apontamento-resumo-tabela .apontamento-resumo-cliente{min-width:180px;max-width:220px}.apontamento-resumo-tabela .apontamento-resumo-lote{min-width:140px;max-width:180px}}
