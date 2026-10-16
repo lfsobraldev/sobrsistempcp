@@ -209,8 +209,6 @@ export function resumoMaquinas(
     ) => ({
       ...row,
 
-        listaOfs: [...row.listaOfs].sort((x, y) => x.localeCompare(y, "pt-BR", { numeric: true })),
-
       progresso:
         row.pecasPlanejadas
           ? Math.round(
