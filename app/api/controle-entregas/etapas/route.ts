@@ -26,7 +26,6 @@ async function permitidas(db:ReturnType<typeof sql>,usuario:string){
 }
 export async function GET(req:Request){
  try{
-  await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]);
   const user=await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]);
   const db=await ensure(),pedido=new URL(req.url).searchParams.get("pedido")||"";
   const etapas=pedido?await db`select *,data_inicio::text as data_inicio,data_conclusao::text as data_conclusao from pcp_controle_entregas_etapas where pedido=${pedido} order by area,etapa`:
@@ -49,7 +48,13 @@ export async function PUT(req:Request){
    return NextResponse.json({error:"Você pode alterar somente as datas do seu setor."},{status:403});
  }
  const existe=await db`select pedido from pcp_controle_entregas where pedido=${pedido} limit 1`;
- if(!existe.length)return NextResponse.json({error:"Pedido não encontrado. Cadastre primeiro."},{status:404});
+ if(!existe.length){
+   // A OF é origem confiável: permitir datas para pedidos presentes no PCP,
+   // sem conceder criação livre de pedidos ao líder.
+   const origem=await db`select pedido from pcp_produtos where pedido=${pedido} limit 1`;
+   if(!origem.length)return NextResponse.json({error:"Pedido não encontrado no PCP."},{status:404});
+   await db`insert into pcp_controle_entregas(pedido) values(${pedido}) on conflict do nothing`;
+ }
  const [prev]=await db`select * from pcp_controle_entregas_etapas where pedido=${pedido} and area=${area} and etapa=${etapa}`;
  if(u.perfil==="LIDER_ENTREGAS"&&prev){
    const oldStart=prev.data_inicio?new Date(prev.data_inicio).toISOString().slice(0,10):null;
