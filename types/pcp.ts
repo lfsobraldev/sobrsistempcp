@@ -1,4 +1,4 @@
-export type Perfil = "PCP" | "GERENTE" | "ENCARREGADO" | "LIDER" | "APONTADOR" | "QUALIDADE";
+export type Perfil = "PCP" | "GERENTE" | "ENCARREGADO" | "LIDER" | "APONTADOR" | "QUALIDADE" | "COMERCIAL" | "LOGISTICA";
 export type Prioridade = "NORMAL" | "ALTA" | "URGENTE";
 export type TipoPedido = "NORMAL" | "REVENDA" | "ENGENHARIA";
 export type MontagemEngenharia = "MONTADO_HS" | "MONTADO_TIMADEL" | "MONTADO_ESTANCIA";
