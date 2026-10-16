@@ -1,4 +1,3 @@
-import {contagemKitsPedido} from "@/lib/industrial/kits";
 import type ExcelJS from "exceljs";
 import type { Produto } from "@/types/pcp";
 
@@ -3263,6 +3262,9 @@ function montarControle(
 
     // Quantidade de conjuntos = quantidade de folhas de porta.
     // Nunca somar kit de correr, ferragens ou componentes de batente.
+    if (familia === "PORTAS") {
+      atual.kits += Number(p.quantidade || 0);
+    }
 
 
     if (
@@ -3347,8 +3349,6 @@ function montarControle(
       atual
     );
   }
-
-  for(const resumo of pedidosResumo.values())resumo.kits=contagemKitsPedido(validos.filter(p=>limpar(p.pedido)===resumo.pedido)).kits;
 
   const linhasPedido =
     [
@@ -3745,7 +3745,7 @@ function montarProgramacaoGerente(
     const row = ws.getRow(rowNum);
 
     let totalM3 = 0;
-    let kits = contagemKitsPedido(itens).kits;
+    let kits = 0;
     let temUsinagem = false;
     let ultra = false;
     let std = false;
@@ -3760,7 +3760,9 @@ function montarProgramacaoGerente(
       const familia = familiaIndustrial(p);
       const categoria = limpar(p.categoria).toUpperCase();
 
-
+      if (familia === "PORTAS") {
+        kits += Number(p.quantidade || 0);
+      }
 
       if (p.usinagemPlanilha) temUsinagem = true;
 
