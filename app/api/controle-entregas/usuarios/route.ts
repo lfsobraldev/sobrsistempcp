@@ -22,7 +22,7 @@ export async function POST(req:Request){
  try{const admin=await requireRoles(["PCP"]);const b=await req.json();
  const itens=Array.isArray(b.usuarios)?b.usuarios:[b];
  if(!itens.length||itens.length>11)return NextResponse.json({error:"Cadastre de 1 a 11 líderes por solicitação."},{status:400});
- const parsed=itens.map((p:any)=>{
+ const parsed:{usuario:string;nome:string;senha:string;etapa:string}[]=itens.map((p:any)=>{
  const usuario=String(p.usuario||"").trim().toLowerCase(),nome=String(p.nome||"").trim(),senha=String(p.senha||""),etapa=String(p.etapa||"").toUpperCase();
  if(!/^[a-z0-9._-]{3,80}$/.test(usuario)||!nome||nome.length>150||senha.length<12||!ETAPAS.includes(etapa))throw Error("Informe usuário, nome, senha de 12+ caracteres e setor válido.");
  return {usuario,nome,senha,etapa};
