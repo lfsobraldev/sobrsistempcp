@@ -43,7 +43,7 @@ const menus: MenuGroup[] = [
 
 ];
 
-const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets" };
+const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/gestao-pedidos", LOGISTICA: "/gestao-pedidos" };
 
 function Inner({ children }: { children: React.ReactNode }) {
   const { me, pg, lastSync, realtimeStatus, refresh, loading } = useOps();
