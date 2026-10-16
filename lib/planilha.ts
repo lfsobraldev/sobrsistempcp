@@ -3218,484 +3218,67 @@ function montarControle(
       15;
   }
 
+
   /**
-   * RESUMO AUTOMÁTICO POR PEDIDO
-   *
-   * Substitui o preenchimento manual da planilha gerencial:
-   * - Quantidade de kits/conjuntos
-   * - Se a planilha de usinagem já foi recebida
-   * - Medidas de alizar por pedido
-   * - Material ULTRA / STD / ULTRA/STD
+   * RESUMO GERENCIAL DETALHADO POR ITEM REAL
+   * Uma linha por pedido + família + descrição + especificação;
+   * sem somar porta colmeia com porta Bondol nem misturar medidas.
    */
-  // Consolidar TODAS as famílias por pedido, sem misturar com a contagem de conjuntos.
-  const resumoFamilias = new Map<string, Record<string, number>>();
-  const classificarResumo = (p: Produto) => {
-    const familia = familiaIndustrial(p);
-    const desc = [p.descricao, p.categoria, p.tipo].join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
-    if (familia === "PORTAS") return "PORTAS";
-    if (familia === "BATENTES") return /TRAVESSA|TRAV\b/.test(desc) ? "TRAVESSAS BATENTE" : "PERNAS BATENTE";
-    if (familia === "ALIZARES") return /TRAVESSA|TRAV\b/.test(desc) ? "TRAVESSAS ALIZAR" : "PERNAS ALIZAR";
-    if (familia === "KIT CORRER") return "KIT CORRER";
-    if (familia === "BAGUETE") return "BAGUETES";
-    if (/FERRAGEM|DOBRADICA|CONTRATESTA|FECHADURA/.test(desc)) return "FERRAGENS";
-    return "OUTROS";
+  const ordemFamilia = (p: Produto) => {
+    const f = familiaIndustrial(p);
+    const t = [p.descricao,p.categoria,p.descricaoModelo].filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
+    if (f === "PORTAS") return {n:0,nome:"01 PORTAS"};
+    if (f === "BATENTES") return /TRAVESSA|TRAV\b/.test(t)?{n:2,nome:"03 TRAVESSAS BATENTE"}:{n:1,nome:"02 PERNAS BATENTE"};
+    if (f === "ALIZARES") return /TRAVESSA|TRAV\b/.test(t)?{n:4,nome:"05 TRAVESSAS ALIZAR"}:{n:3,nome:"04 PERNAS ALIZAR"};
+    if (f === "BAGUETE") return {n:5,nome:"06 BAGUETES"};
+    if (f === "KIT CORRER") return {n:6,nome:"07 KIT CORRER / SUPORTE"};
+    if (/FERRAGEM|DOBRADICA|CONTRATESTA|FECHADURA/.test(t)) return {n:7,nome:"08 FERRAGENS"};
+    return {n:8,nome:"09 OUTROS ITENS"};
   };
-  for (const p of validos) {
-    const pedido = limpar(p.pedido);
-    if (!pedido) continue;
-    const q = Math.max(0, Number(p.quantidade || 0));
-    const grupo = classificarResumo(p);
-    const acc = resumoFamilias.get(pedido) || {};
-    acc[grupo] = (acc[grupo] || 0) + q;
-    resumoFamilias.set(pedido, acc);
+  type LinhaResumo = {pedido:string;ordem:number;familia:string;tipo:string;descricao:string;material:string;medida:string;cor:string;acabamento:string;quantidade:number;ml:number;m3:number;mlIncompleto:boolean;ofs:Set<string>};
+  const totais = new Map<string,LinhaResumo>();
+  for(const p of validos){
+    const pedido=limpar(p.pedido);
+    if(!pedido)continue;
+    const familia=ordemFamilia(p),descricao=limpar(p.descricao)||"(SEM DESCRIÇÃO)";
+    const tipo=tipoGerencial(p);
+    const [c,l,e]=medidaDoItem(p);
+    const medida=limpar(p.medida)||[c,l,e].filter(v=>v>0).join("x");
+    const material=limpar(p.material)||limpar(p.tipo);
+    const cor=limpar(p.cor),acabamento=limpar(p.acabamento);
+    const q=Number(p.quantidade||0);
+    const key=JSON.stringify([pedido,familia.nome,tipo,descricao,material,medida,cor,acabamento]);
+    const acc=totais.get(key)||{pedido,ordem:familia.n,familia:familia.nome,tipo,descricao,material,medida,cor,acabamento,quantidade:0,ml:0,m3:0,mlIncompleto:false,ofs:new Set<string>()};
+    acc.quantidade+=q;
+    if(c>0)acc.ml+=q*c/1000;else if(q>0)acc.mlIncompleto=true;
+    acc.m3+=m3(c,l,e,q)||0;
+    if(limpar(p.of))acc.ofs.add(limpar(p.of));
+    totais.set(key,acc);
   }
+  const linhasDetalhadas=[...totais.values()].sort((a,b)=>a.ordem-b.ordem||a.tipo.localeCompare(b.tipo,"pt-BR")||a.descricao.localeCompare(b.descricao,"pt-BR")||a.pedido.localeCompare(b.pedido,"pt-BR",{numeric:true}));
+  const inicioResumo=L1+famOrdem.length+5;
+  ws.mergeCells(inicioResumo,1,inicioResumo,13);
+  const titulo=ws.getCell(inicioResumo,1);
+  titulo.value="RESUMO GERENCIAL DETALHADO | PEÇAS POR TIPO E DESCRIÇÃO";
+  titulo.font={name:FONTE,bold:true,size:14,color:{argb:"FFFFFFFF"}};
+  titulo.fill={type:"pattern",pattern:"solid",fgColor:{argb:COR.grafite}};
+  titulo.alignment={vertical:"middle",indent:1};
+  ws.getRow(inicioResumo).height=37;
+  const headers=["FAMÍLIA / SEQUÊNCIA","TIPO / MODELO","DESCRIÇÃO COMPLETA","PEDIDO","MATERIAL","MEDIDA (mm)","COR","ACABAMENTO","QTD PEÇAS","METROS LINEARES","VOLUME m³","Nº OFs","CONFERÊNCIA"];
+  cabecalho(inicioResumo+1,headers);
+  headers.forEach((_,i)=>{const c=ws.getCell(inicioResumo+1,i+1);c.alignment={vertical:"middle",horizontal:"center",wrapText:true};});
+  ws.getRow(inicioResumo+1).height=36;
+  linhasDetalhadas.forEach((v,i)=>{
+    const row=inicioResumo+i+2;
+    const data:[string|string|number,...(string|number)[]]=[v.familia,v.tipo,v.descricao,v.pedido,v.material,v.medida,v.cor,v.acabamento,v.quantidade,v.mlIncompleto?"":Math.round(v.ml*1000)/1000,Math.round(v.m3*1000)/1000,v.ofs.size,v.mlIncompleto?"SEM COMPRIMENTO":"OK"];
+    data.forEach((value,j)=>{const cell=celula(row,j+1,value as ExcelJS.CellValue,j===8?"#,##0.###":j===9||j===10?"#,##0.000":undefined,j===0||j===3,j<=7||j===12);cell.alignment={vertical:"middle",horizontal:j>=8&&j<=11?"right":"left",wrapText:j===2};if(i%2===1)cell.fill={type:"pattern",pattern:"solid",fgColor:{argb:"FFF1F5F9"}};});
+    ws.getRow(row).height=29;
+  });
+  ws.autoFilter={from:{row:inicioResumo+1,column:1},to:{row:Math.max(inicioResumo+2,inicioResumo+linhasDetalhadas.length+1),column:13}};
+  [28,27,66,15,18,19,23,23,17,22,18,13,24].forEach((w,i)=>ws.getColumn(i+1).width=w);
+  ws.views=[{state:"frozen",ySplit:inicioResumo+1,xSplit:1,showGridLines:false}];
+  ws.pageSetup={orientation:"landscape",paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:0};
 
-  const pedidosResumo =
-    new Map<
-      string,
-      {
-        pedido: string;
-        kits: number;
-        usinagem: boolean;
-        alizares: Set<string>;
-        ultra: boolean;
-        std: boolean;
-      }
-    >();
-
-  for (const p of validos) {
-    const pedido =
-      limpar(
-        p.pedido
-      );
-
-    if (!pedido) {
-      continue;
-    }
-
-    const atual =
-      pedidosResumo.get(
-        pedido
-      ) || {
-        pedido,
-        kits: 0,
-        usinagem: false,
-        alizares:
-          new Set<string>(),
-        ultra: false,
-        std: false,
-      };
-
-    const familia =
-      familiaIndustrial(
-        p
-      );
-
-    // Quantidade de conjuntos = quantidade de folhas de porta.
-    // Nunca somar kit de correr, ferragens ou componentes de batente.
-
-
-    if (
-      p.usinagemPlanilha
-    ) {
-      atual.usinagem =
-        true;
-    }
-
-    if (
-      familia ===
-      "ALIZARES"
-    ) {
-      const [
-        ,
-        largura,
-        espessura,
-      ] =
-        medidaDoItem(
-          p
-        );
-      const medidaCodigo = [p.produto, p.codigoModelo, p.descricaoModelo]
-        .map(valor => String(valor || "").match(/(?:^|[^0-9])(50|60|70|80|90|100|120|150)\s*[xX]\s*(9|12|15)(?![0-9])/))
-        .find(Boolean);
-      const larguraFinal = largura > 0 ? largura : Number(medidaCodigo?.[1] || 0);
-      const espessuraFinal = espessura > 0 ? espessura : Number(medidaCodigo?.[2] || 0);
-
-      if (
-        larguraFinal >
-          0 &&
-        espessuraFinal >
-          0
-      ) {
-        atual.alizares.add(
-          `${larguraFinal}x${espessuraFinal}`
-        );
-      }
-    }
-
-    const materialTexto =
-      [
-        p.material,
-        p.tipo,
-        p.descricao,
-        p.produto,
-        p.codigoModelo,
-        p.descricaoModelo,
-      ]
-        .filter(
-          Boolean
-        )
-        .join(
-          " "
-        )
-        .normalize(
-          "NFD"
-        )
-        .replace(
-          /[\u0300-\u036f]/g,
-          ""
-        )
-        .toUpperCase();
-
-    if (
-      /\b(?:ULTRA|ULTR|ULT|UL)\b/.test(materialTexto)
-    ) {
-      atual.ultra =
-        true;
-    }
-
-    if (
-      /\b(?:STD|STANDARD)\b/.test(
-        materialTexto
-      )
-    ) {
-      atual.std =
-        true;
-    }
-
-    pedidosResumo.set(
-      pedido,
-      atual
-    );
-  }
-
-  for(const resumo of pedidosResumo.values())resumo.kits=contagemKitsPedido(validos.filter(p=>limpar(p.pedido)===resumo.pedido)).kits;
-
-  const linhasPedido =
-    [
-      ...pedidosResumo.values(),
-    ].sort(
-      (
-        a,
-        b
-      ) =>
-        a.pedido.localeCompare(
-          b.pedido,
-          "pt-BR",
-          {
-            numeric:
-              true,
-          }
-        )
-    );
-
-  const resumoPedidoStart =
-    L1 +
-    1 +
-    famOrdem.length +
-    4;
-
-  ws.mergeCells(
-    resumoPedidoStart,
-    1,
-    resumoPedidoStart,
-    14
-  );
-
-  const tituloPedidos =
-    ws.getCell(
-      resumoPedidoStart,
-      1
-    );
-
-  tituloPedidos.value =
-    "RESUMO COMPLETO DE PEÇAS POR PEDIDO — FILTRE AS COLUNAS";
-
-  tituloPedidos.font = {
-    name:
-      FONTE,
-    size:
-      13,
-    bold:
-      true,
-    color: {
-      argb:
-        COR.texto,
-    },
-  };
-
-  tituloPedidos.border = {
-    bottom: {
-      style:
-        "medium",
-      color: {
-        argb:
-          COR.cabecalho,
-      },
-    },
-  };
-
-  cabecalho(
-    resumoPedidoStart +
-      1,
-    [
-      "Pedido",
-      "Conjuntos previstos",
-      "Planilha Usinagem",
-      "Medidas de Alizar",
-      "Material",
-      "Portas",
-      "Pernas batente",
-      "Travessas batente",
-      "Pernas alizar",
-      "Travessas alizar",
-      "Kit correr",
-      "Baguetes",
-      "Ferragens",
-      "Outros",
-    ]
-  );
-
-  linhasPedido.forEach(
-    (
-      item,
-      index
-    ) => {
-      const row =
-        resumoPedidoStart +
-        2 +
-        index;
-
-      const medidas =
-        [
-          ...item.alizares,
-        ].sort(
-          (
-            a,
-            b
-          ) => {
-            const [
-              la,
-              ea,
-            ] =
-              a
-                .split(
-                  "x"
-                )
-                .map(
-                  Number
-                );
-
-            const [
-              lb,
-              eb,
-            ] =
-              b
-                .split(
-                  "x"
-                )
-                .map(
-                  Number
-                );
-
-            return (
-              lb -
-                la ||
-              eb -
-                ea
-            );
-          }
-        );
-
-      const material =
-        item.ultra &&
-        item.std
-          ? "ULTRA/STD"
-          : item.ultra
-          ? "ULTRA"
-          : item.std
-          ? "STD"
-          : "-";
-
-      celula(
-        row,
-        1,
-        item.pedido,
-        undefined,
-        true,
-        true
-      );
-
-      celula(
-        row,
-        2,
-        item.kits,
-        "#,##0"
-      );
-
-      const usinagemCell =
-        celula(
-          row,
-          3,
-          item.usinagem
-            ? "SIM"
-            : "NÃO",
-          undefined,
-          true
-        );
-
-      usinagemCell.alignment = {
-        horizontal:
-          "center",
-        vertical:
-          "middle",
-      };
-
-      if (
-        item.usinagem
-      ) {
-        usinagemCell.fill = {
-          type:
-            "pattern",
-          pattern:
-            "solid",
-          fgColor: {
-            argb:
-              "FFEAF4EC",
-          },
-        };
-      }
-
-      celula(
-        row,
-        4,
-        medidas.length
-          ? medidas.join(
-              " / "
-            )
-          : "-",
-        undefined,
-        false,
-        true
-      );
-
-      celula(
-        row,
-        5,
-        material,
-        undefined,
-        true
-      );
-
-      const familias = resumoFamilias.get(item.pedido) || {};
-      const colunas = ["PORTAS", "PERNAS BATENTE", "TRAVESSAS BATENTE", "PERNAS ALIZAR", "TRAVESSAS ALIZAR", "KIT CORRER", "BAGUETES", "FERRAGENS", "OUTROS"];
-      colunas.forEach((grupo, pos) => celula(row, pos + 6, familias[grupo] || 0, "#,##0"));
-
-      ws.getRow(
-        row
-      ).height =
-        26;
-    }
-  );
-
-  // Um único autofiltro por aba: usar o quadro de pedidos para filtrar portas,
-  // batentes, alizares, kits e outras famílias independentemente.
-  ws.autoFilter = {
-    from: { row: resumoPedidoStart + 1, column: 1 },
-    to: { row: resumoPedidoStart + 1 + linhasPedido.length, column: 14 },
-  };
-  for (let c = 6; c <= 14; c++) ws.getColumn(c).width = 18;
-
-  ws.getColumn(
-    1
-  ).width =
-    Math.max(
-      Number(
-        ws.getColumn(
-          1
-        ).width ||
-          0
-      ),
-      18
-    );
-
-  ws.getColumn(
-    2
-  ).width =
-    Math.max(
-      Number(
-        ws.getColumn(
-          2
-        ).width ||
-          0
-      ),
-      14
-    );
-
-  ws.getColumn(
-    3
-  ).width =
-    Math.max(
-      Number(
-        ws.getColumn(
-          3
-        ).width ||
-          0
-      ),
-      20
-    );
-
-  ws.getColumn(
-    4
-  ).width =
-    Math.max(
-      Number(
-        ws.getColumn(
-          4
-        ).width ||
-          0
-      ),
-      30
-    );
-
-  ws.getColumn(
-    5
-  ).width =
-    Math.max(
-      Number(
-        ws.getColumn(
-          5
-        ).width ||
-          0
-      ),
-      18
-    );
-
-  ws.pageSetup = {
-    orientation:
-      "landscape",
-
-    paperSize:
-      9,
-
-    fitToPage:
-      true,
-
-    fitToWidth:
-      1,
-
-    fitToHeight:
-      0,
-  };
 }
 
 
