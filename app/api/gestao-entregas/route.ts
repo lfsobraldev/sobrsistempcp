@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+import {lerControleEntregas} from "@/lib/gestao-entregas-import";
 import {NextResponse} from "next/server";
 import {sql} from "@/lib/db";
 import {requireRoles} from "@/lib/auth";
@@ -99,4 +101,54 @@ export async function PATCH(req:Request){
   await publishRealtimeEvent("GESTAO_ATUALIZADA",{pedido,tipo:"ENTREGA"});
   return NextResponse.json({ok:true});
  }catch(e:any){return NextResponse.json({error:e.message==="SEM_PERMISSAO"?"Sem permissão":e.message||"Falha ao salvar"},{status:e.message==="SEM_PERMISSAO"?403:500})}
+}
+
+export async function POST(req:Request){
+ try{
+  const user=await requireRoles(["PCP"]);
+  const fd=await req.formData(),file=fd.get("arquivo"),aplicar=fd.get("aplicar")==="true";
+  if(!(file instanceof File)||file.size<100||file.size>10_000_000||!file.name.toLowerCase().endsWith(".xlsx"))return NextResponse.json({error:"Informe o Excel .xlsx de Controle de Entregas (máx. 10 MB)."}, {status:400});
+  const bytes=Buffer.from(await file.arrayBuffer()),hash=crypto.createHash("sha256").update(bytes).digest("hex");
+  const {itens,linhasPorAba}=await lerControleEntregas(bytes);
+  if(!itens.length)return NextResponse.json({error:"Não foi possível identificar pedidos nas abas do arquivo."},{status:422});
+  const db=sql();await ensure(db);
+  const [pg]=await db`select id from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
+  if(!pg)return NextResponse.json({error:"Nenhuma programação ativa."},{status:404});
+  const ativos=await db`select distinct pedido from pcp_produtos where programacao_id=${pg.id}`;
+  const ids=new Set(ativos.map((v:any)=>String(v.pedido)));
+  const encontrados=itens.filter(x=>ids.has(x.pedido));
+  const ausentes=itens.filter(x=>!ids.has(x.pedido)).map(x=>x.pedido);
+  const resumo={arquivo:file.name,linhasPorAba,totalNaPlanilha:itens.length,correspondentes:encontrados.length,foraDaProgramacao:ausentes.length,naoEncontrados:ausentes.slice(0,50),amostra:encontrados.slice(0,10)};
+  if(!aplicar)return NextResponse.json({previa:true,...resumo});
+  if(!encontrados.length)return NextResponse.json({error:"Nenhum pedido do Excel foi encontrado na programação ativa.",...resumo},{status:422});
+  await db`create table if not exists pcp_entregas_importacoes(programacao_id uuid not null references pcp_programacoes(id) on delete cascade,arquivo_sha256 varchar(64) not null,arquivo_nome varchar(200) not null,linhas_lidas int not null,pedidos_encontrados int not null,usuario varchar(100) not null,criado_em timestamptz not null default now(),primary key(programacao_id,arquivo_sha256))`;
+  const [previa]=await db`select arquivo_sha256 from pcp_entregas_importacoes where programacao_id=${pg.id} and arquivo_sha256=${hash} limit 1`;
+  if(previa)return NextResponse.json({ok:true,repetido:true,atualizados:0,...resumo});
+  // Importação histórica: somente completar campos vazios, jamais sobrescrever
+  // status, datas ou apontamentos oficiais do PCP com valores antigos do Excel.
+  const payload=JSON.stringify(encontrados);
+  await db`insert into pcp_entregas_gestao as t(programacao_id,pedido,cliente,representante,tipo_pedido,colecao,status_ferragens,uf,cidade,tipo_frete,origem_unidade,destino_unidade,pedido_sul,local_montagem,transportadora,volume_m3,peso_kg)
+    select ${pg.id}::uuid,x.pedido,coalesce(x.cliente,''),coalesce(x.representante,''),coalesce(x.tipo_pedido,''),coalesce(x.colecao,''),coalesce(x.status_ferragens,''),coalesce(x.uf,''),coalesce(x.cidade,''),coalesce(x.tipo_frete,''),coalesce(x.origem_unidade,''),coalesce(x.destino_unidade,''),coalesce(x.pedido_sul,''),coalesce(x.local_montagem,''),coalesce(x.transportadora,''),x.volume_m3,x.peso_kg
+    from jsonb_to_recordset(${payload}::jsonb) as x(pedido text,cliente text,representante text,tipo_pedido text,colecao text,status_ferragens text,uf text,cidade text,tipo_frete text,origem_unidade text,destino_unidade text,pedido_sul text,local_montagem text,transportadora text,volume_m3 numeric,peso_kg numeric)
+    on conflict(programacao_id,pedido) do update set
+    cliente=coalesce(nullif(trim(t.cliente),''),excluded.cliente),
+    representante=coalesce(nullif(trim(t.representante),''),excluded.representante),
+    tipo_pedido=coalesce(nullif(trim(t.tipo_pedido),''),excluded.tipo_pedido),
+    colecao=coalesce(nullif(trim(t.colecao),''),excluded.colecao),
+    status_ferragens=coalesce(nullif(trim(t.status_ferragens),''),excluded.status_ferragens),
+    uf=coalesce(nullif(trim(t.uf),''),excluded.uf),
+    cidade=coalesce(nullif(trim(t.cidade),''),excluded.cidade),
+    tipo_frete=coalesce(nullif(trim(t.tipo_frete),''),excluded.tipo_frete),
+    origem_unidade=coalesce(nullif(trim(t.origem_unidade),''),excluded.origem_unidade),
+    destino_unidade=coalesce(nullif(trim(t.destino_unidade),''),excluded.destino_unidade),
+    pedido_sul=coalesce(nullif(trim(t.pedido_sul),''),excluded.pedido_sul),
+    local_montagem=coalesce(nullif(trim(t.local_montagem),''),excluded.local_montagem),
+    transportadora=coalesce(nullif(trim(t.transportadora),''),excluded.transportadora),
+    volume_m3=coalesce(t.volume_m3,excluded.volume_m3),
+    peso_kg=coalesce(t.peso_kg,excluded.peso_kg)
+  `;
+  await db`insert into pcp_entregas_importacoes(programacao_id,arquivo_sha256,arquivo_nome,linhas_lidas,pedidos_encontrados,usuario) values(${pg.id},${hash},${file.name.slice(0,200)},${itens.length},${encontrados.length},${user.usuario}) on conflict do nothing`;
+  await publishRealtimeEvent("GESTAO_ATUALIZADA",{tipo:"PLANILHA_IMPORTADA",pedidos:encontrados.length});
+  return NextResponse.json({ok:true,atualizados:encontrados.length,...resumo});
+ }catch(e:any){return NextResponse.json({error:e.message==="SEM_PERMISSAO"?"Sem permissão":e.message||"Falha ao importar planilha"},{status:e.message==="SEM_PERMISSAO"?403:500})}
 }
