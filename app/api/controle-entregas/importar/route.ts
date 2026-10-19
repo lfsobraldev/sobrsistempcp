@@ -93,6 +93,22 @@ export async function POST(req:Request){
    const [active]=await db`select id from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
    programacaoId=String(active?.id||"");
   }
+  if(datasEtapas.length){
+   await db`create table if not exists pcp_controle_entregas_etapas(
+    pedido varchar(80) not null references pcp_controle_entregas(pedido) on delete restrict,
+    area varchar(40) not null,etapa varchar(50) not null,data_inicio date,data_conclusao date,
+    status varchar(24) not null default 'PENDENTE',observacao text not null default '',
+    usuario varchar(100) not null default '',atualizado_em timestamptz not null default now(),
+    primary key(pedido,area,etapa)
+   )`;
+   await db`alter table pcp_controle_entregas_etapas add column if not exists programacao_id uuid references pcp_programacoes(id) on delete cascade`;
+   await db`do $ begin
+    if exists(select 1 from pg_constraint where conname='pcp_controle_entregas_etapas_pkey' and conrelid='public.pcp_controle_entregas_etapas'::regclass) then
+     alter table pcp_controle_entregas_etapas drop constraint pcp_controle_entregas_etapas_pkey;
+    end if;
+   end $`;
+   await db`create unique index if not exists ux_pcp_etapas_programacao_pedido_area on pcp_controle_entregas_etapas(programacao_id,pedido,area,etapa)`;
+  }
   if(datasEtapas.length&&!programacaoId)datasIgnoradas=datasEtapas.length;
   if(datasEtapas.length&&programacaoId){
    for(const item of datasEtapas){
