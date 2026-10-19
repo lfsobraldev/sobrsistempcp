@@ -57,6 +57,7 @@ const MONTAGENS: Array<{
 ];
 
 export default function RomaneiosPage() {
+  const { selectedProgramacaoId } = useOps();
   const [pedido, setPedido] = useState<File | null>(null);
   const [usinagem, setUsinagem] = useState<File | null>(null);
   const [produtosFiltro, setProdutosFiltro] = useState<Produto[]>([]);
@@ -80,6 +81,7 @@ export default function RomaneiosPage() {
 
   useEffect(() => {
     let active = true;
+    setCarregandoFiltro(true);
 
     Promise.all([
       fetch("/api/programacoes/ativa" + (selectedProgramacaoId ? "?id=" + encodeURIComponent(selectedProgramacaoId) : ""), { cache: "no-store" }),
@@ -94,7 +96,7 @@ export default function RomaneiosPage() {
         setProdutosFiltro(products);
         setPreparados(Array.isArray(preparedData.itens) ? preparedData.itens : []);
         const filtroAtual = String(data.programacao?.filtro || "");
-        if (filtroAtual) setFiltro((current) => current || filtroAtual);
+        setFiltro(filtroAtual);
       })
       .catch(() => {
         if (active) {
