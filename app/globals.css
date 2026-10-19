@@ -1536,3 +1536,41 @@ input, select, textarea { min-width:0; max-width:100%; }
  .apontamento-mobile-sectors>section{padding:11px}
  .apontamento-actions{grid-template-columns:minmax(0,1fr)}
 }
+
+
+/* Ajustes de leitura: apontamento sem sobreposição de texto, datas ou números. */
+.apontamento-area{min-width:0;width:100%;max-width:100%;overflow-x:clip}
+.apontamento-heading,.apontamento-toolbar,.apontamento-actions{min-width:0;flex-wrap:wrap}
+.apontamento-actions{display:flex;align-items:center;gap:8px}
+.apontamento-actions>*{min-width:0;max-width:100%}
+.apontamento-import-button{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 13px;border:1px solid var(--border-strong);border-radius:var(--radius);background:var(--surface);color:var(--text);font-size:var(--fs-sm);font-weight:var(--fw-medium);cursor:pointer;white-space:nowrap}
+.apontamento-import-button svg{width:16px;height:16px;flex-shrink:0}
+.apontamento-import-button input[type=file]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;padding:0;min-height:0}
+.apontamento-table-wrap{width:100%;max-width:100%;overflow:auto;overscroll-behavior-x:contain;isolation:isolate}
+.apontamento-table{width:max-content;min-width:100%;table-layout:auto;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+.apontamento-table th,.apontamento-table td{box-sizing:border-box;vertical-align:top;line-height:1.4}
+.apontamento-table thead th{white-space:normal;min-width:125px;max-width:240px;overflow-wrap:anywhere;padding:11px 12px}
+.apontamento-table thead th:nth-child(1){min-width:90px;max-width:110px}
+.apontamento-table thead th:nth-child(2){min-width:190px;max-width:260px}
+.apontamento-table thead th:nth-child(3),.apontamento-table thead th:nth-child(4),.apontamento-table thead th:nth-child(5){min-width:82px;max-width:100px}
+.apontamento-table thead th small{display:block;margin-top:4px;line-height:1.35;white-space:normal}
+.apontamento-table tbody td{min-width:82px;max-width:260px;padding:10px 12px;overflow-wrap:anywhere;word-break:normal}
+.apontamento-table tbody td:nth-child(1){min-width:90px;white-space:nowrap}
+.apontamento-table tbody td:nth-child(2){min-width:190px;max-width:260px;white-space:normal}
+.apontamento-table tbody td:nth-child(3),.apontamento-table tbody td:nth-child(4),.apontamento-table tbody td:nth-child(5){min-width:82px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.apontamento-dates{display:grid;gap:7px;min-width:125px;max-width:220px}
+.apontamento-dates span{display:block;white-space:normal;overflow-wrap:anywhere;line-height:1.4}
+.apontamento-dates button{width:100%;min-height:36px;padding:6px 8px;white-space:normal;line-height:1.3}
+.apontamento-mobile-sectors,.apontamento-mobile-card,.apontamento-mobile-card *{min-width:0}
+.apontamento-mobile-sectors button{white-space:normal;line-height:1.35}
+.apontamento-fields input,.apontamento-fields button{min-width:0;max-width:100%}
+@media(max-width:700px){
+ .apontamento-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+ .apontamento-actions>*{width:100%;min-width:0;white-space:normal;text-align:center}
+ .apontamento-import-button{padding:8px;white-space:normal;line-height:1.3}
+ .apontamento-table-wrap{display:none!important}
+}
+@media(min-width:701px) and (max-width:1100px){
+ .apontamento-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .apontamento-actions>*{min-width:0;white-space:normal}
+}
