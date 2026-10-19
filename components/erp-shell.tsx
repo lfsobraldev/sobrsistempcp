@@ -48,7 +48,7 @@ const menus: MenuGroup[] = [
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/gestao-pedidos", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas" };
 
 function Inner({ children }: { children: React.ReactNode }) {
-  const { me, pg, lastSync, realtimeStatus, refresh, loading } = useOps();
+  const { me, pg, selectedProgramacaoId, selectProgramacao, lastSync, realtimeStatus, refresh, loading } = useOps();
   const path = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -56,6 +56,7 @@ function Inner({ children }: { children: React.ReactNode }) {
   const [mobileNav, setMobileNav] = useState(false);
   const [query, setQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [programacoesGlobais, setProgramacoesGlobais] = useState<Array<{id:string;filtro:string;data:string;turno:string;status:string}>>([]);
 
   const visible = useMemo(
     () => menus.map((g) => ({ ...g, items: g.items.filter((i) => me && allowedPath(me.perfil, i.path)) })).filter((g) => g.items.length),
@@ -63,6 +64,22 @@ function Inner({ children }: { children: React.ReactNode }) {
   );
   const allVisible = useMemo(() => visible.flatMap((g) => g.items), [visible]);
   const current = allVisible.find((i) => i.path === path)?.label || "Central de Produção";
+  useEffect(() => {
+    if (!me) return;
+    let cancelado = false;
+    fetch("/api/programacoes/historico", { cache: "no-store" })
+      .then(async (r) => {
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "Falha ao carregar filtros globais.");
+        if (!cancelado) setProgramacoesGlobais((j.itens || []).map((x:any) => ({
+          id: String(x.id), filtro: String(x.filtro || ""), data: String(x.data || ""),
+          turno: String(x.turno || ""), status: String(x.status || "")
+        })));
+      })
+      .catch(() => { if (!cancelado) setProgramacoesGlobais([]); });
+    return () => { cancelado = true; };
+  }, [me]);
+
   useEffect(()=>{
     if(!me||!allowedPath(me.perfil,path))return;
     const label=allVisible.find(i=>i.path===path)?.label||path;
@@ -131,13 +148,29 @@ function Inner({ children }: { children: React.ReactNode }) {
           <input aria-label="Buscar módulo" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") searchModule(); }} placeholder="Ir para módulo…" />
         </div>
         <div className="spacer" />
-        {pg && (
-          <div className="ctxmeta">
-            <span>Filtro<b>{pg.filtro || "-"}</b></span>
-            <span>Turno<b>{pg.turno || "-"}</b></span>
-            <span>Data<b>{new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}</b></span>
-          </div>
-        )}
+        <div className="ctxmeta ctxmeta-global">
+          <label className="ctxfilter-select">
+            <span>Filtro / programação</span>
+            <select
+              aria-label="Selecionar filtro e programação para todo o sistema"
+              value={selectedProgramacaoId || pg?.id || ""}
+              onChange={async (e) => {
+                try { await selectProgramacao(e.target.value); }
+                catch (error) { console.error(error); }
+              }}
+              disabled={!programacoesGlobais.length}
+            >
+              {!programacoesGlobais.length && <option value="">Sem programações</option>}
+              {programacoesGlobais.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {`Filtro ${x.filtro || "-"} · ${x.data || "sem data"} · Turno ${x.turno || "-"}${x.status === "ATIVA" ? " · Atual" : ""}`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span>Turno<b>{pg?.turno || "-"}</b></span>
+          <span>Data<b>{pg?.data ? new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR") : "-"}</b></span>
+        </div>
         <span className={`livedot ${live ? "on" : ""}`} title={live ? "Tempo real ativo" : "Sincronizando"} />
         <button className="ghost iconBtn" onClick={() => void refresh()} aria-label="Atualizar" title="Atualizar"><RefreshCw /></button>
         <button className="ghost iconBtn" aria-label="Notificações" title="Notificações"><Bell /></button>
