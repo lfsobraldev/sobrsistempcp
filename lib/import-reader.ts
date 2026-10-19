@@ -40,7 +40,7 @@ export function parseImportNumber(value: unknown): number | null {
     .replace(/R\$|US\$|\$/gi, "")
     .replace(/%/g, "")
     .replace(/\s+/g, "")
-    .replace(/(?:UNIDADES?|UNID|UN|PCS|PC|PÇS|PÇ|JG|CJ|KG|M[23²³]|MM|CM|M|G|L)$/i, "");
+    .replace(/(?:UNIDADES?|UNID|PEÇAS?|PECAS?|PCS|PÇS|PÇ|PC|UN|JG|CJ|KG|METROLINEAR|METROS?|M[23²³]|MM|CM|M|G|L|PORTAS?)$/i, "");
 
   if (!s || /^(?:-|—|N\/?A|ND|N\/D)$/i.test(s)) return null;
 

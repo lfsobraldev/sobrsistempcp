@@ -15,6 +15,12 @@ test("números decimais brasileiros e internacionais", () => {
 });
 
 
+test("aceita quantidades com unidades portuguesas comuns", () => {
+  assert.equal(parseImportNumber("10 peças"), 10);
+  assert.equal(parseImportNumber("24 portas"), 24);
+  assert.equal(parseImportNumber("0,5 m3"), 0.5);
+});
+
 test("rejeita números malformados em vez de juntar dígitos", () => {
   assert.equal(parseImportNumber("1.2.3"), null);
   assert.equal(parseImportNumber("12-3"), null);
