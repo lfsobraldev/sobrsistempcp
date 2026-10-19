@@ -1201,3 +1201,31 @@ body{background-image:none}
  .apontamento-modal-heading h2{font-size:17px}
  .apontamento-modal-heading button{min-height:44px}
 }
+
+/* Seletores de arquivo modernos para importações */
+.file-upload-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;align-items:start;width:100%;margin:10px 0 4px}
+.file-upload-control{display:grid;gap:8px;min-width:0}
+.file-upload-input{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.file-upload-dropzone{display:flex;align-items:center;gap:13px;min-width:0;width:100%;padding:14px 16px;border:1px dashed #a9cbb5;border-radius:12px;background:linear-gradient(110deg,#f5faf6 0%,#fbfdfb 70%,#f1f8f3 100%);cursor:pointer;transition:border-color .18s ease,background .18s ease,box-shadow .18s ease}
+.file-upload-dropzone:hover{border-color:#39835b;background:#f0f8f2;box-shadow:0 3px 12px rgba(34,91,56,.07)}
+.file-upload-input:focus-visible+.file-upload-dropzone{outline:3px solid rgba(58,133,91,.25);outline-offset:2px;border-color:#39835b}
+.file-upload-dropzone.is-disabled{opacity:.58;cursor:not-allowed;pointer-events:none}
+.file-upload-icon{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;border-radius:11px;background:#e3f1e7;color:#286846}
+.file-upload-copy{display:grid;gap:4px;min-width:0;flex:1}
+.file-upload-copy strong{font-size:13px;line-height:1.4;font-weight:750;color:#234332}
+.file-upload-copy small{font-size:12px;line-height:1.45;color:#63786b;overflow-wrap:anywhere}
+.file-upload-action{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-height:36px;padding:0 13px;border:1px solid #c9ddcf;border-radius:8px;background:#fff;color:#2e6945;font-size:12px;font-weight:750;white-space:nowrap}
+.file-upload-meta{display:flex;align-items:center;gap:6px;padding-left:2px;font-size:11px;color:#718278;line-height:1.45}
+.file-upload-submit{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.file-upload-submit button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 16px;border-radius:9px}
+.file-upload-submit-inline{padding-top:2px}
+.file-upload-layout-compact{margin-top:12px}
+@media(max-width:600px){
+ .file-upload-dropzone{align-items:flex-start;gap:10px;padding:12px}
+ .file-upload-icon{flex-basis:38px;width:38px;height:38px}
+ .file-upload-action{padding:0 9px;min-height:34px;font-size:11px}
+ .file-upload-copy strong{font-size:12px}
+ .file-upload-copy small{font-size:11px}
+ .file-upload-submit{display:grid;grid-template-columns:1fr;width:100%}
+ .file-upload-submit button{width:100%;min-height:44px}
+}
