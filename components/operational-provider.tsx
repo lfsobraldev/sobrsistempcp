@@ -27,6 +27,8 @@ type RealtimeStatus =
 type Ctx = {
   me: Sessao | null;
   pg: Programacao | null;
+  selectedProgramacaoId: string;
+  selectProgramacao: (id: string) => Promise<void>;
   andon: Andon[];
   lastSync: Date | null;
   loading: boolean;
@@ -41,6 +43,8 @@ const CHANNEL = "sobral-pcp-live";
 export function OperationalProvider({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<Sessao | null>(null);
   const [pg, setPg] = useState<Programacao | null>(null);
+  const [selectedProgramacaoId, setSelectedProgramacaoId] = useState("");
+  const selectedProgramacaoIdRef = useRef("");
   const [andon, setAndon] = useState<Andon[]>([]);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -66,7 +70,7 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
     refreshing.current = true;
     try {
       const [a, c] = await Promise.all([
-        fetch("/api/programacoes/ativa", { cache: "no-store" }),
+        fetch("/api/programacoes/ativa" + (selectedProgramacaoIdRef.current ? "?id=" + encodeURIComponent(selectedProgramacaoIdRef.current) : ""), { cache: "no-store" }),
         fetch("/api/andon", { cache: "no-store" }),
       ]);
 
@@ -74,6 +78,10 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
         const programacao = (await a.json()).programacao as Programacao | null;
 
         if (programacao) {
+          if (!selectedProgramacaoIdRef.current) {
+            selectedProgramacaoIdRef.current = programacao.id;
+            setSelectedProgramacaoId(programacao.id);
+          }
           setPg({
             ...programacao,
             produtos: (programacao.produtos || []).filter(produtoEntraPCP),
@@ -94,6 +102,26 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
       }
     }
   }, []);
+
+  const selectProgramacao = useCallback(async (id: string) => {
+    if (!id || id === selectedProgramacaoIdRef.current) return;
+    selectedProgramacaoIdRef.current = id;
+    setSelectedProgramacaoId(id);
+    setPg(null);
+    try {
+      const r = await fetch("/api/programacoes/ativa?id=" + encodeURIComponent(id), { cache: "no-store" });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Não foi possível trocar a programação global.");
+      if (!j.programacao) throw new Error("A programação selecionada não foi encontrada.");
+      setPg({ ...j.programacao, produtos: (j.programacao.produtos || []).filter(produtoEntraPCP) });
+      setLastSync(new Date());
+    } catch (e) {
+      selectedProgramacaoIdRef.current = "";
+      setSelectedProgramacaoId("");
+      await refresh();
+      throw e;
+    }
+  }, [refresh]);
 
   const scheduleRefresh = useCallback(() => {
     if (realtimeTimer.current) clearTimeout(realtimeTimer.current);
@@ -224,6 +252,8 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
     () => ({
       me,
       pg,
+      selectedProgramacaoId,
+      selectProgramacao,
       andon,
       lastSync,
       loading,
@@ -234,12 +264,16 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
     [
       me,
       pg,
+      selectedProgramacaoId,
+      selectProgramacao,
       andon,
       lastSync,
       loading,
       realtimeStatus,
       refresh,
       toast,
+      selectedProgramacaoId,
+      selectProgramacao,
     ]
   );
 
