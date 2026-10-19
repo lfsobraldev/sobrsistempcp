@@ -10,6 +10,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Card, DataTable, Field, PageHeader, StatCard } from "@/components/ui";
 import { GerarComIABotao } from "@/components/romaneio-ai";
+import { useOps } from "@/components/operational-provider";
 import type {
   MountType,
   ProcessingResult,
@@ -56,6 +57,7 @@ const MONTAGENS: Array<{
 ];
 
 export default function RomaneiosPage() {
+  const { selectedProgramacaoId } = useOps();
   const [pedido, setPedido] = useState<File | null>(null);
   const [usinagem, setUsinagem] = useState<File | null>(null);
   const [produtosFiltro, setProdutosFiltro] = useState<Produto[]>([]);
@@ -79,9 +81,10 @@ export default function RomaneiosPage() {
 
   useEffect(() => {
     let active = true;
+    setCarregandoFiltro(true);
 
     Promise.all([
-      fetch("/api/programacoes/ativa", { cache: "no-store" }),
+      fetch("/api/programacoes/ativa" + (selectedProgramacaoId ? "?id=" + encodeURIComponent(selectedProgramacaoId) : ""), { cache: "no-store" }),
       fetch("/api/romaneios/preparados", { cache: "no-store" }),
     ])
       .then(async ([response, preparedResponse]) => {
@@ -93,7 +96,7 @@ export default function RomaneiosPage() {
         setProdutosFiltro(products);
         setPreparados(Array.isArray(preparedData.itens) ? preparedData.itens : []);
         const filtroAtual = String(data.programacao?.filtro || "");
-        if (filtroAtual) setFiltro((current) => current || filtroAtual);
+        setFiltro(filtroAtual);
       })
       .catch(() => {
         if (active) {
@@ -108,7 +111,7 @@ export default function RomaneiosPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [selectedProgramacaoId]);
 
   const preparadosPorPedido = useMemo(
     () => new Map(preparados.map((item) => [String(item.pedido), item])),
