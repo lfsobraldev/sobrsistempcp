@@ -14,6 +14,14 @@ test("números decimais brasileiros e internacionais", () => {
   assert.equal(parseImportNumber(""), null);
 });
 
+
+test("rejeita números malformados em vez de juntar dígitos", () => {
+  assert.equal(parseImportNumber("1.2.3"), null);
+  assert.equal(parseImportNumber("12-3"), null);
+  assert.equal(parseImportNumber("1,23,4"), null);
+  assert.equal(parseImportNumber("R$ 1.234,56"), 1234.56);
+});
+
 test("quantidade com milhar em PDF não vira 1", () => {
   assert.equal(parseLocaleNumber("1.250"), 1250);
   assert.equal(parseLocaleNumber("1.250,5"), 1250.5);
