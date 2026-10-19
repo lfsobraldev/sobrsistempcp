@@ -37,15 +37,17 @@ export const normalizeImportHeader = (value: unknown) =>
  */
 export function parseImportNumber(value: unknown): number | null {
   let s = cleanImportText(value)
+    .replace(/R\$|US\$|\$/gi, "")
     .replace(/%/g, "")
     .replace(/\s+/g, "")
     .replace(/(?:UNIDADES?|UNID|UN|PCS|PC|PÇS|PÇ|JG|CJ|KG|M[23²³]|MM|CM|M|G|L)$/i, "");
 
   if (!s || /^(?:-|—|N\/?A|ND|N\/D)$/i.test(s)) return null;
 
-  const sign = s.startsWith("-") ? "-" : "";
-  s = s.replace(/^[+-]/, "").replace(/[^0-9.,]/g, "");
-  if (!s) return null;
+  const sign = s.startsWith("-") ? -1 : 1;
+  s = s.replace(/^[+-]/, "");
+  // Não transforme entradas corrompidas (ex.: "12-3" ou "1.2.3") em números válidos.
+  if (!s || /[+-]/.test(s) || !/^\d[\d.,]*$/.test(s)) return null;
 
   const comma = s.lastIndexOf(",");
   const dot = s.lastIndexOf(".");
@@ -53,19 +55,36 @@ export function parseImportNumber(value: unknown): number | null {
   const dots = (s.match(/\./g) || []).length;
 
   if (comma >= 0 && dot >= 0) {
-    if (comma > dot) s = s.replace(/\./g, "").replace(",", ".");
-    else s = s.replace(/,/g, "");
+    if (comma > dot) {
+      const validBrazilian = /^\d{1,3}(?:\.\d{3})*,\d+$/.test(s) || /^\d+,\d+$/.test(s);
+      if (!validBrazilian) return null;
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      const validInternational = /^\d{1,3}(?:,\d{3})*\.\d+$/.test(s) || /^\d+\.\d+$/.test(s);
+      if (!validInternational) return null;
+      s = s.replace(/,/g, "");
+    }
   } else if (comma >= 0) {
-    // várias vírgulas = milhares ("1,234,567"); uma só = decimal (padrão BR)
-    s = commas > 1 ? s.replace(/,/g, "") : s.replace(",", ".");
+    if (commas > 1) {
+      if (!/^\d{1,3}(?:,\d{3})+$/.test(s)) return null;
+      s = s.replace(/,/g, "");
+    } else {
+      // Uma vírgula é decimal no padrão brasileiro: "1,234" = 1,234.
+      s = s.replace(",", ".");
+    }
   } else if (dot >= 0) {
-    const decimals = s.length - dot - 1;
-    const milhar = /^[1-9]\d{0,2}(\.\d{3})+$/.test(s); // não começa com 0
-    if (dots > 1 || (decimals === 3 && milhar)) s = s.replace(/\./g, "");
+    if (dots > 1) {
+      if (!/^\d{1,3}(?:\.\d{3})+$/.test(s)) return null;
+      s = s.replace(/\./g, "");
+    } else {
+      const decimals = s.length - dot - 1;
+      const milhar = /^[1-9]\d{0,2}\.\d{3}$/.test(s);
+      if (decimals === 3 && milhar) s = s.replace(".", "");
+    }
   }
 
-  const n = Number(sign + s);
-  return Number.isFinite(n) ? n : null;
+  const number = sign * Number(s);
+  return Number.isFinite(number) ? number : null;
 }
 
 export function findImportKey(
@@ -213,19 +232,58 @@ function matrixToRows(
   return rows;
 }
 
+/** Limites defensivos para impedir arquivos vazios, inválidos ou excessivos de travarem a importação. */
+export const MAX_IMPORT_BYTES = 50 * 1024 * 1024;
+export const MAX_IMPORT_ROWS = 200_000;
+export const MAX_IMPORT_SHEETS = 40;
+
+export function validateImportFile(file: Pick<File, "name" | "size">): { isExcel: boolean; extension: string } {
+  const name = cleanImportText(file?.name);
+  const size = Number(file?.size);
+  const extension = name.match(/\.([^.]+)$/)?.[1]?.toLowerCase() || "";
+
+  if (!name) throw new Error("O arquivo selecionado não possui nome válido.");
+  if (!Number.isFinite(size) || size <= 0) throw new Error("O arquivo está vazio. Selecione uma planilha com dados.");
+  if (size > MAX_IMPORT_BYTES) throw new Error("O arquivo excede o limite de 50 MB. Divida a planilha em arquivos menores.");
+  if (!["csv", "xlsx", "xls", "xlsm", "xlsb"].includes(extension)) {
+    throw new Error("Formato não suportado. Envie um arquivo CSV ou Excel (.xlsx, .xls, .xlsm, .xlsb).");
+  }
+
+  return { isExcel: extension !== "csv", extension };
+}
+
+function readWorkbook(bytes: Uint8Array) {
+  try {
+    const workbook = XLSX.read(bytes, { type: "array", raw: false, cellDates: false });
+    if (!workbook.SheetNames.length) throw new Error("O arquivo não possui planilhas.");
+    if (workbook.SheetNames.length > MAX_IMPORT_SHEETS) {
+      throw new Error(`O arquivo possui mais de ${MAX_IMPORT_SHEETS} planilhas; mantenha somente as abas necessárias.`);
+    }
+    return workbook;
+  } catch (error) {
+    if (error instanceof Error && /mais de|não possui planilhas/.test(error.message)) throw error;
+    throw new Error("Não foi possível abrir o Excel. Verifique se o arquivo não está corrompido e tente salvá-lo novamente como .xlsx.");
+  }
+}
+
+function assertRowLimit(rows: unknown[][]) {
+  if (rows.length > MAX_IMPORT_ROWS) {
+    throw new Error(`A planilha excede o limite de ${MAX_IMPORT_ROWS.toLocaleString("pt-BR")} linhas. Divida os dados em arquivos menores.`);
+  }
+}
+
 export async function loadRobustTable(
   file: File,
   aliases: HeaderAliases,
   options?: { forwardFillFields?: string[] }
 ): Promise<RobustTable> {
+  const { isExcel } = validateImportFile(file);
   const bytes = new Uint8Array(await file.arrayBuffer());
   const aliasPool = buildAliasPool(aliases);
-  const name = cleanImportText(file.name).toLowerCase();
-  const isExcel = /\.(xlsx?|xlsm|xlsb)$/i.test(name);
   const warnings: string[] = [];
 
   if (isExcel) {
-    const wb = XLSX.read(bytes, { type: "array", raw: false, cellDates: false });
+    const wb = readWorkbook(bytes);
     let chosen: { matrix: unknown[][]; headerIndex: number; score: number; sheetName: string } | null = null;
 
     for (const sheetName of wb.SheetNames) {
@@ -235,6 +293,7 @@ export async function loadRobustTable(
         raw: false,
         blankrows: false,
       }) as unknown[][];
+      assertRowLimit(matrix);
 
       const detected = bestHeader(matrix, aliasPool);
       if (!detected) continue;
@@ -264,15 +323,21 @@ export async function loadRobustTable(
   }
 
   const delimiter = detectDelimiter(text);
-  const matrix = parse(text, {
-    delimiter,
-    columns: false,
-    skip_empty_lines: false,
-    relax_column_count: true,
-    relax_quotes: true,
-    bom: true,
-    trim: false,
-  }) as unknown[][];
+  let matrix: unknown[][];
+  try {
+    matrix = parse(text, {
+      delimiter,
+      columns: false,
+      skip_empty_lines: false,
+      relax_column_count: true,
+      relax_quotes: true,
+      bom: true,
+      trim: false,
+    }) as unknown[][];
+  } catch {
+    throw new Error("Não foi possível ler o CSV. Confira aspas, separadores e se o arquivo foi exportado corretamente.");
+  }
+  assertRowLimit(matrix);
 
   const detected = bestHeader(matrix, aliasPool);
   if (!detected) throw new Error("Não foi possível identificar o cabeçalho do arquivo.");
@@ -292,17 +357,17 @@ export async function loadRobustTables(
   aliases: HeaderAliases,
   options?: { forwardFillFields?: string[] }
 ): Promise<RobustTable[]> {
+  const { isExcel } = validateImportFile(file);
   const bytes = new Uint8Array(await file.arrayBuffer());
   const aliasPool = buildAliasPool(aliases);
-  const name = cleanImportText(file.name).toLowerCase();
-  const isExcel = /\.(xlsx?|xlsm|xlsb)$/i.test(name);
 
   if (!isExcel) {
     return [await loadRobustTable(file, aliases, options)];
   }
 
-  const wb = XLSX.read(bytes, { type: "array", raw: false, cellDates: false });
+  const wb = readWorkbook(bytes);
   const result: RobustTable[] = [];
+  let totalRows = 0;
 
   for (const sheetName of wb.SheetNames) {
     const matrix = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], {
@@ -311,6 +376,11 @@ export async function loadRobustTables(
       raw: false,
       blankrows: false,
     }) as unknown[][];
+    assertRowLimit(matrix);
+    totalRows += matrix.length;
+    if (totalRows > MAX_IMPORT_ROWS) {
+      throw new Error(`O arquivo excede o limite total de ${MAX_IMPORT_ROWS.toLocaleString("pt-BR")} linhas somando todas as abas.`);
+    }
 
     const detected = bestHeader(matrix, aliasPool);
     if (!detected) continue;
