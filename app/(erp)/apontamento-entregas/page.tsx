@@ -40,7 +40,7 @@ export default function ApontamentoEntregas(){
   if(typeof v==="number"){const d=new Date(Date.UTC(1899,11,30)+v*86400000);return d.toISOString().slice(0,10)}
   const s=String(v).trim();if(!s)return "";
   if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
-  const m=s.match(/^(\d{1,2})[\\/.\-](\d{1,2})[\\/.\-](\d{4})$/);if(m)return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  const m=s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);if(m)return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
   return "";
  }
  async function importarArquivo(file:File){
