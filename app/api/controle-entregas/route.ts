@@ -81,7 +81,7 @@ export async function GET(req:Request){
   const pcp=await db`
     select p.pedido,count(*)::int linhas,count(distinct nullif(p.of,''))::int ofs,
       coalesce(sum(p.quantidade),0) pecas,coalesce(avg(p.percentual_produto),0) percentual,
-      coalesce(nullif(max(trim(pc.cliente)),''),nullif(max(trim(rp.cliente)),''),nullif(max(trim(ce.cliente)),''),'') cliente
+      coalesce(nullif(max(trim(p.pedido_cliente)),''),nullif(max(trim(rp.cliente)),''),nullif(max(trim(pc.cliente)),''),nullif(max(trim(ce.cliente)),''),'') cliente
     from pcp_produtos p
     left join pcp_pedido_controle pc on pc.programacao_id=p.programacao_id and pc.pedido=p.pedido
     left join pcp_romaneios_preparados rp on rp.programacao_id=p.programacao_id and rp.pedido=p.pedido
