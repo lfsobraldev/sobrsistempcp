@@ -19,7 +19,59 @@ const MONTAGENS_ENGENHARIA: Array<{value:MontagemEngenharia;label:string}> = [
 
 export default function Lideres() {
   const { pg, me, refresh, toast } = useOps();
-  const products = pg?.produtos || [];
+  type ProgramacaoLista = { id: string; filtro: string; data: string; turno: string; status: string; origem: string };
+  const [programacoesDisponiveis, setProgramacoesDisponiveis] = useState<ProgramacaoLista[]>([]);
+  const [filtroSelecionado, setFiltroSelecionado] = useState("");
+  const [programacaoIdSelecionada, setProgramacaoIdSelecionada] = useState("");
+  const [programacaoSelecionada, setProgramacaoSelecionada] = useState<typeof pg>(null);
+  const [carregandoProgramacao, setCarregandoProgramacao] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    async function carregarLista() {
+      try {
+        const r = await fetch("/api/programacoes/historico", { cache: "no-store" });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "Falha ao carregar filtros.");
+        const itens = (j.itens || []) as ProgramacaoLista[];
+        if (cancelado) return;
+        setProgramacoesDisponiveis(itens);
+        const inicial = (pg?.id && itens.find((x) => x.id === pg.id)) || itens[0];
+        if (inicial) {
+          setFiltroSelecionado(String(inicial.filtro || ""));
+          setProgramacaoIdSelecionada(inicial.id);
+        }
+      } catch (e) {
+        if (!cancelado) toast("error", e instanceof Error ? e.message : "Falha ao carregar filtros.");
+      }
+    }
+    void carregarLista();
+    return () => { cancelado = true; };
+  // A lista inicial é carregada uma vez; o histórico já vem ordenado do mais recente.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!programacaoIdSelecionada) return;
+    let cancelado = false;
+    setCarregandoProgramacao(true);
+    setProgramacaoSelecionada(null);
+    fetch("/api/programacoes/ativa?id=" + encodeURIComponent(programacaoIdSelecionada), { cache: "no-store" })
+      .then(async (r) => {
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "Falha ao abrir a programação selecionada.");
+        if (!cancelado) setProgramacaoSelecionada(j.programacao || null);
+      })
+      .catch((e) => { if (!cancelado) toast("error", e instanceof Error ? e.message : "Falha ao abrir filtro."); })
+      .finally(() => { if (!cancelado) setCarregandoProgramacao(false); });
+    return () => { cancelado = true; };
+  }, [programacaoIdSelecionada, toast]);
+
+  const filtrosDisponiveis = [...new Set(programacoesDisponiveis.map((x) => String(x.filtro || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+  const programacoesDoFiltro = programacoesDisponiveis.filter((x) => String(x.filtro || "") === filtroSelecionado);
+  const programacaoAtiva = programacaoSelecionada || (pg?.id === programacaoIdSelecionada ? pg : null);
+  const products = programacaoAtiva?.produtos || [];
   const procs = me?.processos?.length
     ? PROCESSOS.filter((x) => me.processos.includes(x))
     : [...PROCESSOS];
@@ -135,7 +187,7 @@ export default function Lideres() {
       const r = await fetch("/api/pedidos/tipo", {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ pedido, tipo, montagemEngenharia }),
+        body: JSON.stringify({ pedido, tipo, montagemEngenharia, programacaoId: programacaoAtiva?.id }),
       });
 
       const j = await r.json();
@@ -185,9 +237,40 @@ export default function Lideres() {
       <PageHeader
         eyebrow="Operação"
         title="Líderes"
-        description="Quantidades reais por processo, da maior medida para a menor."
+        description="Quantidades programadas por filtro, data e processo, da maior medida para a menor."
         actions={<button onClick={exportar}><FileSpreadsheet /> Exportar Excel</button>}
       />
+
+      <section className="card mb" aria-label="Selecionar filtro e data da programação">
+        <div className="card-head">
+          <div><h2>Programação por filtro</h2><small>Cada filtro e cada data permanecem separados; os pedidos não são combinados.</small></div>
+        </div>
+        <div className="card-body form-grid">
+          <Field label="Filtro do Consistem">
+            <select value={filtroSelecionado} onChange={(e) => {
+              const novoFiltro = e.target.value;
+              setFiltroSelecionado(novoFiltro);
+              const primeira = programacoesDisponiveis.find((x) => String(x.filtro || "") === novoFiltro);
+              setProgramacaoIdSelecionada(primeira?.id || "");
+            }}>
+              {filtrosDisponiveis.map((f) => <option key={f} value={f}>Filtro {f}</option>)}
+            </select>
+          </Field>
+          <Field label="Data / turno">
+            <select value={programacaoIdSelecionada} onChange={(e) => setProgramacaoIdSelecionada(e.target.value)}>
+              {programacoesDoFiltro.map((x) => <option key={x.id} value={x.id}>{x.data} · Turno {x.turno || "-"} · {x.status === "ATIVA" ? "Atual" : "Histórico"}</option>)}
+            </select>
+          </Field>
+          <div className="result-box">
+            <small>Filtro selecionado</small>
+            <b>{filtroSelecionado ? "Filtro " + filtroSelecionado : "Nenhum filtro"}</b>
+            <small>{programacaoAtiva?.data ? programacaoAtiva.data + " · Turno " + programacaoAtiva.turno : carregandoProgramacao ? "Carregando programação..." : "Selecione uma programação"}</small>
+          </div>
+        </div>
+      </section>
+
+      {carregandoProgramacao && <p className="muted">Carregando pedidos e datas do filtro selecionado...</p>}
+      {!carregandoProgramacao && !programacaoAtiva && <Card title="Nenhuma programação disponível" subtitle="Importe um filtro do Consistem para começar." />}
 
       <div className="leader-process-tabs">
         <Segmented value={proc} onChange={setProc} options={procs.map((p) => ({ value: p, label: LABELS[p] || p }))} />
