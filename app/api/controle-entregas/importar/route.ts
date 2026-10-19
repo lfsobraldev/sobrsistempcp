@@ -120,7 +120,7 @@ export async function POST(req:Request){
      on conflict(programacao_id,pedido,area,etapa) do update set
       data_inicio=coalesce(pcp_controle_entregas_etapas.data_inicio,excluded.data_inicio),
       data_conclusao=coalesce(pcp_controle_entregas_etapas.data_conclusao,excluded.data_conclusao),
-      status=case when coalesce(pcp_controle_entregas_etapas.data_conclusao,excluded.data_conclusao) is not null then 'CONCLUIDA' when coalesce(pcp_controle_entregas_etapas.data_inicio,excluded.data_inicio) is not null then 'EM_ANDAMENTO' else pcp_controle_entregas_etapas.status end,
+      status=case when pcp_controle_entregas_etapas.status<>'PENDENTE' then pcp_controle_entregas_etapas.status when coalesce(pcp_controle_entregas_etapas.data_conclusao,excluded.data_conclusao) is not null then 'CONCLUIDA' when coalesce(pcp_controle_entregas_etapas.data_inicio,excluded.data_inicio) is not null then 'EM_ANDAMENTO' else pcp_controle_entregas_etapas.status end,
       atualizado_em=now(),usuario=${user.usuario}
      where (pcp_controle_entregas_etapas.data_inicio is null and excluded.data_inicio is not null)
         or (pcp_controle_entregas_etapas.data_conclusao is null and excluded.data_conclusao is not null)
