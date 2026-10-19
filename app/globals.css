@@ -963,7 +963,7 @@ body{background-image:none}
  --erp-paper:var(--surface);--erp-canvas:var(--bg);--erp-dark:var(--wood-800);
  --primary:var(--primary-600);--primary-hover:var(--primary-700);--bg:#f5f3ef;
  --sidebar-bg:var(--wood-900);--sidebar-hover:var(--wood-800);--sidebar-active:var(--wood-700);
- --border:var(--border);--border-strong:#cfc2b2;--focus-ring:0 0 0 3px rgba(185,145,85,.24);
+ --border:#e7dfd5;--border-strong:#cfc2b2;--focus-ring:0 0 0 3px rgba(185,145,85,.24);
  --radius-sm:8px;--radius:10px;--radius-lg:16px;--radius-xl:22px;
 }
 :is(.shell,.industrial-workspace,.login){font-family:var(--font-sans);color:var(--erp-ink)}
