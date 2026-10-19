@@ -272,8 +272,6 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
       realtimeStatus,
       refresh,
       toast,
-      selectedProgramacaoId,
-      selectProgramacao,
     ]
   );
 
