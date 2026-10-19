@@ -1,6 +1,6 @@
 "use client";
 import {useCallback,useEffect,useMemo,useState} from "react";
-import {ClipboardList,RefreshCw,Truck,Search,CalendarClock,PackageCheck} from "lucide-react";
+import {ClipboardList,RefreshCw,Truck,Search,CalendarClock,PackageCheck,UploadCloud,FileSpreadsheet} from "lucide-react";
 import ComercialEspecificacoes from "@/components/comercial-especificacoes";
 import ApontamentoProducaoResumo from "@/components/apontamento-producao-resumo";
 import {useOps} from "@/components/operational-provider";
@@ -84,7 +84,21 @@ export default function GestaoPedidos(){
  <section className="industrial-panel">
  <div className="industrial-panel-title"><h2>Importar Controle de Entregas</h2><span>Excel .xlsx • prévia antes da gravação</span></div>
  <p style={{fontSize:13,color:"#5f6d74",marginBottom:14}}>A planilha antiga pode ser migrada aqui uma única vez, com prévia. Depois disso, as informações são cadastradas e acompanhadas diretamente nas abas do sistema. Não sobrescreve campos já preenchidos nem importa datas ou status antigos.</p>
- <div className="industrial-toolbar"><input type="file" accept=".xlsx" onChange={e=>{setArquivo(e.target.files?.[0]||null);setPreImport(null)}}/><button disabled={!arquivo||importando} className="industrial-btn primary" onClick={()=>void importar(false)}>{importando?"Conferindo…":"Conferir Excel"}</button><button disabled={!preImport?.previa||!preImport.correspondentes||importando} className="industrial-btn" onClick={()=>void importar(true)}>Confirmar importação</button></div>
+ <div className="file-upload-layout file-upload-layout-compact">
+   <div className="file-upload-control">
+    <input id="entregas-file-input" className="file-upload-input" type="file" accept=".xlsx" disabled={importando} onChange={e=>{setArquivo(e.target.files?.[0]||null);setPreImport(null)}} aria-label="Planilha antiga de controle de entregas"/>
+    <label htmlFor="entregas-file-input" className={`file-upload-dropzone ${importando ? "is-disabled" : ""}`}>
+     <span className="file-upload-icon"><UploadCloud size={21}/></span>
+     <span className="file-upload-copy"><strong>{arquivo ? "Arquivo selecionado" : "Selecione a planilha de entregas"}</strong><small>{arquivo ? arquivo.name : "Clique para procurar o arquivo Excel no computador"}</small></span>
+     <span className="file-upload-action">{arquivo ? "Trocar arquivo" : "Escolher arquivo"}</span>
+    </label>
+    <div className="file-upload-meta"><FileSpreadsheet size={14}/> Formato aceito: Excel (.xlsx) · confira a prévia antes de gravar</div>
+   </div>
+   <div className="file-upload-submit file-upload-submit-inline">
+    <button disabled={!arquivo||importando} className="industrial-btn primary" onClick={()=>void importar(false)}>{importando?"Conferindo…":"Conferir Excel"}</button>
+    <button disabled={!preImport?.previa||!preImport.correspondentes||importando} className="industrial-btn" onClick={()=>void importar(true)}>Confirmar importação</button>
+   </div>
+  </div>
  {preImport&&<div className="industrial-stats" style={{marginTop:14}}><div><small>Pedidos na planilha</small><strong>{preImport.totalNaPlanilha}</strong></div><div><small>Pedidos correspondentes</small><strong>{preImport.correspondentes}</strong></div><div><small>Não presentes no filtro</small><strong>{preImport.foraDaProgramacao}</strong></div><div><small>Atualizados</small><strong>{preImport.atualizados??"—"}</strong></div></div>}
  </section>
   <div className="industrial-toolbar"><button className="industrial-btn primary" disabled={me?.perfil==="LIDER_ENTREGAS"} onClick={()=>{setNovo(true);setNumeroNovo("");setSelected(null)}}>+ Novo pedido comercial</button><Search size={19}/><input style={{flex:"2",minWidth:200}} value={query} onChange={e=>setQuery(e.target.value)} placeholder="Buscar pedido, transportadora ou NF"/><select value={setor} onChange={e=>setSetor(e.target.value)}>{[["TODOS","Todas as áreas"],["COMERCIAL","Comercial"],["PCP","PCP / Produção"],["MONTAGEM","Montagem"],["LOGISTICA","Logística"],["ENTREGUE","Entregues"]].map(([v,t])=><option key={v} value={v}>{t}</option>)}</select><select value={statusFiltro} onChange={e=>setStatusFiltro(e.target.value)}><option value="TODOS">Todas as situações</option>{statuses.map(([v,t])=><option key={v} value={v}>{t}</option>)}</select><button className="industrial-btn" onClick={()=>void load()} disabled={loading}><RefreshCw size={16}/> Atualizar</button></div>
