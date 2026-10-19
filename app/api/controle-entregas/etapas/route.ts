@@ -56,12 +56,6 @@ export async function PUT(req:Request){
    await db`insert into pcp_controle_entregas(pedido) values(${pedido}) on conflict do nothing`;
  }
  const [prev]=await db`select * from pcp_controle_entregas_etapas where pedido=${pedido} and area=${area} and etapa=${etapa}`;
- if(u.perfil==="LIDER_ENTREGAS"&&prev){
-   const oldStart=prev.data_inicio?new Date(prev.data_inicio).toISOString().slice(0,10):null;
-   const oldEnd=prev.data_conclusao?new Date(prev.data_conclusao).toISOString().slice(0,10):null;
-   if((oldStart&&inicio!==oldStart)||(oldEnd&&fim!==oldEnd))
-    return NextResponse.json({error:"Datas já registradas não podem ser alteradas pelo líder. Solicite correção ao gerente."},{status:403});
- }
  await db`insert into pcp_controle_entregas_etapas(pedido,area,etapa,data_inicio,data_conclusao,status,observacao,usuario)
  values(${pedido},${area},${etapa},${inicio}::date,${fim}::date,${status},${observacao},${u.usuario})
  on conflict(pedido,area,etapa) do update set data_inicio=excluded.data_inicio,data_conclusao=excluded.data_conclusao,status=excluded.status,observacao=excluded.observacao,usuario=excluded.usuario,atualizado_em=now()`;
