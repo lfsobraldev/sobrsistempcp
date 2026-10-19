@@ -19,6 +19,58 @@ const MONTAGENS_ENGENHARIA: Array<{value:MontagemEngenharia;label:string}> = [
 
 export default function Lideres() {
   const { pg, me, refresh, toast } = useOps();
+  type ProgramacaoLista = { id: string; filtro: string; data: string; turno: string; status: string; origem: string; import_pedidos?: number; import_ofs?: number; import_pecas?: number };
+  const [programacoesDisponiveis, setProgramacoesDisponiveis] = useState<ProgramacaoLista[]>([]);
+  const [filtroSelecionado, setFiltroSelecionado] = useState("");
+  const [programacaoIdSelecionada, setProgramacaoIdSelecionada] = useState("");
+  const [programacaoSelecionada, setProgramacaoSelecionada] = useState<typeof pg>(null);
+  const [carregandoProgramacao, setCarregandoProgramacao] = useState(false);
+
+  useEffect(() => {
+    let cancelado = false;
+    async function carregarLista() {
+      try {
+        const r = await fetch("/api/programacoes/historico", { cache: "no-store" });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "Falha ao carregar filtros.");
+        const itens = (j.itens || []) as ProgramacaoLista[];
+        if (cancelado) return;
+        setProgramacoesDisponiveis(itens);
+        const inicial = (pg?.id && itens.find((x) => x.id === pg.id)) || itens[0];
+        if (inicial) {
+          setFiltroSelecionado(String(inicial.filtro || ""));
+          setProgramacaoIdSelecionada(inicial.id);
+        }
+      } catch (e) {
+        if (!cancelado) toast("error", e instanceof Error ? e.message : "Falha ao carregar filtros.");
+      }
+    }
+    void carregarLista();
+    return () => { cancelado = true; };
+  // A lista inicial é carregada uma vez; o histórico já vem ordenado do mais recente.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!programacaoIdSelecionada) return;
+    let cancelado = false;
+    setCarregandoProgramacao(true);
+    setProgramacaoSelecionada(null);
+    fetch("/api/programacoes/ativa?id=" + encodeURIComponent(programacaoIdSelecionada), { cache: "no-store" })
+      .then(async (r) => {
+        const j = await r.json();
+        if (!r.ok) throw new Error(j.error || "Falha ao abrir a programação selecionada.");
+        if (!cancelado) setProgramacaoSelecionada(j.programacao || null);
+      })
+      .catch((e) => { if (!cancelado) toast("error", e instanceof Error ? e.message : "Falha ao abrir filtro."); })
+      .finally(() => { if (!cancelado) setCarregandoProgramacao(false); });
+    return () => { cancelado = true; };
+  }, [programacaoIdSelecionada, toast]);
+
+  const filtrosDisponiveis = [...new Set(programacoesDisponiveis.map((x) => String(x.filtro || "").trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
+  const programacoesDoFiltro = programacoesDisponiveis.filter((x) => String(x.filtro || "").trim() === filtroSelecionado);
+  const programacaoAtiva = programacaoSelecionada || (pg?.id === programacaoIdSelecionada ? pg : null);
   const programacaoAtiva = pg;
   const carregandoProgramacao = !pg;
   const filtroSelecionado = pg?.filtro || "";
@@ -175,6 +227,71 @@ export default function Lideres() {
         description="Quantidades programadas por filtro, data e processo, da maior medida para a menor."
         actions={<button onClick={exportar}><FileSpreadsheet /> Exportar Excel</button>}
       />
+
+      <section className="card mb leader-program-picker" aria-label="Selecionar filtro e data da programação">
+        <div className="card-head">
+          <div>
+            <h2>Apontamento por filtro</h2>
+            <small>Escolha um filtro primeiro. Os pedidos exibidos pertencem somente à programação e à data selecionadas.</small>
+          </div>
+        </div>
+        <div className="card-body">
+          <div className="leader-filter-tabs" role="tablist" aria-label="Filtros do Consistem">
+            {filtrosDisponiveis.map((f) => (
+              <button
+                type="button"
+                key={f}
+                role="tab"
+                aria-selected={filtroSelecionado === f}
+                className={filtroSelecionado === f ? "is-selected" : ""}
+                onClick={() => {
+                  setFiltroSelecionado(f);
+                  const doFiltro = programacoesDisponiveis.filter((x) => String(x.filtro || "").trim() === f);
+                  const atual = doFiltro.find((x) => x.status === "ATIVA") || doFiltro[0];
+                  setProgramacaoIdSelecionada(atual?.id || "");
+                  setBusca("");
+                  setPeca("TODAS");
+                  setMedida("TODAS");
+                }}
+              >
+                <span>Filtro</span><strong>{f}</strong>
+              </button>
+            ))}
+          </div>
+          <div className="leader-date-section">
+            <div className="leader-date-heading">
+              <div><b>Data da programação</b><small>Toque em uma data para abrir apenas os pedidos daquele filtro.</small></div>
+              <span>{programacoesDoFiltro.length} {programacoesDoFiltro.length === 1 ? "opção de data/turno" : "opções de data/turno"}</span>
+            </div>
+            <div className="leader-date-options" role="group" aria-label={"Datas do filtro " + filtroSelecionado}>
+              {programacoesDoFiltro.map((x) => (
+                <button
+                  type="button"
+                  key={x.id}
+                  aria-pressed={programacaoIdSelecionada === x.id}
+                  className={programacaoIdSelecionada === x.id ? "is-selected" : ""}
+                  onClick={() => {
+                    setProgramacaoIdSelecionada(x.id);
+                    setBusca("");
+                    setPeca("TODAS");
+                    setMedida("TODAS");
+                  }}
+                >
+                  <span className="leader-date-main">{x.data}</span>
+                  <span className="leader-date-sub">Turno {x.turno || "—"} · {x.status === "ATIVA" ? "Atual" : "Histórico"}</span>
+                  <span className="leader-date-counts">{x.import_pedidos ?? "—"} pedidos <i>·</i> {x.import_ofs ?? "—"} OFs</span>
+                </button>
+              ))}
+              {!programacoesDoFiltro.length && <p className="muted">Nenhuma programação encontrada para este filtro.</p>}
+            </div>
+          </div>
+          <div className="leader-selected-program">
+            <span className="leader-selected-dot" />
+            <div><small>Programação selecionada</small><strong>{programacaoAtiva ? `Filtro ${programacaoAtiva.filtro} · ${programacaoAtiva.data}` : carregandoProgramacao ? "Carregando pedidos..." : "Selecione uma data"}</strong></div>
+            {programacaoAtiva && <span className="leader-selected-turno">Turno {programacaoAtiva.turno || "—"}</span>}
+          </div>
+        </div>
+      </section>
 
       {carregandoProgramacao && <p className="muted">Carregando pedidos e datas do filtro selecionado...</p>}
       {!carregandoProgramacao && !programacaoAtiva && <Card title="Nenhuma programação disponível" subtitle="Importe um filtro do Consistem para começar." />}
