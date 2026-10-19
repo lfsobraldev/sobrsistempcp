@@ -11,6 +11,9 @@ const ident=(v:unknown)=>{const t=str(v,30).replace(/\.0+$/,"");return /^\d{4,10
 const num=(v:unknown)=>{if(v===null||v===undefined||String(v).trim()==="")return null;const n=typeof v==="number"?v:Number(str(v).replace(/\./g,"").replace(",","."));return Number.isFinite(n)&&n>=0&&n<=999999999?n:null};
 const cap=(s:unknown,max=120)=>str(s,max).toUpperCase();
 const norm=(v:unknown)=>str(v,160).normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase().replace(/[^A-Z0-9]+/g," ").trim();
+function dateValue(v:unknown):string|null{
+ if(v instanceof Date&&!Number.isNaN(v.getTime()))return v.toISOString().slice(0,10);
+ if(typeof v==="number"&&v>20000&&v<80000){const d=new Date(Date.UTC(1899,11,30)+Math.round(v)*86400000);return d.toISOString().slice(0,10);}
 function dateValue(v:unknown,allowSerial=false):string|null{
  if(v instanceof Date&&!Number.isNaN(v.getTime()))return v.toISOString().slice(0,10);
  if(allowSerial&&typeof v==="number"&&v>20000&&v<80000){const d=new Date(Date.UTC(1899,11,30)+Math.round(v)*86400000);return d.toISOString().slice(0,10);}
@@ -69,11 +72,16 @@ export async function lerControleEntregas(arquivo:Buffer){
  // Ler datas por cabeçalho em todas as abas, sem depender de uma ordem fixa de colunas.
  for(const ws of wb.worksheets){
   if(!ws||ws.rowCount<2)continue;
+  const headers=ws.getRow(1),last=Math.min(ws.columnCount,120),cols:{idx:number;stage:typeof ETAPAS[number];kind:"inicio"|"fim"}[]=[];
   const headers=ws.getRow(1),last=Math.min(ws.columnCount,120),cols:{idx:number;stage:typeof ETAPAS[number];kind:"inicio"|"fim";allowSerial:boolean}[]=[];
   for(let c=1;c<=last;c++){
    const h=norm(raw(headers.getCell(c)));if(!h)continue;
    const etapa=ETAPAS.find(x=>x.aliases.some(a=>{const na=norm(a);return h.includes(na)&&!(x.etapa==="USINAGEM"&&h.includes("USINAGEM 2"))&&!(x.etapa==="PLASTIFICADORA"&&h.includes("PORTAS"));}));
    if(!etapa)continue;
+   const mentionsDate=/DATA|INICIO|INICI|CONCLUSAO|CONCLUID|FIM|FINAL|SAIDA|CHEGADA|ENTREGA|LIBERACAO|CARREGAMENTO|APONTAMENTO/.test(h)||etapa.aliases.some(a=>h===norm(a));
+   if(!mentionsDate)continue;
+   const kind=/INICIO|INICI|ENTRADA/.test(h)?"inicio":"fim";
+   cols.push({idx:c,stage:etapa,kind});
    const headerDate=/DATA|INICIO|INICI|CONCLUSAO|CONCLUID|FIM|FINAL|SAIDA|CHEGADA|ENTREGA|LIBERACAO|CARREGAMENTO|APONTAMENTO/.test(h);
    const mentionsDate=headerDate||etapa.aliases.some(a=>h===norm(a));
    if(!mentionsDate)continue;
@@ -90,6 +98,7 @@ export async function lerControleEntregas(arquivo:Buffer){
    if(!pedidoCol)pedidoCol=1;
    const pedido=ident(raw(row.getCell(pedidoCol)));if(!pedido)return;
    for(const col of cols){
+    const d=dateValue(raw(row.getCell(col.idx)));if(!d)continue;
     const d=dateValue(raw(row.getCell(col.idx)),col.allowSerial);if(!d)continue;
     const key=[pedido,col.stage.area,col.stage.etapa].join("|");
     const prev=datas.get(key)||{pedido,area:col.stage.area,etapa:col.stage.etapa,dataInicio:null,dataConclusao:null};
@@ -111,6 +120,8 @@ export async function lerControleEntregas(arquivo:Buffer){
     if(!pedido||!stageText)return;
     const stage=ETAPAS.find(x=>x.aliases.some(a=>stageText.includes(norm(a))));
     if(!stage)return;
+    const inicio=startCol?dateValue(raw(row.getCell(startCol))):null;
+    const fim=endCol?dateValue(raw(row.getCell(endCol))):null;
     const inicio=startCol?dateValue(raw(row.getCell(startCol)),true):null;
     const fim=endCol?dateValue(raw(row.getCell(endCol)),true):null;
     if(!inicio&&!fim)return;
