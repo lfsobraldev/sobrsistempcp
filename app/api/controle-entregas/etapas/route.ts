@@ -89,12 +89,14 @@ export async function POST(req:Request){
      data_conclusao=coalesce(pcp_controle_entregas_etapas.data_conclusao,excluded.data_conclusao),
      status=case when coalesce(pcp_controle_entregas_etapas.data_conclusao,excluded.data_conclusao) is not null then 'CONCLUIDA' when coalesce(pcp_controle_entregas_etapas.data_inicio,excluded.data_inicio) is not null then 'EM_ANDAMENTO' else pcp_controle_entregas_etapas.status end,
      atualizado_em=now(),usuario=${u.usuario}
+    where (pcp_controle_entregas_etapas.data_inicio is null and excluded.data_inicio is not null)
+       or (pcp_controle_entregas_etapas.data_conclusao is null and excluded.data_conclusao is not null)
     returning pedido`;
    if(result.length){
     const after=await db`select data_inicio::text as data_inicio,data_conclusao::text as data_conclusao,status from pcp_controle_entregas_etapas where pedido=${pedido} and programacao_id=${programacaoId} and area='PRODUCAO' and etapa=${etapa} limit 1`;
     await db`insert into pcp_controle_entregas_eventos(pedido,acao,anterior,atual,usuario) values(${pedido},'IMPORTACAO_DATAS',${JSON.stringify(prev||{})}::jsonb,${JSON.stringify({area:'PRODUCAO',etapa,...(after[0]||{})})}::jsonb,${u.usuario})`;
     atualizados++;
-   }
+   }else{ignorados++;}
   }
   return NextResponse.json({ok:true,atualizados,ignorados});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao importar datas"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
