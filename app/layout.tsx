@@ -2,8 +2,8 @@ import "@fontsource-variable/inter";
 import "./globals.css";
 
 export const metadata = {
-  title: "Sobral PCP | Gestão Industrial",
-  description: "Planejamento, controle e execução da produção industrial",
+  title: "Famossul | Sobral PCP Industrial",
+  description: "Plataforma industrial da Famossul para planejamento, controle, qualidade e expedição da produção.",
   icons: {
     icon: "/sobral-s.svg",
     shortcut: "/sobral-s.svg",
