@@ -26,11 +26,11 @@ async function ensure(){
    join pcp_programacoes pg on pg.id=p.programacao_id
    where p.pedido=e.pedido order by pg.criado_em desc,pg.id desc limit 1)
   where e.programacao_id is null and exists(select 1 from pcp_produtos p where p.pedido=e.pedido)`;
- await db`do $ begin
+ await db`do $$ begin
   if exists(select 1 from pg_constraint where conname='pcp_controle_entregas_etapas_pkey' and conrelid='public.pcp_controle_entregas_etapas'::regclass) then
    alter table pcp_controle_entregas_etapas drop constraint pcp_controle_entregas_etapas_pkey;
   end if;
- end $`;
+ end $$`;
  await db`create unique index if not exists ux_pcp_etapas_programacao_pedido_area on pcp_controle_entregas_etapas(programacao_id,pedido,area,etapa)`;
 
  return db;
