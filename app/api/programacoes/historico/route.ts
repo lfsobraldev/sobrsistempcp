@@ -4,7 +4,7 @@ import { requireRoles } from "@/lib/auth";
 
 export async function GET(){
   try{
-    await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER"]);
+    await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER","LIDER_ENTREGAS"]);
     const rows=await sql()`
       select id,filtro,to_char(data_programacao,'DD/MM/YYYY') data,turno,status,origem,criado_em,encerrado_em,
              import_linhas,import_pedidos,import_ofs,import_pecas,import_operacoes
