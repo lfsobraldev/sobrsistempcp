@@ -37,36 +37,36 @@ export const normalizeImportHeader = (value: unknown) =>
  */
 export function parseImportNumber(value: unknown): number | null {
   let s = cleanImportText(value)
-    .replace(/R\\$|US\\$|\\$/gi, "")
+    .replace(/R\$|US\$|\$/gi, "")
     .replace(/%/g, "")
-    .replace(/\\s+/g, "")
+    .replace(/\s+/g, "")
     .replace(/(?:UNIDADES?|UNID|UN|PCS|PC|PÇS|PÇ|JG|CJ|KG|M[23²³]|MM|CM|M|G|L)$/i, "");
 
-  if (!s || /^(?:-|—|N\\/?A|ND|N\\/D)$/i.test(s)) return null;
+  if (!s || /^(?:-|—|N\/?A|ND|N\/D)$/i.test(s)) return null;
 
   const sign = s.startsWith("-") ? -1 : 1;
   s = s.replace(/^[+-]/, "");
   // Não transforme entradas corrompidas (ex.: "12-3" ou "1.2.3") em números válidos.
-  if (!s || /[+-]/.test(s) || !/^\\d[\\d.,]*$/.test(s)) return null;
+  if (!s || /[+-]/.test(s) || !/^\d[\d.,]*$/.test(s)) return null;
 
   const comma = s.lastIndexOf(",");
   const dot = s.lastIndexOf(".");
   const commas = (s.match(/,/g) || []).length;
-  const dots = (s.match(/\\./g) || []).length;
+  const dots = (s.match(/\./g) || []).length;
 
   if (comma >= 0 && dot >= 0) {
     if (comma > dot) {
-      const validBrazilian = /^\\d{1,3}(?:\\.\\d{3})*,\\d+$/.test(s) || /^\\d+,\\d+$/.test(s);
+      const validBrazilian = /^\d{1,3}(?:\.\d{3})*,\d+$/.test(s) || /^\d+,\d+$/.test(s);
       if (!validBrazilian) return null;
-      s = s.replace(/\\./g, "").replace(",", ".");
+      s = s.replace(/\./g, "").replace(",", ".");
     } else {
-      const validInternational = /^\\d{1,3}(?:,\\d{3})*\\.\\d+$/.test(s) || /^\\d+\\.\\d+$/.test(s);
+      const validInternational = /^\d{1,3}(?:,\d{3})*\.\d+$/.test(s) || /^\d+\.\d+$/.test(s);
       if (!validInternational) return null;
       s = s.replace(/,/g, "");
     }
   } else if (comma >= 0) {
     if (commas > 1) {
-      if (!/^\\d{1,3}(?:,\\d{3})+$/.test(s)) return null;
+      if (!/^\d{1,3}(?:,\d{3})+$/.test(s)) return null;
       s = s.replace(/,/g, "");
     } else {
       // Uma vírgula é decimal no padrão brasileiro: "1,234" = 1,234.
@@ -74,11 +74,11 @@ export function parseImportNumber(value: unknown): number | null {
     }
   } else if (dot >= 0) {
     if (dots > 1) {
-      if (!/^\\d{1,3}(?:\\.\\d{3})+$/.test(s)) return null;
-      s = s.replace(/\\./g, "");
+      if (!/^\d{1,3}(?:\.\d{3})+$/.test(s)) return null;
+      s = s.replace(/\./g, "");
     } else {
       const decimals = s.length - dot - 1;
-      const milhar = /^[1-9]\\d{0,2}\\.\\d{3}$/.test(s);
+      const milhar = /^[1-9]\d{0,2}\.\d{3}$/.test(s);
       if (decimals === 3 && milhar) s = s.replace(".", "");
     }
   }
