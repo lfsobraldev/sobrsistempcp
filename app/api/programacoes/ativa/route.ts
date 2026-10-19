@@ -700,7 +700,7 @@ async function migrarProcessosLegados(
   `;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     if (!(await session())) {
       return NextResponse.json(
@@ -711,13 +711,18 @@ export async function GET() {
 
     const db = sql();
 
-    const ativa = await db`
-      select id
-      from pcp_programacoes
-      where status = 'ATIVA'
-      order by criado_em desc
-      limit 1
-    `;
+    const requestedId = new URL(req.url).searchParams.get("id")?.trim() || "";
+    if (requestedId && !/^[a-f0-9-]{36}$/i.test(requestedId)) {
+      return NextResponse.json({ error: "Identificador de programação inválido." }, { status: 400 });
+    }
+
+    const ativa = requestedId
+      ? await db`
+          select id from pcp_programacoes where id = ${requestedId}::uuid limit 1
+        `
+      : await db`
+          select id from pcp_programacoes where status = 'ATIVA' order by criado_em desc limit 1
+        `;
 
     if (!ativa.length) {
       return NextResponse.json(
