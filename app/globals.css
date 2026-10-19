@@ -1179,3 +1179,25 @@ body{background-image:none}
 .access-success{padding:12px;border-radius:8px;background:#e2f1e7;color:#266343}
 .access-config-link{display:inline-flex;align-items:center;justify-content:center;min-height:39px;padding:0 14px;border:1px solid #d7e2d9;border-radius:7px;background:white;color:#305b40;font-size:13px;font-weight:650}
 @media(max-width:700px){.access-config-header{padding:16px;align-items:stretch;flex-direction:column}.access-config-header h1{font-size:22px}.access-panel{padding:14px}.access-fields{grid-template-columns:1fr}.access-sector-grid{grid-template-columns:1fr}.access-user{align-items:stretch;flex-direction:column}.access-user-actions{justify-content:space-between}.access-config button,.access-config-link{min-height:44px}}
+
+/* Editor de datas sempre visível, inclusive quando a tabela está rolada */
+.apontamento-modal-backdrop{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,24,15,.64);overflow-y:auto}
+.apontamento-editor.apontamento-modal{width:min(680px,100%);max-height:calc(100dvh - 32px);overflow:auto;margin:auto;border:1px solid #b8d1bd;border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.28)}
+.apontamento-modal-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.apontamento-modal-heading>div{display:grid;gap:4px;min-width:0}
+.apontamento-modal-heading small{font-size:11px;font-weight:800;letter-spacing:.08em;color:#51745d}
+.apontamento-modal-heading h2{overflow-wrap:anywhere}
+.apontamento-modal .apontamento-fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+.apontamento-modal .apontamento-fields label:last-of-type{grid-column:1/-1}
+.apontamento-modal .apontamento-fields input{width:100%;min-width:0;min-height:46px;font-size:16px}
+.apontamento-modal .apontamento-fields button{min-height:46px}
+.apontamento-modal-heading button{min-height:42px;flex:0 0 auto}
+@media(max-width:600px){
+ .apontamento-modal-backdrop{align-items:flex-start;padding:10px}
+ .apontamento-editor.apontamento-modal{max-height:calc(100dvh - 20px);padding:16px;margin:auto 0}
+ .apontamento-modal .apontamento-fields{grid-template-columns:minmax(0,1fr)}
+ .apontamento-modal .apontamento-fields label:last-of-type{grid-column:auto}
+ .apontamento-modal-heading{align-items:flex-start}
+ .apontamento-modal-heading h2{font-size:17px}
+ .apontamento-modal-heading button{min-height:44px}
+}
