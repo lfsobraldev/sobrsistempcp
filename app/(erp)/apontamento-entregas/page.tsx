@@ -66,7 +66,10 @@ export default function ApontamentoEntregas(){
     }
    }
    if(!rows.length)throw new Error("Não encontrei linhas reconhecíveis. A aba precisa ter Pedido e colunas de setor/etapa + datas, ou colunas de datas identificadas por setor.");
-   const resp=await fetch("/api/controle-entregas/etapas",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({programacaoId,rows})});const result=await resp.json();if(!resp.ok)throw new Error(result.error||"Falha ao importar.");
+   const pedidosVisiveis=new Set(visiveis.map(p=>p.pedido));
+   const rowsFiltradas=rows.filter(row=>(setor==="TODOS"||row.etapa===setor)&&pedidosVisiveis.has(row.pedido));
+   if(!rowsFiltradas.length)throw new Error("Nenhuma linha da planilha corresponde aos pedidos e filtros exibidos. Confira o filtro de programação, setor e busca.");
+   const resp=await fetch("/api/controle-entregas/etapas",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({programacaoId,rows:rowsFiltradas})});const result=await resp.json();if(!resp.ok)throw new Error(result.error||"Falha ao importar.");
    setMsg(`Importação concluída: ${result.atualizados||0} registro(s) atualizado(s), ${result.ignorados||0} ignorado(s). Apenas campos vazios foram preenchidos.`);await carregar(programacaoId);
   }catch(e){setErro(e instanceof Error?e.message:"Não foi possível ler a planilha.")}finally{setImportando(false)}
  }
