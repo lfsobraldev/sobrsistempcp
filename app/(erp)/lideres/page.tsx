@@ -69,7 +69,7 @@ export default function Lideres() {
 
   const filtrosDisponiveis = [...new Set(programacoesDisponiveis.map((x) => String(x.filtro || "").trim()).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
-  const programacoesDoFiltro = programacoesDisponiveis.filter((x) => String(x.filtro || "") === filtroSelecionado);
+  const programacoesDoFiltro = programacoesDisponiveis.filter((x) => String(x.filtro || "").trim() === filtroSelecionado);
   const programacaoAtiva = programacaoSelecionada || (pg?.id === programacaoIdSelecionada ? pg : null);
   const products = programacaoAtiva?.produtos || [];
   const procs = me?.processos?.length
@@ -281,7 +281,7 @@ export default function Lideres() {
           <div className="leader-date-section">
             <div className="leader-date-heading">
               <div><b>Data da programação</b><small>Toque em uma data para abrir apenas os pedidos daquele filtro.</small></div>
-              <span>{programacoesDoFiltro.length} {programacoesDoFiltro.length === 1 ? "data" : "programações"}</span>
+              <span>{programacoesDoFiltro.length} {programacoesDoFiltro.length === 1 ? "opção de data/turno" : "opções de data/turno"}</span>
             </div>
             <div className="leader-date-options" role="group" aria-label={"Datas do filtro " + filtroSelecionado}>
               {programacoesDoFiltro.map((x) => (
