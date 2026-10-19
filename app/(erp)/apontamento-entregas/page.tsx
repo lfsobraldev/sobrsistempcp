@@ -39,19 +39,19 @@ export default function ApontamentoEntregas(){
   if(v instanceof Date&&!Number.isNaN(v.getTime()))return v.toISOString().slice(0,10);
   if(typeof v==="number"){const d=new Date(Date.UTC(1899,11,30)+v*86400000);return d.toISOString().slice(0,10)}
   const s=String(v).trim();if(!s)return "";
-  if(/^\\d{4}-\\d{2}-\\d{2}$/.test(s))return s;
-  const m=s.match(/^(\\d{1,2})[\\/.\\-](\\d{1,2})[\\/.\\-](\\d{4})$/);if(m)return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  const m=s.match(/^(\d{1,2})[\\/.\-](\d{1,2})[\\/.\-](\d{4})$/);if(m)return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
   return "";
  }
  async function importarArquivo(file:File){
   setImportando(true);setErro("");setMsg("");
   try{
    const XLSX=await import("xlsx");const wb=XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:true});
-   const nome=wb.SheetNames.find(n=>n.normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toUpperCase()==="APONTAMENTO PRODUCAO")||wb.SheetNames[0];
+   const nome=wb.SheetNames.find(n=>n.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase()==="APONTAMENTO PRODUCAO")||wb.SheetNames[0];
    if(!nome)throw new Error("A planilha não possui abas.");
    const ws=wb.Sheets[nome];const matriz:any[][]=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
    if(matriz.length<2)throw new Error("A aba selecionada não possui linhas de dados.");
-   const norm=(v:any)=>String(v??"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+   const norm=(v:any)=>String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
    const headers=(matriz[0]||[]).map(norm);
    const find=(rx:RegExp)=>headers.findIndex(h=>rx.test(h));
    const iPedido=find(/^(pedido|numero pedido|n pedido|pedido cliente)$/),iSetor=find(/^(setor|etapa|processo)$/),iInicio=find(/^(data inicio|inicio|inicio etapa|data de inicio)$/),iFim=find(/^(data conclusao|conclusao|fim|data fim|data de conclusao|termino)$/);
