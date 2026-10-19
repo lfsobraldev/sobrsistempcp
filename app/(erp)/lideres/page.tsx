@@ -201,6 +201,13 @@ export default function Lideres() {
       );
 
       await refresh();
+      if (programacaoAtiva?.id) {
+        try {
+          const atualizada = await fetch("/api/programacoes/ativa?id=" + encodeURIComponent(programacaoAtiva.id), { cache: "no-store" });
+          const dadosAtualizados = await atualizada.json();
+          if (atualizada.ok) setProgramacaoSelecionada(dadosAtualizados.programacao || null);
+        } catch { /* A próxima seleção recarrega a programação; não desfaz a alteração já salva. */ }
+      }
     } catch (e: any) {
       toast("error", e?.message || "Falha ao alterar pedido.");
     } finally {
@@ -225,7 +232,7 @@ export default function Lideres() {
     try {
       await exportarExcel(
         [{ nome: (LABELS[proc] || proc).slice(0, 31), linhas }],
-        `Lideres_${proc}_${tab === "PLAN" ? "Plano_do_dia" : "Liberado_agora"}`
+        `Lideres_Filtro_${filtroSelecionado}_${programacaoAtiva?.data || "sem_data"}_${proc}_${tab === "PLAN" ? "Plano_do_dia" : "Liberado_agora"}`
       );
     } catch {
       toast("error", "Não foi possível exportar a tabela dos líderes.");
