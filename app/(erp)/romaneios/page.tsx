@@ -10,6 +10,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Badge, Card, DataTable, Field, PageHeader, StatCard } from "@/components/ui";
 import { GerarComIABotao } from "@/components/romaneio-ai";
+import { useOps } from "@/components/operational-provider";
 import type {
   MountType,
   ProcessingResult,
@@ -81,7 +82,7 @@ export default function RomaneiosPage() {
     let active = true;
 
     Promise.all([
-      fetch("/api/programacoes/ativa", { cache: "no-store" }),
+      fetch("/api/programacoes/ativa" + (selectedProgramacaoId ? "?id=" + encodeURIComponent(selectedProgramacaoId) : ""), { cache: "no-store" }),
       fetch("/api/romaneios/preparados", { cache: "no-store" }),
     ])
       .then(async ([response, preparedResponse]) => {
@@ -108,7 +109,7 @@ export default function RomaneiosPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [selectedProgramacaoId]);
 
   const preparadosPorPedido = useMemo(
     () => new Map(preparados.map((item) => [String(item.pedido), item])),
