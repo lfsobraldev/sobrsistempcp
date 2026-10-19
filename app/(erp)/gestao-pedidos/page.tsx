@@ -68,7 +68,7 @@ export default function GestaoPedidos(){
   }catch(e){setErro(e instanceof Error?e.message:"Falha ao exportar a planilha geral.")}
  }
  async function importar(aplicar:boolean){
- if(!arquivo)return;setImportando(true);setErro("");setOk("");
+ if(!arquivo&&!googleSheetUrl.trim())return;setImportando(true);setErro("");setOk("");
  try{const fd=new FormData();if(arquivo)fd.append("arquivo",arquivo);fd.append("url",googleSheetUrl.trim());fd.append("programacaoId",programacaoId);fd.append("aplicar",String(aplicar));const response=await fetch("/api/controle-entregas/importar",{method:"POST",body:fd});const j=await response.json();if(!response.ok)throw Error(j.error||"Falha ao importar");setPreImport(j);if(aplicar){setOk(j.repetido?"Esta planilha já havia sido importada. Nenhuma alteração foi repetida.":`Importação concluída: ${j.atualizados||0} cadastro(s) enriquecido(s), ${j.datasAtualizadas||0} data(s) preenchida(s) e ${j.datasIgnoradas||0} data(s) ignorada(s). Datas já lançadas pelos líderes foram preservadas.`);await load();}}
  catch(e){setErro(e instanceof Error?e.message:"Erro ao importar")}finally{setImportando(false)}
  }
