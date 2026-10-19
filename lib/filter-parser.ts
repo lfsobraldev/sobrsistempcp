@@ -1380,9 +1380,13 @@ export async function parseFiltro(
     produtos,
     romaneioProdutos,
     linhasDescartadas: descartadas.length,
-    avisos: descartadas.length
-      ? [`${descartadas.length} linha(s) do arquivo não puderam ser importadas (ex.: ${descartadas.slice(0, 3).map((d) => `${d.motivo}: ${d.amostra}`).join("; ")}).`]
-      : [],
+    // Preserva alertas de leitura (ex.: codificação) junto com as pendências de dados.
+    avisos: [
+      ...loaded.warnings,
+      ...(descartadas.length
+        ? [`${descartadas.length} linha(s) do arquivo não puderam ser importadas (ex.: ${descartadas.slice(0, 3).map((d) => `${d.motivo}: ${d.amostra}`).join("; ")}).`]
+        : []),
+    ],
   };
 
   return {
