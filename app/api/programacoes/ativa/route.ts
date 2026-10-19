@@ -702,7 +702,8 @@ async function migrarProcessosLegados(
 
 export async function GET(req: Request) {
   try {
-    if (!(await session())) {
+    const sessaoAtual = await session();
+    if (!sessaoAtual) {
       return NextResponse.json(
         { error: "Não autenticado." },
         { status: 401 }
@@ -712,6 +713,9 @@ export async function GET(req: Request) {
     const db = sql();
 
     const requestedId = new URL(req.url).searchParams.get("id")?.trim() || "";
+    if (requestedId && !["PCP", "GERENTE", "ENCARREGADO", "LIDER"].includes(sessaoAtual.perfil)) {
+      return NextResponse.json({ error: "Sem permissão para consultar programações históricas." }, { status: 403 });
+    }
     if (requestedId && !/^[a-f0-9-]{36}$/i.test(requestedId)) {
       return NextResponse.json({ error: "Identificador de programação inválido." }, { status: 400 });
     }
