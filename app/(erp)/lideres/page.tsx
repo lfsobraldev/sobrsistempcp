@@ -71,9 +71,6 @@ export default function Lideres() {
     .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
   const programacoesDoFiltro = programacoesDisponiveis.filter((x) => String(x.filtro || "").trim() === filtroSelecionado);
   const programacaoAtiva = programacaoSelecionada || (pg?.id === programacaoIdSelecionada ? pg : null);
-  const programacaoAtiva = pg;
-  const carregandoProgramacao = !pg;
-  const filtroSelecionado = pg?.filtro || "";
   const products = programacaoAtiva?.produtos || [];
   const procs = me?.processos?.length
     ? PROCESSOS.filter((x) => me.processos.includes(x))
