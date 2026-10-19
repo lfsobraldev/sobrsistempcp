@@ -232,11 +232,24 @@ export default function Programacao() {
       />
 
       <Card title="Catálogo Mestre de Produtos" subtitle="Base permanente no Neon — atualização apenas quando o cadastro da empresa mudar" className="mb">
-        <div className="row" style={{alignItems:"center",flexWrap:"wrap"}}>
-          <input type="file" accept=".xlsx,.xls" disabled={catalogoBusy} onChange={(e)=>setCatalogoFile(e.target.files?.[0] || null)} aria-label="Planilha do catálogo" />
-          <button type="button" disabled={!catalogoFile || catalogoBusy} onClick={()=>void cadastrarCatalogo()}>
-            <UploadCloud /> {catalogoBusy ? "Cadastrando catálogo…" : "Cadastrar / atualizar produtos"}
-          </button>
+        <div className="file-upload-layout">
+          <div className="file-upload-control">
+            <input id="catalogo-file-input" className="file-upload-input" type="file" accept=".xlsx,.xls" disabled={catalogoBusy} onChange={(e)=>setCatalogoFile(e.target.files?.[0] || null)} aria-label="Planilha do catálogo" />
+            <label htmlFor="catalogo-file-input" className={`file-upload-dropzone ${catalogoBusy ? "is-disabled" : ""}`}>
+              <span className="file-upload-icon"><UploadCloud size={22}/></span>
+              <span className="file-upload-copy">
+                <strong>{catalogoFile ? "Planilha pronta para importar" : "Selecione a planilha do catálogo"}</strong>
+                <small>{catalogoFile ? catalogoFile.name : "Clique aqui para procurar o arquivo no computador"}</small>
+              </span>
+              <span className="file-upload-action">{catalogoFile ? "Trocar arquivo" : "Escolher arquivo"}</span>
+            </label>
+            <div className="file-upload-meta"><FileSpreadsheet size={14}/> Formatos aceitos: Excel (.xlsx, .xls)</div>
+          </div>
+          <div className="file-upload-submit">
+            <button type="button" disabled={!catalogoFile || catalogoBusy} onClick={()=>void cadastrarCatalogo()}>
+              <UploadCloud size={17}/> {catalogoBusy ? "Cadastrando catálogo…" : "Cadastrar / atualizar produtos"}
+            </button>
+          </div>
         </div>
         <p className="muted">{catalogoResumo || "Importe Eng Empresa 34.xlsx uma vez. Nas próximas programações, o código Produto recuperará automaticamente a narrativa cadastrada. Códigos com narrativas divergentes só são usados quando a variante puder ser identificada com segurança; os demais são sinalizados para conferência."}</p>
       </Card>
