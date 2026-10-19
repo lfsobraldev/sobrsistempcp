@@ -14,7 +14,8 @@ const BY_ROLE: Record<Perfil, string[]> = {
   QUALIDADE: ["/dashboard", "/inspecao-pallets"],
   COMERCIAL: ["/gestao-pedidos", "/sac"],
   LOGISTICA: ["/gestao-pedidos", "/sac"],
-  LIDER_ENTREGAS: ["/apontamento-entregas"],\n  SAC: ["/sac"],
+  LIDER_ENTREGAS: ["/apontamento-entregas"],
+  SAC: ["/sac"],
 };
 
 export function allowedPath(role: string, path: string) {
