@@ -27,9 +27,19 @@ async function permitidas(db:ReturnType<typeof sql>,usuario:string){
 export async function GET(req:Request){
  try{
   const user=await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]);
-  const db=await ensure(),pedido=new URL(req.url).searchParams.get("pedido")||"";
-  const etapas=pedido?await db`select *,data_inicio::text as data_inicio,data_conclusao::text as data_conclusao from pcp_controle_entregas_etapas where pedido=${pedido} order by area,etapa`:
-   await db`select *,data_inicio::text as data_inicio,data_conclusao::text as data_conclusao from pcp_controle_entregas_etapas order by atualizado_em desc limit 1500`;
+  const db=await ensure(),params=new URL(req.url).searchParams,pedido=params.get("pedido")||"",programacaoId=params.get("programacaoId")||"";
+  let etapas:any[];
+  if(pedido){
+   etapas=await db`select *,data_inicio::text as data_inicio,data_conclusao::text as data_conclusao from pcp_controle_entregas_etapas where pedido=${pedido} order by area,etapa`;
+  }else if(programacaoId){
+   // Retorna datas apenas dos pedidos que pertencem ao filtro/programação escolhidos.
+   etapas=await db`select e.*,e.data_inicio::text as data_inicio,e.data_conclusao::text as data_conclusao
+    from pcp_controle_entregas_etapas e
+    where e.pedido in (select distinct p.pedido from pcp_produtos p where p.programacao_id=${programacaoId})
+    order by e.atualizado_em desc`;
+  }else{
+   etapas=await db`select *,data_inicio::text as data_inicio,data_conclusao::text as data_conclusao from pcp_controle_entregas_etapas order by atualizado_em desc limit 1500`;
+  }
   return NextResponse.json({etapas,permitidas:user.perfil==="LIDER_ENTREGAS"?await permitidas(db,user.usuario):AREAS.PRODUCAO},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha nas etapas"},{status:403})}
 }
