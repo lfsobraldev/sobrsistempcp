@@ -99,7 +99,7 @@ export async function lerControleEntregas(arquivo:Buffer){
   // Também aceita tabelas normalizadas: Pedido | Etapa/Setor | Data início | Data conclusão.
   const headersNorm=Array.from({length:last},(_,i)=>norm(raw(headers.getCell(i+1))));
   const stageCol=headersNorm.findIndex(h=>/^(ETAPA|SETOR|PROCESSO|OPERACAO|AREA PRODUTIVA)$/.test(h))+1;
-  const startCol=headersNorm.findIndex(h=>/DATA.*(INICIO|INICI)|^(INICIO|INICI)$/ .test(h))+1;
+  const startCol=headersNorm.findIndex(h=>/DATA.*(INICIO|INICI)|^(INICIO|INICI)$/.test(h))+1;
   const endCol=headersNorm.findIndex(h=>/DATA.*(CONCLUSAO|FIM|FINAL)|^(CONCLUSAO|FIM|FINAL|DATA CONCLUSAO)$/.test(h))+1;
   if(stageCol&&(startCol||endCol)){
    let rowDates=0;
