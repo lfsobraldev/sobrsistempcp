@@ -96,6 +96,29 @@ export async function lerControleEntregas(arquivo:Buffer){
     datas.set(key,prev);count++;
    }
   });
+  // Também aceita tabelas normalizadas: Pedido | Etapa/Setor | Data início | Data conclusão.
+  const headersNorm=Array.from({length:last},(_,i)=>norm(raw(headers.getCell(i+1))));
+  const stageCol=headersNorm.findIndex(h=>/^(ETAPA|SETOR|PROCESSO|OPERACAO|AREA PRODUTIVA)$/.test(h))+1;
+  const startCol=headersNorm.findIndex(h=>/DATA.*(INICIO|INICI)|^(INICIO|INICI)$/ .test(h))+1;
+  const endCol=headersNorm.findIndex(h=>/DATA.*(CONCLUSAO|FIM|FINAL)|^(CONCLUSAO|FIM|FINAL|DATA CONCLUSAO)$/.test(h))+1;
+  if(stageCol&&(startCol||endCol)){
+   let rowDates=0;
+   ws.eachRow({includeEmpty:false},(row,n)=>{
+    if(n===1||n>20000)return;
+    const pedidoCol=headersNorm.findIndex(h=>h.includes("PEDIDO"))+1||1;
+    const pedido=ident(raw(row.getCell(pedidoCol))),stageText=norm(raw(row.getCell(stageCol)));
+    if(!pedido||!stageText)return;
+    const stage=ETAPAS.find(x=>x.aliases.some(a=>stageText.includes(norm(a))));
+    if(!stage)return;
+    const inicio=startCol?dateValue(raw(row.getCell(startCol))):null;
+    const fim=endCol?dateValue(raw(row.getCell(endCol))):null;
+    if(!inicio&&!fim)return;
+    const key=[pedido,stage.area,stage.etapa].join("|");
+    const prev=datas.get(key)||{pedido,area:stage.area,etapa:stage.etapa,dataInicio:null,dataConclusao:null};
+    prev.dataInicio=prev.dataInicio||inicio;prev.dataConclusao=prev.dataConclusao||fim;datas.set(key,prev);rowDates++;
+   });
+   if(rowDates)linhasPorAba[ws.name+" · datas por etapa"] = rowDates;
+  }
   if(count)linhasPorAba[ws.name+" · datas"]=count;
  }
  return {itens:[...porPedido.values()],datasEtapas:[...datas.values()],linhasPorAba};
