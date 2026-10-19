@@ -70,7 +70,8 @@ export default function SobralIAPage(){
 
  async function enviar(texto:string){
   const t=texto.trim();if(!t||busy)return;
-  const next=[...msgs,{role:"user" as const,content:t}];setMsgs(next);setInput("");setBusy(true);
+  // Mantém o contexto local limitado para evitar crescimento indefinido do payload da conversa.
+  const next=[...msgs,{role:"user" as const,content:t}].slice(-40);setMsgs(next);setInput("");setBusy(true);
   try{
    const r=await fetch("/api/ia/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({path:"/sobral-ia",messages:next.map(({role,content})=>({role,content}))})});
    const raw=await r.text();let j:any={};try{j=raw?JSON.parse(raw):{}}catch{throw new Error("Resposta inválida da IA.")}
