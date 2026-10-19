@@ -240,7 +240,7 @@ export default function Lideres() {
   };
 
   return (
-    <>
+    <div className="leader-mobile-view">
       <PageHeader
         eyebrow="Operação"
         title="Líderes"
@@ -376,6 +376,34 @@ export default function Lideres() {
         <div style={{overflowX:"auto",maxHeight:300}}><table><thead><tr><th>Código</th><th>Pedido</th><th>OF</th><th>Campos para conferir</th></tr></thead>
           <tbody>{pendenciasTecnicas.map((x,i)=><tr key={i}><td>{x.codigo}</td><td>{x.pedido}</td><td>{x.of}</td><td>{x.campos}</td></tr>)}</tbody></table></div>
       </details>}
+      <div className="leader-mobile-cards" aria-label="Apontamento em formato de cartões">
+        {rows.map((x) => (
+          <article className="leader-mobile-row" key={x.key}>
+            <div className="leader-mobile-row-head">
+              <div className="leader-mobile-piece">
+                <strong>{x.descricao || "Peça sem descrição"}</strong>
+                {x.categoria && <Badge>{x.categoria}</Badge>}
+              </div>
+              <span className="leader-mobile-measure">{x.medida || "Medida não informada"}</span>
+            </div>
+            <div className="leader-mobile-of"><span>OF</span><strong>{x.listaOfs.length ? x.listaOfs.join(", ") : "-"}</strong></div>
+            <div className="leader-mobile-meta">
+              <div><span>Material</span><strong>{x.material || "-"}</strong></div>
+              <div><span>Rebaixo</span><strong>{x.rebaixo || "-"}</strong></div>
+              <div><span>Acabamento</span><strong>{x.acabamento || "-"}</strong></div>
+              <div><span>Cor</span><strong>{x.cor || "-"}</strong></div>
+            </div>
+            <div className="leader-mobile-quantities">
+              <div><span>Planejado</span><strong>{fmt(x.quantidade)}</strong></div>
+              <div><span>Produzido</span><strong>{fmt(x.produzido)}</strong></div>
+              <div><span>Saldo</span><strong>{fmt(x.saldo)}</strong></div>
+            </div>
+          </article>
+        ))}
+        {!rows.length && <Empty title="Nenhuma quantidade neste processo." />}
+      </div>
+
+      <div className="leader-desktop-table">
       <TableScroll className="leader">
         <table>
           <thead>
@@ -413,6 +441,7 @@ export default function Lideres() {
         </table>
         {!rows.length && <Empty title="Nenhuma quantidade neste processo." />}
       </TableScroll>
-    </>
+      </div>
+    </div>
   );
 }
