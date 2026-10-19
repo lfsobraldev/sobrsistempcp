@@ -72,9 +72,9 @@ export async function POST(req:Request){
   const allowedSet=new Set(allowed);
   for(const item of rows){
    const pedido=String(item?.pedido||"").trim(),etapa=String(item?.etapa||"").toUpperCase();
-   const date=(v:any)=>!v?null:/^\\d{4}-\\d{2}-\\d{2}$/.test(String(v))?String(v):undefined;
+   const date=(v:any)=>!v?null:/^\d{4}-\d{2}-\d{2}$/.test(String(v))?String(v):undefined;
    const inicio=date(item?.dataInicio),fim=date(item?.dataConclusao);
-   if(!/^\\d{4,10}$/.test(pedido)||!AREAS.PRODUCAO.includes(etapa)||!allowedSet.has(etapa)||inicio===undefined||fim===undefined||(inicio&&fim&&fim<inicio)||(!inicio&&!fim)){ignorados++;continue;}
+   if(!/^\d{4,10}$/.test(pedido)||!AREAS.PRODUCAO.includes(etapa)||!allowedSet.has(etapa)||inicio===undefined||fim===undefined||(inicio&&fim&&fim<inicio)||(!inicio&&!fim)){ignorados++;continue;}
    const origem=await db`select pedido from pcp_produtos where pedido=${pedido} and programacao_id=${programacaoId} limit 1`;
    if(!origem.length){ignorados++;continue;}
    const existeEntrega=await db`select pedido from pcp_controle_entregas where pedido=${pedido} limit 1`;
