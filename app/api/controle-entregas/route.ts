@@ -1,6 +1,7 @@
 import {NextResponse} from "next/server";
 import {sql} from "@/lib/db";
 import {requireRoles} from "@/lib/auth";
+import {ensurePreparedRomaneiosTable} from "@/lib/romaneio/prepared";
 export const runtime="nodejs";
 const ALLOWED=["PLANEJADO","EM_PRODUCAO","AGUARDANDO_MONTAGEM","PRONTO_EXPEDICAO","EM_TRANSITO","ENTREGA_PARCIAL","ENTREGUE","PENDENCIA"];
 const DATE_FIELDS=["data_saida","previsao_entrega","data_entrega","data_montagem","previsao_saida","previsao_informada"] as const;
@@ -40,6 +41,7 @@ async function ensure(db:ReturnType<typeof sql>){
   usuario varchar(100) not null,criado_em timestamptz not null default now()
  )`;
  await db`create index if not exists ix_controle_entregas_eventos on pcp_controle_entregas_eventos(pedido,criado_em desc)`;
+ await ensurePreparedRomaneiosTable(db);
  // Migração não destrutiva: aproveitar controles já salvos na integração anterior.
  const tabela=await db`select to_regclass('public.pcp_entregas_gestao') as nome`;
  if(tabela[0]?.nome){
