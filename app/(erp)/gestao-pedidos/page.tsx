@@ -1,6 +1,7 @@
 "use client";
 import {useCallback,useEffect,useMemo,useState} from "react";
-import {ClipboardList,RefreshCw,Truck,Search,CalendarClock,PackageCheck,UploadCloud,FileSpreadsheet} from "lucide-react";
+import {ClipboardList,RefreshCw,Truck,Search,CalendarClock,PackageCheck,UploadCloud,FileSpreadsheet,Download} from "lucide-react";
+import {exportarExcel} from "@/lib/export";
 import ComercialEspecificacoes from "@/components/comercial-especificacoes";
 import ApontamentoProducaoResumo from "@/components/apontamento-producao-resumo";
 import {useOps} from "@/components/operational-provider";
@@ -46,6 +47,26 @@ export default function GestaoPedidos(){
  const atraso=rows.filter(p=>p.entrega?.previsao_entrega&&new Date(p.entrega.previsao_entrega+"T12:00:00").getTime()<Date.now()&&!["ENTREGUE"].includes(p.entrega.status)).length;
  function escolher(p:Pedido){setNovo(false);setSelected(p);setForm({...vazio,...p.entrega});setErro("");setOk("")}
  async function save(){if(!selected)return;setBusy(true);setErro("");setOk("");try{const response=await fetch("/api/controle-entregas",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(Object.fromEntries(Object.entries({...form,pedido:selected.pedido}).filter(([k])=>!["COMERCIAL","LOGISTICA"].includes(me?.perfil||"")||k==="pedido"||(me?.perfil==="COMERCIAL"?["cliente","representante","tipo_pedido","colecao","status_ferragens","uf","cidade","previsao_informada"]:["transportadora","nota_fiscal","tipo_frete","data_saida","previsao_entrega","data_entrega","previsao_saida","peso_kg","volume_m3","status"]).includes(k))))});const j=await response.json();if(!response.ok)throw Error(j.error||"Não foi possível salvar");setOk("Dados de entrega atualizados.");setSelected(null);await load();}catch(e){setErro(e instanceof Error?e.message:"Falha ao salvar")}finally{setBusy(false)}}
+ async function exportarGeral(){
+  setErro("");setOk("");
+  try{
+   const [pedidosResp,etapasResp,cargasResp,prazosResp]=await Promise.all([
+    fetch("/api/controle-entregas",{cache:"no-store"}),fetch("/api/controle-entregas/etapas",{cache:"no-store"}),fetch("/api/controle-entregas/carregamentos",{cache:"no-store"}),fetch("/api/controle-entregas/prazos",{cache:"no-store"})
+   ]);
+   const [pj,ej,cj,rj]=await Promise.all([pedidosResp.json(),etapasResp.json(),cargasResp.json(),prazosResp.json()]);
+   if(!pedidosResp.ok||!etapasResp.ok)throw new Error(pj.error||ej.error||"Não foi possível ler todos os dados.");
+   const lista=(pj.pedidos||[]) as Pedido[], etapasTodas=(ej.etapas||[]) as Etapa[], cargasTodas=(cj.cargas||[]) as Carga[], regrasTodas=(rj.regras||[]) as RegraPrazo[];
+   const data=(v:any)=>v||"";
+   await exportarExcel([
+    {nome:"Pedidos e Clientes",linhas:lista.map(p=>({Pedido:p.pedido,Cliente:p.entrega?.cliente||"",Representante:p.entrega?.representante||"",Tipo:p.entrega?.tipo_pedido||"",Colecao:p.entrega?.colecao||"",Ferragens:p.entrega?.status_ferragens||"",UF:p.entrega?.uf||"",Cidade:p.entrega?.cidade||"",TipoFrete:p.entrega?.tipo_frete||"",Origem:p.entrega?.origem_unidade||"",Destino:p.entrega?.destino_unidade||"",PedidoSul:p.entrega?.pedido_sul||"",LocalMontagem:p.entrega?.local_montagem||"",Transportadora:p.entrega?.transportadora||"",NotaFiscal:p.entrega?.nota_fiscal||"",DataSaida:data(p.entrega?.data_saida),PrevisaoEntrega:data(p.entrega?.previsao_entrega),DataEntrega:data(p.entrega?.data_entrega),Status:p.entrega?.status||"PLANEJADO",OFs:p.ofs,Pecas:p.pecas,AvancoPCP:p.percentual,VolumeM3:p.entrega?.volume_m3??"",PesoKg:p.entrega?.peso_kg??"",Observacoes:p.entrega?.observacao||""}))},
+    {nome:"Apontamentos",linhas:etapasTodas.map(e=>({Pedido:e.pedido,Area:e.area,Etapa:e.etapa,"Data de início":data(e.data_inicio),"Data de conclusão":data(e.data_conclusao),Situacao:e.status,Observacao:e.observacao||"",Responsavel:(e as any).usuario||""}))},
+    {nome:"Logistica",linhas:cargasTodas.map(c=>({Pedido:c.pedido,Romaneio:c.romaneio||"",Quantidade:c.quantidade,VolumeM3:c.volume_m3??"",NotaFiscal:c.nota_fiscal||"",Transportadora:c.transportadora||"",DataSaida:data(c.data_saida),DataEntrega:data(c.data_entrega),Situacao:c.status}))},
+    {nome:"Classificacao Prazos",linhas:regrasTodas.map(r=>({UF:r.uf,Cidade:r.cidade,Ate10m3Dias:r.faixa_ate_10,De10a20m3Dias:r.faixa_10_20,Acima20m3Dias:r.faixa_acima_20}))},
+    {nome:"Historico",linhas:eventos.map(e=>({Pedido:e.pedido,Movimentacao:e.tipo,Responsavel:e.usuario,DataHora:e.criado_em}))}
+   ],"Sobrsistem_Gestao_Pedidos_Entregas");
+   setOk("Exportação geral concluída. A planilha inclui pedidos, clientes, apontamentos, logística, prazos e histórico.");
+  }catch(e){setErro(e instanceof Error?e.message:"Falha ao exportar a planilha geral.")}
+ }
  async function importar(aplicar:boolean){
  if(!arquivo)return;setImportando(true);setErro("");setOk("");
  try{const fd=new FormData();fd.append("arquivo",arquivo);fd.append("aplicar",String(aplicar));const response=await fetch("/api/controle-entregas/importar",{method:"POST",body:fd});const j=await response.json();if(!response.ok)throw Error(j.error||"Falha ao importar");setPreImport(j);if(aplicar){setOk(j.repetido?"Este arquivo já havia sido importado. Nenhuma alteração foi repetida.":"Pedidos históricos incorporados ao cadastro permanente, sem substituir campos preenchidos.");await load();}}
@@ -82,7 +103,7 @@ export default function GestaoPedidos(){
  <nav className="industrial-subtabs" aria-label="Áreas do Controle de Entregas">{ABAS.map(([id,label])=><button key={id} type="button" className={aba===id?"active":""} onClick={()=>{setAba(id);setSelected(null)}}>{label}</button>)}</nav>
   <section className="industrial-stat-row"><div><ClipboardList size={20}/><span>Pedidos ativos</span><strong>{rows.length}</strong></div><div><PackageCheck size={20}/><span>Em produção / planejados</span><strong>{rows.filter(p=>!["ENTREGUE","EM_TRANSITO"].includes(p.entrega?.status||"PLANEJADO")).length}</strong></div><div><Truck size={20}/><span>Em transporte</span><strong>{rows.filter(p=>p.entrega?.status==="EM_TRANSITO").length}</strong></div><div><CalendarClock size={20}/><span>Previsões vencidas</span><strong>{atraso}</strong></div></section>
  <section className="industrial-panel">
- <div className="industrial-panel-title"><h2>Importar Controle de Entregas</h2><span>Excel .xlsx • prévia antes da gravação</span></div>
+ <div className="industrial-panel-title"><h2>Importar / Exportar planilha geral</h2><button type="button" className="industrial-btn" onClick={()=>void exportarGeral()}><Download size={16}/> Exportar Excel completo</button></div><span style={{display:"block",fontSize:12,color:"#5f6d74",marginBottom:10}}>Exporta os dados atuais do sistema em várias abas, incluindo pedidos, clientes, apontamentos, logística, prazos e histórico.</span>
  <p style={{fontSize:13,color:"#5f6d74",marginBottom:14}}>A planilha antiga pode ser migrada aqui uma única vez, com prévia. Depois disso, as informações são cadastradas e acompanhadas diretamente nas abas do sistema. Não sobrescreve campos já preenchidos nem importa datas ou status antigos.</p>
  <div className="file-upload-layout file-upload-layout-compact">
    <div className="file-upload-control">
