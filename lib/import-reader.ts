@@ -37,35 +37,54 @@ export const normalizeImportHeader = (value: unknown) =>
  */
 export function parseImportNumber(value: unknown): number | null {
   let s = cleanImportText(value)
+    .replace(/R\\$|US\\$|\\$/gi, "")
     .replace(/%/g, "")
-    .replace(/\s+/g, "")
+    .replace(/\\s+/g, "")
     .replace(/(?:UNIDADES?|UNID|UN|PCS|PC|PÇS|PÇ|JG|CJ|KG|M[23²³]|MM|CM|M|G|L)$/i, "");
 
-  if (!s || /^(?:-|—|N\/?A|ND|N\/D)$/i.test(s)) return null;
+  if (!s || /^(?:-|—|N\\/?A|ND|N\\/D)$/i.test(s)) return null;
 
-  const sign = s.startsWith("-") ? "-" : "";
-  s = s.replace(/^[+-]/, "").replace(/[^0-9.,]/g, "");
-  if (!s) return null;
+  const sign = s.startsWith("-") ? -1 : 1;
+  s = s.replace(/^[+-]/, "");
+  // Não transforme entradas corrompidas (ex.: "12-3" ou "1.2.3") em números válidos.
+  if (!s || /[+-]/.test(s) || !/^\\d[\\d.,]*$/.test(s)) return null;
 
   const comma = s.lastIndexOf(",");
   const dot = s.lastIndexOf(".");
   const commas = (s.match(/,/g) || []).length;
-  const dots = (s.match(/\./g) || []).length;
+  const dots = (s.match(/\\./g) || []).length;
 
   if (comma >= 0 && dot >= 0) {
-    if (comma > dot) s = s.replace(/\./g, "").replace(",", ".");
-    else s = s.replace(/,/g, "");
+    if (comma > dot) {
+      const validBrazilian = /^\\d{1,3}(?:\\.\\d{3})*,\\d+$/.test(s) || /^\\d+,\\d+$/.test(s);
+      if (!validBrazilian) return null;
+      s = s.replace(/\\./g, "").replace(",", ".");
+    } else {
+      const validInternational = /^\\d{1,3}(?:,\\d{3})*\\.\\d+$/.test(s) || /^\\d+\\.\\d+$/.test(s);
+      if (!validInternational) return null;
+      s = s.replace(/,/g, "");
+    }
   } else if (comma >= 0) {
-    // várias vírgulas = milhares ("1,234,567"); uma só = decimal (padrão BR)
-    s = commas > 1 ? s.replace(/,/g, "") : s.replace(",", ".");
+    if (commas > 1) {
+      if (!/^\\d{1,3}(?:,\\d{3})+$/.test(s)) return null;
+      s = s.replace(/,/g, "");
+    } else {
+      // Uma vírgula é decimal no padrão brasileiro: "1,234" = 1,234.
+      s = s.replace(",", ".");
+    }
   } else if (dot >= 0) {
-    const decimals = s.length - dot - 1;
-    const milhar = /^[1-9]\d{0,2}(\.\d{3})+$/.test(s); // não começa com 0
-    if (dots > 1 || (decimals === 3 && milhar)) s = s.replace(/\./g, "");
+    if (dots > 1) {
+      if (!/^\\d{1,3}(?:\\.\\d{3})+$/.test(s)) return null;
+      s = s.replace(/\\./g, "");
+    } else {
+      const decimals = s.length - dot - 1;
+      const milhar = /^[1-9]\\d{0,2}\\.\\d{3}$/.test(s);
+      if (decimals === 3 && milhar) s = s.replace(".", "");
+    }
   }
 
-  const n = Number(sign + s);
-  return Number.isFinite(n) ? n : null;
+  const number = sign * Number(s);
+  return Number.isFinite(number) ? number : null;
 }
 
 export function findImportKey(
@@ -348,6 +367,7 @@ export async function loadRobustTables(
 
   const wb = readWorkbook(bytes);
   const result: RobustTable[] = [];
+  let totalRows = 0;
 
   for (const sheetName of wb.SheetNames) {
     const matrix = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[sheetName], {
@@ -357,6 +377,10 @@ export async function loadRobustTables(
       blankrows: false,
     }) as unknown[][];
     assertRowLimit(matrix);
+    totalRows += matrix.length;
+    if (totalRows > MAX_IMPORT_ROWS) {
+      throw new Error(`O arquivo excede o limite total de ${MAX_IMPORT_ROWS.toLocaleString("pt-BR")} linhas somando todas as abas.`);
+    }
 
     const detected = bestHeader(matrix, aliasPool);
     if (!detected) continue;
