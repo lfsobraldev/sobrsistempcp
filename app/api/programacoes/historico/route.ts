@@ -4,11 +4,11 @@ import { requireRoles } from "@/lib/auth";
 
 export async function GET(){
   try{
-    await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
+    await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER"]);
     const rows=await sql()`
       select id,filtro,to_char(data_programacao,'DD/MM/YYYY') data,turno,status,origem,criado_em,encerrado_em,
              import_linhas,import_pedidos,import_ofs,import_pecas,import_operacoes
-      from pcp_programacoes order by criado_em desc limit 50
+      from pcp_programacoes order by criado_em desc limit 200
     `;
     return NextResponse.json({itens:rows},{headers:{"Cache-Control":"no-store"}});
   }catch(e:any){
