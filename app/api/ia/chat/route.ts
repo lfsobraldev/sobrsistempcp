@@ -18,8 +18,24 @@ function limited(user: string) {
   const arr = (rate.get(user) || []).filter((t) => now - t < 60_000);
   arr.push(now);
   rate.set(user, arr);
+
+  // Evita que o limitador em memória acumule usuários antigos indefinidamente.
+  if (rate.size > 500) {
+    for (const [key, timestamps] of rate) {
+      if (!timestamps.some((timestamp) => now - timestamp < 60_000)) rate.delete(key);
+    }
+  }
   return arr.length > 20;
 }
+
+const chatRequestSchema = z.object({
+  path: z.string().max(200).optional(),
+  // A tela pode manter até 40 mensagens; o servidor usa as 20 mais recentes.
+  messages: z.array(z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string().min(1).max(20_000),
+  })).max(40),
+});
 
 export async function POST(req: Request) {
   try {
@@ -31,18 +47,20 @@ export async function POST(req: Request) {
 
     assertGatewayConfigured();
 
-    const body = await req.json();
-    const incoming = Array.isArray(body.messages) ? body.messages.slice(-20) : [];
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = chatRequestSchema.safeParse(rawBody);
+    if (!parsedBody.success) {
+      return NextResponse.json({
+        error: "Solicitação inválida. Envie até 40 mensagens, com conteúdo válido de no máximo 20.000 caracteres por mensagem.",
+      }, { status: 400 });
+    }
+    const body = parsedBody.data;
+    const incoming = body.messages.slice(-20);
     const messagesFull = incoming
-      .filter(
-        (m: any) =>
-          (m.role === "user" || m.role === "assistant") &&
-          typeof m.content === "string" &&
-          m.content.trim()
-      )
-      .map((m: any) => ({
-        role: m.role as "user" | "assistant",
-        content: String(m.content).slice(0, 20_000),
+      .filter((message) => message.content.trim().length > 0)
+      .map((message) => ({
+        role: message.role,
+        content: message.content.slice(0, 20_000),
       }));
 
     const messages = compactarHistorico(messagesFull);
