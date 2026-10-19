@@ -33,7 +33,8 @@ const menus: MenuGroup[] = [
   },
   { label: "Administração", items: [{ path: "/configuracoes", label: "Configurações de Acesso", icon: Settings }] },
   { label: "Inteligência", items: [{ path: "/sobral-ia", label: "Sobral IA", icon: BrainCircuit }] },
-  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }] },\n  { label: "Atendimento", items: [{ path: "/sac", label: "SAC", icon: ClipboardList }] },
+  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }] },
+  { label: "Atendimento", items: [{ path: "/sac", label: "SAC", icon: ClipboardList }] },
   { label: "Expedição", items: [{ path: "/romaneios", label: "Romaneios", icon: Boxes }] },
   {
     label: "Relatórios",
