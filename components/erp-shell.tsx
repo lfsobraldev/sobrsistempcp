@@ -95,7 +95,7 @@ function Inner({ children }: { children: React.ReactNode }) {
   return (
     <div className={`shell ${collapsed ? "collapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
       <aside className="sidenav">
-        <div className="brand"><BrandLogo size={34} /><span className="brand-copy"><b>Sobral PCP</b><small>Famossul · PCP Industrial</small></span></div>
+        <div className="brand"><BrandLogo size={34} /><span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span></div>
         <nav>
           {visible.map((g) => (
             <section key={g.label} className="navgroup">
