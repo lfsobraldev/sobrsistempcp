@@ -74,7 +74,7 @@ export async function lerControleEntregas(arquivo:Buffer){
    const h=norm(raw(headers.getCell(c)));if(!h)continue;
    const etapa=ETAPAS.find(x=>x.aliases.some(a=>{const na=norm(a);return h.includes(na)&&!(x.etapa==="USINAGEM"&&h.includes("USINAGEM 2"))&&!(x.etapa==="PLASTIFICADORA"&&h.includes("PORTAS"));}));
    if(!etapa)continue;
-   const mentionsDate=/DATA|INICIO|INICI|CONCLUSAO|CONCLUID|FIM|FINAL|SAIDA|CHEGADA|ENTREGA|LIBERACAO|CARREGAMENTO|APONTAMENTO/.test(h);
+   const mentionsDate=/DATA|INICIO|INICI|CONCLUSAO|CONCLUID|FIM|FINAL|SAIDA|CHEGADA|ENTREGA|LIBERACAO|CARREGAMENTO|APONTAMENTO/.test(h)||etapa.aliases.some(a=>h===norm(a));
    if(!mentionsDate)continue;
    const kind=/INICIO|INICI|ENTRADA/.test(h)?"inicio":"fim";
    cols.push({idx:c,stage:etapa,kind});
