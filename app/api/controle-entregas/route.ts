@@ -22,6 +22,18 @@ async function ensure(db:ReturnType<typeof sql>){
   atualizado_por varchar(100) not null default '',atualizado_em timestamptz not null default now(),
   criado_em timestamptz not null default now()
  )`;
+ await db`create table if not exists pcp_pedido_controle(
+  id uuid primary key default gen_random_uuid(),
+  programacao_id uuid not null references pcp_programacoes(id) on delete cascade,
+  pedido varchar(80) not null,
+  cliente varchar(240) not null default '',
+  data_entrega date,
+  status_entrega varchar(30) not null default 'SEM_DATA',
+  observacao text not null default '',
+  atualizado_por varchar(120) not null default '',
+  atualizado_em timestamptz not null default now(),
+  unique(programacao_id,pedido)
+ )`;
  await db`create table if not exists pcp_controle_entregas_eventos(
   id uuid primary key default gen_random_uuid(),pedido varchar(80) not null references pcp_controle_entregas(pedido),
   acao varchar(40) not null, anterior jsonb, atual jsonb,
@@ -48,34 +60,43 @@ const mapInput=(b:any)=>{
  if(!["","SUL","NORDESTE"].includes(data.origem_unidade.toUpperCase())||!["","SUL","NORDESTE"].includes(data.destino_unidade.toUpperCase()))throw new Error("Unidade inválida");
  return data;
 };
-export async function GET(){
+export async function GET(req:Request){
  try{
   const usuarioAtual=await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA","LIDER_ENTREGAS"]);
   const db=sql();await ensure(db);
-  const [active]=await db`select id,filtro from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
-  // Para pedidos que reaparecem em filtros diferentes, somente a versão mais
-  // recente entra no resumo. Somar todas as programações inflaria peças e OFs.
-  const pcp=await db`with versoes as (
-      select p.pedido,p.programacao_id,max(pg.criado_em) as criado_em
-      from pcp_produtos p join pcp_programacoes pg on pg.id=p.programacao_id
-      group by p.pedido,p.programacao_id
-    ),mais_recente as (
-      select distinct on(pedido) pedido,programacao_id from versoes
-      order by pedido,criado_em desc,programacao_id desc
-    )
+  const requestedId=new URL(req.url).searchParams.get("programacaoId")?.trim()||"";
+  let active:any;
+  if(requestedId){
+   const found=await db`select id,filtro from pcp_programacoes where id=${requestedId} limit 1`;
+   active=found[0];
+   if(!active)return NextResponse.json({error:"A programação selecionada não existe."},{status:404});
+  }else{
+   const rows=await db`select id,filtro from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
+   active=rows[0];
+  }
+  if(!active)return NextResponse.json({filtro:"",pedidos:[],eventos:[]},{headers:{"Cache-Control":"no-store"}});
+  // Cada consulta fica limitada ao ID exato da programação escolhida.
+  const pcp=await db`
     select p.pedido,count(*)::int linhas,count(distinct nullif(p.of,''))::int ofs,
-      coalesce(sum(p.quantidade),0) pecas,coalesce(avg(p.percentual_produto),0) percentual
-    from pcp_produtos p join mais_recente m on m.pedido=p.pedido and m.programacao_id=p.programacao_id
-    group by p.pedido`;
-  const controls=await db`select *,data_saida::text as data_saida,previsao_entrega::text as previsao_entrega,data_entrega::text as data_entrega,data_montagem::text as data_montagem,previsao_saida::text as previsao_saida,previsao_informada::text as previsao_informada from pcp_controle_entregas order by pedido`;
+      coalesce(sum(p.quantidade),0) pecas,coalesce(avg(p.percentual_produto),0) percentual,
+      coalesce(nullif(max(trim(pc.cliente)),''),nullif(max(trim(ce.cliente)),''),'') cliente
+    from pcp_produtos p
+    left join pcp_pedido_controle pc on pc.programacao_id=p.programacao_id and pc.pedido=p.pedido
+    left join pcp_controle_entregas ce on ce.pedido=p.pedido
+    where p.programacao_id=${active.id}
+    group by p.pedido
+    order by case when p.pedido ~ '^[0-9]{1,18}$' then p.pedido::numeric end nulls last,p.pedido
+  `;
+  const controls=await db`select *,data_saida::text as data_saida,previsao_entrega::text as previsao_entrega,data_entrega::text as data_entrega,data_montagem::text as data_montagem,previsao_saida::text as previsao_saida,previsao_informada::text as previsao_informada from pcp_controle_entregas`;
   const events=await db`select pedido,acao as tipo,usuario,criado_em from pcp_controle_entregas_eventos order by criado_em desc limit 300`;
   const map=new Map(controls.map((x:any)=>[String(x.pedido),x]));
-  const orders=new Map<string,any>();
-  for(const p of pcp)orders.set(String(p.pedido),{pedido:String(p.pedido),linhas:Number(p.linhas),ofs:Number(p.ofs),pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:map.get(String(p.pedido))||null});
-  for(const c of controls)if(!orders.has(String(c.pedido)))orders.set(String(c.pedido),{pedido:String(c.pedido),linhas:0,ofs:0,pecas:0,percentual:0,entrega:c});
-  const pedidos=[...orders.values()].sort((a,b)=>a.pedido.localeCompare(b.pedido,"pt-BR",{numeric:true}));
-  if(usuarioAtual.perfil==="LIDER_ENTREGAS")return NextResponse.json({pedidos:pedidos.map(p=>({pedido:p.pedido,ofs:p.ofs,pecas:p.pecas,percentual:p.percentual,entrega:{cliente:p.entrega?.cliente||""}}))},{headers:{"Cache-Control":"no-store"}});
-  return NextResponse.json({filtro:active?.filtro||"",pedidos,eventos:events},{headers:{"Cache-Control":"no-store"}});
+  const pedidos=pcp.map((p:any)=>{
+    const pedido=String(p.pedido),controle:any=map.get(pedido)||null;
+    const cliente=String(p.cliente||controle?.cliente||"").trim();
+    return {pedido,linhas:Number(p.linhas),ofs:Number(p.ofs),pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:controle?{...controle,cliente}:{cliente}};
+  });
+  if(usuarioAtual.perfil==="LIDER_ENTREGAS")return NextResponse.json({filtro:String(active.filtro||""),pedidos:pedidos.map((p:any)=>({pedido:p.pedido,ofs:p.ofs,pecas:p.pecas,percentual:p.percentual,entrega:{cliente:p.entrega?.cliente||""}}))},{headers:{"Cache-Control":"no-store"}});
+  return NextResponse.json({filtro:String(active.filtro||""),pedidos,eventos:events},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao consultar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
 function userScope(role:string,comercial:string[],logistica:string[]){return role==="COMERCIAL"?comercial:role==="LOGISTICA"?logistica:null;}
