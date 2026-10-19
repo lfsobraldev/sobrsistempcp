@@ -19,7 +19,7 @@ const MONTAGENS_ENGENHARIA: Array<{value:MontagemEngenharia;label:string}> = [
 
 export default function Lideres() {
   const { pg, me, refresh, toast } = useOps();
-  type ProgramacaoLista = { id: string; filtro: string; data: string; turno: string; status: string; origem: string };
+  type ProgramacaoLista = { id: string; filtro: string; data: string; turno: string; status: string; origem: string; import_pedidos?: number; import_ofs?: number; import_pecas?: number };
   const [programacoesDisponiveis, setProgramacoesDisponiveis] = useState<ProgramacaoLista[]>([]);
   const [filtroSelecionado, setFiltroSelecionado] = useState("");
   const [programacaoIdSelecionada, setProgramacaoIdSelecionada] = useState("");
@@ -248,30 +248,67 @@ export default function Lideres() {
         actions={<button onClick={exportar}><FileSpreadsheet /> Exportar Excel</button>}
       />
 
-      <section className="card mb" aria-label="Selecionar filtro e data da programação">
+      <section className="card mb leader-program-picker" aria-label="Selecionar filtro e data da programação">
         <div className="card-head">
-          <div><h2>Programação por filtro</h2><small>Cada filtro e cada data permanecem separados; os pedidos não são combinados.</small></div>
+          <div>
+            <h2>Apontamento por filtro</h2>
+            <small>Escolha um filtro primeiro. Os pedidos exibidos pertencem somente à programação e à data selecionadas.</small>
+          </div>
         </div>
-        <div className="card-body form-grid">
-          <Field label="Filtro do Consistem">
-            <select value={filtroSelecionado} onChange={(e) => {
-              const novoFiltro = e.target.value;
-              setFiltroSelecionado(novoFiltro);
-              const primeira = programacoesDisponiveis.find((x) => String(x.filtro || "") === novoFiltro);
-              setProgramacaoIdSelecionada(primeira?.id || "");
-            }}>
-              {filtrosDisponiveis.map((f) => <option key={f} value={f}>Filtro {f}</option>)}
-            </select>
-          </Field>
-          <Field label="Data / turno">
-            <select value={programacaoIdSelecionada} onChange={(e) => setProgramacaoIdSelecionada(e.target.value)}>
-              {programacoesDoFiltro.map((x) => <option key={x.id} value={x.id}>{x.data} · Turno {x.turno || "-"} · {x.status === "ATIVA" ? "Atual" : "Histórico"}</option>)}
-            </select>
-          </Field>
-          <div className="result-box">
-            <small>Filtro selecionado</small>
-            <b>{filtroSelecionado ? "Filtro " + filtroSelecionado : "Nenhum filtro"}</b>
-            <small>{programacaoAtiva?.data ? programacaoAtiva.data + " · Turno " + programacaoAtiva.turno : carregandoProgramacao ? "Carregando programação..." : "Selecione uma programação"}</small>
+        <div className="card-body">
+          <div className="leader-filter-tabs" role="tablist" aria-label="Filtros do Consistem">
+            {filtrosDisponiveis.map((f) => (
+              <button
+                type="button"
+                key={f}
+                role="tab"
+                aria-selected={filtroSelecionado === f}
+                className={filtroSelecionado === f ? "is-selected" : ""}
+                onClick={() => {
+                  setFiltroSelecionado(f);
+                  const doFiltro = programacoesDisponiveis.filter((x) => String(x.filtro || "").trim() === f);
+                  const atual = doFiltro.find((x) => x.status === "ATIVA") || doFiltro[0];
+                  setProgramacaoIdSelecionada(atual?.id || "");
+                  setBusca("");
+                  setPeca("TODAS");
+                  setMedida("TODAS");
+                }}
+              >
+                <span>Filtro</span><strong>{f}</strong>
+              </button>
+            ))}
+          </div>
+          <div className="leader-date-section">
+            <div className="leader-date-heading">
+              <div><b>Data da programação</b><small>Toque em uma data para abrir apenas os pedidos daquele filtro.</small></div>
+              <span>{programacoesDoFiltro.length} {programacoesDoFiltro.length === 1 ? "data" : "programações"}</span>
+            </div>
+            <div className="leader-date-options" role="group" aria-label={"Datas do filtro " + filtroSelecionado}>
+              {programacoesDoFiltro.map((x) => (
+                <button
+                  type="button"
+                  key={x.id}
+                  aria-pressed={programacaoIdSelecionada === x.id}
+                  className={programacaoIdSelecionada === x.id ? "is-selected" : ""}
+                  onClick={() => {
+                    setProgramacaoIdSelecionada(x.id);
+                    setBusca("");
+                    setPeca("TODAS");
+                    setMedida("TODAS");
+                  }}
+                >
+                  <span className="leader-date-main">{x.data}</span>
+                  <span className="leader-date-sub">Turno {x.turno || "—"} · {x.status === "ATIVA" ? "Atual" : "Histórico"}</span>
+                  <span className="leader-date-counts">{x.import_pedidos ?? "—"} pedidos <i>·</i> {x.import_ofs ?? "—"} OFs</span>
+                </button>
+              ))}
+              {!programacoesDoFiltro.length && <p className="muted">Nenhuma programação encontrada para este filtro.</p>}
+            </div>
+          </div>
+          <div className="leader-selected-program">
+            <span className="leader-selected-dot" />
+            <div><small>Programação selecionada</small><strong>{programacaoAtiva ? `Filtro ${programacaoAtiva.filtro} · ${programacaoAtiva.data}` : carregandoProgramacao ? "Carregando pedidos..." : "Selecione uma data"}</strong></div>
+            {programacaoAtiva && <span className="leader-selected-turno">Turno {programacaoAtiva.turno || "—"}</span>}
           </div>
         </div>
       </section>
