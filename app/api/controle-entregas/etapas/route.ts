@@ -60,6 +60,45 @@ export async function GET(req:Request){
   return NextResponse.json({etapas,permitidas:user.perfil==="LIDER_ENTREGAS"?await permitidas(db,user.usuario):AREAS.PRODUCAO},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha nas etapas"},{status:403})}
 }
+export async function POST(req:Request){
+ try{
+  const u=await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]),b=await req.json();
+  const programacaoId=String(b.programacaoId||"").trim(),rows=Array.isArray(b.rows)?b.rows:[];
+  if(!programacaoId||!rows.length)return NextResponse.json({error:"Selecione uma programação e envie linhas válidas."},{status:400});
+  if(rows.length>10000)return NextResponse.json({error:"A planilha excede o limite de 10.000 linhas por importação."},{status:413});
+  const db=await ensure();
+  const allowed=u.perfil==="LIDER_ENTREGAS"?await permitidas(db,u.usuario):AREAS.PRODUCAO;
+  let atualizados=0,ignorados=0;
+  const allowedSet=new Set(allowed);
+  for(const item of rows){
+   const pedido=String(item?.pedido||"").trim(),etapa=String(item?.etapa||"").toUpperCase();
+   const date=(v:any)=>!v?null:/^\\d{4}-\\d{2}-\\d{2}$/.test(String(v))?String(v):undefined;
+   const inicio=date(item?.dataInicio),fim=date(item?.dataConclusao);
+   if(!/^\\d{4,10}$/.test(pedido)||!AREAS.PRODUCAO.includes(etapa)||!allowedSet.has(etapa)||inicio===undefined||fim===undefined||(inicio&&fim&&fim<inicio)||(!inicio&&!fim)){ignorados++;continue;}
+   const origem=await db`select pedido from pcp_produtos where pedido=${pedido} and programacao_id=${programacaoId} limit 1`;
+   if(!origem.length){ignorados++;continue;}
+   const existeEntrega=await db`select pedido from pcp_controle_entregas where pedido=${pedido} limit 1`;
+   if(!existeEntrega.length)await db`insert into pcp_controle_entregas(pedido) values(${pedido}) on conflict do nothing`;
+   const prevRows=await db`select * from pcp_controle_entregas_etapas where pedido=${pedido} and programacao_id=${programacaoId} and area='PRODUCAO' and etapa=${etapa} limit 1`;
+   const prev=prevRows[0]||null;
+   // Importação não sobrescreve datas já lançadas pelo líder: preenche somente campos vazios.
+   const result=await db`insert into pcp_controle_entregas_etapas(programacao_id,pedido,area,etapa,data_inicio,data_conclusao,status,observacao,usuario)
+    values(${programacaoId},${pedido},'PRODUCAO',${etapa},${inicio}::date,${fim}::date,case when ${fim}::date is not null then 'CONCLUIDA' when ${inicio}::date is not null then 'EM_ANDAMENTO' else 'PENDENTE' end,'',${u.usuario})
+    on conflict(programacao_id,pedido,area,etapa) do update set
+     data_inicio=coalesce(pcp_controle_entregas_etapas.data_inicio,excluded.data_inicio),
+     data_conclusao=coalesce(pcp_controle_entregas_etapas.data_conclusao,excluded.data_conclusao),
+     status=case when coalesce(pcp_controle_entregas_etapas.data_conclusao,excluded.data_conclusao) is not null then 'CONCLUIDA' when coalesce(pcp_controle_entregas_etapas.data_inicio,excluded.data_inicio) is not null then 'EM_ANDAMENTO' else pcp_controle_entregas_etapas.status end,
+     atualizado_em=now(),usuario=${u.usuario}
+    returning pedido`;
+   if(result.length){
+    const after=await db`select data_inicio::text as data_inicio,data_conclusao::text as data_conclusao,status from pcp_controle_entregas_etapas where pedido=${pedido} and programacao_id=${programacaoId} and area='PRODUCAO' and etapa=${etapa} limit 1`;
+    await db`insert into pcp_controle_entregas_eventos(pedido,acao,anterior,atual,usuario) values(${pedido},'IMPORTACAO_DATAS',${JSON.stringify(prev||{})}::jsonb,${JSON.stringify({area:'PRODUCAO',etapa,...(after[0]||{})})}::jsonb,${u.usuario})`;
+    atualizados++;
+   }
+  }
+  return NextResponse.json({ok:true,atualizados,ignorados});
+ }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao importar datas"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
+}
 export async function PUT(req:Request){
  try{
  const u=await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]),b=await req.json();
