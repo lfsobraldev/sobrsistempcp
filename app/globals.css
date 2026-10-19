@@ -1229,3 +1229,96 @@ body{background-image:none}
  .file-upload-submit{display:grid;grid-template-columns:1fr;width:100%}
  .file-upload-submit button{width:100%;min-height:44px}
 }
+
+ 
+/* ===== Ajustes globais de usabilidade mobile — Sobral PCP ===== */
+html, body { width:100%; max-width:100%; overflow-x:clip; }
+body { min-width:320px; }
+.shell, .main, .page, .panel, .tableScroll, .tableWrap { min-width:0; }
+.page { width:100%; }
+img, canvas, video { max-width:100%; }
+button, .btn, a { -webkit-tap-highlight-color:transparent; }
+button, .btn { touch-action:manipulation; }
+input, select, textarea { min-width:0; max-width:100%; }
+.tableScroll, .tableWrap, .apontamento-table-wrap, .apontamento-resumo-scroll {
+  overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch;
+}
+@media (max-width:900px) {
+  .topbar2 { min-width:0; gap:6px; padding:0 10px; }
+  .topbar2 h2 { min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px; }
+  .topbar2 > .iconBtn { flex:0 0 36px; }
+  .topbar2 .userchip { padding:0 4px; min-width:36px; }
+  .main { min-width:0; padding:12px; }
+  .page { min-width:0; max-width:100%; }
+  .erp-workspace-tabs { max-width:100%; overflow-x:auto; overscroll-behavior-x:contain; }
+  .erp-workspace-tab { flex:0 0 auto; }
+  .panel > header { flex-wrap:wrap; align-items:flex-start; }
+  .cardActions { flex-wrap:wrap; }
+  .pageTitle, .v12PageTitle, .programmingPageTitle, .managerPageTitle, .v12DashHeader {
+    align-items:flex-start; gap:10px;
+  }
+  .pageTitle > div, .v12PageTitle > div, .programmingPageTitle > div, .managerPageTitle > div { min-width:0; }
+  .pageTitle h1, .v12PageTitle h1, .programmingPageTitle h1, .managerPageTitle h1 { overflow-wrap:anywhere; }
+  .managerToolbar, .managerFilters, .palletFilters, .leaderFilters { min-width:0; max-width:100%; flex-wrap:wrap; }
+  .managerFilters > *, .palletFilters > *, .leaderFilters > * { min-width:0; max-width:100%; }
+  .formRow, .modalForm, .configForm, .palletForm, .access-fields { min-width:0; }
+  .overlay { padding:10px; align-items:center; }
+  .modal { width:100%; max-width:560px; max-height:calc(100dvh - 20px); }
+  .modalBody { min-width:0; overflow:auto; }
+  .modal > footer { flex-wrap:wrap; }
+  .modal > footer button { flex:1 1 120px; }
+  .ai-fab { right:12px; bottom:12px; }
+  .ai-panel { right:8px; bottom:8px; width:calc(100vw - 16px); height:min(72dvh,640px); }
+}
+@media (max-width:600px) {
+  html { font-size:16px; }
+  .main { padding:8px; }
+  .page { width:100%; }
+  .topbar2 { height:auto; min-height:var(--header-h); gap:4px; padding:0 7px; }
+  .topbar2 h2 { font-size:13px; }
+  .topbar2 > .iconBtn { width:34px; min-width:34px; height:40px; padding:0; }
+  .topbar2 .userchip { min-height:40px; }
+  .topbar2 .avatar { width:28px; height:28px; }
+  .sidenav { width:min(var(--sidebar-w), 86vw); max-width:320px; }
+  .navlink { min-height:44px; height:auto; padding-top:8px; padding-bottom:8px; }
+  .panel { border-radius:10px; }
+  .panel > header { padding:12px; }
+  .pageTitle, .v12PageTitle, .programmingPageTitle, .managerPageTitle, .v12DashHeader { margin-bottom:12px; }
+  .pageTitle h1, .v12PageTitle h1, .programmingPageTitle h1, .managerPageTitle h1 { font-size:20px; }
+  .kpis, .v12Kpis, .managerKpis, .palletKpis, .lossKpis, .v12ExceptionKpis, .pcpMetricStrip {
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:8px;
+  }
+  .kpi, .kpis > *, .v12Kpis > *, .managerKpis > *, .palletKpis > *, .lossKpis > *, .v12ExceptionKpis > *, .pcpMetricStrip > * {
+    padding:10px; min-width:0;
+  }
+  .kpi b, .kpis > * > b, .v12Kpis > * > b, .managerKpis > * > b, .palletKpis > * > b, .lossKpis > * > b, .pcpMetricStrip > * > b {
+    font-size:20px; overflow-wrap:anywhere;
+  }
+  .tableScroll, .tableWrap { max-width:100%; }
+  .tableScroll { overflow:hidden; }
+  .tableWrap { overflow-x:auto; }
+  table { font-size:12px; }
+  thead th, tbody td { padding:9px 10px; }
+  button, .btn { min-height:42px; }
+  .iconBtn { min-height:40px; }
+  input, select { min-height:44px; font-size:16px; }
+  textarea { font-size:16px; }
+  .formRow { padding:0 10px 12px; }
+  .reviewBar { justify-content:stretch; }
+  .reviewBar > button, .reviewBar > .primary, .reviewBar > .secondary { flex:1 1 100%; }
+  .sourceTabs button { min-height:60px; }
+  .leaderHero, .managerHero, .detailGrid, .palletMeta, .palletHistory { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .managerTopActions, .palletTopActions, .priorityTopActions { flex-wrap:wrap; max-width:100%; }
+  .managerTopActions > *, .palletTopActions > *, .priorityTopActions > * { max-width:100%; }
+  .flowBoard { grid-template-columns:repeat(9,minmax(210px,225px)); }
+  .toastStack { left:8px; right:8px; bottom:8px; }
+  .toastStack > * { overflow-wrap:anywhere; }
+}
+@media (max-width:380px) {
+  .main { padding:6px; }
+  .topbar2 { gap:2px; padding:0 4px; }
+  .topbar2 > .iconBtn { width:30px; min-width:30px; }
+  .topbar2 h2 { font-size:12px; }
+  .kpis, .v12Kpis, .managerKpis, .palletKpis, .lossKpis, .v12ExceptionKpis, .pcpMetricStrip { gap:6px; }
+  .kpi, .kpis > *, .v12Kpis > *, .managerKpis > *, .palletKpis > *, .lossKpis > *, .v12ExceptionKpis > *, .pcpMetricStrip > * { padding:8px; }
+}
