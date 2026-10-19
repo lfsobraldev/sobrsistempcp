@@ -102,11 +102,8 @@ export async function POST(req:Request){
     primary key(pedido,area,etapa)
    )`;
    await db`alter table pcp_controle_entregas_etapas add column if not exists programacao_id uuid references pcp_programacoes(id) on delete cascade`;
-   await db`do $ begin
-    if exists(select 1 from pg_constraint where conname='pcp_controle_entregas_etapas_pkey' and conrelid='public.pcp_controle_entregas_etapas'::regclass) then
-     alter table pcp_controle_entregas_etapas drop constraint pcp_controle_entregas_etapas_pkey;
-    end if;
-   end $`;
+   await db`update pcp_controle_entregas_etapas e set programacao_id=(select p.programacao_id from pcp_produtos p join pcp_programacoes pg on pg.id=p.programacao_id where p.pedido=e.pedido order by pg.criado_em desc,pg.id desc limit 1) where e.programacao_id is null and exists(select 1 from pcp_produtos p where p.pedido=e.pedido)`;
+   await db`alter table pcp_controle_entregas_etapas drop constraint if exists pcp_controle_entregas_etapas_pkey`;
    await db`create unique index if not exists ux_pcp_etapas_programacao_pedido_area on pcp_controle_entregas_etapas(programacao_id,pedido,area,etapa)`;
   }
   if(datasEtapas.length&&!programacaoId)datasIgnoradas=datasEtapas.length;
