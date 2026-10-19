@@ -76,7 +76,7 @@ export async function GET(req:Request){
    const rows=await db`select id,filtro from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
    active=rows[0];
   }
-  if(!active)return NextResponse.json({filtro:"",pedidos:[],eventos:[]},{headers:{"Cache-Control":"no-store"}});
+  if(!active)return NextResponse.json({filtro:"",programacaoId:"",pedidos:[],eventos:[]},{headers:{"Cache-Control":"no-store"}});
   // Cada consulta fica limitada ao ID exato da programação escolhida.
   const pcp=await db`
     select p.pedido,count(*)::int linhas,count(distinct nullif(p.of,''))::int ofs,
@@ -98,8 +98,8 @@ export async function GET(req:Request){
     const cliente=String(p.cliente||controle?.cliente||"").trim();
     return {pedido,linhas:Number(p.linhas),ofs:Number(p.ofs),pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:controle?{...controle,cliente}:{cliente}};
   });
-  if(usuarioAtual.perfil==="LIDER_ENTREGAS")return NextResponse.json({filtro:String(active.filtro||""),pedidos:pedidos.map((p:any)=>({pedido:p.pedido,ofs:p.ofs,pecas:p.pecas,percentual:p.percentual,entrega:{cliente:p.entrega?.cliente||""}}))},{headers:{"Cache-Control":"no-store"}});
-  return NextResponse.json({filtro:String(active.filtro||""),pedidos,eventos:events},{headers:{"Cache-Control":"no-store"}});
+  if(usuarioAtual.perfil==="LIDER_ENTREGAS")return NextResponse.json({filtro:String(active.filtro||""),programacaoId:String(active.id),pedidos:pedidos.map((p:any)=>({pedido:p.pedido,ofs:p.ofs,pecas:p.pecas,percentual:p.percentual,entrega:{cliente:p.entrega?.cliente||""}}))},{headers:{"Cache-Control":"no-store"}});
+  return NextResponse.json({filtro:String(active.filtro||""),programacaoId:String(active.id),pedidos,eventos:events},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao consultar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
 function userScope(role:string,comercial:string[],logistica:string[]){return role==="COMERCIAL"?comercial:role==="LOGISTICA"?logistica:null;}
