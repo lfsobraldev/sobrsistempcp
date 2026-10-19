@@ -37,7 +37,7 @@ export default function Login() {
       <section className="login-brand">
         <div className="brand">
           <BrandLogo size={42} />
-          <span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span>
+          <span className="brand-copy"><b>Sobral PCP</b><small>Famossul · PCP Industrial</small></span>
         </div>
         <h1>Produção, qualidade e expedição em uma única plataforma.</h1>
         <p>Programação, acompanhamento de produção, romaneios e um assistente de IA para apoiar as operações.</p>
