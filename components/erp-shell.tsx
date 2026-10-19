@@ -48,7 +48,7 @@ const menus: MenuGroup[] = [
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/gestao-pedidos", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas" };
 
 function Inner({ children }: { children: React.ReactNode }) {
-  const { me, pg, selectedProgramacaoId, selectProgramacao, lastSync, realtimeStatus, refresh, loading } = useOps();
+  const { me, pg, selectedProgramacaoId, selectProgramacao, lastSync, realtimeStatus, refresh, toast, loading } = useOps();
   const path = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -156,7 +156,7 @@ function Inner({ children }: { children: React.ReactNode }) {
               value={selectedProgramacaoId || pg?.id || ""}
               onChange={async (e) => {
                 try { await selectProgramacao(e.target.value); }
-                catch (error) { console.error(error); }
+                catch (error) { toast("error", error instanceof Error ? error.message : "Não foi possível trocar a programação global."); }
               }}
               disabled={!programacoesGlobais.length}
             >
