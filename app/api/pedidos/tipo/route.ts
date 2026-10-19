@@ -56,13 +56,18 @@ export async function PATCH(req: Request) {
       add column if not exists montagem_engenharia varchar(30) not null default 'MONTADO_HS'
     `;
 
-    const [pg] = await db`
-      select id
-      from pcp_programacoes
-      where status = 'ATIVA'
-      order by criado_em desc
-      limit 1
-    `;
+    const programacaoId = String(b.programacaoId || "").trim();
+    if (programacaoId && !/^[a-f0-9-]{36}$/i.test(programacaoId)) {
+      return NextResponse.json({ error: "Identificador de programação inválido." }, { status: 400 });
+    }
+
+    const [pg] = programacaoId
+      ? await db`
+          select id from pcp_programacoes where id = ${programacaoId}::uuid limit 1
+        `
+      : await db`
+          select id from pcp_programacoes where status = 'ATIVA' order by criado_em desc limit 1
+        `;
 
     if (!pg) {
       return NextResponse.json(
