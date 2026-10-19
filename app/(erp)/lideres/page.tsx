@@ -71,6 +71,9 @@ export default function Lideres() {
     .sort((a, b) => a.localeCompare(b, "pt-BR", { numeric: true }));
   const programacoesDoFiltro = programacoesDisponiveis.filter((x) => String(x.filtro || "").trim() === filtroSelecionado);
   const programacaoAtiva = programacaoSelecionada || (pg?.id === programacaoIdSelecionada ? pg : null);
+  const programacaoAtiva = pg;
+  const carregandoProgramacao = !pg;
+  const filtroSelecionado = pg?.filtro || "";
   const products = programacaoAtiva?.produtos || [];
   const procs = me?.processos?.length
     ? PROCESSOS.filter((x) => me.processos.includes(x))
@@ -129,21 +132,8 @@ export default function Lideres() {
       if (!q) return true;
 
       const text = [
-        x.descricao,
-        x.categoria,
-        x.material,
-        x.medida,
-        x.rebaixo,
-        x.acabamento,
-        x.cor,
-        x.pedido,
-        x.of,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toUpperCase();
+        x.descricao, x.categoria, x.material, x.medida, x.rebaixo, x.acabamento, x.cor, x.pedido, x.of,
+      ].filter(Boolean).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
 
       return text.includes(q);
     });
@@ -158,10 +148,7 @@ export default function Lideres() {
       const tipo = (p.tipoPedido || "NORMAL") as TipoPedido;
       const montagem = (p.montagemEngenharia || "MONTADO_HS") as MontagemEngenharia;
       const atual = map.get(p.pedido);
-
-      if (!atual || atual.tipo === "NORMAL") {
-        map.set(p.pedido, { tipo, montagem });
-      }
+      if (!atual || atual.tipo === "NORMAL") map.set(p.pedido, { tipo, montagem });
     }
 
     return [...map.entries()]
@@ -200,14 +187,8 @@ export default function Lideres() {
           : `Pedido ${pedido}: ${tipo}.`
       );
 
+      // O refresh do contexto atualiza a programação global selecionada.
       await refresh();
-      if (programacaoAtiva?.id) {
-        try {
-          const atualizada = await fetch("/api/programacoes/ativa?id=" + encodeURIComponent(programacaoAtiva.id), { cache: "no-store" });
-          const dadosAtualizados = await atualizada.json();
-          if (atualizada.ok) setProgramacaoSelecionada(dadosAtualizados.programacao || null);
-        } catch { /* A próxima seleção recarrega a programação; não desfaz a alteração já salva. */ }
-      }
     } catch (e: any) {
       toast("error", e?.message || "Falha ao alterar pedido.");
     } finally {
@@ -216,7 +197,6 @@ export default function Lideres() {
   }
 
   // Exportar exatamente a mesma projeção e os mesmos filtros da tabela visível.
-  // Não passar pelo gerador industrial, que possui agrupamentos e colunas distintos.
   const exportar = async () => {
     const linhas = rows.map((x) => ({
       "Peça": x.categoria ? `${x.descricao} · ${x.categoria}` : x.descricao,
@@ -321,21 +301,15 @@ export default function Lideres() {
       </div>
 
       {embalagemSelecionada && (
-        <Card
-          subtitle="Embalagem"
-          title="Pedidos especiais"
-          className="mb"
-          actions={<small>Revenda usa a regra Revenda; Engenharia deve ser HS, Timadel ou Estância.</small>}
-        >
+        <Card subtitle="Embalagem" title="Pedidos especiais" className="mb"
+          actions={<small>Revenda usa a regra Revenda; Engenharia deve ser HS, Timadel ou Estância.</small>}>
           <DataTable head={["Pedido", "Tipo", "Montagem engenharia", "Destino na embalagem"]}>
             {pedidos.map((p) => (
               <tr key={p.pedido}>
                 <td><b>{p.pedido}</b></td>
                 <td style={{ width: 180 }}>
                   <select value={p.tipo} disabled={busyPedido === p.pedido} onChange={(e) => alterarPedido(p.pedido, e.target.value as TipoPedido, p.montagem)}>
-                    <option value="NORMAL">Normal</option>
-                    <option value="REVENDA">Revenda</option>
-                    <option value="ENGENHARIA">Engenharia</option>
+                    <option value="NORMAL">Normal</option><option value="REVENDA">Revenda</option><option value="ENGENHARIA">Engenharia</option>
                   </select>
                 </td>
                 <td style={{ width: 220 }}>
@@ -364,14 +338,10 @@ export default function Lideres() {
       </div>
 
       <div style={{ marginBottom: "var(--sp-4)" }}>
-        <Segmented
-          value={tab}
-          onChange={setTab}
-          options={[
-            { value: "PLAN", label: <>Plano do dia · <b>{fmt(planned)} pçs</b></> },
-            { value: "NOW", label: <>Liberado agora · <b>{fmt(soma(now, "quantidade"))} pçs</b></> },
-          ]}
-        />
+        <Segmented value={tab} onChange={setTab} options={[
+          { value: "PLAN", label: <>Plano do dia · <b>{fmt(planned)} pçs</b></> },
+          { value: "NOW", label: <>Liberado agora · <b>{fmt(soma(now, "quantidade"))} pçs</b></> },
+        ]} />
       </div>
 
       <section className="card mb leader-filter-card">
@@ -380,29 +350,12 @@ export default function Lideres() {
             <span className="stat-icon"><Filter /></span>
             <div><h2>Filtrar produção</h2><small>Encontre rapidamente peça, medida, material ou OF.</small></div>
           </div>
-          {filtrosAtivos && (
-            <button type="button" onClick={() => { setBusca(""); setPeca("TODAS"); setMedida("TODAS"); }}><X /> Limpar</button>
-          )}
+          {filtrosAtivos && <button type="button" onClick={() => { setBusca(""); setPeca("TODAS"); setMedida("TODAS"); }}><X /> Limpar</button>}
         </div>
         <div className="card-body form-grid">
-          <Field label="Busca">
-            <div className="search" style={{ maxWidth: "none" }}>
-              <Search />
-              <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Peça, material, OF, acabamento..." />
-            </div>
-          </Field>
-          <Field label="Peça">
-            <select value={peca} onChange={(e) => setPeca(e.target.value)}>
-              <option value="TODAS">Todas as peças</option>
-              {pecas.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-          </Field>
-          <Field label="Medida / metragem">
-            <select value={medida} onChange={(e) => setMedida(e.target.value)}>
-              <option value="TODAS">Todas as medidas</option>
-              {medidas.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
-          </Field>
+          <Field label="Busca"><div className="search" style={{ maxWidth: "none" }}><Search /><input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Peça, material, OF, acabamento..." /></div></Field>
+          <Field label="Peça"><select value={peca} onChange={(e) => setPeca(e.target.value)}><option value="TODAS">Todas as peças</option>{pecas.map((item) => <option key={item} value={item}>{item}</option>)}</select></Field>
+          <Field label="Medida / metragem"><select value={medida} onChange={(e) => setMedida(e.target.value)}><option value="TODAS">Todas as medidas</option>{medidas.map((item) => <option key={item} value={item}>{item}</option>)}</select></Field>
           <div className="result-box"><small>Resultado</small><b>{rows.length}</b><small>{rows.length === 1 ? "linha encontrada" : "linhas encontradas"}</small></div>
         </div>
       </section>
@@ -410,74 +363,37 @@ export default function Lideres() {
       {!!pendenciasTecnicas.length && <details className="card mb" style={{padding:16}}>
         <summary><b>Conferência do catálogo: {pendenciasTecnicas.length} linha(s) com campos técnicos ausentes neste setor</b></summary>
         <p className="muted">Dados ausentes na programação ativa ou sem especificação no catálogo. Verifique o código no Catálogo Mestre. Não são preenchidos com valores presumidos.</p>
-        <div style={{overflowX:"auto",maxHeight:300}}><table><thead><tr><th>Código</th><th>Pedido</th><th>OF</th><th>Campos para conferir</th></tr></thead>
-          <tbody>{pendenciasTecnicas.map((x,i)=><tr key={i}><td>{x.codigo}</td><td>{x.pedido}</td><td>{x.of}</td><td>{x.campos}</td></tr>)}</tbody></table></div>
+        <div style={{overflowX:"auto",maxHeight:300}}><table><thead><tr><th>Código</th><th>Pedido</th><th>OF</th><th>Campos para conferir</th></tr></thead><tbody>{pendenciasTecnicas.map((x,i)=><tr key={i}><td>{x.codigo}</td><td>{x.pedido}</td><td>{x.of}</td><td>{x.campos}</td></tr>)}</tbody></table></div>
       </details>}
+
       <div className="leader-mobile-cards" aria-label="Apontamento em formato de cartões">
         {rows.map((x) => (
           <article className="leader-mobile-row" key={x.key}>
-            <div className="leader-mobile-row-head">
-              <div className="leader-mobile-piece">
-                <strong>{x.descricao || "Peça sem descrição"}</strong>
-                {x.categoria && <Badge>{x.categoria}</Badge>}
-              </div>
-              <span className="leader-mobile-measure">{x.medida || "Medida não informada"}</span>
-            </div>
+            <div className="leader-mobile-row-head"><div className="leader-mobile-piece"><strong>{x.descricao || "Peça sem descrição"}</strong>{x.categoria && <Badge>{x.categoria}</Badge>}</div><span className="leader-mobile-measure">{x.medida || "Medida não informada"}</span></div>
             <div className="leader-mobile-of"><span>OF</span><strong>{x.listaOfs.length ? x.listaOfs.join(", ") : "-"}</strong></div>
             <div className="leader-mobile-meta">
-              <div><span>Material</span><strong>{x.material || "-"}</strong></div>
-              <div><span>Rebaixo</span><strong>{x.rebaixo || "-"}</strong></div>
-              <div><span>Acabamento</span><strong>{x.acabamento || "-"}</strong></div>
-              <div><span>Cor</span><strong>{x.cor || "-"}</strong></div>
+              <div><span>Material</span><strong>{x.material || "-"}</strong></div><div><span>Rebaixo</span><strong>{x.rebaixo || "-"}</strong></div><div><span>Acabamento</span><strong>{x.acabamento || "-"}</strong></div><div><span>Cor</span><strong>{x.cor || "-"}</strong></div>
             </div>
-            <div className="leader-mobile-quantities">
-              <div><span>Planejado</span><strong>{fmt(x.quantidade)}</strong></div>
-              <div><span>Produzido</span><strong>{fmt(x.produzido)}</strong></div>
-              <div><span>Saldo</span><strong>{fmt(x.saldo)}</strong></div>
-            </div>
+            <div className="leader-mobile-quantities"><div><span>Planejado</span><strong>{fmt(x.quantidade)}</strong></div><div><span>Produzido</span><strong>{fmt(x.produzido)}</strong></div><div><span>Saldo</span><strong>{fmt(x.saldo)}</strong></div></div>
           </article>
         ))}
         {!rows.length && <Empty title="Nenhuma quantidade neste processo." />}
       </div>
 
       <div className="leader-desktop-table">
-      <TableScroll className="leader">
-        <table>
-          <thead>
-            <tr>
-              <th>Peça</th><th>OF</th><th>Material</th><th>Medida</th><th>Rebaixo</th><th>Acabamento</th><th>Cor</th>
-              <th className="num">Planejado</th><th className="num">Produzido</th><th className="num">Saldo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((x) => (
-              <tr key={x.key}>
-                <td><b>{x.descricao}</b> <Badge>{x.categoria}</Badge></td>
-                <td className="mono" title={x.listaOfs.join(", ")} style={{maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.listaOfs.length ? x.listaOfs.join(", ") : "-"}</td>
-                <td>{x.material || "-"}</td>
-                <td className="mono">{x.medida || "-"}</td>
-                <td>{x.rebaixo || "-"}</td>
-                <td>{x.acabamento || "-"}</td>
-                <td>{x.cor || "-"}</td>
-                <td className="num bigQty">{fmt(x.quantidade)}</td>
-                <td className="num">{fmt(x.produzido)}</td>
-                <td className="num"><b>{fmt(x.saldo)}</b></td>
-              </tr>
-            ))}
-          </tbody>
-          {!!rows.length && (
-            <tfoot>
-              <tr>
-                <td colSpan={7}>Total</td>
-                <td className="num">{fmt(soma(rows, "quantidade"))}</td>
-                <td className="num">{fmt(soma(rows, "produzido"))}</td>
-                <td className="num">{fmt(soma(rows, "saldo"))}</td>
-              </tr>
-            </tfoot>
-          )}
-        </table>
-        {!rows.length && <Empty title="Nenhuma quantidade neste processo." />}
-      </TableScroll>
+        <TableScroll className="leader">
+          <table>
+            <thead><tr><th>Peça</th><th>OF</th><th>Material</th><th>Medida</th><th>Rebaixo</th><th>Acabamento</th><th>Cor</th><th className="num">Planejado</th><th className="num">Produzido</th><th className="num">Saldo</th></tr></thead>
+            <tbody>{rows.map((x) => <tr key={x.key}>
+              <td><b>{x.descricao}</b> <Badge>{x.categoria}</Badge></td>
+              <td className="mono" title={x.listaOfs.join(", ")} style={{maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{x.listaOfs.length ? x.listaOfs.join(", ") : "-"}</td>
+              <td>{x.material || "-"}</td><td className="mono">{x.medida || "-"}</td><td>{x.rebaixo || "-"}</td><td>{x.acabamento || "-"}</td><td>{x.cor || "-"}</td>
+              <td className="num bigQty">{fmt(x.quantidade)}</td><td className="num">{fmt(x.produzido)}</td><td className="num"><b>{fmt(x.saldo)}</b></td>
+            </tr>)}</tbody>
+            {!!rows.length && <tfoot><tr><td colSpan={7}>Total</td><td className="num">{fmt(soma(rows, "quantidade"))}</td><td className="num">{fmt(soma(rows, "produzido"))}</td><td className="num">{fmt(soma(rows, "saldo"))}</td></tr></tfoot>}
+          </table>
+          {!rows.length && <Empty title="Nenhuma quantidade neste processo." />}
+        </TableScroll>
       </div>
     </div>
   );
