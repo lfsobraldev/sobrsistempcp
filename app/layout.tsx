@@ -1,5 +1,6 @@
 import "@fontsource-variable/inter";
 import "./globals.css";
+import "./styles/carteira.css";
 
 export const metadata = {
   title: "Sobral PCP | Gestão Industrial",
