@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Bell, Boxes, BrainCircuit, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
+  Bell, Boxes, BrainCircuit, Briefcase, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
   PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
   UploadCloud, UsersRound, Truck, ClipboardCheck, type LucideIcon,
 } from "lucide-react";
@@ -25,6 +25,7 @@ const menus: MenuGroup[] = [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
       { path: "/integracao-consistem", label: "Integração Consistem", icon: RefreshCw },
       { path: "/programacao-gerente", label: "Programação Gerente", icon: Route },
+      { path: "/carteira", label: "Carteira de Pedidos", icon: Briefcase },
       { path: "/gestao-pedidos", label: "Gestão de Pedidos e Entregas", icon: Truck },
       { path: "/apontamento-entregas", label: "Apontamento de Produção", icon: ClipboardCheck },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
