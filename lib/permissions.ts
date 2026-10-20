@@ -2,18 +2,18 @@ import type { Perfil } from "@/types/pcp";
 
 const ALL_PCP = [
   "/dashboard", "/gestao-pedidos", "/apontamento-entregas", "/integracao-consistem", "/programacao", "/programacao-gerente", "/prioridades", "/criticos", "/lideres",
-  "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/configuracoes", "/sac",
+  "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/configuracoes", "/sac", "/carteira",
 ];
 
 const BY_ROLE: Record<Perfil, string[]> = {
   PCP: ALL_PCP,
-  GERENTE: ["/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia"],
-  ENCARREGADO: ["/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/sobral-ia"],
+  GERENTE: ["/carteira", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia"],
+  ENCARREGADO: ["/carteira", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/sobral-ia"],
   LIDER: ["/lideres", "/excecoes", "/sobral-ia"],
   APONTADOR: ["/lideres"],
   QUALIDADE: ["/dashboard", "/inspecao-pallets"],
-  COMERCIAL: ["/gestao-pedidos", "/sac"],
-  LOGISTICA: ["/gestao-pedidos", "/sac"],
+  COMERCIAL: ["/carteira", "/gestao-pedidos", "/sac"],
+  LOGISTICA: ["/carteira", "/gestao-pedidos", "/sac"],
   LIDER_ENTREGAS: ["/apontamento-entregas"],
   SAC: ["/sac"],
 };
