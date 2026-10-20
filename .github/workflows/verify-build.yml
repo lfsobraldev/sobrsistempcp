@@ -8,7 +8,9 @@ on:
       - main
     paths:
       - 'lib/permissions.ts'
+      - 'lib/metrics.ts'
       - 'lib/ia/knowledge.ts'
+      - 'tests/leader-order.test.ts'
       - 'app/api/ia/conhecimento/**'
       - 'app/(erp)/sobral-ia/**'
       - 'public/sobral-s.svg'

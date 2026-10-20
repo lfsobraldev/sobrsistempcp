@@ -10,6 +10,7 @@ import {
   familiaProduto,
   produtoEntraPCP,
 } from "@/lib/sort";
+import { parseMeasure } from "@/lib/domain/industrial";
 
 export const LABELS:
   Record<
@@ -418,16 +419,43 @@ function consolidate(
           ),
       })
     )
-    .sort(
-      (
-        a,
-        b
-      ) =>
-        compareChave(
-          a,
-          b
-        )
-    );
+    .sort(compareLeaderRows);
+}
+
+type LeaderSortRow = Parameters<typeof compareChave>[0];
+
+function materialRank(value: unknown) {
+  const text = String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+
+  if (/\bPINUS\b/.test(text)) return 2;
+  if (/\bULTRA\b/.test(text)) return 1;
+  if (/\b(?:MDF\s+)?(?:STD|STANDARD)\b/.test(text)) return 0;
+  return 3;
+}
+
+function compareDescendingDimension(a: number, b: number) {
+  if (a === b) return 0;
+  if (a <= 0) return 1;
+  if (b <= 0) return -1;
+  return b - a;
+}
+
+function compareLeaderRows(a: LeaderSortRow, b: LeaderSortRow) {
+  const rankA = materialRank(a.material) < 3 ? materialRank(a.material) : materialRank(a.descricao);
+  const rankB = materialRank(b.material) < 3 ? materialRank(b.material) : materialRank(b.descricao);
+  const materialDiff = rankA - rankB;
+  if (materialDiff) return materialDiff;
+
+  const [lengthA, widthA, thicknessA] = parseMeasure(a.medida);
+  const [lengthB, widthB, thicknessB] = parseMeasure(b.medida);
+
+  return compareDescendingDimension(widthA, widthB) ||
+    compareDescendingDimension(thicknessA, thicknessB) ||
+    compareDescendingDimension(lengthA, lengthB) ||
+    compareChave(a, b);
 }
 
 export const leaderPlanRows = (
