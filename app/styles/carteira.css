@@ -1,0 +1,126 @@
+/* Carteira de Pedidos + Gestão de Pedidos e Entregas — verde e branco, mobile-first.
+   Carregado depois de globals.css (ver app/layout.tsx). Só usa variáveis de tokens.css. */
+
+/* ---------- Gestão de Pedidos e Entregas: harmonização verde/branca ---------- */
+body .industrial-workspace .industrial-hero{background:linear-gradient(112deg,var(--primary-800),var(--primary-600))!important;border-bottom:4px solid var(--primary-200)!important}
+body .industrial-workspace .industrial-eyebrow{color:var(--primary-200)!important}
+body .industrial-workspace .industrial-tags span{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.12)}
+body .industrial-workspace{color:var(--text)}
+body .industrial-workspace .industrial-panel,body .industrial-workspace .industrial-toolbar,body .industrial-workspace .industrial-subtabs,body .industrial-workspace .industrial-stat-row>div{border-color:var(--border)!important;background:var(--surface)}
+body .industrial-workspace .industrial-btn{border:1px solid var(--border-strong)!important;background:var(--surface)!important;color:var(--text)!important;min-height:44px;white-space:nowrap}
+body .industrial-workspace .industrial-btn:hover:not(:disabled){background:var(--primary-50)!important;border-color:var(--primary)!important}
+body .industrial-workspace .industrial-btn.primary{background:var(--primary)!important;border-color:var(--primary)!important;color:var(--on-primary)!important}
+body .industrial-workspace .industrial-btn.primary:hover:not(:disabled){background:var(--primary-hover)!important}
+body .industrial-workspace .industrial-subtabs button{background:var(--surface-2)!important;border:1px solid var(--border)!important;color:var(--text-2)!important}
+body .industrial-workspace .industrial-subtabs button.active{background:var(--primary)!important;border-color:var(--primary)!important;color:var(--on-primary)!important;box-shadow:none}
+body .industrial-workspace .industrial-subtabs button:hover:not(.active){background:var(--primary-100)!important}
+body .industrial-workspace .industrial-table th{background:var(--primary-800)}
+body .industrial-workspace .industrial-table tr:nth-child(even){background:var(--surface-2)}
+body .industrial-workspace .industrial-table td{overflow-wrap:anywhere}
+body .industrial-workspace .industrial-table th.sortable{cursor:pointer;user-select:none}
+body .industrial-workspace .industrial-table th.sortable:hover{background:var(--primary-700)}
+body .industrial-workspace .industrial-toolbar input,body .industrial-workspace .industrial-toolbar select,body .industrial-workspace .industrial-panel input:not([type="file"]),body .industrial-workspace .industrial-panel select,body .industrial-workspace .industrial-panel textarea{border-color:var(--border-strong);color:var(--text)}
+body .industrial-workspace :is(input,select,textarea):focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--primary)}
+body .industrial-workspace .industrial-ok{background:var(--success-soft);color:var(--success);border:1px solid var(--primary-200);padding:12px 14px;border-radius:8px;margin:0}
+body .industrial-workspace .industrial-error{background:var(--danger-soft);color:var(--danger);border-color:var(--danger-soft)}
+.industrial-toolbar .grow{flex:2 1 220px;min-width:0}
+.industrial-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.industrial-form-grid label{display:grid;gap:6px;font-size:12px;font-weight:700;color:var(--text-2)}
+.industrial-form-grid input,.industrial-form-grid select{width:100%;min-width:0}
+
+/* ---------- Selos de situação (semântica de status, sem azul) ---------- */
+.cart-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--radius-full);font-size:12px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+.cart-badge.CONCLUIDO{background:var(--success-soft);color:var(--success);border-color:var(--primary-200)}
+.cart-badge.NO_PRAZO{background:var(--primary-100);color:var(--primary-800);border-color:var(--primary-200)}
+.cart-badge.EM_RISCO{background:var(--warning-soft);color:var(--warning)}
+.cart-badge.ATRASADO{background:var(--danger-soft);color:var(--danger)}
+.cart-badge.SEM_PRAZO{background:var(--surface-3);color:var(--text-3);border-color:var(--border)}
+.cart-sev{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:8px;flex:none}
+.cart-sev.ALTA{background:var(--danger)}.cart-sev.MEDIA{background:var(--warning)}.cart-sev.BAIXA{background:var(--text-3)}
+
+/* ---------- Página /carteira ---------- */
+.cart-page{display:grid;gap:16px;max-width:1700px;margin:0 auto;color:var(--text);font-size:14px;line-height:1.5}
+.cart-hero{padding:22px 26px;background:linear-gradient(112deg,var(--primary-800),var(--primary-600));color:var(--text-inverse);border-radius:var(--radius-lg);border-bottom:4px solid var(--primary-200)}
+.cart-hero span{font-size:11px;letter-spacing:2px;font-weight:700;color:var(--primary-200)}
+.cart-hero h1{margin:6px 0 4px;font-size:clamp(22px,2.4vw,30px);line-height:1.2;color:var(--text-inverse)}
+.cart-hero p{margin:0;max-width:900px;font-size:13px;color:var(--primary-100)}
+.cart-actions{display:flex;flex-wrap:wrap;gap:8px}
+.cart-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.cart-btn:hover:not(:disabled){background:var(--primary-50);border-color:var(--primary)}
+.cart-btn.primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.cart-btn.primary:hover:not(:disabled){background:var(--primary-hover)}
+.cart-btn:disabled{opacity:.5;cursor:not-allowed}
+.cart-btn.sm{min-height:36px;padding:0 12px;font-size:13px}
+.cart-tabs{display:flex;gap:6px;flex-wrap:wrap;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.cart-tabs button{min-height:40px;padding:0 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text-2);font-weight:600;font-size:13px;cursor:pointer}
+.cart-tabs button.active{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.cart-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.cart-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;text-align:left;cursor:default;display:grid;gap:2px}
+button.cart-kpi{cursor:pointer;font:inherit;color:inherit}
+button.cart-kpi:hover{border-color:var(--primary);background:var(--primary-50)}
+.cart-kpi small{color:var(--text-3);font-size:12px}
+.cart-kpi strong{font-size:26px;font-variant-numeric:tabular-nums;line-height:1.1}
+.cart-kpi em{font-style:normal;font-size:12px;color:var(--text-2)}
+.cart-kpi.warn strong{color:var(--warning)}.cart-kpi.bad strong{color:var(--danger)}.cart-kpi.good strong{color:var(--success)}
+.cart-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;box-shadow:var(--shadow-sm);min-width:0}
+.cart-panel h2,.cart-panel h3{margin:0 0 4px;font-size:17px;color:var(--text)}
+.cart-panel>header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.cart-panel>header p{margin:0;color:var(--text-3);font-size:12px}
+.cart-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.cart-filters label{display:grid;gap:4px;font-size:12px;font-weight:700;color:var(--text-2);min-width:0}
+.cart-filters input,.cart-filters select{min-height:42px;width:100%;min-width:0;border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:0 10px;background:var(--surface);color:var(--text);font-size:14px}
+.cart-filters input:focus-visible,.cart-filters select:focus-visible{outline:none;box-shadow:var(--focus-ring);border-color:var(--primary)}
+.cart-checks{display:flex;gap:16px;flex-wrap:wrap;align-items:center;margin-bottom:12px;font-size:13px;color:var(--text-2)}
+.cart-checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.cart-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--radius);max-width:100%}
+.cart-table{width:100%;border-collapse:collapse;font-size:13px;min-width:980px}
+.cart-table th{position:sticky;top:0;background:var(--primary-800);color:var(--text-inverse);text-align:left;padding:11px 12px;font-size:11px;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.cart-table th.sortable{cursor:pointer;user-select:none}.cart-table th.sortable:hover{background:var(--primary-700)}
+.cart-table th.num,.cart-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.cart-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;overflow-wrap:anywhere}
+.cart-table tbody tr:nth-child(even){background:var(--surface-2)}
+.cart-table tbody tr.clickable{cursor:pointer}.cart-table tbody tr.clickable:hover{background:var(--primary-50)}
+.cart-table td small{display:block;color:var(--text-3);font-size:12px}
+.cart-empty{padding:28px;text-align:center;color:var(--text-3)}
+.cart-bar{height:8px;background:var(--surface-3);border-radius:var(--radius-full);overflow:hidden;min-width:70px}
+.cart-bar i{display:block;height:100%;background:var(--primary)}
+.cart-msg{padding:12px 14px;border-radius:var(--radius-sm);font-size:14px;margin:0}
+.cart-msg.err{background:var(--danger-soft);color:var(--danger)}.cart-msg.info{background:var(--primary-100);color:var(--primary-800)}
+.cart-note{font-size:12px;color:var(--text-3);margin:8px 0 0}
+.cart-drawer-shade{position:fixed;inset:0;background:var(--overlay);z-index:60;display:flex;justify-content:flex-end}
+.cart-drawer{background:var(--surface);width:min(760px,100%);height:100%;overflow:auto;padding:20px;display:grid;gap:14px;align-content:start;box-shadow:var(--shadow-lg)}
+.cart-drawer>header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.cart-drawer h2{margin:0;font-size:20px}.cart-drawer>header p{margin:2px 0 0;color:var(--text-3);font-size:13px}
+.cart-grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.cart-grid2>div{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px}
+.cart-grid2 small{display:block;color:var(--text-3);font-size:12px}.cart-grid2 b{font-size:18px;font-variant-numeric:tabular-nums}
+.cart-alerts{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cart-alerts li{display:flex;align-items:flex-start;font-size:13px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.cart-hist{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cart-hist li{border-left:3px solid var(--primary-200);padding:2px 0 2px 10px;font-size:13px}
+.cart-hist small{color:var(--text-3)}
+
+/* ---------- Mobile: tabelas viram cartões (usa data-label nos <td>) ---------- */
+@media(max-width:760px){
+  .cart-hero,.cart-panel{padding:14px}
+  .cart-actions{width:100%}.cart-actions .cart-btn{flex:1 1 140px}
+  .cart-kpis{grid-template-columns:1fr 1fr}
+  .cart-kpi strong{font-size:22px}
+  .cart-tabs button{flex:1 1 auto}
+  table.stack{min-width:0!important}
+  table.stack thead{display:none}
+  table.stack,table.stack tbody,table.stack tr,table.stack td{display:block;width:100%}
+  table.stack tr{border:1px solid var(--border);border-radius:var(--radius);margin:0 0 10px;padding:6px 10px;background:var(--surface)!important}
+  table.stack td{display:flex;justify-content:space-between;gap:14px;text-align:right!important;border-bottom:1px dashed var(--border);padding:8px 0}
+  table.stack td:last-child{border-bottom:0}
+  table.stack td::before{content:attr(data-label);font-weight:700;font-size:11px;text-transform:uppercase;color:var(--text-3);text-align:left;flex:none;max-width:45%}
+  table.stack td[data-label=""]::before{display:none}
+  .cart-wrap,.industrial-table-wrap.stackwrap{border:0;overflow:visible}
+  .cart-drawer{padding:14px}
+  body .industrial-workspace .industrial-toolbar{padding:12px}
+  body .industrial-workspace .industrial-toolbar>*{width:100%;max-width:100%}
+  body .industrial-workspace .industrial-btn{width:100%}
+  body .industrial-workspace .industrial-subtabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  body .industrial-workspace .industrial-subtabs button{flex:none}
+  body .industrial-workspace .industrial-stat-row{grid-template-columns:1fr 1fr}
+}
