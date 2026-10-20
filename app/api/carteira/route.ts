@@ -11,6 +11,12 @@ async function existe(db: Db, tabela: string) {
   const r = await db`select to_regclass(${"public." + tabela}) as n`;
   return r[0]?.n != null;
 }
+async function existeColuna(db: Db, tabela: string, coluna: string) {
+  const rows = await db`select exists(
+    select 1 from information_schema.columns where table_schema='public' and table_name=${tabela} and column_name=${coluna}
+  ) as existe`;
+  return Boolean(rows[0]?.existe);
+}
 const dt = (v: unknown) => (v ? String(v).slice(0, 10) : null);
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 
@@ -30,6 +36,7 @@ export async function GET(req: Request) {
     const [tCtl, tPed, tRom, tCar, tSac, tEv, tEt] = await Promise.all(
       ["pcp_controle_entregas", "pcp_pedido_controle", "pcp_romaneios_preparados", "pcp_controle_entregas_carregamentos", "pcp_sac_atendimentos", "pcp_controle_entregas_eventos", "pcp_controle_entregas_etapas"].map((t) => existe(db, t)),
     );
+    const tCrmLink = tCtl && await existeColuna(db, "pcp_controle_entregas", "crm_cliente_id") && await existe(db, "crm_clientes");
     const headers = { "Cache-Control": "no-store" };
 
     // ---------- Visão por produto (saldos por produto, somente pedidos ainda não entregues) ----------
@@ -80,7 +87,15 @@ export async function GET(req: Request) {
     }
 
     // ---------- Lista da carteira ----------
-    const pcp = prog ? await db`
+    const pcp = prog && tCrmLink ? await db`
+      select p.pedido, count(*)::int linhas, count(distinct nullif(p.of,''))::int ofs,
+        coalesce(sum(p.quantidade),0) pecas,
+        coalesce(sum(case when p.percentual_produto>=100 then p.quantidade else 0 end),0) concluidas,
+        coalesce(sum(p.quantidade*p.percentual_produto)/nullif(sum(p.quantidade),0),0) avanco,
+        coalesce(nullif(max(nullif(trim(cc.nome_fantasia),'')),''),nullif(max(trim(cc.razao_social)),''),nullif(max(trim(p.pedido_cliente)),''),'') cliente_pcp
+      from pcp_produtos p left join pcp_controle_entregas c on c.pedido=p.pedido
+      left join crm_clientes cc on cc.id=c.crm_cliente_id
+      where p.programacao_id=${prog.id} group by p.pedido` : prog ? await db`
       select p.pedido, count(*)::int linhas, count(distinct nullif(p.of,''))::int ofs,
         coalesce(sum(p.quantidade),0) pecas,
         coalesce(sum(case when p.percentual_produto>=100 then p.quantidade else 0 end),0) concluidas,
@@ -89,7 +104,12 @@ export async function GET(req: Request) {
       from pcp_produtos p where p.programacao_id=${prog.id} group by p.pedido` : [];
     const prazosPcp = prog && tPed ? await db`select pedido,cliente,data_entrega::text data_entrega,atualizado_por,atualizado_em from pcp_pedido_controle where programacao_id=${prog.id}` : [];
     const rom = prog && tRom ? await db`select pedido,max(nullif(trim(cliente),'')) cliente from pcp_romaneios_preparados where programacao_id=${prog.id} group by pedido` : [];
-    const ctl = tCtl ? await db`select pedido,cliente,representante,uf,cidade,status,previsao_informada::text previsao_informada,previsao_entrega::text previsao_entrega,data_entrega::text data_entrega,data_saida::text data_saida,transportadora,nota_fiscal,atualizado_por,atualizado_em from pcp_controle_entregas` : [];
+    const ctl = tCtl && tCrmLink ? await db`select c.pedido,c.cliente,c.representante,c.crm_cliente_id,
+      coalesce(nullif(cc.nome_fantasia,''),cc.razao_social) crm_cliente_nome,
+      c.uf,c.cidade,c.status,c.previsao_informada::text previsao_informada,c.previsao_entrega::text previsao_entrega,
+      c.data_entrega::text data_entrega,c.data_saida::text data_saida,c.transportadora,c.nota_fiscal,c.atualizado_por,c.atualizado_em
+      from pcp_controle_entregas c left join crm_clientes cc on cc.id=c.crm_cliente_id` : tCtl ? await db`
+      select pedido,cliente,representante,uf,cidade,status,previsao_informada::text previsao_informada,previsao_entrega::text previsao_entrega,data_entrega::text data_entrega,data_saida::text data_saida,transportadora,nota_fiscal,atualizado_por,atualizado_em from pcp_controle_entregas` : [];
     const cargas = tCar ? await db`select pedido,quantidade,status from pcp_controle_entregas_carregamentos where status<>'CANCELADO'` : [];
     const sac = tSac ? await db`select ltrim(trim(pedido),'0') pedido, count(*)::int n from pcp_sac_atendimentos where trim(pedido)<>'' and status not in ('CONCLUIDO','CANCELADO') group by 1` : [];
 
@@ -109,7 +129,7 @@ export async function GET(req: Request) {
       const original = String(p?.pedido ?? c?.pedido ?? k);
       itens.push({
         pedido: original,
-        cliente: String(p?.cliente_pcp || r?.cliente || pc?.cliente || c?.cliente || "").trim(),
+        cliente: String(p?.cliente_pcp || r?.cliente || pc?.cliente || c?.crm_cliente_nome || c?.cliente || "").trim(),
         representante: String(c?.representante || ""), uf: String(c?.uf || ""), cidade: String(c?.cidade || ""),
         pecas: p ? num(p.pecas) : null, linhas: p ? p.linhas : 0, ofs: p ? p.ofs : 0,
         pecasConcluidas: p ? num(p.concluidas) : 0, avancoPct: p ? num(p.avanco) : 0,

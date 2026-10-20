@@ -19,7 +19,10 @@ type MenuGroup = { label: string; items: MenuItem[] };
 
 const menus: MenuGroup[] = [
   { label: "Visão Geral", items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }] },
-  { label: "Comercial", items: [{ path: "/gestao-pedidos", label: "Gestão de Pedidos", icon: Briefcase }] },
+  { label: "Comercial", items: [
+    { path: "/comercial", label: "CRM Comercial", icon: Briefcase },
+    { path: "/gestao-pedidos", label: "Pedidos e Entregas", icon: Truck },
+  ] },
   { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: ClipboardList }] },
   { label: "Compras e Estoque", items: [{ path: "/estoque", label: "Estoque", icon: Boxes }] },
   {
@@ -59,7 +62,7 @@ const menus: MenuGroup[] = [
   { label: "Administração", items: [{ path: "/configuracoes", label: "Acessos e Configurações", icon: Settings }] },
 ];
 
-const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/gestao-pedidos", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas", SAC: "/sac" };
+const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/comercial", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas", SAC: "/sac" };
 
 function Inner({ children }: { children: React.ReactNode }) {
   const { me, pg, selectedProgramacaoId, selectProgramacao, lastSync, realtimeStatus, refresh, toast, loading } = useOps();
