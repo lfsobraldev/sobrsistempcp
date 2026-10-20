@@ -2,6 +2,7 @@ import {NextResponse} from "next/server";
 import {sql} from "@/lib/db";
 import {requireRoles} from "@/lib/auth";
 import {ensurePreparedRomaneiosTable} from "@/lib/romaneio/prepared";
+import {diffEvento,normalizarPedido} from "@/lib/carteira";
 export const runtime="nodejs";
 const ALLOWED=["PLANEJADO","EM_PRODUCAO","AGUARDANDO_MONTAGEM","PRONTO_EXPEDICAO","EM_TRANSITO","ENTREGA_PARCIAL","ENTREGUE","PENDENCIA"];
 const DATE_FIELDS=["data_saida","previsao_entrega","data_entrega","data_montagem","previsao_saida","previsao_informada"] as const;
@@ -91,13 +92,21 @@ export async function GET(req:Request){
     order by case when p.pedido ~ '^[0-9]{1,18}$' then p.pedido::numeric end nulls last,p.pedido
   `;
   const controls=await db`select *,data_saida::text as data_saida,previsao_entrega::text as previsao_entrega,data_entrega::text as data_entrega,data_montagem::text as data_montagem,previsao_saida::text as previsao_saida,previsao_informada::text as previsao_informada from pcp_controle_entregas`;
-  const events=await db`select pedido,acao as tipo,usuario,criado_em from pcp_controle_entregas_eventos order by criado_em desc limit 300`;
+  const eventsRaw=await db`select pedido,acao as tipo,usuario,criado_em,anterior,atual from pcp_controle_entregas_eventos order by criado_em desc limit 300`;
+  const events=eventsRaw.map((e:any)=>({pedido:e.pedido,tipo:e.tipo,usuario:e.usuario,criado_em:e.criado_em,alteracoes:diffEvento(e.anterior,e.atual)}));
   const map=new Map(controls.map((x:any)=>[String(x.pedido),x]));
-  const pedidos=pcp.map((p:any)=>{
+  const pedidos:any[]=pcp.map((p:any)=>{
     const pedido=String(p.pedido),controle:any=map.get(pedido)||null;
     const cliente=String(p.cliente||controle?.cliente||"").trim();
     return {pedido,linhas:Number(p.linhas),ofs:Number(p.ofs),pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:controle?{...controle,cliente}:{cliente}};
   });
+  // Pedidos cadastrados no controle de entregas que não têm itens nesta programação continuam visíveis (antes ficavam ocultos).
+  const naProgramacao=new Set(pedidos.map((p:any)=>normalizarPedido(p.pedido)));
+  for(const c of controls as any[]){
+    if(usuarioAtual.perfil==="LIDER_ENTREGAS")break; // líder de entregas continua vendo só a programação
+    if(naProgramacao.has(normalizarPedido(c.pedido)))continue;
+    pedidos.push({pedido:String(c.pedido),linhas:0,ofs:0,pecas:0,percentual:0,foraDaProgramacao:true,entrega:{...c,cliente:String(c.cliente||"").trim()}});
+  }
   if(usuarioAtual.perfil==="LIDER_ENTREGAS")return NextResponse.json({filtro:String(active.filtro||""),programacaoId:String(active.id),pedidos:pedidos.map((p:any)=>({pedido:p.pedido,ofs:p.ofs,pecas:p.pecas,percentual:p.percentual,entrega:{cliente:p.entrega?.cliente||""}}))},{headers:{"Cache-Control":"no-store"}});
   return NextResponse.json({filtro:String(active.filtro||""),programacaoId:String(active.id),pedidos,eventos:events},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao consultar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
@@ -126,4 +135,24 @@ export async function PUT(req:Request){
   await db`insert into pcp_controle_entregas_eventos(pedido,acao,anterior,atual,usuario) values(${pedido},${prev?"EDITADO":"CRIADO"},${JSON.stringify(prev||{})}::jsonb,${payload}::jsonb,${u.usuario})`;
   return NextResponse.json({ok:true});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao salvar"},{status:e?.message==="SEM_PERMISSAO"?403:400})}
+}
+
+export async function POST(req:Request){
+ try{
+  const u=await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL"]),b=await req.json();
+  const pedido=String(b.pedido||"").trim();
+  if(!/^\d{4,10}$/.test(pedido))return NextResponse.json({error:"Informe um número de pedido válido (4 a 10 dígitos)."},{status:400});
+  const cliente=String(b.cliente||"").trim().slice(0,240);
+  if(!cliente)return NextResponse.json({error:"Informe o cliente do pedido."},{status:400});
+  const db=sql();await ensure(db);
+  // Duplicidade: compara também sem zeros à esquerda (0123456 = 123456).
+  const dup=await db`select pedido,cliente from pcp_controle_entregas where ltrim(pedido,'0')=ltrim(${pedido},'0') limit 1`;
+  if(dup.length)return NextResponse.json({error:`O pedido ${dup[0].pedido} já está cadastrado${dup[0].cliente?` para ${dup[0].cliente}`:""}. Abra-o na lista para editar.`,duplicado:String(dup[0].pedido)},{status:409});
+  const data=mapInput({cliente,representante:b.representante,tipo_pedido:b.tipo_pedido,uf:String(b.uf||"").toUpperCase().slice(0,2),cidade:b.cidade,previsao_informada:b.previsao_informada,status:"PLANEJADO"});
+  const payload=JSON.stringify({...data,pedido});
+  await db`insert into pcp_controle_entregas(pedido,cliente,representante,tipo_pedido,uf,cidade,previsao_informada,status,atualizado_por)
+   values(${pedido},${data.cliente},${data.representante},${data.tipo_pedido},${data.uf},${data.cidade},${data.previsao_informada}::date,'PLANEJADO',${u.usuario})`;
+  await db`insert into pcp_controle_entregas_eventos(pedido,acao,anterior,atual,usuario) values(${pedido},'CRIADO',${JSON.stringify({})}::jsonb,${payload}::jsonb,${u.usuario})`;
+  return NextResponse.json({ok:true,pedido},{status:201});
+ }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao cadastrar"},{status:e?.message==="SEM_PERMISSAO"?403:400})}
 }
