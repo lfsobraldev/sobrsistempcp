@@ -189,6 +189,7 @@ export default function ComercialPage() {
       {campo("titulo", "Oportunidade *", "text", true)}{selectCampo("origem", "Origem *", ORIGENS, true)}
       {campo("valorEstimado", "Valor estimado (R$)", "number")}{campo("fechamentoPrevisto", "Fechamento previsto", "date")}
       {campo("proximaAcao", "Próxima ação")}{campo("proximaAcaoEm", "Data da próxima ação", "date")}
+      <label className="crm-check crm-field-wide"><input type="checkbox" checked={Boolean(v.medicaoObrigatoria)} onChange={(event) => setEditor((previous) => previous ? { ...previous, values: { ...previous.values, medicaoObrigatoria: event.target.checked } } : previous)} /> Exigir medição e aprovação técnica antes da liberação para produção</label>
       <label className="crm-field crm-field-wide">Descrição<textarea value={v.descricao || ""} onChange={(event) => setEditor((previous) => previous ? { ...previous, values: { ...previous.values, descricao: event.target.value } } : previous)} /></label>
     </div>;
     }

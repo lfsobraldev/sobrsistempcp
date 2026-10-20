@@ -78,12 +78,14 @@ async function ensureCrm(db: Db) {
     status varchar(24) not null default 'NOVA' check(status in ('NOVA','QUALIFICADA','PROPOSTA','NEGOCIACAO','GANHA','PERDIDA','CONVERTIDA')),
     valor_estimado numeric(16,2) not null default 0 check(valor_estimado>=0), fechamento_previsto date,
     proxima_acao varchar(500) not null default '', proxima_acao_em date, pedido varchar(80),
+    medicao_obrigatoria boolean not null default false,
     criado_por varchar(160) not null, atualizado_por varchar(160) not null,
     criado_em timestamptz not null default now(), atualizado_em timestamptz not null default now(), convertido_em timestamptz
   )`;
   await db`create unique index if not exists ux_crm_oportunidades_pedido on crm_oportunidades(pedido) where pedido is not null`;
   await db`create index if not exists ix_crm_oportunidades_status_acao on crm_oportunidades(status,proxima_acao_em)`;
   await db`create index if not exists ix_crm_oportunidades_cliente on crm_oportunidades(cliente_id,criado_em desc)`;
+  await db`alter table crm_oportunidades add column if not exists medicao_obrigatoria boolean not null default false`;
   await db`create table if not exists crm_interacoes (
     id uuid primary key default gen_random_uuid(), oportunidade_id uuid references crm_oportunidades(id) on delete cascade,
     cliente_id uuid references crm_clientes(id) on delete cascade,
@@ -136,6 +138,7 @@ async function ensurePedidoCrmLinks(db: Db) {
   if (!exists?.nome) return false;
   await db`alter table pcp_controle_entregas add column if not exists crm_cliente_id uuid references crm_clientes(id) on delete set null`;
   await db`alter table pcp_controle_entregas add column if not exists crm_representante_id uuid references crm_representantes(id) on delete set null`;
+  await db`alter table pcp_controle_entregas add column if not exists medicao_obrigatoria boolean not null default false`;
   return true;
 }
 
@@ -266,9 +269,9 @@ export async function POST(req: Request) {
       if (contatoId && !(await db`select id from crm_cliente_contatos where id=${contatoId} and cliente_id=${clienteId}`).length) return NextResponse.json({ error: "O contato não pertence ao cliente selecionado." }, { status: 400 });
       const dataPrazo = dates(body, ["fechamentoPrevisto", "proximaAcaoEm"]);
       const valor = number(body.valorEstimado, "Valor estimado");
-      const data = { clienteId, contatoId, representanteId, titulo, descricao: clean(body.descricao,4000), origem, valor, fechamento: dataPrazo.fechamentoPrevisto, proximaAcao: clean(body.proximaAcao,500), proximaAcaoEm: dataPrazo.proximaAcaoEm };
-      const [item] = await db`insert into crm_oportunidades(cliente_id,contato_id,representante_id,titulo,descricao,origem,valor_estimado,fechamento_previsto,proxima_acao,proxima_acao_em,criado_por,atualizado_por)
-        values(${data.clienteId},${data.contatoId},${data.representanteId},${data.titulo},${data.descricao},${data.origem},${data.valor},${data.fechamento},${data.proximaAcao},${data.proximaAcaoEm},${user.usuario},${user.usuario}) returning *`;
+      const data = { clienteId, contatoId, representanteId, titulo, descricao: clean(body.descricao,4000), origem, valor, fechamento: dataPrazo.fechamentoPrevisto, proximaAcao: clean(body.proximaAcao,500), proximaAcaoEm: dataPrazo.proximaAcaoEm, medicaoObrigatoria: Boolean(body.medicaoObrigatoria) };
+      const [item] = await db`insert into crm_oportunidades(cliente_id,contato_id,representante_id,titulo,descricao,origem,valor_estimado,fechamento_previsto,proxima_acao,proxima_acao_em,medicao_obrigatoria,criado_por,atualizado_por)
+        values(${data.clienteId},${data.contatoId},${data.representanteId},${data.titulo},${data.descricao},${data.origem},${data.valor},${data.fechamento},${data.proximaAcao},${data.proximaAcaoEm},${data.medicaoObrigatoria},${user.usuario},${user.usuario}) returning *`;
       await history(db, "OPORTUNIDADE", item.id, "CRIADA", "Oportunidade registrada", user.usuario, undefined, data);
       return NextResponse.json({ item }, { status: 201 });
     }
@@ -393,7 +396,7 @@ async function converter(db: Db, body: any, usuario: string) {
       select pg_advisory_xact_lock(hashtext(${pedidoNormalizado}))
     ),
     oportunidade as materialized (
-      select o.id,o.cliente_id,o.representante_id,c.razao_social,coalesce(r.nome,'') representante
+      select o.id,o.cliente_id,o.representante_id,o.medicao_obrigatoria,c.razao_social,coalesce(r.nome,'') representante
       from crm_oportunidades o join crm_clientes c on c.id=o.cliente_id
       left join crm_representantes r on r.id=o.representante_id cross join trava
       where o.id=${oportunidadeId} and o.status='GANHA' and o.pedido is null
@@ -408,8 +411,8 @@ async function converter(db: Db, body: any, usuario: string) {
       limit 1
     ),
     pedido_novo as (
-      insert into pcp_controle_entregas(pedido,cliente,representante,crm_cliente_id,crm_representante_id,status,atualizado_por)
-      select ${pedido},o.razao_social,o.representante,o.cliente_id,o.representante_id,'PLANEJADO',${usuario}
+      insert into pcp_controle_entregas(pedido,cliente,representante,crm_cliente_id,crm_representante_id,medicao_obrigatoria,status,atualizado_por)
+      select ${pedido},o.razao_social,o.representante,o.cliente_id,o.representante_id,o.medicao_obrigatoria,'PLANEJADO',${usuario}
       from oportunidade o where not exists(select 1 from duplicado)
       returning pedido,crm_cliente_id,cliente,representante
     ),
@@ -542,6 +545,7 @@ export async function PATCH(req: Request) {
       const valor = body.valorEstimado === undefined ? Number(old.valor_estimado) : number(body.valorEstimado,"Valor estimado");
       const [item] = await db`update crm_oportunidades set contato_id=${contatoId},representante_id=${representanteId},titulo=${clean(body.titulo ?? old.titulo,240)},
         descricao=${clean(body.descricao ?? old.descricao,4000)},origem=${origem},status=${status},valor_estimado=${valor},fechamento_previsto=${dateValues.fechamentoPrevisto},
+        medicao_obrigatoria=${body.medicaoObrigatoria===undefined?old.medicao_obrigatoria:Boolean(body.medicaoObrigatoria)},
         proxima_acao=${clean(body.proximaAcao ?? old.proxima_acao,500)},proxima_acao_em=${dateValues.proximaAcaoEm},atualizado_por=${user.usuario},atualizado_em=now()
         where id=${id} returning *`;
       await history(db,"OPORTUNIDADE",id,"EDITADA",`Oportunidade: ${old.status} → ${status}`,user.usuario,old,item);

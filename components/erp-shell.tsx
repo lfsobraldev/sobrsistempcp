@@ -23,6 +23,7 @@ const menus: MenuGroup[] = [
     { path: "/comercial", label: "CRM Comercial", icon: Briefcase },
     { path: "/gestao-pedidos", label: "Pedidos e Entregas", icon: Truck },
   ] },
+  { label: "Medição e Engenharia", items: [{ path: "/medicoes", label: "Medições e Aprovação", icon: ClipboardCheck }] },
   { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: ClipboardList }] },
   { label: "Compras e Estoque", items: [{ path: "/estoque", label: "Estoque", icon: Boxes }] },
   {

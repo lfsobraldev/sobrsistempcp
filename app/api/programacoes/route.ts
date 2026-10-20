@@ -66,6 +66,36 @@ export async function POST(req: Request) {
     if (!/^[a-f0-9-]{36}$/i.test(requisicaoId)) {
       return NextResponse.json({ error: "Identificador da liberação inválido." }, { status: 400 });
     }
+    const pedidosProgramacao = [...new Set((b.produtos as Produto[]).map((produto) => String(produto.pedido || "").trim()).filter(Boolean))];
+    const [colunaMedicao] = await db`select exists(
+      select 1 from information_schema.columns where table_schema='public' and table_name='pcp_controle_entregas' and column_name='medicao_obrigatoria'
+    ) as existe`;
+    if (colunaMedicao?.existe && pedidosProgramacao.length) {
+      const obrigatorios = await db`
+        with pedidos as (select jsonb_array_elements_text(${JSON.stringify(pedidosProgramacao)}::jsonb) pedido)
+        select distinct c.pedido from pedidos p join pcp_controle_entregas c
+          on coalesce(nullif(ltrim(trim(c.pedido),'0'),''),'0')=coalesce(nullif(ltrim(trim(p.pedido),'0'),''),'0')
+        where c.medicao_obrigatoria=true`;
+      if (obrigatorios.length) {
+        const [medicaoTable] = await db`select to_regclass('public.pcp_medicao_revisoes') as nome`;
+        if (!medicaoTable?.nome) return NextResponse.json({ error: "Há pedidos que exigem medição, mas o módulo de medições ainda não foi instalado. A programação não foi alterada." }, { status: 409 });
+        const pendentes = await db`
+          with pedidos as (select jsonb_array_elements_text(${JSON.stringify(pedidosProgramacao)}::jsonb) pedido),
+          obrigatorios as (
+            select distinct c.pedido from pedidos p join pcp_controle_entregas c
+              on coalesce(nullif(ltrim(trim(c.pedido),'0'),''),'0')=coalesce(nullif(ltrim(trim(p.pedido),'0'),''),'0')
+            where c.medicao_obrigatoria=true
+          )
+          select o.pedido,m.status from obrigatorios o
+          left join lateral (select r.status from pcp_medicao_revisoes r where r.pedido=o.pedido order by r.versao desc limit 1) m on true
+          where m.status is distinct from 'APROVADA_PARA_PRODUCAO' order by o.pedido limit 100
+        `;
+        if (pendentes.length) return NextResponse.json({
+          error: "A liberação foi bloqueada: há pedidos com medição pendente de aprovação técnica.",
+          pedidos: pendentes.map((item: any) => ({ pedido: String(item.pedido), status: String(item.status || "SEM_MEDICAO") })),
+        }, { status: 409 });
+      }
+    }
     await db`
       create table if not exists pcp_liberacao_solicitacoes (
         chave uuid primary key,
