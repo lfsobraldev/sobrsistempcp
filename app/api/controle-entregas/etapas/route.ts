@@ -72,7 +72,7 @@ export async function POST(req:Request){
   const allowedSet=new Set(allowed);
   for(const item of rows){
    const pedido=String(item?.pedido||"").trim(),etapa=String(item?.etapa||"").toUpperCase();
-   const date=(v:any)=>!v?null:/^\d{4}-\d{2}-\d{2}$/.test(String(v))?String(v):undefined;
+   const date=(v:any)=>{if(!v)return null;const t=String(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(t))return undefined;const d=new Date(t+"T12:00:00Z");return Number.isNaN(d.getTime())||d.toISOString().slice(0,10)!==t?undefined:t};
    const inicio=date(item?.dataInicio),fim=date(item?.dataConclusao);
    if(!/^\d{4,10}$/.test(pedido)||!AREAS.PRODUCAO.includes(etapa)||!allowedSet.has(etapa)||inicio===undefined||fim===undefined||(inicio&&fim&&fim<inicio)||(!inicio&&!fim)){ignorados++;continue;}
    const origem=await db`select pedido from pcp_produtos where pedido=${pedido} and programacao_id=${programacaoId} limit 1`;
@@ -106,7 +106,7 @@ export async function PUT(req:Request){
  const u=await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]),b=await req.json();
  const pedido=String(b.pedido||"").trim(),area=String(b.area||"").toUpperCase(),etapa=String(b.etapa||"").toUpperCase();
  const requestedProgramacaoId=String(b.programacaoId||"").trim();
- const date=(v:any)=>!v?null:/^\d{4}-\d{2}-\d{2}$/.test(String(v))?String(v):undefined;
+ const date=(v:any)=>{if(!v)return null;const t=String(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(t))return undefined;const d=new Date(t+"T12:00:00Z");return Number.isNaN(d.getTime())||d.toISOString().slice(0,10)!==t?undefined:t};
  const inicio=date(b.dataInicio),fim=date(b.dataConclusao),status=String(b.status||"PENDENTE").toUpperCase(),observacao=String(b.observacao||"").slice(0,2000);
  if(!/^\d{4,10}$/.test(pedido)||!AREAS[area]?.includes(etapa)||!["PENDENTE","EM_ANDAMENTO","CONCLUIDA","BLOQUEADA","NAO_APLICAVEL"].includes(status)||inicio===undefined||fim===undefined||(inicio&&fim&&fim<inicio))
  return NextResponse.json({error:"Dados inválidos. Verifique pedido, etapa, situação e datas."},{status:400});
