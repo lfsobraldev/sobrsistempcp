@@ -18,33 +18,45 @@ type MenuItem = { path: string; label: string; icon: LucideIcon };
 type MenuGroup = { label: string; items: MenuItem[] };
 
 const menus: MenuGroup[] = [
-  { label: "Início", items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }] },
+  { label: "Visão Geral", items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }] },
+  { label: "Comercial", items: [{ path: "/gestao-pedidos", label: "Gestão de Pedidos", icon: Briefcase }] },
+  { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: ClipboardList }] },
+  { label: "Compras e Estoque", items: [{ path: "/estoque", label: "Estoque", icon: Boxes }] },
   {
-    label: "Produção",
+    label: "PCP e Produção",
     items: [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
-      { path: "/integracao-consistem", label: "Integração Consistem", icon: RefreshCw },
-      { path: "/programacao-gerente", label: "Programação Gerente", icon: Route },
-      { path: "/carteira", label: "Carteira de Pedidos", icon: Briefcase },
-      { path: "/gestao-pedidos", label: "Gestão de Pedidos e Entregas", icon: Truck },
-      { path: "/apontamento-entregas", label: "Apontamento de Produção", icon: ClipboardCheck },
+      { path: "/programacao-gerente", label: "Planejamento", icon: Route },
+      { path: "/apontamento-operacoes", label: "Apontamento de Operações", icon: ClipboardCheck },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
+      { path: "/pcp-painel", label: "Painel PCP", icon: LayoutDashboard },
+      { path: "/integracao-consistem", label: "Integração Consistem", icon: RefreshCw },
       { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },
+      { path: "/andon", label: "Andon", icon: Bell },
     ],
   },
-  { label: "Administração", items: [{ path: "/configuracoes", label: "Configurações de Acesso", icon: Settings }] },
-  { label: "Inteligência", items: [{ path: "/sobral-ia", label: "Sobral IA", icon: BrainCircuit }] },
   { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }] },
-  { label: "Atendimento", items: [{ path: "/sac", label: "SAC", icon: ClipboardList }] },
-  { label: "Expedição", items: [{ path: "/romaneios", label: "Romaneios", icon: Boxes }] },
+  {
+    label: "Expedição e Entregas",
+    items: [
+      { path: "/romaneios", label: "Romaneios", icon: Boxes },
+      { path: "/apontamento-entregas", label: "Apontamento de Entregas", icon: Truck },
+    ],
+  },
+  { label: "SAC", items: [{ path: "/sac", label: "Atendimento", icon: ClipboardList }] },
   {
     label: "Relatórios",
     items: [
       { path: "/prioridades", label: "Prioridades", icon: Flag },
+      { path: "/criticos", label: "Pedidos Críticos", icon: PackageSearch },
+      { path: "/fluxo", label: "Fluxo de Produção", icon: Route },
+      { path: "/performance", label: "Performance", icon: RefreshCw },
+      { path: "/perdas", label: "Perdas de Produção", icon: PackageSearch },
       { path: "/historico", label: "Histórico", icon: History },
+      { path: "/sobral-ia", label: "Inteligência Operacional", icon: BrainCircuit },
     ],
   },
-
+  { label: "Administração", items: [{ path: "/configuracoes", label: "Acessos e Configurações", icon: Settings }] },
 ];
 
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/gestao-pedidos", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas", SAC: "/sac" };
@@ -54,7 +66,7 @@ function Inner({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
-  const [workspaceTabs,setWorkspaceTabs]=useState<{path:string;label:string}[]>([]);
+  const [workspaceTabs, setWorkspaceTabs] = useState<{path:string;label:string}[]>([]);
   const [mobileNav, setMobileNav] = useState(false);
   const [query, setQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -66,6 +78,15 @@ function Inner({ children }: { children: React.ReactNode }) {
   );
   const allVisible = useMemo(() => visible.flatMap((g) => g.items), [visible]);
   const current = allVisible.find((i) => i.path === path)?.label || "Central de Produção";
+
+  useEffect(() => {
+    if (!me || !allowedPath(me.perfil, path)) return;
+    const label = allVisible.find((item) => item.path === path)?.label || path;
+    setWorkspaceTabs((previous) => previous.some((item) => item.path === path)
+      ? previous
+      : [...previous, { path, label }].slice(-12));
+  }, [path, me, allVisible]);
+
   useEffect(() => {
     if (!me) return;
     let cancelado = false;
@@ -81,12 +102,6 @@ function Inner({ children }: { children: React.ReactNode }) {
       .catch(() => { if (!cancelado) setProgramacoesGlobais([]); });
     return () => { cancelado = true; };
   }, [me]);
-
-  useEffect(()=>{
-    if(!me||!allowedPath(me.perfil,path))return;
-    const label=allVisible.find(i=>i.path===path)?.label||path;
-    setWorkspaceTabs(prev=>prev.some(x=>x.path===path)?prev:[...prev,{path,label}].slice(-12));
-  },[path,me,allVisible]);
 
   useEffect(() => {
     if (loading) return;
@@ -115,14 +130,18 @@ function Inner({ children }: { children: React.ReactNode }) {
     <div className={`shell ${collapsed ? "collapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
       <aside className="sidenav">
         <div className="brand"><BrandLogo size={34} /><span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span></div>
-        <nav>
+        <div className="mobile-module-search search" role="search">
+          <Search />
+          <input aria-label="Buscar módulo" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") searchModule(); }} placeholder="Buscar módulo..." />
+        </div>
+        <nav aria-label="Navegação principal">
           {visible.map((g) => (
             <section key={g.label} className="navgroup">
               <label>{g.label}</label>
               {g.items.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link key={item.path} href={item.path} className={`navlink ${path === item.path ? "active" : ""}`} title={collapsed ? item.label : undefined}>
+                  <Link key={item.path} href={item.path} className={`navlink ${path === item.path ? "active" : ""}`} title={collapsed ? item.label : undefined} aria-current={path === item.path ? "page" : undefined}>
                     <Icon /><span>{item.label}</span>
                   </Link>
                 );
@@ -179,6 +198,7 @@ function Inner({ children }: { children: React.ReactNode }) {
         <div style={{ position: "relative" }}>
           <button className="userchip" onClick={() => setProfileOpen((v) => !v)} aria-expanded={profileOpen}>
             <span className="avatar">{me.usuario.slice(0, 2).toUpperCase()}</span>
+            <span className="usercopy"><b>{me.usuario}</b><small>{me.perfil}</small></span>
             <ChevronDown size={14} />
           </button>
           {profileOpen && (
@@ -192,13 +212,16 @@ function Inner({ children }: { children: React.ReactNode }) {
       </header>
 
       <main className="main">
-        <nav className="erp-workspace-tabs" aria-label="Guias abertas no sistema">
-          {workspaceTabs.map(tab=><div key={tab.path} className={tab.path===path?"erp-workspace-tab active":"erp-workspace-tab"}>
-            <button type="button" onClick={()=>router.push(tab.path)} title={tab.label}>{tab.label}</button>
-            <button type="button" className="erp-workspace-close" title={"Fechar "+tab.label} aria-label={"Fechar "+tab.label}
-              onClick={()=>{setWorkspaceTabs(prev=>prev.filter(x=>x.path!==tab.path));if(tab.path===path)router.push(workspaceTabs.find(x=>x.path!==tab.path)?.path||"/dashboard")}}>×</button>
+        {workspaceTabs.length > 1 && <nav className="erp-workspace-tabs" aria-label="Módulos abertos">
+          {workspaceTabs.map((tab) => <div key={tab.path} className={tab.path === path ? "erp-workspace-tab active" : "erp-workspace-tab"}>
+            <button type="button" onClick={() => router.push(tab.path)} title={tab.label}>{tab.label}</button>
+            <button type="button" className="erp-workspace-close" title={`Fechar ${tab.label}`} aria-label={`Fechar ${tab.label}`}
+              onClick={() => {
+                setWorkspaceTabs((previous) => previous.filter((item) => item.path !== tab.path));
+                if (tab.path === path) router.push(workspaceTabs.find((item) => item.path !== tab.path)?.path || "/dashboard");
+              }}>×</button>
           </div>)}
-        </nav>
+        </nav>}
         <div className={`page ${["/programacao", "/programacao-gerente"].includes(path) ? "industrial-page-area" : ""}`}>{children}</div>
       </main>
       <AiAssistant />

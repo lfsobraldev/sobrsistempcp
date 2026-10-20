@@ -21,7 +21,7 @@
   --pcp-shadow:0 8px 24px rgba(41,60,47,.06);
   --bg:var(--pcp-bg);--panel:#fff;--line:var(--pcp-line);--line2:var(--pcp-line-2);
   --text:var(--pcp-text);--muted:var(--pcp-muted);--green:var(--pcp-dark);
-  --green2:var(--pcp-green-3);--blue:var(--pcp-green-3);--warn:var(--pcp-warn);--danger:var(--pcp-danger);
+  --green2:var(--pcp-green-3);--accent:var(--pcp-green-3);--warn:var(--pcp-warn);--danger:var(--pcp-danger);
 }
 
 *{box-sizing:border-box}

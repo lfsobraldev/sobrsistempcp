@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, Gauge, ShieldCheck, Boxes } from "lucide-react";
+import { AlertCircle, ArrowRight, Boxes, Gauge, ShieldCheck, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
 
@@ -33,34 +33,51 @@ export default function Login() {
   }
 
   return (
-    <main className="login">
-      <section className="login-brand">
-        <div className="brand">
-          <BrandLogo size={42} />
-          <span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span>
+    <main className="login-page">
+      <header className="login-header">
+        <div className="login-system">
+          <BrandLogo size={40} />
+          <span><b>Sobral PCP</b><small>ERP Industrial</small></span>
         </div>
-        <h1>Produção, qualidade e expedição em uma única plataforma.</h1>
-        <p>Programação, acompanhamento de produção, romaneios e um assistente de IA para apoiar as operações.</p>
-        <ul>
-          <li><Gauge size={16} /> Indicadores e filas em tempo real</li>
-          <li><Boxes size={16} /> Romaneios gerados com IA</li>
-          <li><ShieldCheck size={16} /> Controle de qualidade e rastreabilidade</li>
-        </ul>
-      </section>
-      <section className="login-form">
-        <div className="login-card">
-          <div>
-            <h2>Entrar</h2>
-            <p className="na">Use seu usuário corporativo.</p>
+        <span className="login-environment">ACESSO CORPORATIVO</span>
+      </header>
+
+      <div className="login-content">
+        <section className="login-intro" aria-labelledby="login-welcome">
+          <span className="login-kicker">OPERAÇÃO INTEGRADA</span>
+          <h1 id="login-welcome">Gestão industrial, do pedido à expedição.</h1>
+          <p>Entre para acompanhar programação, produção, qualidade e entregas em um único ambiente.</p>
+          <ul>
+            <li><Gauge size={18} /><span><b>Visão operacional</b><small>Indicadores e filas da programação</small></span></li>
+            <li><Boxes size={18} /><span><b>Fluxo de produção</b><small>Pedidos, operações e expedição</small></span></li>
+            <li><ShieldCheck size={18} /><span><b>Rastreabilidade</b><small>Controle de qualidade e histórico</small></span></li>
+          </ul>
+        </section>
+
+        <section className="login-form" aria-labelledby="login-heading">
+          <div className="login-card">
+            <div className="login-card-heading">
+              <span>ACESSO AO SISTEMA</span>
+              <h2 id="login-heading">Entrar</h2>
+              <p>Use suas credenciais corporativas.</p>
+            </div>
+            {erro && <div className="login-error" role="alert"><AlertCircle size={17} />{erro}</div>}
+            <form onSubmit={entrar} aria-busy={busy}>
+              <label className="login-field" htmlFor="u">Usuário
+                <span className="login-input-wrap"><UserRound size={17} /><input id="u" value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="username" aria-invalid={!!erro} required /></span>
+              </label>
+              <label className="login-field" htmlFor="s">Senha
+                <span className="login-input-wrap"><ShieldCheck size={17} /><input id="s" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" aria-invalid={!!erro} required /></span>
+              </label>
+              <button className="primary login-submit" disabled={busy}>
+                {busy ? <><span className="login-spinner" aria-hidden="true" /> Verificando acesso...</> : <>Acessar sistema <ArrowRight size={17} /></>}
+              </button>
+            </form>
+            <p className="login-card-foot">Acesso restrito a usuários autorizados.</p>
           </div>
-          {erro && <div className="messageStrip error">{erro}</div>}
-          <form onSubmit={entrar}>
-            <div><label htmlFor="u">Usuário</label><input id="u" value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="username" required /></div>
-            <div><label htmlFor="s">Senha</label><input id="s" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" required /></div>
-            <button className="primary" disabled={busy}>{busy ? "Entrando..." : "Entrar"} <ArrowRight /></button>
-          </form>
-        </div>
-      </section>
+        </section>
+      </div>
+      <footer className="login-footer">Sobral PCP <span>·</span> Planejamento e controle industrial</footer>
     </main>
   );
 }

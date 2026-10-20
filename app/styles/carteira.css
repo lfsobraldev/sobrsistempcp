@@ -2,9 +2,10 @@
    Carregado depois de globals.css (ver app/layout.tsx). Só usa variáveis de tokens.css. */
 
 /* ---------- Gestão de Pedidos e Entregas: harmonização verde/branca ---------- */
-body .industrial-workspace .industrial-hero{background:linear-gradient(112deg,var(--primary-800),var(--primary-600))!important;border-bottom:4px solid var(--primary-200)!important}
-body .industrial-workspace .industrial-eyebrow{color:var(--primary-200)!important}
-body .industrial-workspace .industrial-tags span{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.12)}
+body .industrial-workspace .industrial-hero{background:var(--surface)!important;border-bottom:1px solid var(--border)!important;color:var(--text)!important}
+body .industrial-workspace .industrial-hero h1,body .industrial-workspace .industrial-hero p{color:var(--text)!important}
+body .industrial-workspace .industrial-eyebrow{color:var(--primary-700)!important}
+body .industrial-workspace .industrial-tags span{border-color:var(--primary-200);background:var(--primary-soft);color:var(--primary-800)}
 body .industrial-workspace{color:var(--text)}
 body .industrial-workspace .industrial-panel,body .industrial-workspace .industrial-toolbar,body .industrial-workspace .industrial-subtabs,body .industrial-workspace .industrial-stat-row>div{border-color:var(--border)!important;background:var(--surface)}
 body .industrial-workspace .industrial-btn{border:1px solid var(--border-strong)!important;background:var(--surface)!important;color:var(--text)!important;min-height:44px;white-space:nowrap}
@@ -14,7 +15,7 @@ body .industrial-workspace .industrial-btn.primary:hover:not(:disabled){backgrou
 body .industrial-workspace .industrial-subtabs button{background:var(--surface-2)!important;border:1px solid var(--border)!important;color:var(--text-2)!important}
 body .industrial-workspace .industrial-subtabs button.active{background:var(--primary)!important;border-color:var(--primary)!important;color:var(--on-primary)!important;box-shadow:none}
 body .industrial-workspace .industrial-subtabs button:hover:not(.active){background:var(--primary-100)!important}
-body .industrial-workspace .industrial-table th{background:var(--primary-800)}
+body .industrial-workspace .industrial-table th{background:var(--primary-100);color:var(--primary-800)}
 body .industrial-workspace .industrial-table tr:nth-child(even){background:var(--surface-2)}
 body .industrial-workspace .industrial-table td{overflow-wrap:anywhere}
 body .industrial-workspace .industrial-table th.sortable{cursor:pointer;user-select:none}
@@ -40,10 +41,10 @@ body .industrial-workspace .industrial-error{background:var(--danger-soft);color
 
 /* ---------- Página /carteira ---------- */
 .cart-page{display:grid;gap:16px;max-width:1700px;margin:0 auto;color:var(--text);font-size:14px;line-height:1.5}
-.cart-hero{padding:22px 26px;background:linear-gradient(112deg,var(--primary-800),var(--primary-600));color:var(--text-inverse);border-radius:var(--radius-lg);border-bottom:4px solid var(--primary-200)}
-.cart-hero span{font-size:11px;letter-spacing:2px;font-weight:700;color:var(--primary-200)}
-.cart-hero h1{margin:6px 0 4px;font-size:clamp(22px,2.4vw,30px);line-height:1.2;color:var(--text-inverse)}
-.cart-hero p{margin:0;max-width:900px;font-size:13px;color:var(--primary-100)}
+.cart-hero{padding:18px 0;background:var(--surface);color:var(--text);border-radius:0;border-bottom:1px solid var(--border)}
+.cart-hero span{font-size:11px;font-weight:700;color:var(--primary-700)}
+.cart-hero h1{margin:6px 0 4px;font-size:clamp(22px,2.4vw,30px);line-height:1.2;color:var(--text)}
+.cart-hero p{margin:0;max-width:900px;font-size:13px;color:var(--text-2)}
 .cart-actions{display:flex;flex-wrap:wrap;gap:8px}
 .cart-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
 .cart-btn:hover:not(:disabled){background:var(--primary-50);border-color:var(--primary)}
@@ -74,8 +75,8 @@ button.cart-kpi:hover{border-color:var(--primary);background:var(--primary-50)}
 .cart-checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
 .cart-wrap{overflow:auto;border:1px solid var(--border);border-radius:var(--radius);max-width:100%}
 .cart-table{width:100%;border-collapse:collapse;font-size:13px;min-width:980px}
-.cart-table th{position:sticky;top:0;background:var(--primary-800);color:var(--text-inverse);text-align:left;padding:11px 12px;font-size:11px;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
-.cart-table th.sortable{cursor:pointer;user-select:none}.cart-table th.sortable:hover{background:var(--primary-700)}
+.cart-table th{position:sticky;top:0;background:var(--primary-100);color:var(--primary-800);text-align:left;padding:11px 12px;font-size:11px;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.cart-table th.sortable{cursor:pointer;user-select:none}.cart-table th.sortable:hover{background:var(--primary-200)}
 .cart-table th.num,.cart-table td.num{text-align:right;font-variant-numeric:tabular-nums}
 .cart-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;overflow-wrap:anywhere}
 .cart-table tbody tr:nth-child(even){background:var(--surface-2)}

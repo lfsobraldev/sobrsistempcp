@@ -10,16 +10,16 @@
   --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;
   --radius-sm:8px;--radius:10px;--radius-lg:14px;--radius-xl:18px;--radius-full:999px;
 
-  /* Primária (verde industrial) */
-  --primary-50:#f3fbf6;--primary-100:#e3f6eb;--primary-200:#ceefdc;--primary-500:#4b9368;
-  --primary-600:#397c55;--primary-700:#2f6848;--primary-800:#244f37;
-  --primary:#397c55;--primary-hover:#2f6848;--primary-soft:var(--primary-50);--on-primary:#ffffff;
+  /* Identidade verde e branca */
+  --primary-50:#f2f7f3;--primary-100:#e5eee7;--primary-200:#cbdccc;--primary-500:#548366;
+  --primary-600:#3f7055;--primary-700:#315b44;--primary-800:#234533;
+  --primary:#3f7055;--primary-hover:#315b44;--primary-soft:var(--primary-50);--on-primary:#ffffff;
 
-  /* Neutros */
-  --bg:#f6f9f7;--surface:#ffffff;--surface-2:#f9fbfa;--surface-3:#f3f6f4;
-  --border:#e4ece7;--border-strong:#d1d5db;
-  --text:#14241b;--text-2:#496555;--text-3:#6b7280;--text-inverse:#ffffff;
-  --sidebar-bg:#13261b;--sidebar-text:#ceded5;--sidebar-muted:#648b74;--sidebar-hover:#22372b;--sidebar-active:#2d7b4e;
+  /* Superfícies e navegação */
+  --bg:#f6f8f6;--surface:#ffffff;--surface-2:#fafbfa;--surface-3:#eef2ef;
+  --border:#dce4dd;--border-strong:#bdc9bf;
+  --text:#243229;--text-2:#506257;--text-3:#707c73;--text-inverse:#ffffff;
+  --sidebar-bg:#21382b;--sidebar-text:#d7e1d9;--sidebar-muted:#aab9ae;--sidebar-hover:#30483a;--sidebar-active:#3f7055;
 
   /* Status (somente semântica) */
   --success:#15803d;--success-soft:#dcfce7;
@@ -27,11 +27,16 @@
   --warning:#b45309;--warning-soft:#fef3c7;
   --info:var(--primary-700);--info-soft:var(--primary-100);
 
-  --shadow-sm:0 1px 2px rgba(15,23,42,.04),0 4px 14px rgba(15,23,42,.03);
-  --shadow:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);
-  --shadow-lg:0 12px 32px rgba(15,23,42,.16);
-  --overlay:rgba(15,23,42,.45);
-  --focus-ring:0 0 0 3px rgba(57,124,85,.22);
+  --shadow-sm:0 1px 2px rgba(28,45,33,.04);
+  --shadow:0 1px 3px rgba(28,45,33,.07);
+  --shadow-lg:0 8px 24px rgba(28,45,33,.12);
+  --overlay:rgba(25,38,29,.42);
+  --focus-ring:0 0 0 3px rgba(63,112,85,.2);
 
-  --sidebar-w:248px;--sidebar-w-collapsed:64px;--header-h:56px;
+  /* Tokens compartilhados por telas e integrações industriais */
+  --erp-brand:var(--primary);--erp-brand-hover:var(--primary-hover);--erp-brand-soft:var(--primary-100);
+  --erp-ink:var(--text);--erp-muted:var(--text-2);--erp-border:var(--border);
+  --erp-paper:var(--surface);--erp-canvas:var(--bg);--erp-dark:var(--sidebar-bg);
+
+  --sidebar-w:236px;--sidebar-w-collapsed:68px;--header-h:62px;
 }
