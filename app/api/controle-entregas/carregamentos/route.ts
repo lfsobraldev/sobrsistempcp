@@ -25,13 +25,14 @@ async function ensure(){
 }
 export async function GET(req:Request){
  try{
- await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
+ // Leitura liberada também a Comercial e Logística (já enxergam os mesmos pedidos); gravação continua restrita.
+ await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA"]);
  const db=await ensure();
  const pedido=new URL(req.url).searchParams.get("pedido")||"";
  const cargas=pedido?await db`select *,data_saida::text as data_saida,data_entrega::text as data_entrega from pcp_controle_entregas_carregamentos where pedido=${pedido} order by criado_em desc`
   :await db`select *,data_saida::text as data_saida,data_entrega::text as data_entrega from pcp_controle_entregas_carregamentos order by criado_em desc limit 500`;
  return NextResponse.json({cargas},{headers:{"Cache-Control":"no-store"}});
- }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao listar carregamentos"},{status:403})}
+ }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao listar carregamentos"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
 export async function POST(req:Request){
  try{
