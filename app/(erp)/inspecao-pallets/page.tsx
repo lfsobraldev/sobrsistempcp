@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import QRCode from "qrcode";
+import { criarUrlRastreioPallet } from "@/lib/pallet-tracking-url";
 import {
   Camera, CheckCircle2, ClipboardCheck, FileSpreadsheet, ImagePlus, LockKeyhole, PackageCheck, Plus,
   Printer, RefreshCw, Search, ShieldCheck, Truck, UnlockKeyhole, XCircle
@@ -53,6 +55,7 @@ export default function InspecaoPallets(){
   const [createOpen,setCreateOpen]=useState(false),[inspectionOpen,setInspectionOpen]=useState(false),[decisionOpen,setDecisionOpen]=useState(false);
   const [decision,setDecision]=useState<{action:string;title:string}|null>(null),[motivo,setMotivo]=useState(""),[obs,setObs]=useState("");
   const [area,setArea]=useState<"QUALIDADE"|"MSAC">("QUALIDADE"),[checklist,setChecklist]=useState<Record<string,boolean>>({}),[inspectionObs,setInspectionObs]=useState("");
+  const [labelQr,setLabelQr]=useState(""),[printPending,setPrintPending]=useState(false);
   const [form,setForm]=useState({pedido:"",cliente:"",filtro:"",pallet:"",tipoProduto:"",quantidade:"",jogos:"",turno:"A",destino:"",montador:"",conferente:"",observacao:""});
   const photoRef=useRef<HTMLInputElement|null>(null);
 
@@ -78,7 +81,32 @@ export default function InspecaoPallets(){
 
   async function addPhoto(file?:File){if(!selected||!file)return;setBusy(true);try{const dataUrl=await compressImage(file);const r=await fetch("/api/pallets/fotos",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({palletId:selected.id,dataUrl,area,legenda:`Inspeção ${area}`})}),j=await r.json();if(!r.ok)throw new Error(j.error);toast("success","Foto adicionada.");await load();await openPallet(selected.id)}catch(e:any){toast("error",e.message)}finally{setBusy(false);if(photoRef.current)photoRef.current.value=""}}
 
-  function printLabel(p:Pallet){setSelected(p);setTimeout(()=>{document.body.classList.add("print-pallet-label");window.print();document.body.classList.remove("print-pallet-label")},80)}
+  async function printLabel(p:Pallet){
+    setBusy(true);
+    try{
+      let qr="";
+      if(p.status==="LIBERADO"){
+        const response=await fetch("/api/pallets/public-link",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({id:p.id})});
+        const result=await response.json();
+        if(!response.ok)throw new Error(result.error||"Não foi possível criar o link de rastreio.");
+        const url=criarUrlRastreioPallet(window.location.origin,result.token);
+        qr=await QRCode.toDataURL(url,{errorCorrectionLevel:"M",margin:1,width:240});
+      }
+      setLabelQr(qr);setSelected(p);setPrintPending(true);
+    }catch(e:any){toast("error",e?.message||"Falha ao preparar a etiqueta.")}
+    finally{setBusy(false)}
+  }
+
+  useEffect(()=>{
+    if(!printPending||!selected)return;
+    const timer=window.setTimeout(()=>{
+      document.body.classList.add("print-pallet-label");
+      window.print();
+      document.body.classList.remove("print-pallet-label");
+      setPrintPending(false);
+    },80);
+    return()=>window.clearTimeout(timer);
+  },[printPending,selected,labelQr]);
 
   async function exportarRelatorioExcel(){
     if(!itens.length){
@@ -348,6 +376,6 @@ export default function InspecaoPallets(){
       <Field label="Observação"><textarea value={obs} onChange={(e) => setObs(e.target.value)} placeholder="Observação da decisão" /></Field>
     </Modal>
 
-    {selected && <section id="pallet-label-print" className="palletLabelPrint"><header><b>FAMOSSUL • CONTROLE DE PALLET</b><span>{selected.codigo}</span></header><main><div className="labelBig"><small>PALLET</small><b>{selected.pallet}</b></div><div className="labelBig"><small>PEDIDO</small><b>{selected.pedido}</b></div><dl><div><dt>Cliente</dt><dd>{selected.cliente || "-"}</dd></div><div><dt>Filtro</dt><dd>{selected.filtro || "-"}</dd></div><div><dt>Tipo</dt><dd>{selected.tipo_produto || "-"}</dd></div><div><dt>Quantidade</dt><dd>{fmt(selected.quantidade)}</dd></div><div><dt>Jogos</dt><dd>{fmt(selected.jogos)}</dd></div><div><dt>Destino</dt><dd>{selected.destino || "-"}</dd></div></dl><div className={`labelStatus ${selected.status.toLowerCase()}`}>{statusLabel(selected.status)}</div><div className="labelSign"><span>QUALIDADE: {statusLabel(selected.qualidade_status)} • {selected.qualidade_usuario || "-"}</span><span>MSAC: {statusLabel(selected.msac_status)} • {selected.msac_usuario || "-"}</span></div></main><footer>Gerado em {new Date().toLocaleString("pt-BR")}</footer></section>}
+    {selected && <section id="pallet-label-print" className="palletLabelPrint"><header><b>FAMOSSUL • CONTROLE DE PALLET</b><span>{selected.codigo}</span></header><main><div className="labelBig"><small>PALLET</small><b>{selected.pallet}</b></div><div className="labelBig"><small>PEDIDO</small><b>{selected.pedido}</b></div><dl><div><dt>Cliente</dt><dd>{selected.cliente || "-"}</dd></div><div><dt>Filtro</dt><dd>{selected.filtro || "-"}</dd></div><div><dt>Tipo</dt><dd>{selected.tipo_produto || "-"}</dd></div><div><dt>Quantidade</dt><dd>{fmt(selected.quantidade)}</dd></div><div><dt>Jogos</dt><dd>{fmt(selected.jogos)}</dd></div><div><dt>Destino</dt><dd>{selected.destino || "-"}</dd></div></dl><div className={`labelStatus ${selected.status.toLowerCase()}`}>{statusLabel(selected.status)}</div><div className="labelQr">{labelQr?<><img src={labelQr} alt="QR Code para rastreio deste pallet"/><span>Escaneie para consultar o status do pallet</span></>:<span>Rastreio digital disponível após a liberação</span>}</div><div className="labelSign"><span>QUALIDADE: {statusLabel(selected.qualidade_status)} • {selected.qualidade_usuario || "-"}</span><span>MSAC: {statusLabel(selected.msac_status)} • {selected.msac_usuario || "-"}</span></div></main><footer>Gerado em {new Date().toLocaleString("pt-BR")}</footer></section>}
   </>;
 }

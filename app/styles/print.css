@@ -23,6 +23,8 @@
   .palletLabelPrint dt{font-size:8pt}
   .palletLabelPrint dd{font-size:12pt;font-weight:bold;margin:1mm 0 0}
   .palletLabelPrint .labelStatus{border:3px solid black;text-align:center;font-size:22pt;font-weight:900;padding:4mm}
+  .palletLabelPrint .labelQr{display:flex;align-items:center;gap:4mm;margin-top:4mm;font-size:9pt;font-weight:bold}
+  .palletLabelPrint .labelQr img{width:28mm;height:28mm;object-fit:contain}
   .palletLabelPrint .labelSign{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-top:5mm;font-size:10pt}
   .palletLabelPrint footer{margin-top:5mm;padding-top:2mm;border-top:1px solid black;font-size:8pt}
 }
