@@ -12,6 +12,9 @@ Atualizado em 2026-10-21. Branch de trabalho: `erp-completo`.
 - Fase 7 — Manutenção/Ativos: pendente.
 - Fase 8 — Camada Inteligente: parcial existente; evoluções pendentes devem continuar somente leitura para consultas e exigir confirmação humana para escritas.
 - Transversal — multiempresa, anexos externos, outbox/jobs, observabilidade, OpenAPI e e2e: pendente/parcial conforme inventário.
+- Entrega C — painel de migrações: concluída em estrutura, com `schema_migrations`, catálogo de arquivos em `lib/migration-service.ts`, script `npm run migrate` e página `/admin/migracoes`; ainda sem execução real contra Neon e sem `ALLOW_ADMIN_MIGRATIONS` habilitado em produção.
+- Entrega A — programações por mês/unidade: estrutura inicial de páginas `/programacao/sul`, `/programacao/nordeste` e `/programacao/consolidado` criada como base visual; sem importação real do CSV e sem persistência no banco.
+- Entrega B — configurações de usuário: aba de administração e painel administrativo incorporados em `/configuracoes` e `/admin/migracoes`; sem persistência real de usuários nem auditoria completa ainda.
 
 Critério por fase: teste focado, `npm test`, `npm run build`, revisão do diff e commit com mensagem `Fase N: <nome>`. Migrações são geradas, nunca aplicadas pelo agente.
 

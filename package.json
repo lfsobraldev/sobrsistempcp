@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "migrate": "tsx scripts/migrate.ts",
     "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
