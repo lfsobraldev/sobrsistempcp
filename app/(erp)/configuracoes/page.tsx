@@ -80,6 +80,7 @@ function PerfilTab() {
         <Field label="Nome">João da Silva</Field>
         <Field label="E-mail">joao@empresa.com</Field>
         <Field label="Perfil">PCP</Field>
+        <Field label="Último acesso">2026-10-21 15:42</Field>
       </div>
       <div style={{ display: "grid", gap: 8 }}>
         <label style={{ display: "grid", gap: 6 }}>
@@ -90,6 +91,13 @@ function PerfilTab() {
           <span>Trocar senha</span>
           <input type="password" value="********" readOnly />
         </label>
+      </div>
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#f8fafc" }}>
+        <strong>Sessões ativas</strong>
+        <ul style={{ margin: "12px 0 0", paddingLeft: 18, display: "grid", gap: 8 }}>
+          <li>Chrome · São Paulo · Ativa agora</li>
+          <li>Safari · Fortaleza · 1h atrás</li>
+        </ul>
       </div>
     </section>
   );
@@ -107,6 +115,14 @@ function PreferenciasTab() {
         <Field label="Idioma">pt-BR</Field>
         <Field label="Formato de número">Brasil</Field>
       </div>
+      <div style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#f8fafc" }}>
+        <strong>Filtros salvos</strong>
+        <ul style={{ margin: "12px 0 0", paddingLeft: 18, display: "grid", gap: 8 }}>
+          <li>Programação Sul · Atrasados</li>
+          <li>Estoque · Material crítico</li>
+          <li>Qualidade · Pallets de inspeção</li>
+        </ul>
+      </div>
     </section>
   );
 }
@@ -115,12 +131,19 @@ function NotificacoesTab() {
   return (
     <section style={{ border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, display: "grid", gap: 16 }}>
       <h2 style={{ margin: 0 }}>Notificações</h2>
-      <ul style={{ margin: 0, paddingLeft: 20, display: "grid", gap: 8 }}>
-        <li>Atraso em programação</li>
-        <li>Ruptura de material</li>
-        <li>Qualidade e inspeção</li>
-        <li>Calibração de máquina</li>
-      </ul>
+      <div style={{ display: "grid", gap: 10 }}>
+        {[
+          ["Atraso em programação", "E-mail + push"],
+          ["Ruptura de material", "E-mail + Teams"],
+          ["Qualidade e inspeção", "E-mail"],
+          ["Calibração de máquina", "E-mail + push"],
+        ].map(([label, canal]) => (
+          <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: 10, border: "1px solid #e2e8f0", borderRadius: 10, padding: "10px 12px", background: "#fff" }}>
+            <span>{label}</span>
+            <strong>{canal}</strong>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -128,14 +151,17 @@ function NotificacoesTab() {
 function UsuariosTab({ admin }: { admin: boolean }) {
   if (!admin) return <EmptyAccess />;
   return (
-    <section style={{ border: "1px solid #e2e8f0", borderRadius: 16, padding: 20 }}>
+    <section style={{ border: "1px solid #e2e8f0", borderRadius: 16, padding: 20, display: "grid", gap: 16 }}>
       <h2 style={{ marginTop: 0 }}>Usuários</h2>
-      <p>Administração de usuários será habilitada junto com a fundação de RBAC e perfis por unidade.</p>
-      <ul>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button type="button" style={{ background: "#0f172a", color: "#fff", border: "none", borderRadius: 999, padding: "8px 14px", cursor: "pointer" }}>Convidar usuário</button>
+        <button type="button" style={{ border: "1px solid #cbd5e1", background: "#fff", borderRadius: 999, padding: "8px 14px", cursor: "pointer" }}>Ativar / desativar</button>
+      </div>
+      <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 8 }}>
         <li>Criar / convidar usuários</li>
         <li>Ativar e desativar contas</li>
         <li>Redefinir senha</li>
-        <li>Atribuir papéis e permissões</li>
+        <li>Atribuir papéis e permissões por unidade</li>
       </ul>
     </section>
   );
@@ -173,9 +199,12 @@ function SistemaTab({ admin }: { admin: boolean }) {
       <p><strong>Versão:</strong> 8.0.0</p>
       <p><strong>Variáveis esperadas:</strong> AUTH_SECRET, DATABASE_URL, ALLOW_ADMIN_MIGRATIONS</p>
       <p><strong>Estado:</strong> saúde do sistema operacional satisfatória.</p>
-      <Link href="/admin/migracoes" style={{ textDecoration: "none", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 999, padding: "10px 16px", display: "inline-block", width: "fit-content" }}>
-        Abrir painel de migrações
-      </Link>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Link href="/admin/migracoes" style={{ textDecoration: "none", color: "#0f172a", border: "1px solid #cbd5e1", borderRadius: 999, padding: "10px 16px", display: "inline-block", width: "fit-content" }}>
+          Abrir painel de migrações
+        </Link>
+        <span style={{ border: "1px solid #e2e8f0", borderRadius: 999, padding: "10px 16px", background: "#f8fafc" }}>Protegido por RBAC + auditoria</span>
+      </div>
     </section>
   );
 }
