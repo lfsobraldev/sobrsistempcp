@@ -29,3 +29,7 @@ Painel de migrações do sistema | criado (estrutura inicial) | `app/admin/migra
 Programação mensal por unidade | melhorado | `app/(erp)/programacao/sul/page.tsx`, `.../nordeste/page.tsx`, `.../consolidado/page.tsx` | Estrutura de visualização por unidade, competência, comparativo e tabela; importação, validação e persistência do CSV continuam pendentes.
 Configurações do usuário | melhorado | `app/(erp)/configuracoes/page.tsx` | Abas de perfil, preferências, notificações, usuários, permissões e sistema; sem vínculo atual ao banco de usuários/permissões.
 CI de testes/build | parcial | `.github/workflows/verify-build.yml` | Testa/build em PR; filtros de paths e atualização automática do lockfile precisam revisão.
+
+## Revisão de 21/10/2026 — programação multimestre
+
+As páginas mensais originais eram demonstrações estáticas. Foram substituídas por `components/programacao-mensal.tsx` e `/api/programacao-mensal`. Importador reaproveitado: `lib/import-reader.ts`; parser/liberação industrial preservados. Não existe CSV de exemplo versionado. `pcp_programacoes.data_programacao` fornece competência dos dados legados, projetados sem cópia por views. Novos lotes/itens são a camada de planejamento mensal, sem duplicar ordens/produção. Detalhes, dependências, limites e validação: `RELATORIO_PROGRAMACAO_MULTIMES.md`. Referências e sequência de evolução ERP: `REFERENCIAS_ERP_INDUSTRIAL.md`.

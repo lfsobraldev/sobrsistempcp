@@ -13,3 +13,14 @@
 | O painel de migrações não será habilitado por padrão e exigirá `ALLOW_ADMIN_MIGRATIONS=true`. | Regra explícita da missão. | Nenhuma migração será aplicada sem autorização manual. |
 | As migrações seguirão o padrão `YYYY-MM-DD_NN_nome.sql` com blocos `-- migrate:up` / `-- migrate:down`. | Regras do exercício e padronização do repositório. | A ordem e o checksum serão conferidos antes de liberar em produção. |
 | O `schema_migrations` será somente um controle de execução, sem tocar em dados operacionais existentes. | O projeto usa DDL aditivo e não tem mecanismo global de migration antes dessa entrega. | Qualquer correção futura deve ser feita com `BASELINE` e auditoria de divergência. |
+
+## Programação multimestre — 21/10/2026
+
+- Sem CSV de exemplo no git: não inventar competência do mês passado. Usar data real da programação legada e datas do arquivo enviado para sugerir mês de novos lotes.
+- Legado pertence à unidade Sul da empresa técnica PCP_LEGADO; homologar antes de aplicar migration. Não associar automaticamente a empresa existente pelo nome.
+- Planejamento importado é demanda, e não autorização de execução. A liberação industrial atual permanece sob ação explícita do PCP.
+- Mês pode ser corrigido pelo operador mesmo divergindo da data de uma linha, com aviso de prévia.
+- Substituir é uma nova versão reversível; desfazer obedece ordem inversa para preservar encadeamento de lotes.
+- Contas PCP_USER/ADMIN_USER com perfil PCP são administradoras globais. Todas as demais dependem de grants explícitos ou vínculos de filial da fundação.
+- Filtros salvos são preferências locais. Data vencida não é atraso confirmado de execução. Histórico inicial limitado aos 50 lotes recentes e exportação a 10.000 linhas.
+- Sem merge na main conforme regra transcrita; deploy da branch é preview até promoção em produção pela Vercel.
