@@ -15,10 +15,10 @@ Base: main/9eb39cd (inclui PR 61). Branch de integração: `erp-unidades-integra
 - Identidade e grants são consultados no banco central, reaproveitando `pcp_usuarios`, `pcp_usuario_empresas` e `pcp_usuario_filiais`. A seleção usa cookie HMAC vinculado ao login, expiração e revalidação de grant em cada requisição.
 - Credenciais de operação por unidade são resolvidas exclusivamente no servidor. Request body, URL ou cookie não podem fornecer connection strings. Configuração recusa os dois ambientes apontando ao mesmo banco. Cada banco deve possuir identidade homologada correspondente à unidade; unit mismatch bloqueia a requisição.
 - Nenhuma suposição automática de que registros atuais pertençam à Sul. Se o banco legado for reaproveitado como uma unidade, exigir confirmação explícita no servidor e homologação no banco.
-- Seletor no cabeçalho para o ERP inteiro; a troca faz navegação completa e elimina estado/IDs da unidade anterior. O login invalida seleção prévia; logout limpa ambos os cookies. A administração antiga de líderes criava usuários no banco operacional e não pode ser usada após centralização: está explicitamente bloqueada no modo multiunidade até concluir o cadastro central e concessão de etapas por unidade. Não anunciar gestão de usuários concluída.
+- Seletor no cabeçalho para o ERP inteiro; a troca faz navegação completa e elimina estado/IDs da unidade anterior. O login invalida seleção prévia; logout limpa ambos os cookies. A administração antiga de líderes criava usuários no banco operacional e é substituída, no modo multiunidade, por `/acessos`: administrador central cria/edita contas, concede unidades e setores/turnos por unidade. Desativação, mudança de perfil ou senha revogam sessões de contas do banco. Logins de ambiente permanecem gerenciados na configuração do servidor.
 - Consolidado de gestão consulta separadamente as duas fontes, exige acesso às duas e perfil PCP/GERENTE. Dados indisponíveis ou módulo não instalado aparecem como indisponíveis, nunca como zero. Posições de estoque são contadas; quantidades de materiais com unidades de medida diferentes não são somadas.
 - Removidas entradas separadas de Programação Sul/Nordeste do menu. Rotas antigas redirecionam para o planejamento mensal único ou consolidado. O planejamento mensal usa a unidade global e não permite selecionar a unidade de outra conexão.
-- Caches de inicialização de estoque/apontamentos deixam de ser booleanos globais e passam a ser por conexão, evitando que a primeira unidade marque a segunda como inicializada.
+- Caches de inicialização de estoque/apontamentos/CRM deixam de ser booleanos globais e passam a ser por conexão, evitando que a primeira unidade marque a segunda como inicializada.
 - Novos QR de pallet contêm unidade na assinatura. QR antigos permanecem restritos à fonte legada, sem procurar IDs nas outras unidades. Canal realtime de cada unidade é privado, com autorização por socket/login/unidade; o canal público legado é preservado apenas no modo anterior.
 - WhatsApp requer unidade explícita na configuração do remetente e grant central correspondente antes de consultar IA/dados. Deduplicação de mensagens permanece no banco de identidade; consulta empresarial ocorre no contexto da unidade autorizada.
 - Painel administrativo de migrações agora exige perfil PCP para leitura/escrita e usa o ator autenticado, em vez de confiar em nome recebido no payload.
@@ -42,13 +42,13 @@ Os arquivos SQL foram somente gerados. Para provisionar/homologar o backend real
 
 | Área | Estado verificável |
 | --- | --- |
-| Administração central de usuários e líderes | Autenticação e leitura de grants preparadas; criação/edição de líderes e seus setores no modo multiunidade bloqueada até completar sincronização de permissões; não habilitar produção |
-| Marketing/campanhas e atribuição de origem | Não implementado nesta integração |
+| Administração central de usuários e líderes | Cadastro central, grants, setores por unidade, versão otimista e revogação de sessões implementados e testados localmente; homologação real pendente |
+| Marketing/campanhas e atribuição de origem | Campanhas, orçamento, despesas imutáveis, estados e atribuição exclusiva às oportunidades existentes implementados; métricas são estimativas comerciais, sem alegação de faturamento ou lucro |
 | Clientes, representantes e CRM | Módulo existente reutilizado; regras comerciais, comissões e atribuição de campanhas completas pendentes |
 | Pedidos/comercial e medições | Módulos existentes isolados por unidade; homologação integrada com dados reais pendente |
-| Engenharia, BOM/roteiros versionados, OF persistente e MRP | Não implementados como cadeia completa; OF atual permanece referência textual em produtos |
+| Engenharia, BOM/roteiros versionados, OF persistente e MRP | BOM multinível versionada e imutável após aprovação, detecção de ciclo, OF persistente vinculada ao item original e operações existentes, necessidades congeladas e MRP consultivo implementados. Roteiro industrial completo versionado, automação de compras, reservas e entradas continuam pendentes |
 | PCP, programação, gerente e apontamentos | Código existente reaproveitado e protegido pelo contexto de unidade; homologação operacional pendente |
-| Estoque e inventário | Módulo existente protegido por unidade; classificação insumo/semiacabado/acabado e integração completa com MRP/OF pendentes |
+| Estoque e inventário | Cadastro existente reutilizado com classificação insumo/semiacabado/acabado e filtro; MRP lê saldo e movimentos explicitamente identificados com OF-N, abatendo saídas e incluindo reservas dessas OFs. Integração automática industrial/financeira pendente |
 | Compras, cotações e recebimento | Não implementados como ciclo completo |
 | Qualidade, pallets, QR e romaneios | Módulos existentes preservados; QR/realtime adaptados no código, ainda sem homologação externa |
 | Logística, rotas e entrega | Fluxos existentes preservados; ciclo completo até recebimento com evidências ainda pendente |
@@ -63,9 +63,31 @@ Os arquivos SQL foram somente gerados. Para provisionar/homologar o backend real
 
 ## Validação
 
-124 testes locais passaram: regressão do legado + assinatura/expiração/login, bancos distintos, confirmação de legado, requisições concorrentes com unidades diferentes, cobertura das barreiras nas APIs, QR por unidade e proteção de identidade usando Postgres/PGlite. Build e TypeScript locais aprovados antes do checkpoint; esta verificação não homologa banco real nem conclui os módulos pendentes.
+130 testes locais passaram: regressão do legado + assinatura/expiração/login, bancos distintos, confirmação de legado, requisições concorrentes com unidades diferentes, cobertura das barreiras nas APIs, QR por unidade e proteção de identidade usando Postgres/PGlite. Incluem testes Postgres/PGlite de acessos centrais, BOM multinível, imutabilidade, liberação com medição, conclusão de OF, reservas/consumo no MRP e campanhas idempotentes/auditadas. Build e TypeScript locais aprovados; esta verificação não homologa banco real nem conclui os módulos pendentes.
 
 Ainda necessários: duas fontes reais homologadas; testes ponta a ponta por perfil; read/write isolation com os mesmos IDs em unidades distintas; grants revogados durante sessão; QR anônimo e websocket autenticado com Pusher real; importações reais; auditoria e rollback; validação dos módulos que ainda não foram implementados.
+
+
+## Migrações novas desta etapa — arquivos somente
+
+| Ordem | Arquivo | Destino e efeito |
+| --- | --- | --- |
+| 05 | `2026-10-21_05_acessos_centrais.sql` | Banco central: perfis, concessão atômica de unidades, setores de líderes e auditoria sem senha/hash |
+| 06 | `2026-10-21_06_engenharia_of.sql` | Cada banco operacional: bootstrap idempotente do schema de estoque existente, classificação de estoque, estruturas versionadas, OF persistente, snapshot de materiais e proteção dos apontamentos |
+| 07 | `2026-10-21_07_marketing.sql` | Cada banco operacional: campanhas, despesas e origem das oportunidades do CRM |
+
+Dependências explícitas devem ser respeitadas, inclusive o CRM antes de 07. A 06 inclui o bootstrap idempotente do estoque, gerado do DDL existente. Os blocos down preservam dados; não prometem reversão destrutiva nem apagamento de histórico. Nenhum arquivo foi executado no banco real. O painel central não provisiona automaticamente os dois bancos operacionais.
+
+## Roteiro de homologação dos módulos adicionados
+
+1. Em ambiente de homologação preparado, aplicar fundação e 05 no controle central; cadastrar uma filial SUL e uma NORDESTE ativas, sem ambiguidade. Aplicar schema operacional/estoque, 04, 06 e CRM/07 nas respectivas fontes; conferir identidade de cada banco.
+2. Administrador de ambiente em `/acessos`: criar conta com senha de 12+ caracteres; conceder somente Sul. Confirmar que a mesma conta não acessa Nordeste nem consolidado. Editar perfil/senha/desativar e confirmar revogação da sessão anterior. Conceder ambas e verificar gestão consolidada com perfil permitido.
+3. Criar líder de entregas com setores diferentes por unidade. Conferir que cada troca carrega apenas os setores daquela fonte. Edição concorrente de conta deve exigir recarregar a versão.
+4. No estoque cadastrar códigos reais; em `/engenharia` classificar acabados, semiacabados e insumos. Exemplo: acabado usa 2 semis, cada semi usa 3 insumos. Aprovar versões, verificar ciclo recusado e consumo de 60 insumos para lote de 10 acabados. Conferir unidades base e perdas; não converter silenciosamente medidas incompatíveis.
+5. Na programação existente selecionar item sem execução, com código igual ao estoque, e criar OF. A quantidade original é preservada. OF planejada bloqueia apontamentos; liberar exige medição quando obrigatória. Necessidades ficam congeladas, mesmo com nova versão da BOM. Conclusão exige todas as operações concluídas com quantidade produzida suficiente. Itens legados sem OF continuam no fluxo anterior.
+6. Em estoque registrar reserva/saída com referência literal `OF-N` exibida na tabela de OF. Conferir MRP após saídas, reservas e liberação de reserva. Movimentos sem a referência não são atribuídos automaticamente; ordens de compra e entrada de acabados não são geradas por esse relatório.
+7. Em `/marketing` criar campanha, ativar, registrar despesa e repetir a requisição: um lançamento. Vincular oportunidade existente, recusar atribuição da mesma oportunidade a outra campanha. Conferir orçamento/despesas/ganhas e valor comercial estimado. Não há envio de anúncios/mensagens nem integração financeira automática.
+8. Repetir as ações com produtos e clientes diferentes nas duas unidades. Confirmar identidade do banco, restrições por perfil e trilhas de auditoria. Validar pallets, QR, romaneios e integrações reais antes da publicação.
 
 ## Publicação final
 

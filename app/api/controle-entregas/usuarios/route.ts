@@ -7,7 +7,7 @@ import {requireRoles} from "@/lib/auth";
 export const runtime="nodejs";
 const ETAPAS=["PREPARACAO","COLAGEM_PORTAS","ESQUADRIAS_BORDAS","RECOBRIDORA_PERFIL","USINAGEM_2","LUSTRACAO","CNC","USINAGEM","PLASTIFICADORA","PLASTIFICADORA_PORTAS","EMBALAGEM","EXPEDICAO"];
 async function setup(){
- if(multiAtiva())throw new Error("A administração central de logins por unidade ainda não foi homologada. Nenhum login foi alterado.");
+ if(multiAtiva())throw new Error("Gerencie contas e setores em Usuários e Unidades, no menu de administração. Nenhum login foi alterado nesta tela.");
  const db=sql();
  await db`create table if not exists pcp_lider_etapa_acessos(usuario varchar(100) not null,etapa varchar(50) not null,primary key(usuario,etapa))`;
  await db`alter table pcp_lider_etapa_acessos add column if not exists turno varchar(1) not null default 'A'`;

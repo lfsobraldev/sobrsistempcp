@@ -21,16 +21,18 @@ type MenuGroup = { label: string; items: MenuItem[] };
 const menus: MenuGroup[] = [
   { label: "Visão Geral", items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }] },
   { label: "Comercial", items: [
+    { path: "/marketing", label: "Marketing", icon: Briefcase },
     { path: "/comercial", label: "CRM Comercial", icon: Briefcase },
     { path: "/gestao-pedidos", label: "Pedidos e Entregas", icon: Truck },
   ] },
-  { label: "Medição e Engenharia", items: [{ path: "/medicoes", label: "Medições e Aprovação", icon: ClipboardCheck }] },
+  { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: ClipboardList }, { path: "/medicoes", label: "Medições e Aprovação", icon: ClipboardCheck }] },
   { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: ClipboardList }] },
   { label: "Compras e Estoque", items: [{ path: "/estoque", label: "Estoque", icon: Boxes }] },
   {
     label: "PCP e Produção",
     items: [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
+      { path: "/ordens-fabricacao", label: "Ordens de Fabricação", icon: ClipboardList },
       { path: "/planejamento-mensal", label: "Planejamento mensal", icon: ClipboardList },
       { path: "/programacao-gerente", label: "Planejamento", icon: Route },
       { path: "/apontamento-operacoes", label: "Apontamento de Operações", icon: ClipboardCheck },
@@ -62,7 +64,7 @@ const menus: MenuGroup[] = [
       { path: "/sobral-ia", label: "Inteligência Operacional", icon: BrainCircuit },
     ],
   },
-  { label: "Administração", items: [{ path: "/configuracoes", label: "Acessos e Configurações", icon: Settings }] },
+  { label: "Administração", items: [{ path: "/acessos", label: "Usuários e Unidades", icon: ShieldCheck }, { path: "/configuracoes", label: "Configurações", icon: Settings }] },
 ];
 
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/comercial", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas", SAC: "/sac" };

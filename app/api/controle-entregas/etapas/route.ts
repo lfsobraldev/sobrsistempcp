@@ -1,6 +1,8 @@
 import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
-import {sql} from "@/lib/db";
+import {multiAtiva} from "@/lib/unidades/core";
+import {unidadeAtual} from "@/lib/unidades/context";
+import {sql,identitySql} from "@/lib/db";
 import {requireRoles} from "@/lib/auth";
 export const runtime="nodejs";
 const AREAS:Record<string,string[]>={
@@ -37,6 +39,11 @@ async function ensure(){
  return db;
 }
 async function permitidas(db:ReturnType<typeof sql>,usuario:string){
+ if(multiAtiva()){
+  const central=identitySql();const unidade=unidadeAtual();
+  const rows=await central`select a.etapa from pcp_lider_unidade_etapas a join pcp_usuarios u on u.id=a.usuario_id where u.usuario=${usuario} and u.ativo and u.perfil='LIDER_ENTREGAS' and a.unidade=${unidade}`;
+  return rows.map(r=>String(r.etapa));
+ }
  const rows=await db`select a.etapa from pcp_lider_etapa_acessos a join pcp_usuarios u on lower(u.usuario)=lower(a.usuario) where lower(a.usuario)=lower(${usuario}) and u.ativo=true and u.perfil='LIDER_ENTREGAS'`;
  return rows.map(x=>String(x.etapa));
 }

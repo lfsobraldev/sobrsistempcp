@@ -27,7 +27,7 @@ const isDate = (value: string) => {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 };
 type Db = ReturnType<typeof sql>;
-let crmSchemaReady: Promise<void> | null = null;
+const crmSchemas = new WeakMap<Db, Promise<void>>();
 
 async function ensureCrm(db: Db) {
   await db`create extension if not exists pgcrypto`;
@@ -125,13 +125,9 @@ async function ensureCrm(db: Db) {
 }
 
 async function ensureCrmReady(db: Db) {
-  if (!crmSchemaReady) {
-    crmSchemaReady = ensureCrm(db).catch((error) => {
-      crmSchemaReady = null;
-      throw error;
-    });
-  }
-  await crmSchemaReady;
+ let ready=crmSchemas.get(db);
+ if(!ready){ready=ensureCrm(db).catch(error=>{crmSchemas.delete(db);throw error;});crmSchemas.set(db,ready);}
+ await ready;
 }
 
 async function ensurePedidoCrmLinks(db: Db) {

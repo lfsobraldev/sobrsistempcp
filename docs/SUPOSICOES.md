@@ -24,3 +24,13 @@
 - Contas PCP_USER/ADMIN_USER com perfil PCP são administradoras globais. Todas as demais dependem de grants explícitos ou vínculos de filial da fundação.
 - Filtros salvos são preferências locais. Data vencida não é atraso confirmado de execução. Histórico inicial limitado aos 50 lotes recentes e exportação a 10.000 linhas.
 - Sem merge na main conforme regra transcrita; deploy da branch é preview até promoção em produção pela Vercel.
+
+
+## Integração global e módulos industriais — atualização de 21/10/2026
+
+- Esta seção substitui a suposição anterior que atribuía automaticamente o legado à Sul. A origem real deve ser homologada; não preencher a identidade de unidade nem ativar o modo multiunidade sem essa conferência.
+- Perfil é global da conta; acesso às unidades e setores/turnos de líderes de entregas são concedidos explicitamente por unidade. Administrador central é a conta PCP configurada em ADMIN_USER/PCP_USER. Não criar senha padrão nem reusar login de ambiente em cadastro de banco.
+- Classificação inicial do estoque é NAO_CLASSIFICADO; não inferir insumo/acabado pelo texto da descrição. BOM consome a unidade base de cada componente por 1 unidade base do produto pai. Perdas são adicionais; quantidades finais arredondam para cima na precisão de estoque. Aprovação de subestruturas é serializada para impedir ciclos em concorrência.
+- Uma OF cobre o item inteiro da programação existente, sem dividir ou copiar suas operações. Só pode ser criada antes de execução e para programação liberada. Necessidades multinível são congeladas na liberação; consumir/reservar/receber exige ação explícita no ledger existente com referência OF-N. MRP é consultivo, sem programação automática de compras ou reposição.
+- Campanhas usam os clientes e oportunidades do CRM existente. Cada oportunidade tem uma origem de campanha exclusiva; despesas são registros imutáveis e idempotentes em centavos. Estornos de despesas, orçamento com aprovações e faturamento financeiro permanecem pendentes; valor estimado de oportunidade ganha não é receita realizada.
+- Nada nesta etapa autoriza inferir regras fiscais, CFOP, integração bancária, assinatura de anúncios ou envio de mensagens em nome da empresa. Os módulos pendentes estão registrados na entrega integrada.
