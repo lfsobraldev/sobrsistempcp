@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { session } from "@/lib/auth";
@@ -700,7 +701,7 @@ async function migrarProcessosLegados(
   `;
 }
 
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     const sessaoAtual = await session();
     if (!sessaoAtual) {
@@ -892,7 +893,7 @@ export async function GET(req: Request) {
 }
 
 
-export async function DELETE() {
+async function unidadeDELETE() {
   try {
     const s = await session();
     if (!s) {
@@ -942,3 +943,6 @@ export async function DELETE() {
     );
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const DELETE = unidadeHandler(unidadeDELETE);

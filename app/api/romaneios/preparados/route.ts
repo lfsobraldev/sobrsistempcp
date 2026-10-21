@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -5,7 +6,7 @@ import { ensurePreparedRomaneiosTable, prepareAllRomaneios } from "@/lib/romanei
 
 export const runtime = "nodejs";
 
-export async function GET() {
+async function unidadeGET() {
   try {
     await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER"]);
     const db = sql();
@@ -70,3 +71,5 @@ export async function GET() {
     }, { status });
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);

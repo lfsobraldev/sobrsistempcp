@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
 import {sql} from "@/lib/db";
 import {requireRoles} from "@/lib/auth";
@@ -39,7 +40,7 @@ async function permitidas(db:ReturnType<typeof sql>,usuario:string){
  const rows=await db`select a.etapa from pcp_lider_etapa_acessos a join pcp_usuarios u on lower(u.usuario)=lower(a.usuario) where lower(a.usuario)=lower(${usuario}) and u.ativo=true and u.perfil='LIDER_ENTREGAS'`;
  return rows.map(x=>String(x.etapa));
 }
-export async function GET(req:Request){
+async function unidadeGET(req:Request){
  try{
   const user=await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]);
   const db=await ensure(),params=new URL(req.url).searchParams,pedido=params.get("pedido")||"",programacaoId=params.get("programacaoId")||"";
@@ -60,7 +61,7 @@ export async function GET(req:Request){
   return NextResponse.json({etapas,permitidas:user.perfil==="LIDER_ENTREGAS"?await permitidas(db,user.usuario):AREAS.PRODUCAO},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha nas etapas"},{status:403})}
 }
-export async function POST(req:Request){
+async function unidadePOST(req:Request){
  try{
   const u=await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]),b=await req.json();
   const programacaoId=String(b.programacaoId||"").trim(),rows=Array.isArray(b.rows)?b.rows:[];
@@ -101,7 +102,7 @@ export async function POST(req:Request){
   return NextResponse.json({ok:true,atualizados,ignorados});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao importar datas"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
-export async function PUT(req:Request){
+async function unidadePUT(req:Request){
  try{
  const u=await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]),b=await req.json();
  const pedido=String(b.pedido||"").trim(),area=String(b.area||"").toUpperCase(),etapa=String(b.etapa||"").toUpperCase();
@@ -135,3 +136,7 @@ export async function PUT(req:Request){
  return NextResponse.json({ok:true});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao registrar etapa"},{status:500})}
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);
+export const PUT = unidadeHandler(unidadePUT);

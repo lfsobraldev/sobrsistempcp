@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { parse } from "csv-parse/sync";
 import { requireRoles } from "@/lib/auth";
@@ -19,7 +20,7 @@ const norm=(s:unknown)=>String(s??"").normalize("NFD").replace(/[\u0300-\u036f]/
 const numero=(s:unknown)=>{const n=Number(String(s??"").replace(/\./g,"").replace(",",".").trim());return Number.isFinite(n)?n:NaN;};
 const percentual=(s:unknown)=>{const t=String(s??"").trim();if(!t||norm(t)==="N/A")return null;const n=numero(t);return Number.isFinite(n)&&n>=0&&n<=100?n:null;};
 type Linha={pedido:string;of:string;produto:string;pct:number|null;setores:Record<string,number|null>};
-export async function POST(req:Request){
+async function unidadePOST(req:Request){
   try {
     await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
     const fd=await req.formData();const file=fd.get("arquivo");const aplicar=fd.get("aplicar")==="true";
@@ -85,3 +86,5 @@ export async function POST(req:Request){
     return NextResponse.json({ok:true,linhas:rows.length,correspondencias,alteracoes:feitas,ignoradas,divergencias:divergencias.slice(0,150)});
   }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão.":e?.message||"Falha ao processar CSV."},{status:e?.message==="SEM_PERMISSAO"?403:500});}
 }
+
+export const POST = unidadeHandler(unidadePOST);

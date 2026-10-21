@@ -1,3 +1,5 @@
+import { multiAtiva } from "@/lib/unidades/core";
+import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
 import crypto from "node:crypto";
 import {sql} from "@/lib/db";
@@ -5,6 +7,7 @@ import {requireRoles} from "@/lib/auth";
 export const runtime="nodejs";
 const ETAPAS=["PREPARACAO","COLAGEM_PORTAS","ESQUADRIAS_BORDAS","RECOBRIDORA_PERFIL","USINAGEM_2","LUSTRACAO","CNC","USINAGEM","PLASTIFICADORA","PLASTIFICADORA_PORTAS","EMBALAGEM","EXPEDICAO"];
 async function setup(){
+ if(multiAtiva())throw new Error("A administração central de logins por unidade ainda não foi homologada. Nenhum login foi alterado.");
  const db=sql();
  await db`create table if not exists pcp_lider_etapa_acessos(usuario varchar(100) not null,etapa varchar(50) not null,primary key(usuario,etapa))`;
  await db`alter table pcp_lider_etapa_acessos add column if not exists turno varchar(1) not null default 'A'`;
@@ -23,7 +26,7 @@ function parse(body:any,creating:boolean){
  return {usuario,nome,senha,turno,setores:validos};
 }
 function hash(senha:string){const salt=crypto.randomBytes(16).toString("hex");return "scrypt$"+salt+"$"+crypto.scryptSync(senha,salt,64).toString("hex")}
-export async function GET(){
+async function unidadeGET(){
  try{await requireRoles(["PCP"]);const db=await setup();
  const rows=await db`select u.usuario,u.nome,u.ativo,a.etapa,a.turno from pcp_usuarios u left join pcp_lider_etapa_acessos a on a.usuario=u.usuario where u.perfil='LIDER_ENTREGAS' order by u.nome,a.etapa`;
  const mapa=new Map<string,{usuario:string;nome:string;ativo:boolean;turno:string;setores:string[]}>();
@@ -31,7 +34,7 @@ export async function GET(){
  return NextResponse.json({usuarios:[...mapa.values()],setores:ETAPAS},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao carregar líderes"},{status:403})}
 }
-export async function POST(req:Request){
+async function unidadePOST(req:Request){
  try{const admin=await requireRoles(["PCP"]);const b=await req.json();const dados=parse(b,true);const db=await setup();
  const existe=await db`select usuario from pcp_usuarios where lower(usuario)=lower(${dados.usuario}) limit 1`;
  if(existe.length)return NextResponse.json({error:"Usuário já cadastrado. Abra a conta para editar."},{status:409});
@@ -40,7 +43,7 @@ export async function POST(req:Request){
  return NextResponse.json({ok:true,criados:1});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao cadastrar"},{status:400})}
 }
-export async function PUT(req:Request){
+async function unidadePUT(req:Request){
  try{await requireRoles(["PCP"]);const b=await req.json(),dados=parse(b,false),ativo=b.ativo!==false,db=await setup();
  const atual=await db`select usuario from pcp_usuarios where lower(usuario)=lower(${dados.usuario}) and perfil='LIDER_ENTREGAS' limit 1`;
  if(!atual.length)return NextResponse.json({error:"Conta de líder não encontrada."},{status:404});
@@ -51,3 +54,7 @@ export async function PUT(req:Request){
  return NextResponse.json({ok:true});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao atualizar"},{status:400})}
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);
+export const PUT = unidadeHandler(unidadePUT);

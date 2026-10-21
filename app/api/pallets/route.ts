@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import {
   NextResponse,
 } from "next/server";
@@ -176,7 +177,7 @@ async function audit(
   `;
 }
 
-export async function GET(
+async function unidadeGET(
   req: Request
 ) {
   try {
@@ -700,7 +701,7 @@ export async function GET(
   }
 }
 
-export async function POST(
+async function unidadePOST(
   req: Request
 ) {
   try {
@@ -894,7 +895,7 @@ export async function POST(
   }
 }
 
-export async function PATCH(
+async function unidadePATCH(
   req: Request
 ) {
   try {
@@ -2226,3 +2227,7 @@ export async function PATCH(
     );
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);
+export const PATCH = unidadeHandler(unidadePATCH);

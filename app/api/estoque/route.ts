@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -5,7 +6,7 @@ import { garantirEstoque } from "@/lib/estoque-schema";
 import { PERFIS_VER } from "@/lib/estoque";
 
 export const runtime = "nodejs";
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     await requireRoles([...PERFIS_VER]);
     const db = sql(); await garantirEstoque(db);
@@ -55,3 +56,5 @@ export async function GET(req: Request) {
     }, { headers });
   } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha." }, { status: f ? 403 : 500 }); }
 }
+
+export const GET = unidadeHandler(unidadeGET);

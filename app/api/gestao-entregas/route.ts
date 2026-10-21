@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import crypto from "node:crypto";
 import {lerControleEntregas} from "@/lib/gestao-entregas-import";
 import {NextResponse} from "next/server";
@@ -51,7 +52,7 @@ async function ensure(db:ReturnType<typeof sql>){
  )`;
  await db`create index if not exists ix_pcp_entregas_eventos_pedido on pcp_entregas_eventos(programacao_id,pedido,criado_em desc)`;
 }
-export async function GET(){
+async function unidadeGET(){
  try{
   await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
   const db=sql();await ensure(db);
@@ -64,7 +65,7 @@ export async function GET(){
   return NextResponse.json({filtro:pg.filtro,eventos,pedidos:produtos.map((p:any)=>({...p,pecas:Number(p.pecas),percentual:Number(p.percentual),entrega:mapa.get(String(p.pedido))||null}))},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e.message==="SEM_PERMISSAO"?"Sem permissão":e.message||"Falha ao carregar"},{status:e.message==="SEM_PERMISSAO"?403:500})}
 }
-export async function PATCH(req:Request){
+async function unidadePATCH(req:Request){
  try{
   const user=await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
   const b=await req.json(),pedido=String(b.pedido||"").trim();
@@ -103,7 +104,7 @@ export async function PATCH(req:Request){
  }catch(e:any){return NextResponse.json({error:e.message==="SEM_PERMISSAO"?"Sem permissão":e.message||"Falha ao salvar"},{status:e.message==="SEM_PERMISSAO"?403:500})}
 }
 
-export async function POST(req:Request){
+async function unidadePOST(req:Request){
  try{
   const user=await requireRoles(["PCP"]);
   const fd=await req.formData(),file=fd.get("arquivo"),aplicar=fd.get("aplicar")==="true";
@@ -152,3 +153,7 @@ export async function POST(req:Request){
   return NextResponse.json({ok:true,atualizados:encontrados.length,...resumo});
  }catch(e:any){return NextResponse.json({error:e.message==="SEM_PERMISSAO"?"Sem permissão":e.message||"Falha ao importar planilha"},{status:e.message==="SEM_PERMISSAO"?403:500})}
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const PATCH = unidadeHandler(unidadePATCH);
+export const POST = unidadeHandler(unidadePOST);

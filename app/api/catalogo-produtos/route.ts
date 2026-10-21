@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { requireRoles } from "@/lib/auth";
@@ -5,7 +6,7 @@ import { sql } from "@/lib/db";
 import { ensureCatalogo, consolidarCatalogo } from "@/lib/catalogo-consistem";
 export const runtime="nodejs";
 export const maxDuration=300;
-export async function GET() {
+async function unidadeGET() {
   try {
     await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
     const db=sql();
@@ -14,7 +15,7 @@ export async function GET() {
     return NextResponse.json({ativo:r || null},{headers:{"Cache-Control":"no-store"}});
   } catch(e:any) {return NextResponse.json({error:e?.message||"Falha no catálogo"},{status:500});}
 }
-export async function POST(req:Request) {
+async function unidadePOST(req:Request) {
   try {
     await requireRoles(["PCP"]);
     const fd=await req.formData();
@@ -69,3 +70,6 @@ export async function POST(req:Request) {
     return NextResponse.json({error:e?.message||"Falha ao cadastrar catálogo."},{status:e?.message==="SEM_PERMISSAO"?403:500});
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);

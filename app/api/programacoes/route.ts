@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -6,7 +7,7 @@ import { auditarCoberturaRomaneio } from "@/lib/romaneio/source-audit";
 import { completarFiltro } from "@/lib/ia/completar-filtro";
 import type { Produto } from "@/types/pcp";
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     await requireRoles(["PCP"]);
 
@@ -477,3 +478,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

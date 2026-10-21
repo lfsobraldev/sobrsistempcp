@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
 import {sql} from "@/lib/db";
 import {requireRoles} from "@/lib/auth";
@@ -63,7 +64,7 @@ const mapInput=(b:any)=>{
  if(!["","SUL","NORDESTE"].includes(data.origem_unidade.toUpperCase())||!["","SUL","NORDESTE"].includes(data.destino_unidade.toUpperCase()))throw new Error("Unidade inválida");
  return data;
 };
-export async function GET(req:Request){
+async function unidadeGET(req:Request){
  try{
   const usuarioAtual=await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA","LIDER_ENTREGAS"]);
   const db=sql();await ensure(db);
@@ -112,7 +113,7 @@ export async function GET(req:Request){
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao consultar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
 function userScope(role:string,comercial:string[],logistica:string[]){return role==="COMERCIAL"?comercial:role==="LOGISTICA"?logistica:null;}
-export async function PUT(req:Request){
+async function unidadePUT(req:Request){
  try{
   const u=await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA"]),b=await req.json();
   const pedido=String(b.pedido||"").trim();
@@ -137,7 +138,7 @@ export async function PUT(req:Request){
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao salvar"},{status:e?.message==="SEM_PERMISSAO"?403:400})}
 }
 
-export async function POST(req:Request){
+async function unidadePOST(req:Request){
  try{
   const u=await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL"]),b=await req.json();
   const pedido=String(b.pedido||"").trim();
@@ -156,3 +157,7 @@ export async function POST(req:Request){
   return NextResponse.json({ok:true,pedido},{status:201});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao cadastrar"},{status:e?.message==="SEM_PERMISSAO"?403:400})}
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const PUT = unidadeHandler(unidadePUT);
+export const POST = unidadeHandler(unidadePOST);

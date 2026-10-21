@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -72,7 +73,7 @@ function validDate(value: string) {
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
-export async function GET() {
+async function unidadeGET() {
   try {
     await requireRoles([...READ]);
     const db = sql();
@@ -100,7 +101,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const user = await requireRoles([...WRITE]);
     const body = await req.json();
@@ -163,7 +164,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function PATCH(req: Request) {
+async function unidadePATCH(req: Request) {
   try {
     const body = await req.json();
     const acao = clean(body.acao,40).toUpperCase(), id = clean(body.id,80);
@@ -218,3 +219,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: forbidden ? "Sem permissão." : error instanceof Error ? error.message : "Falha ao atualizar medição." }, { status: forbidden ? 403 : 400 });
   }
 }
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);
+export const PATCH = unidadeHandler(unidadePATCH);

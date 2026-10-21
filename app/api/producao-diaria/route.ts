@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles, session } from "@/lib/auth";
@@ -12,7 +13,7 @@ async function tabela(db: ReturnType<typeof sql>) {
     primary key(data,processo,maquina,turno)
   )`;
 }
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     if (!await session()) return NextResponse.json({error:"Não autenticado."},{status:401});
     const db=sql();
@@ -34,7 +35,7 @@ export async function GET(req: Request) {
     return NextResponse.json({registros,metas,capacidades,padroes},{headers:{"Cache-Control":"no-store"}});
   } catch(e:any) {return NextResponse.json({error:e.message||"Falha ao consultar."},{status:500});}
 }
-export async function POST(req:Request) {
+async function unidadePOST(req:Request) {
   try {
     const s=await requireRoles(["PCP"]);
     const b=await req.json();
@@ -66,3 +67,6 @@ export async function POST(req:Request) {
     return NextResponse.json({ok:true});
   } catch(e:any) {return NextResponse.json({error:e.message||"Falha ao salvar."},{status:e.message==="SEM_PERMISSAO"?403:500});}
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);

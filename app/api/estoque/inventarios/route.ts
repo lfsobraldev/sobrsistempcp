@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -17,7 +18,7 @@ async function detalhe(db: ReturnType<typeof sql>, id: string) {
   return { inventario: inv, itens: lista, fechamento: avaliarFechamento(lista.map((i: any) => ({ saldoSistema: i.saldo_sistema, contado: i.contado, conferido: i.conferido }))) };
 }
 
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     await requireRoles([...PERFIS_VER]);
     const db = sql(); await garantirEstoque(db);
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
   } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return bad(f ? "Sem permissão." : e?.message || "Falha.", f ? 403 : 500); }
 }
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const b = await req.json();
     const acao = String(b.acao || "");
@@ -125,3 +126,6 @@ export async function POST(req: Request) {
     return bad("Ação inválida.");
   } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return bad(f ? "Sem permissão para esta ação." : e?.message || "Falha.", f ? 403 : 500); }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);

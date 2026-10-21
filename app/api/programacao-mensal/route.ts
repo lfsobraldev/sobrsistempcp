@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import * as XLSX from "xlsx";
@@ -11,7 +12,7 @@ function erro(e: unknown) {
   const status = msg==='SEM_PERMISSAO'?403:e instanceof z.ZodError?400:/relation .* does not exist/.test(msg)?503:400;
   return NextResponse.json({error:status===403?'Sem permissão para esta unidade.':status===503?'Programação mensal ainda não instalada. Aplique a fundação e a migração 03 no ambiente correto. Nenhum dado foi alterado.':msg},{status,headers:{'Cache-Control':'no-store'}});
 }
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
  try {
   if(new URL(req.url).searchParams.get("acao")==="escopos") {
    const {filiais}=await acessoMensal();
@@ -32,7 +33,7 @@ export async function GET(req: Request) {
   return NextResponse.json({rows,resumo,mensal,opcoes,lotes,pagina,porPagina,podeImportar},{headers:{'Cache-Control':'no-store'}});
  }catch(e){return erro(e);}
 }
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
  try {
   // Validação e autorização antes de carregar/interpretar o arquivo.
   if(Number(req.headers.get('content-length')||0)>5*1024*1024) throw new Error('Arquivo excede o limite de 4 MB.');
@@ -62,3 +63,6 @@ export async function POST(req: Request) {
  }catch(e){return erro(e);}
 }
 export async function OPTIONS() {return new Response(null,{headers:{Allow:'GET, POST, OPTIONS'}});}
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);

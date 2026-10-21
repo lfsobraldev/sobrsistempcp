@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { RomaneioIASchema, validarRomaneio } from "@/lib/ia/romaneio";
@@ -6,7 +7,7 @@ import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const s = await requireRoles(["PCP", "GERENTE", "ENCARREGADO", "LIDER"]);
     const body = await req.json();
@@ -33,3 +34,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: st === 403 ? "Sem permissão." : e?.message || "Falha ao exportar." }, { status: st });
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

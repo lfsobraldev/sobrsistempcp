@@ -1,8 +1,9 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
 
-export async function PATCH(req: Request) {
+async function unidadePATCH(req: Request) {
   try {
     const s = await requireRoles(["PCP", "GERENTE", "ENCARREGADO", "LIDER"]);
     const b = await req.json();
@@ -26,3 +27,5 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: status === 403 ? "Sem permissão." : e?.message || "Falha ao salvar local de montagem." }, { status });
   }
 }
+
+export const PATCH = unidadeHandler(unidadePATCH);

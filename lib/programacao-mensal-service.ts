@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { unidadeAtual } from "./unidades/context";
+import { multiAtiva } from "./unidades/core";
 import { sql } from "./db";
 import { requireRoles } from "./auth";
 import { querySchema } from "./programacao-mensal";
@@ -6,13 +8,14 @@ import { querySchema } from "./programacao-mensal";
 export async function acessoMensal(escrita = false) {
   const sessao = await requireRoles(escrita ? ["PCP"] : ["PCP","GERENTE","ENCARREGADO"]);
   const db = sql();
+  const unidade = unidadeAtual();
   // Somente contas de administração configuradas no servidor têm escopo global.
   const admin = sessao.perfil === "PCP" && [process.env.PCP_USER,process.env.ADMIN_USER].filter(Boolean).includes(sessao.usuario);
   const filiais = await db`
     select distinct f.id,f.codigo,f.nome,f.empresa_id,coalesce(nullif(e.nome_fantasia,''),e.razao_social) as empresa_nome from pcp_filiais f
     join pcp_empresas e on e.id=f.empresa_id and e.ativo
-    where f.ativo and f.codigo in ('SUL','NORDESTE') and (
-      ${admin} or exists(select 1 from pcp_programacao_acessos a where a.usuario=${sessao.usuario} and a.filial_id=f.id)
+    where f.ativo and f.codigo in ('SUL','NORDESTE') and (${!multiAtiva()} or f.codigo=${unidade}) and (
+      ${admin || (multiAtiva() && !!unidade)} or exists(select 1 from pcp_programacao_acessos a where a.usuario=${sessao.usuario} and a.filial_id=f.id)
       or exists(select 1 from pcp_usuario_empresas ue join pcp_usuarios u on u.id=ue.usuario_id and u.ativo
         where u.usuario=${sessao.usuario} and ue.ativo and ue.empresa_id=f.empresa_id
         and (ue.escopo_filiais='TODAS' or exists(select 1 from pcp_usuario_filiais uf where uf.usuario_empresa_id=ue.id and uf.filial_id=f.id)))

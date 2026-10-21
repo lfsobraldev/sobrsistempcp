@@ -1,10 +1,11 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { session } from "@/lib/auth";
 import { consultarAPS } from "@/lib/ia/aps-service";
 
 export const runtime="nodejs";
 export const maxDuration=60;
-export async function GET(){
+async function unidadeGET(){
   try {
     if(!await session())return NextResponse.json({error:"Não autenticado."},{status:401});
     const resultado=await consultarAPS();
@@ -19,3 +20,5 @@ export async function GET(){
     },{headers:{"Cache-Control":"private, no-store"}});
   }catch(e:any){return NextResponse.json({error:e?.message||"Falha na simulação APS."},{status:500});}
 }
+
+export const GET = unidadeHandler(unidadeGET);

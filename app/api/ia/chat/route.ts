@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { generateText, stepCountIs, tool } from "ai";
 import { z } from "zod";
@@ -37,7 +38,7 @@ const chatRequestSchema = z.object({
   })).max(40),
 });
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const s = await session();
     if (!s) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
@@ -329,3 +330,5 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
     return NextResponse.json({ error: msg }, { status: notConfigured ? 503 : timedOut ? 504 : 502 });
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

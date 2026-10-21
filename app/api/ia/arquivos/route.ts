@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -11,7 +12,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /** Download autorizado diretamente dos romaneios preparados da programação ativa. */
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     await requireRoles(["PCP", "GERENTE", "ENCARREGADO", "LIDER"]);
     const u = new URL(req.url);
@@ -51,3 +52,5 @@ export async function GET(req: Request) {
     return NextResponse.json({error:m==="SEM_PERMISSAO"?"Sem permissão.":m},{status:m==="SEM_PERMISSAO"?403:500});
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);

@@ -1,3 +1,4 @@
+import { requireRoles } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { applyPendingMigrations, canApplyAdminMigrations, getMigrationCatalog, revertLastMigration } from "@/lib/migration-service";
@@ -9,12 +10,14 @@ const applyBody = z.object({
 });
 
 export async function GET() {
+  try { await requireRoles(["PCP"]); } catch { return NextResponse.json({error:"Sem permissão."},{status:403}); }
   const enabled = await canApplyAdminMigrations();
   const payload = await getMigrationCatalog();
   return NextResponse.json({ enabled, ...payload }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: Request) {
+  let sessao; try { sessao=await requireRoles(["PCP"]); } catch { return NextResponse.json({error:"Sem permissão."},{status:403}); }
   const enabled = await canApplyAdminMigrations();
   if (!enabled) {
     return NextResponse.json({ error: "Painel de migrações desabilitado. Defina ALLOW_ADMIN_MIGRATIONS=true." }, { status: 403 });
@@ -25,7 +28,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Payload inválido." }, { status: 400 });
   }
 
-  const actor = body.data.actor || "admin";
+  const actor = sessao.usuario;
   const confirm = body.data.confirm || "";
   if (confirm.trim().toLowerCase() !== "produção" && confirm.trim().toLowerCase() !== "homologacao") {
     return NextResponse.json({ error: "Confirmação inválida. Digite a palavra do ambiente para prosseguir." }, { status: 400 });

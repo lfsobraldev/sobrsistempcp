@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
 import {sql} from "@/lib/db";
 import {requireRoles} from "@/lib/auth";
@@ -23,7 +24,7 @@ async function ensure(){
  await db`create index if not exists ix_controle_carregamentos_pedido on pcp_controle_entregas_carregamentos(pedido,criado_em desc)`;
  return db;
 }
-export async function GET(req:Request){
+async function unidadeGET(req:Request){
  try{
  // Leitura liberada também a Comercial e Logística (já enxergam os mesmos pedidos); gravação continua restrita.
  await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA"]);
@@ -34,7 +35,7 @@ export async function GET(req:Request){
  return NextResponse.json({cargas},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao listar carregamentos"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
-export async function POST(req:Request){
+async function unidadePOST(req:Request){
  try{
  const user=await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
  const b=await req.json();
@@ -62,3 +63,6 @@ export async function POST(req:Request){
  return NextResponse.json({ok:true,id:row.id});
  }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao cadastrar carregamento"},{status:500})}
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);

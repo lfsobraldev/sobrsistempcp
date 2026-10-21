@@ -1,5 +1,8 @@
+import { multiAtiva } from "@/lib/unidades/core";
+import { unidadesPermitidas,verificarBanco } from "@/lib/unidades/access";
+import { contextoUnidade } from "@/lib/unidades/context";
 import {NextResponse,after} from "next/server";
-import {sql} from "@/lib/db";
+import {identitySql} from "@/lib/db";
 import {verifyMetaSignature,whatsappUser,whatsappAuthorizationDiagnostic,textMessages,whatsappAnswer} from "@/lib/ia/whatsapp";
 import {answerWhatsapp} from "@/lib/ia/whatsapp-engine";
 export const runtime="nodejs";
@@ -27,7 +30,7 @@ export async function GET(req:Request) {
   return new Response("Forbidden",{status:403,headers:{"Cache-Control":"no-store"}});
 }
 async function processarWhatsapp(messages:ReturnType<typeof textMessages>) {
-  const db=sql();
+  const db=identitySql();
   await db`create table if not exists pcp_ia_whatsapp_recebidas(id varchar(180) primary key,telefone varchar(20) not null,criado_em timestamptz default now())`;
   for(const message of messages) {
     try {
@@ -41,7 +44,14 @@ async function processarWhatsapp(messages:ReturnType<typeof textMessages>) {
       const inserted=await db`insert into pcp_ia_whatsapp_recebidas(id,telefone) values(${message.id},${message.from}) on conflict(id) do nothing returning id`;
       if(!inserted.length){console.info("[WhatsApp] duplicate message",{messageId:message.id});continue;}
       let answer:string;
-      try{answer=await answerWhatsapp(message.text,user);}
+      try{
+        if(multiAtiva()){
+          const unidade=user.unidadeAtiva;
+          if(!unidade||!(await unidadesPermitidas(user)).includes(unidade))throw new Error('Unidade do remetente não autorizada');
+          await verificarBanco(unidade);
+          answer=await contextoUnidade.run({unidade,usuario:user.usuario},()=>answerWhatsapp(message.text,user));
+        }else answer=await answerWhatsapp(message.text,user);
+      }
       catch(error) {
         console.error("[WhatsApp] AI processing failed",{
           messageId:message.id,error:error instanceof Error?error.message:"unknown"

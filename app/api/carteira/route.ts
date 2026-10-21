@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -27,7 +28,7 @@ async function programacao(db: Db, id: string) {
   return rows[0] as { id: string; filtro: string } | undefined;
 }
 
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     await requireRoles([...ROLES]);
     const url = new URL(req.url);
@@ -157,3 +158,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: forb ? "Sem permissão." : e?.message || "Falha ao consultar a carteira." }, { status: forb ? 403 : 500 });
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);

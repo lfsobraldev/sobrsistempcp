@@ -3,7 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
 import { ordenarMigracoes } from "./migration-order";
-import { sql } from "@/lib/db";
+import { identitySql } from "@/lib/db";
 
 export const migrationFileSchema = z.object({
   name: z.string(),
@@ -69,7 +69,7 @@ async function loadAppliedMigrations() {
   }
 
   try {
-    const db = sql();
+    const db = identitySql();
     const rows = await db`select name, checksum, aplicada_em, aplicada_por, duracao_ms, status, erro from schema_migrations order by name asc`;
     return rows.map((row) => migrationRecordSchema.parse(row));
   } catch {

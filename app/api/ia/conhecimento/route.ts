@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { session } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -36,7 +37,7 @@ async function ensure(db: ReturnType<typeof sql>) {
 
 const podeTreinar = (perfil: string) => ["PCP","GERENTE"].includes(perfil);
 
-export async function GET() {
+async function unidadeGET() {
   try {
     const s = await session();
     if (!s) return NextResponse.json({ error:"Não autenticado." }, { status:401 });
@@ -53,7 +54,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const s = await session();
     if (!s) return NextResponse.json({ error:"Não autenticado." }, { status:401 });
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
   }
 }
 
-export async function PATCH(req: Request) {
+async function unidadePATCH(req: Request) {
   try {
     const s = await session();
     if (!s) return NextResponse.json({ error:"Não autenticado." }, { status:401 });
@@ -122,3 +123,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error:e?.message || "Falha ao atualizar conhecimento." }, { status:500 });
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);
+export const PATCH = unidadeHandler(unidadePATCH);

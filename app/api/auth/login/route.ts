@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createToken, users } from "@/lib/auth";
-import { sql } from "@/lib/db";
+import { identitySql } from "@/lib/db";
 import crypto from "crypto";
 import type { Perfil } from "@/types/pcp";
 
@@ -103,6 +103,7 @@ export async function POST(
             envUser.role,
         });
 
+      response.cookies.set("erp_unidade","",{httpOnly:true,secure:true,sameSite:"lax",path:"/",maxAge:0});
       response.cookies.set(
         "pcp_session",
         createToken(
@@ -129,7 +130,7 @@ export async function POST(
      * NA TABELA DO NEON.
      */
     const db =
-      sql();
+      identitySql();
 
     const result =
       await db`

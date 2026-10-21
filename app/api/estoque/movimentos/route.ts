@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -9,7 +10,7 @@ export const runtime = "nodejs";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const txt = (v: unknown, n: number) => String(v ?? "").trim().slice(0, n);
 
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     await requireRoles([...PERFIS_VER]);
     const db = sql(); await garantirEstoque(db);
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
   } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha." }, { status: f ? 403 : 500 }); }
 }
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const b = await req.json();
     const tipo = String(b.tipo || "") as TipoMov;
@@ -65,3 +66,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, duplicado: r.duplicado === true, quantidadeBase: c.base }, { status: r.duplicado ? 200 : 201 });
   } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão para este tipo de movimento." : e?.message || "Falha ao movimentar." }, { status: f ? 403 : 500 }); }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);

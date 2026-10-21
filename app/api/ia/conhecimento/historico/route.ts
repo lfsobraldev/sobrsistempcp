@@ -1,9 +1,10 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { session } from "@/lib/auth";
 import { sql } from "@/lib/db";
 
 export const runtime="nodejs";
-export async function GET(req:Request){
+async function unidadeGET(req:Request){
   try {
     const s=await session();
     if(!s)return NextResponse.json({error:"Não autenticado."},{status:401});
@@ -27,3 +28,5 @@ export async function GET(req:Request){
     return NextResponse.json({historico},{headers:{"Cache-Control":"private, no-store"}});
   }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao consultar histórico."},{status:500});}
 }
+
+export const GET = unidadeHandler(unidadeGET);

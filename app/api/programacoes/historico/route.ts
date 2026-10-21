@@ -1,8 +1,9 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
 
-export async function GET(){
+async function unidadeGET(){
   try{
     await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER","LIDER_ENTREGAS"]);
     const rows=await sql()`
@@ -18,7 +19,7 @@ export async function GET(){
 }
 
 
-export async function DELETE(){
+async function unidadeDELETE(){
   try{
     await requireRoles(["PCP"]);
     const db=sql();
@@ -48,3 +49,6 @@ export async function DELETE(){
     );
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const DELETE = unidadeHandler(unidadeDELETE);
