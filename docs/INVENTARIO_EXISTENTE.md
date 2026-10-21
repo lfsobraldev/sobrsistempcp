@@ -19,9 +19,9 @@ Qualidade/MSAC de pallets | existente | `app/(erp)/inspecao-pallets`, `app/api/p
 QR e portal de pallet | existente | `app/api/pallets/public-link/route.ts`, `app/api/pallets/public-tracking/route.ts`, `app/rastreio/pallet` | HMAC baseado em UUID; sem revogação individual ou rate limit persistente.
 Controle de entrega e carregamentos | existente | `app/api/controle-entregas`, `app/api/controle-entregas/carregamentos/route.ts` | Datas, transportadora, NF como referência e eventos.
 Romaneios e etiquetas | existente | `app/(erp)/romaneios`, `app/api/romaneios`, `lib/romaneio` | Processamento/exportação; sem ciclo completo persistido de carga/pallet/recebimento.
-Multiempresa, filiais e isolamento | criado | pendente | Não foram encontrados `empresa_id`, `filial_id` ou cadastro de tenant no schema inspecionado.
-RBAC atual | parcial | `lib/auth.ts`, APIs por módulo | Perfil/cookie HMAC e listas de papéis; sem permissões por empresa/filial ou sessão revogável.
-Auditoria global append-only | parcial | `pcp_eventos`, `crm_historico`, eventos por módulo | Histórico local existe; não há um ledger global comum para todas as escritas.
+Multiempresa, filiais e isolamento | melhorado (fundação de schema) | `database/migrations/2026-10-21_fundacao_multiempresa.sql` | Cadastro de empresa/filial e vínculo de usuário com escopo por filial definidos; migration não aplicada, sem backfill nem enforcement nas rotas.
+RBAC atual | parcial (fundação de schema) | `lib/auth.ts`, `database/migrations/2026-10-21_fundacao_multiempresa.sql`, APIs por módulo | Perfil/cookie HMAC e listas de papéis permanecem ativos; catálogo de permissões e grants por perfil definidos, ainda sem população nem enforcement por empresa/filial.
+Auditoria global append-only | parcial (fundação de schema) | `pcp_eventos`, `crm_historico`, `database/migrations/2026-10-21_fundacao_multiempresa.sql` | Ledger global definido com trigger que bloqueia UPDATE/DELETE; ainda sem escrita pelas rotas e sem migration aplicada.
 Financeiro, fiscal e contabilidade | criado | pendente | Não foram encontrados módulos/tabelas correspondentes.
 Manutenção e ativos | criado | pendente | Capacidade/setup/perdas existem; ativos e ordens de manutenção não foram encontrados.
 IA consultiva tipada | existente | `app/(erp)/sobral-ia`, `app/api/ia/chat/route.ts`, `lib/ia` | Ferramentas tipadas, consultas delimitadas e rate limit em memória; avaliar custo/latência e limite distribuído.

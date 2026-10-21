@@ -3,7 +3,7 @@
 Atualizado em 2026-10-21. Branch de trabalho: `erp-completo`.
 
 - Fase 0 — Auditoria: concluída; stack, rotas, schema, RBAC, migrations e gaps registrados no histórico da tarefa.
-- Fase 1 — Fundação multiempresa/RBAC/auditoria: pendente de implementação; a auditoria confirmou que a fundação completa não existe no schema atual.
+- Fase 1 — Fundação multiempresa/RBAC/auditoria: em andamento; migration aditiva criada para empresas, filiais, vínculos/escopo de usuários, permissões por perfil e ledger global append-only. Ainda sem backfill, aplicação ou integração com login/rotas.
 - Fase 2 — Suprimentos/Estoque: em andamento; inventário inicial concluído. Reaproveitar `est_movimentos`, `est_saldos`, `est_produtos`, `est_locais` e inventários existentes. Melhorado o bloqueio de movimentos no escopo do inventário. Nenhuma migration aplicada. Compras/fornecedores/lotes dependem da fundação multiempresa/filial da Fase 1.
 - Fase 3 — PCP/Produção: pendente; preservar programação/apontamentos existentes; OF autônoma ainda ausente.
 - Fase 4 — Qualidade: pendente; preservar inspeção/liberação Qualidade/MSAC e medições existentes.
@@ -21,3 +21,4 @@ Critério por fase: teste focado, `npm test`, `npm run build`, revisão do diff 
 - `tests/estoque-db.test.ts`: cobre entrada em local com inventário aberto e sem item contado.
 - Validação em 2026-10-21: `npm test` 114/114; `npm run build` passou. Nenhuma migration ou consulta ao banco.
 - Risco aberto: serializar abertura/fechamento de inventário contra movimentos concorrentes requer desenho e teste em Neon de homologação.
+- Incremento da Fase 1: `database/migrations/2026-10-21_fundacao_multiempresa.sql` define o schema-base sem alterar estruturas operacionais existentes. A migration não foi aplicada; dados existentes não foram vinculados a tenant e as rotas ainda não fazem enforcement multiempresa/RBAC.
