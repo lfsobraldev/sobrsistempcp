@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
-import { diffEvento, normalizarPedido, type PedidoCarteira } from "@/lib/carteira";
+import { criarChavePedidoSeguro, diffEvento, type PedidoCarteira } from "@/lib/carteira";
 
 export const runtime = "nodejs";
 const ROLES = ["PCP", "GERENTE", "ENCARREGADO", "COMERCIAL", "LOGISTICA"] as const;
@@ -111,9 +111,13 @@ export async function GET(req: Request) {
       from pcp_controle_entregas c left join crm_clientes cc on cc.id=c.crm_cliente_id` : tCtl ? await db`
       select pedido,cliente,representante,uf,cidade,status,previsao_informada::text previsao_informada,previsao_entrega::text previsao_entrega,data_entrega::text data_entrega,data_saida::text data_saida,transportadora,nota_fiscal,atualizado_por,atualizado_em from pcp_controle_entregas` : [];
     const cargas = tCar ? await db`select pedido,quantidade,status from pcp_controle_entregas_carregamentos where status<>'CANCELADO'` : [];
-    const sac = tSac ? await db`select ltrim(trim(pedido),'0') pedido, count(*)::int n from pcp_sac_atendimentos where trim(pedido)<>'' and status not in ('CONCLUIDO','CANCELADO') group by 1` : [];
+    const sac = tSac ? await db`select trim(pedido) pedido, count(*)::int n from pcp_sac_atendimentos where trim(pedido)<>'' and status not in ('CONCLUIDO','CANCELADO') group by trim(pedido)` : [];
 
-    const key = (p: unknown) => normalizarPedido(p);
+    const key = criarChavePedidoSeguro([
+      ...pcp.map((item: any) => item.pedido), ...ctl.map((item: any) => item.pedido),
+      ...prazosPcp.map((item: any) => item.pedido), ...rom.map((item: any) => item.pedido),
+      ...(cargas as any[]).map((item) => item.pedido), ...(sac as any[]).map((item) => item.pedido),
+    ]);
     const mCtl = new Map<string, any>(ctl.map((c: any) => [key(c.pedido), c]));
     const mPed = new Map<string, any>(prazosPcp.map((c: any) => [key(c.pedido), c]));
     const mRom = new Map<string, any>(rom.map((c: any) => [key(c.pedido), c]));

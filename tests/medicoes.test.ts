@@ -17,6 +17,12 @@ test("não aceita medição sem descrição, dimensão ou unidade", () => {
   assert.throws(() => validarItensMedicao([{ descricao: "Peça", quantidade: 1, dimensoes: [{ nome: "Altura", valor: 20, unidade: "" }] }]), /unidade são obrigatórios/);
 });
 
+test("rejeita unidades que não estão disponíveis no formulário", () => {
+  assert.throws(() => validarItensMedicao([
+    { descricao: "Porta", quantidade: 1, dimensoes: [{ nome: "Altura", valor: 2100, unidade: "polegadas" }] },
+  ]), /unidade não suportada/);
+});
+
 test("bloqueia aprovação sem conferência e revisão sem nova medição", () => {
   assert.equal(podeAvancarMedicao("AGUARDANDO_CONFERENCIA", "APROVAR"), false);
   assert.equal(podeAvancarMedicao("AGUARDANDO_CONFERENCIA", "SOLICITAR_APROVACAO"), true);

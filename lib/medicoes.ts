@@ -17,6 +17,8 @@ export type ItemMedicao = {
   observacoes: string;
 };
 
+const UNIDADES_MEDIDA = new Set(["mm", "cm", "m", "pol", "un", "grau"]);
+
 export function validarItensMedicao(value: unknown): ItemMedicao[] {
   if (!Array.isArray(value) || value.length < 1 || value.length > 100) {
     throw new Error("Informe de 1 a 100 itens para a medição.");
@@ -39,6 +41,9 @@ export function validarItensMedicao(value: unknown): ItemMedicao[] {
       const valor = Number(dimension?.valor);
       if (!nome || !unidade || !Number.isFinite(valor) || valor <= 0 || valor > 1_000_000) {
         throw new Error(`Item ${index + 1}, dimensão ${dimensionIndex + 1}: nome, valor positivo e unidade são obrigatórios.`);
+      }
+      if (!UNIDADES_MEDIDA.has(unidade)) {
+        throw new Error(`Item ${index + 1}, dimensão ${dimensionIndex + 1}: unidade não suportada.`);
       }
       return { nome, valor, unidade };
     });

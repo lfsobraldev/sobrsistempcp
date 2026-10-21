@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  calcularSaldos, calcularIndicadores, situacaoCarteira, alertasPedido, detectarDuplicidades, diffEvento,
+  calcularSaldos, calcularIndicadores, situacaoCarteira, alertasPedido, detectarDuplicidades, diffEvento, criarChavePedidoSeguro,
   filtrarCarteira, ordenarCarteira, normalizarPedido, normalizarCliente, prazoReferencia, diasEntre, linhasExportacao,
   type PedidoCarteira,
 } from "../lib/carteira";
@@ -86,6 +86,14 @@ test("duplicidades: pedido com zeros à esquerda e cliente com grafias diferente
   assert.equal(d.filter((x) => x.tipo === "CLIENTE").length, 1);
   assert.equal(normalizarPedido(" 000123 "), "123"); assert.equal(normalizarPedido("0"), "0");
   assert.equal(normalizarCliente("Móveis  S.A."), "moveis s a");
+});
+
+test("chaves da carteira preservam pedidos ambíguos com zeros à esquerda", () => {
+  const chave = criarChavePedidoSeguro(["000123", "123"]);
+  assert.notEqual(chave("000123"), chave("123"));
+
+  const pedidoUnico = criarChavePedidoSeguro(["000124"]);
+  assert.equal(pedidoUnico("000124"), pedidoUnico("124"));
 });
 
 test("filtros: texto sem acento, cliente, período, situação, saldo, SAC", () => {

@@ -91,6 +91,25 @@ export function normalizarPedido(v: unknown): string {
   return s.toUpperCase();
 }
 
+export function criarChavePedidoSeguro(valores: unknown[]) {
+  const originaisPorChave = new Map<string, Set<string>>();
+  for (const value of valores) {
+    const original = String(value ?? "").trim().toUpperCase();
+    if (!original) continue;
+    const normalizado = normalizarPedido(original);
+    if (!originaisPorChave.has(normalizado)) originaisPorChave.set(normalizado, new Set());
+    originaisPorChave.get(normalizado)!.add(original);
+  }
+
+  return (value: unknown) => {
+    const original = String(value ?? "").trim().toUpperCase();
+    const normalizado = normalizarPedido(original);
+    return (originaisPorChave.get(normalizado)?.size || 0) > 1
+      ? `EXATO:${original}`
+      : `NORMALIZADO:${normalizado}`;
+  };
+}
+
 /** Cliente sem acento, caixa, pontuação e espaços repetidos. Não remove "LTDA/S.A." (evita unir empresas distintas). */
 export function normalizarCliente(v: unknown): string {
   return String(v ?? "")
