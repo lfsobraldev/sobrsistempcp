@@ -35,4 +35,4 @@ O histórico acima está preservado; as entregas posteriores implementaram unida
 - Regra atual: somente commit e envio das branches; nenhum merge, deploy ou comando contra banco de produção.
 - Próximo grupo: Blocos 2/3 em outra branch, mantendo os componentes e APIs existentes; status mensal e navegação por unidade ainda precisam ser evoluídos.
 
-- Validação do incremento B1: 133 testes passaram; TypeScript e build aprovados. Branch aguardando envio; link acima é para abrir PR, não um PR já criado.
+- Validação do incremento B1: 133 testes passaram; TypeScript e build aprovados. Branch enviada pelo conector GitHub após falha de autenticação do git push; o link acima é para abrir PR, não um PR já criado. Auto-deploy desativado em vercel.json para ambas as branches Master.

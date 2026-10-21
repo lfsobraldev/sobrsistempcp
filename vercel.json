@@ -2,7 +2,9 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "erp-unidades-integracao": false
+      "erp-unidades-integracao": false,
+      "erp-master-b1-filtros": false,
+      "erp-master-b23-unidades-meses": false
     }
   }
 }
