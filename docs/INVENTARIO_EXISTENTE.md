@@ -33,3 +33,14 @@ CI de testes/build | parcial | `.github/workflows/verify-build.yml` | Testa/buil
 ## Revisão de 21/10/2026 — programação multimestre
 
 As páginas mensais originais eram demonstrações estáticas. Foram substituídas por `components/programacao-mensal.tsx` e `/api/programacao-mensal`. Importador reaproveitado: `lib/import-reader.ts`; parser/liberação industrial preservados. Não existe CSV de exemplo versionado. `pcp_programacoes.data_programacao` fornece competência dos dados legados, projetados sem cópia por views. Novos lotes/itens são a camada de planejamento mensal, sem duplicar ordens/produção. Detalhes, dependências, limites e validação: `RELATORIO_PROGRAMACAO_MULTIMES.md`. Referências e sequência de evolução ERP: `REFERENCIAS_ERP_INDUSTRIAL.md`.
+
+## Prompt Master — revisão incremental
+
+| Item | Situação | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Unidades globais e acessos centrais | existente | `lib/unidades`, `app/(erp)/acessos`, migrações 04/05 | Implementado no código anteriormente; inventário antigo acima não representa este estado. Configuração/homologação reais não verificadas neste incremento |
+| Engenharia, OF e campanhas | existente parcial | `lib/engenharia.ts`, `app/api/engenharia`, `app/api/ordens-fabricacao`, `app/api/marketing`, migrações 06/07 | BOM/OF persistentes e MRP consultivo existentes; OFs filhas e consumo automático ainda não implementados |
+| Recorte de PCP e apontamento | melhorado | `lib/pcp-filters.ts`, `hooks/use-pcp-filters.ts`, `components/pcp-filter-bar.tsx`, APIs e páginas existentes | Mesmo contrato SQL/URL para mês, filtro e pedido; não cria tabelas ou segundo módulo |
+| Visão geral por data | melhorado | `app/api/pcp/painel/route.ts`, `app/(erp)/pcp-painel/page.tsx` | Produtos e operações do mesmo recorte, sem limitar à última programação |
+| Data civil e precisão do apontamento | melhorado | `lib/carteira.ts`, `lib/apontamento.ts`, `tests/pcp-filtros-master.test.ts` | Fuso explícito e até três casas decimais |
+| Concorrência da seleção e OF congelada | melhorado | `components/operational-provider.tsx`, `app/api/programacoes/ativa/route.ts` | Descarte de resposta obsoleta; preservação de roteiros em programações com OF |

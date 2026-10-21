@@ -742,7 +742,10 @@ async function unidadeGET(req: Request) {
      * Faz a correção automaticamente na primeira leitura
      * de uma programação antiga.
      */
-    await migrarProcessosLegados(db, programacaoId);
+    // Revisões de engenharia/OF já congeladas não podem sofrer reparos de roteiro na leitura.
+    const [schemaOF] = await db`select to_regclass('public.erp_ordens_fabricacao') as tabela`;
+    const temOF = schemaOF?.tabela ? (await db`select 1 from erp_ordens_fabricacao f join pcp_produtos p on p.id=f.origem_produto_id where p.programacao_id=${programacaoId} limit 1`).length>0 : false;
+    if(!temOF)await migrarProcessosLegados(db, programacaoId);
 
     const pgs = await db`
       select

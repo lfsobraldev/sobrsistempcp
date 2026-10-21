@@ -69,13 +69,14 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
     }
 
     refreshing.current = true;
+    const requestedId=selectedProgramacaoIdRef.current;
     try {
       const [a, c] = await Promise.all([
         fetch("/api/programacoes/ativa" + (selectedProgramacaoIdRef.current ? "?id=" + encodeURIComponent(selectedProgramacaoIdRef.current) : ""), { cache: "no-store" }),
         fetch("/api/andon", { cache: "no-store" }),
       ]);
 
-      if (a.ok && mounted.current) {
+      if (a.ok && mounted.current && requestedId===selectedProgramacaoIdRef.current) {
         const programacao = (await a.json()).programacao as Programacao | null;
 
         if (programacao) {
@@ -113,10 +114,12 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
       const r = await fetch("/api/programacoes/ativa?id=" + encodeURIComponent(id), { cache: "no-store" });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Não foi possível trocar a programação global.");
+      if(selectedProgramacaoIdRef.current!==id || !mounted.current)return;
       if (!j.programacao) throw new Error("A programação selecionada não foi encontrada.");
       setPg({ ...j.programacao, produtos: (j.programacao.produtos || []).filter(produtoEntraPCP) });
       setLastSync(new Date());
     } catch (e) {
+      if(selectedProgramacaoIdRef.current!==id || !mounted.current)return;
       selectedProgramacaoIdRef.current = "";
       setSelectedProgramacaoId("");
       await refresh();
@@ -134,6 +137,10 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     mounted.current = true;
+    const urlId=new URLSearchParams(window.location.search).get('programacaoId');
+    if(urlId&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlId)){
+      selectedProgramacaoIdRef.current=urlId;setSelectedProgramacaoId(urlId);
+    }
 
     void (async () => {
       await loadSession();

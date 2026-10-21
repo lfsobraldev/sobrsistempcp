@@ -1,0 +1,7 @@
+'use client';
+import type {FiltrosPCP} from '@/lib/pcp-filters';
+export type OpcoesPCP={filtros:string[];meses:string[];pedidos:string[]};
+export default function PCPFilterBar({filtros,opcoes,onChange,onClear}:{filtros:FiltrosPCP;opcoes:OpcoesPCP;onChange:(v:Partial<FiltrosPCP>)=>void;onClear:()=>void}){
+ const valores=(select:HTMLSelectElement)=>Array.from(select.selectedOptions).map(o=>o.value).filter(Boolean);
+ return <section className="cart-filters" aria-label="Filtros do PCP"><label>Mês<select value={filtros.mes} onChange={e=>onChange({mes:e.target.value})}><option value="SELECAO">Programação do cabeçalho</option><option value="ATIVO">Ativo</option><option value="TODOS">Todos os meses</option>{opcoes.meses.map(m=><option key={m}>{m}</option>)}</select></label><label>Filtros (seleção múltipla)<select multiple size={4} value={filtros.filtros.length?filtros.filtros:['']} onChange={e=>onChange({filtros:valores(e.target)})}><option value="">Todos</option>{opcoes.filtros.map(f=><option key={f}>{f}</option>)}</select></label><label>Pedidos (seleção múltipla)<select multiple size={4} value={filtros.pedidos.length?filtros.pedidos:['']} onChange={e=>onChange({pedidos:valores(e.target)})}><option value="">Todos</option>{opcoes.pedidos.map(p=><option key={p}>{p}</option>)}</select></label><button className="cart-btn" type="button" onClick={onClear}>Limpar filtros</button></section>;
+}

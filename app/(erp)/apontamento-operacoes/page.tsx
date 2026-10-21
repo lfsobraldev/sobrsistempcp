@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { History, RefreshCw, X } from "lucide-react";
+import PCPFilterBar,{type OpcoesPCP} from "@/components/pcp-filter-bar";
+import {usePCPFilters} from "@/hooks/use-pcp-filters";
 import { useOps } from "@/components/operational-provider";
 import { PROCESSOS } from "@/lib/processos";
 
@@ -18,9 +20,10 @@ const uuid = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? cr
 const TIPO_LANC: Record<string, string> = { PRODUCAO: "Produção", CORRECAO: "Correção", FINALIZACAO: "Conclusão da operação", REFUGO: "Refugo" };
 
 export default function ApontamentoOperacoes() {
-  const { me } = useOps();
-  const [progs, setProgs] = useState<ProgLista[]>([]);
-  const [progId, setProgId] = useState("");
+  const { me,selectedProgramacaoId } = useOps();
+  const {filtros,setFiltros,query,limpar}=usePCPFilters(selectedProgramacaoId);
+  const [opcoes,setOpcoes]=useState<OpcoesPCP>({filtros:[],meses:[],pedidos:[]});
+  const [page,setPage]=useState(1);
   const [filtro, setFiltro] = useState("");
   const [ops, setOps] = useState<Op[]>([]);
   const [truncado, setTruncado] = useState(false);
@@ -39,23 +42,17 @@ export default function ApontamentoOperacoes() {
   const pode = ["PCP", "ENCARREGADO", "LIDER", "APONTADOR"].includes(me?.perfil || "");
   const meusSetores = me?.processos?.length && ["LIDER", "APONTADOR"].includes(me?.perfil || "") ? PROCESSOS.filter((x) => me.processos.includes(x)) : PROCESSOS;
 
-  useEffect(() => {
-    fetch("/api/programacoes/historico", { cache: "no-store" }).then((r) => r.json()).then((j) => {
-      const l = (j.itens || []) as ProgLista[]; setProgs(l);
-      const ini = l.find((x) => x.status === "ATIVA") || l[0]; if (ini) setProgId(ini.id);
-    }).catch(() => setProgId(""));
-  }, []);
-
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (signal?:AbortSignal) => {
     setLoading(true); setErro("");
     try {
-      const p = new URLSearchParams(); if (progId) p.set("programacaoId", progId); if (processo) p.set("processo", processo); if (status) p.set("status", status); if (q.trim()) p.set("q", q.trim());
-      const r = await fetch("/api/pcp/operacoes?" + p, { cache: "no-store" }); const j = await r.json();
+      const p = new URLSearchParams(query);p.set("page",String(page)); if (processo) p.set("processo", processo); if (status) p.set("status", status); if (q.trim()) p.set("q", q.trim());
+      const r = await fetch("/api/pcp/operacoes?" + p, { cache: "no-store",signal }); const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Falha ao carregar operações.");
-      setOps(j.operacoes || []); setFiltro(j.filtro || ""); setTruncado(!!j.truncado); setRestrito(!!j.restritoAosSeusSetores);
-    } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao carregar."); } finally { setLoading(false); }
-  }, [progId, processo, status, q]);
-  useEffect(() => { const t = setTimeout(() => void carregar(), 250); return () => clearTimeout(t); }, [carregar]);
+      if(signal?.aborted)return;setOpcoes(j.opcoes||{filtros:[],meses:[],pedidos:[]});setOps(j.operacoes || []); setFiltro(j.filtro || ""); setTruncado(!!j.truncado); setRestrito(!!j.restritoAosSeusSetores);
+    } catch (e) { if(!signal?.aborted)setErro(e instanceof Error ? e.message : "Falha ao carregar."); } finally { if(!signal?.aborted)setLoading(false); }
+  }, [query, page, processo, status, q]);
+  useEffect(() => {const c=new AbortController(); const t = setTimeout(() => void carregar(c.signal), 250); return () => {clearTimeout(t);c.abort();}; }, [carregar]);
+  useEffect(()=>setPage(1),[query,processo,status,q]);
 
   async function enviar(op: Op, action: string, extra: Record<string, unknown> = {}) {
     const chave = op.id + "|" + action + "|" + JSON.stringify(extra);
@@ -93,7 +90,7 @@ export default function ApontamentoOperacoes() {
     {ok && <p role="status" className="cart-msg info">{ok}</p>}
     <section className="cart-panel">
       <div className="cart-filters">
-        <label>Programação<select value={progId} onChange={(e) => setProgId(e.target.value)}>{progs.map((x) => <option key={x.id} value={x.id}>Filtro {x.filtro} · {x.data}{x.status === "ATIVA" ? " · ATUAL" : ""}</option>)}</select></label>
+        <PCPFilterBar filtros={filtros} opcoes={opcoes} onChange={setFiltros} onClear={limpar}/>
         <label>Setor<select value={processo} onChange={(e) => setProcesso(e.target.value)}><option value="">Todos</option>{meusSetores.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
         <label>Situação<select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todas</option>{STATUS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
         <label>Pesquisar<input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pedido, OF ou produto" /></label>
@@ -102,7 +99,8 @@ export default function ApontamentoOperacoes() {
         <button className="cart-btn" onClick={() => void carregar()} disabled={loading}><RefreshCw size={16} /> {loading ? "Atualizando…" : "Atualizar"}</button>
         <span style={{ alignSelf: "center", fontSize: 13, color: "var(--text-2)" }}>{ops.length} operação(ões) · {resumo.abertas} liberada(s)/em andamento · {f(resumo.prod)} de {f(resumo.plan)} peça(s) apontadas</span>
       </div>
-      {truncado && <p className="cart-note">Mostrando as primeiras 500 operações. Refine por setor, situação ou pesquisa.</p>}
+      {truncado && <p className="cart-note">Há mais operações nas próximas páginas. Os totais desta lista correspondem à página atual.</p>}
+      <div><button className="cart-btn" disabled={loading||page===1} onClick={()=>setPage(p=>p-1)}>Anterior</button> Página {page} <button className="cart-btn" disabled={loading||!truncado} onClick={()=>setPage(p=>p+1)}>Próxima</button></div>
       <div className="cart-wrap"><table className="cart-table stack" style={{ minWidth: 1000 }}>
         <thead><tr><th>Pedido / OF</th><th>Produto</th><th>Setor</th><th>Situação</th><th className="num">Planejada</th><th className="num">Produzida</th><th className="num">Restante</th><th className="num">Refugo</th><th style={{ textAlign: "right" }}>Ação</th></tr></thead>
         <tbody>

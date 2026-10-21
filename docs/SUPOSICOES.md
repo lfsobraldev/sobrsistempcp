@@ -34,3 +34,13 @@
 - Uma OF cobre o item inteiro da programação existente, sem dividir ou copiar suas operações. Só pode ser criada antes de execução e para programação liberada. Necessidades multinível são congeladas na liberação; consumir/reservar/receber exige ação explícita no ledger existente com referência OF-N. MRP é consultivo, sem programação automática de compras ou reposição.
 - Campanhas usam os clientes e oportunidades do CRM existente. Cada oportunidade tem uma origem de campanha exclusiva; despesas são registros imutáveis e idempotentes em centavos. Estornos de despesas, orçamento com aprovações e faturamento financeiro permanecem pendentes; valor estimado de oportunidade ganha não é receita realizada.
 - Nada nesta etapa autoriza inferir regras fiscais, CFOP, integração bancária, assinatura de anúncios ou envio de mensagens em nome da empresa. Os módulos pendentes estão registrados na entrega integrada.
+
+## Prompt Master — Bloco 1
+
+| Suposição | Motivo | Como reverter |
+| --- | --- | --- |
+| Data civil industrial usa America/Maceio para Sul e Nordeste | Ambas usam UTC-3 no período operacional; evitar dependência de host/browser. O ledger existente usa America/Sao_Paulo, equivalente no período atual | Parametrizar fuso por filial se houver operação fora desse padrão; preservar datas civis já registradas |
+| Visão por competência consulta todas as programações ATIVA/ENCERRADA no mês; seleção do cabeçalho continua disponível como modo separado | Não confundir um filtro ativo com todo o histórico mensal nem incluir rascunhos | Selecionar Programação do cabeçalho ou Ativo; implementar status mensal separado no grupo 2/3 |
+| Metas e capacidade continuam globais por setor | O cadastro não atribui meta a pedido ou filtro | Evoluir cadastro e versionar política antes de distribuir metas proporcionalmente |
+| Perdas sem operação não entram no recorte de pedidos | Não há vínculo confiável para rateio | Corrigir vínculo na origem ou exibir painel separado de perdas sem atribuição |
+| Não reparar automaticamente roteiro de programação que já possui OF formal | Proteger snapshot, status e quantidades contra escrita durante consulta | Implementar migração explícita de roteiros com validação/auditoria; não reativar reparo automático em OF congelada |

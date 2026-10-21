@@ -25,3 +25,14 @@ Critério por fase: teste focado, `npm test`, `npm run build`, revisão do diff 
 - Validação em 2026-10-21: `npm test` 114/114; `npm run build` passou. Nenhuma migration ou consulta ao banco.
 - Risco aberto: serializar abertura/fechamento de inventário contra movimentos concorrentes requer desenho e teste em Neon de homologação.
 - Incremento da Fase 1: `database/migrations/2026-10-21_fundacao_multiempresa.sql` define o schema-base sem alterar estruturas operacionais existentes. A migration não foi aplicada; dados existentes não foram vinculados a tenant e as rotas ainda não fazem enforcement multiempresa/RBAC.
+
+## Prompt Master — retomada em 2026-10-21
+
+O histórico acima está preservado; as entregas posteriores implementaram unidades globais, acessos centrais, BOM, OF e marketing (migrações 04–07, relatório `ENTREGA_INTEGRADA_ERP.md`). Não recriar esses conceitos.
+
+- Bloco 1, incremento de filtros: validado na branch `erp-master-b1-filtros`. Contrato URL/SQL único para painel e apontamento, competência/filtros/pedidos múltiplos, visão por data, isolamento das métricas, descarte de respostas antigas, data civil e precisão. Sem migrações novas. Restante do bloco: adoção nas demais telas, retenção de histórico e homologação visual.
+- PR pendente de abertura: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-master-b1-filtros
+- Regra atual: somente commit e envio das branches; nenhum merge, deploy ou comando contra banco de produção.
+- Próximo grupo: Blocos 2/3 em outra branch, mantendo os componentes e APIs existentes; status mensal e navegação por unidade ainda precisam ser evoluídos.
+
+- Validação do incremento B1: 133 testes passaram; TypeScript e build aprovados. Branch aguardando envio; link acima é para abrir PR, não um PR já criado.

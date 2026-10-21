@@ -1,3 +1,5 @@
+import { lerFiltrosPCP, recortePCP, OPCOES_PCP_SQL } from "@/lib/pcp-filters";
+import { ZodError } from "zod";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
@@ -21,16 +23,19 @@ async function unidadeGET(req: Request) {
     await garantirApontamentos(db);
     const hor = Number(url.searchParams.get("horizonte"));
     const horizonte = Number.isFinite(hor) && hor >= 1 && hor <= 30 ? hor : HORIZONTE_DIAS_PADRAO;
-    const pid = url.searchParams.get("programacaoId")?.trim() || "";
-    const [prog] = pid ? await db`select id,filtro from pcp_programacoes where id=${pid} limit 1` : await db`select id,filtro from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
-    if (!prog) return NextResponse.json({ programacaoId: "", filtro: "", vazio: true });
-
-    const [tCtl, tPed, tPerdas, tMetas, tDiaria, tAndon] = await Promise.all(["pcp_controle_entregas", "pcp_pedido_controle", "pcp_perdas_producao", "pcp_metas_maquina", "pcp_producao_diaria_maquina", "pcp_andon"].map((t) => existe(db, t)));
+    const filtros = lerFiltrosPCP(url.searchParams);
+    const recorte = recortePCP(filtros);
+    const base = `from pcp_produtos p join pcp_programacoes g on g.id=p.programacao_id where ${recorte.sql}`;
+    const opcoesRows = await db.query(OPCOES_PCP_SQL);
+    const opcoes = opcoesRows[0];
+    const [tCtl, tPed, tPerdas, tMetas, , tAndon] = await Promise.all(["pcp_controle_entregas", "pcp_pedido_controle", "pcp_perdas_producao", "pcp_metas_maquina", "pcp_producao_diaria_maquina", "pcp_andon"].map((t) => existe(db, t)));
     const [ops, produtos, caps] = await Promise.all([
-      db`select o.id,o.produto_id,p.pedido,p.of,o.processo,o.sequencia,o.status,o.quantidade_planejada::float planejada,o.quantidade_produzida::float produzida,o.quantidade_refugo::float refugo,o.percentual::float percentual from pcp_operacoes o join pcp_produtos p on p.id=o.produto_id where p.programacao_id=${prog.id}`,
-      db`select p.id,p.pedido,p.of,p.produto from pcp_produtos p where p.programacao_id=${prog.id}`,
+      db.query(`select o.id,o.produto_id,p.pedido,p.of,o.processo,o.sequencia,o.status,o.quantidade_planejada::float planejada,o.quantidade_produzida::float produzida,o.quantidade_refugo::float refugo,o.percentual::float percentual from pcp_operacoes o join pcp_produtos p on p.id=o.produto_id join pcp_programacoes g on g.id=p.programacao_id where ${recorte.sql}`, recorte.values),
+      db.query(`select p.id,p.pedido,p.of,p.produto,p.quantidade::float quantidade,g.id programacao_id,to_char(g.data_programacao,'YYYY-MM-DD') data ${base}`, recorte.values),
       db`select processo,maquina,turno,pecas_hora::float,minutos_disponiveis::float,eficiencia::float from pcp_capacidades_maquina`.catch(() => []),
     ]);
+    const programacaoIds = [...new Set(produtos.map(p=>String(p.programacao_id)))];
+    const opIds = ops.map(o=>String(o.id));
     const capacidades: Capacidade[] = (caps as any[]).map((c) => ({ processo: c.processo, maquina: c.maquina, turno: c.turno, pecasHora: c.pecas_hora, minutos: c.minutos_disponiveis, eficiencia: c.eficiencia }));
     const opsPlan: OpPlan[] = (ops as any[]).map((o) => ({ id: o.id, produtoId: o.produto_id, pedido: o.pedido, of: o.of, processo: o.processo, sequencia: o.sequencia, status: o.status, planejada: num(o.planejada), produzida: num(o.produzida), refugo: num(o.refugo) }));
 
@@ -44,7 +49,7 @@ async function unidadeGET(req: Request) {
     // prazos por pedido: mesma regra da carteira (cliente → PCP → logística)
     const [ctl, ped] = await Promise.all([
       tCtl ? db`select pedido,previsao_informada::text previsao_informada,previsao_entrega::text previsao_entrega from pcp_controle_entregas` : [],
-      tPed ? db`select pedido,data_entrega::text data_entrega from pcp_pedido_controle where programacao_id=${prog.id}` : [],
+      tPed ? db`select pedido,data_entrega::text data_entrega from pcp_pedido_controle where programacao_id=any(${programacaoIds}::uuid[])` : [],
     ]);
     const mc = new Map<string, any>((ctl as any[]).map((c) => [normalizarPedido(c.pedido), c]));
     const mp = new Map<string, any>((ped as any[]).map((c) => [normalizarPedido(c.pedido), c]));
@@ -58,13 +63,15 @@ async function unidadeGET(req: Request) {
     const processos = resumoPorProcesso(opsPlan, capacidades, divPorProc, horizonte);
     const estimativas = estimarPedidos(opsPlan, capacidades, prazos, hoje);
 
-    const [perdas, andon, diaria, metas, lanc] = await Promise.all([
-      tPerdas ? db`select processo,motivo,coalesce(sum(minutos),0)::float minutos,coalesce(sum(quantidade_perdida),0)::float pecas,count(*)::int ocorrencias from pcp_perdas_producao where inicio>=now()-interval '7 days' group by processo,motivo order by 3 desc limit 50` : [],
-      tAndon ? db`select processo,count(*)::int abertos from pcp_andon where status<>'RESOLVIDO' group by processo` : [],
-      tDiaria ? db`select data::text data,processo,sum(produzido)::float produzido from pcp_producao_diaria_maquina where data>=current_date-interval '6 days' group by data,processo order by data desc` : [],
-      tMetas ? db`select data::text data,processo,sum(meta)::float meta from pcp_metas_maquina where data>=current_date-interval '6 days' group by data,processo` : [],
-      db`select data_producao::text data,processo,sum(case when tipo in('PRODUCAO','CORRECAO','FINALIZACAO') then quantidade else 0 end)::float apontado from pcp_apontamentos where data_producao>=current_date-interval '6 days' group by 1,2 order by 1 desc`,
+    const [perdas, andon, metas, lanc] = await Promise.all([
+      tPerdas ? db`select processo,motivo,coalesce(sum(minutos),0)::float minutos,coalesce(sum(quantidade_perdida),0)::float pecas,count(*)::int ocorrencias from pcp_perdas_producao where operacao_id=any(${opIds}::uuid[]) group by processo,motivo order by 3 desc limit 50` : [],
+      tAndon ? db`select processo,count(*)::int abertos from pcp_andon where status<>'RESOLVIDO' and operacao_id=any(${opIds}::uuid[]) group by processo` : [],
+      tMetas ? db`select data::text data,processo,sum(meta)::float meta from pcp_metas_maquina where processo=any(${[...new Set(opsPlan.map(o=>o.processo))]}::text[]) group by data,processo` : [],
+      db`select data_producao::text data,processo,sum(case when tipo in('PRODUCAO','CORRECAO','FINALIZACAO') then quantidade else 0 end)::float apontado from pcp_apontamentos where operacao_id=any(${opIds}::uuid[]) group by 1,2 order by 1 desc`,
     ]);
+    const diaria = lanc.map(l=>({...l,produzido:l.apontado}));
+    const datasMap = new Map<string,{data:string;quantidade:number;itens:number}>();
+    for(const p of produtos){const atual=datasMap.get(p.data)||{data:p.data,quantidade:0,itens:0};atual.quantidade+=num(p.quantidade);atual.itens++;datasMap.set(p.data,atual);}
     const mm = new Map<string, number>((metas as any[]).map((m) => [m.data + "|" + m.processo, m.meta]));
     const produtividade = (diaria as any[]).map((d) => ({ ...d, meta: mm.get(d.data + "|" + d.processo) ?? null, atingimentoPct: atingimentoMeta(d.produzido, mm.get(d.data + "|" + d.processo) ?? null) }));
 
@@ -73,7 +80,7 @@ async function unidadeGET(req: Request) {
     const cont = (st: string) => opsPlan.filter((o) => o.status === st).length;
     const risco = (r: string) => estimativas.filter((e) => e.risco === r).length;
     return NextResponse.json({
-      programacaoId: String(prog.id), filtro: String(prog.filtro || ""), horizonte, hoje,
+      programacaoId: programacaoIds.length===1?programacaoIds[0]:"", filtro: filtros.filtros.join(", ") || "Todos no período", horizonte, hoje, filtros, opcoes, vazio:produtos.length===0, datas:[...datasMap.values()].sort((a,b)=>a.data.localeCompare(b.data)),
       indicadores: {
         pedidos: new Set(opsPlan.map((o) => o.pedido)).size, ofs: new Set(opsPlan.map((o) => o.of).filter(Boolean)).size, operacoes: opsPlan.length,
         planejada: plan, realizada: prod, restante: rest, pctRealizado: plan > 0 ? (prod / plan) * 100 : 0,
@@ -88,6 +95,8 @@ async function unidadeGET(req: Request) {
       fontes: { capacidades: capacidades.length, prazos: tCtl || tPed },
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (e: any) {
+    if(/relation .* does not exist|column .* does not exist/.test(String(e?.message)))return NextResponse.json({error:'Módulo aguardando migração',codigo:'MIGRACAO_PENDENTE'},{status:503,headers:{'Cache-Control':'no-store'}});
+    if(e instanceof ZodError)return NextResponse.json({error:"Filtros inválidos.",detalhes:e.issues},{status:400});
     const f = e?.message === "SEM_PERMISSAO";
     return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha ao montar o painel." }, { status: f ? 403 : 500 });
   }

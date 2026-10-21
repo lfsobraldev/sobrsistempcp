@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Download, RefreshCw } from "lucide-react";
+import PCPFilterBar, {type OpcoesPCP} from "@/components/pcp-filter-bar";
+import {usePCPFilters} from "@/hooks/use-pcp-filters";
 import { useOps } from "@/components/operational-provider";
 import { exportarExcel } from "@/lib/export";
 import { formatarData } from "@/lib/carteira";
@@ -9,6 +11,7 @@ import type { LinhaProcesso, EstimativaPedido } from "@/lib/pcp-planejamento";
 import type { Divergencia } from "@/lib/apontamento";
 
 type Painel = {
+  opcoes:OpcoesPCP; datas:{data:string;quantidade:number;itens:number}[];
   programacaoId: string; filtro: string; horizonte: number; vazio?: boolean;
   indicadores: Record<string, number>; processos: LinhaProcesso[];
   gargalos: { principal: LinhaProcesso | null; sobrecarregados: LinhaProcesso[]; semCapacidade: LinhaProcesso[] };
@@ -26,7 +29,8 @@ const RISCO_CLASSE: Record<string, string> = { PRAZO_VENCIDO: "ATRASADO", ATRASO
 const n = (v: number | null | undefined, d = 1) => (v == null ? "—" : v.toLocaleString("pt-BR", { maximumFractionDigits: d }));
 
 export default function PainelPCP() {
-  const { me } = useOps();
+  const { me, selectedProgramacaoId } = useOps();
+  const {filtros,setFiltros,query,limpar}=usePCPFilters(selectedProgramacaoId);
   const [d, setD] = useState<Painel | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
@@ -37,16 +41,16 @@ export default function PainelPCP() {
   const [procs, setProcs] = useState<string[]>([]);
   const [msg, setMsg] = useState("");
 
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (signal?:AbortSignal) => {
     setLoading(true); setErro("");
     try {
-      const r = await fetch("/api/pcp/painel?horizonte=" + horizonte, { cache: "no-store" }); const j = await r.json();
+      const r = await fetch("/api/pcp/painel?horizonte=" + horizonte + "&" + query, { cache: "no-store",signal }); const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Falha ao carregar o painel.");
-      setD(j);
+      if(signal?.aborted)return;setD(j);
       const rr = await fetch("/api/pcp/recursos-regras", { cache: "no-store" }); if (rr.ok) { const x = await rr.json(); setRegras(x.regras || []); setProcs(x.processos || []); }
-    } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao carregar."); } finally { setLoading(false); }
-  }, [horizonte]);
-  useEffect(() => { void carregar(); }, [carregar]);
+    } catch (e) { if(!signal?.aborted)setErro(e instanceof Error ? e.message : "Falha ao carregar."); } finally { if(!signal?.aborted)setLoading(false); }
+  }, [horizonte,query]);
+  useEffect(() => { const c=new AbortController();void carregar(c.signal);return()=>c.abort(); }, [carregar]);
 
   async function salvarRegra(processo: string, max: string) {
     setMsg(""); setErro("");
@@ -70,6 +74,7 @@ export default function PainelPCP() {
   return <div className="cart-page">
     <header className="cart-hero"><span>PCP · PLANEJAMENTO E CONTROLE</span><h1>Painel PCP</h1>
       <p>Planejado × realizado × restante por setor, capacidade, gargalos e pedidos em risco — calculados dos apontamentos e capacidades cadastrados. Programação <b>{d?.filtro || "—"}</b>.</p></header>
+    <PCPFilterBar filtros={filtros} opcoes={d?.opcoes||{filtros:[],meses:[],pedidos:[]}} onChange={setFiltros} onClear={limpar}/>
     <div className="cart-actions">
       <button className="cart-btn" onClick={() => void carregar()} disabled={loading}><RefreshCw size={16} /> {loading ? "Atualizando…" : "Atualizar"}</button>
       <button className="cart-btn" onClick={() => void exportar()} disabled={!d || d.vazio}><Download size={16} /> Exportar Excel</button>
@@ -80,6 +85,7 @@ export default function PainelPCP() {
     {msg && <p role="status" className="cart-msg info">{msg}</p>}
     {d?.vazio && <p className="cart-msg info">Nenhuma programação ativa. Importe uma programação para ver o planejamento.</p>}
 
+    {d?.datas&&<section className="cart-panel"><h2>Visão geral por data</h2><p>Todos os indicadores abaixo usam o mesmo recorte. Produção, perdas e Andon consideram apenas operações desses itens; metas continuam sendo metas globais do setor. As opções de filtro/pedido mostram até 500 valores.</p><div className="cart-wrap"><table className="cart-table"><thead><tr><th>Data programada</th><th>Itens</th><th>Quantidade de itens</th></tr></thead><tbody>{d.datas.map(x=><tr key={x.data}><td>{formatarData(x.data)}</td><td>{x.itens}</td><td>{n(x.quantidade,3)}</td></tr>)}</tbody></table></div></section>}
     {ind && <section className="cart-kpis" aria-label="Indicadores PCP">
       <div className="cart-kpi"><small>Pedidos · OFs · Operações</small><strong>{ind.pedidos}</strong><em>{ind.ofs} OFs · {ind.operacoes} operações</em></div>
       <div className="cart-kpi good"><small>Realizado</small><strong>{n(ind.pctRealizado)}%</strong><em>{n(ind.realizada, 0)} de {n(ind.planejada, 0)} peça(s) · restam {n(ind.restante, 0)}</em></div>
@@ -88,7 +94,7 @@ export default function PainelPCP() {
       <div className="cart-kpi bad"><small>Pedidos com prazo vencido</small><strong>{ind.pedidosPrazoVencido}</strong><em>com produção em aberto</em></div>
       <div className="cart-kpi warn"><small>Atraso provável</small><strong>{ind.pedidosAtrasoProvavel}</strong><em>conclusão estimada após o prazo</em></div>
       <div className="cart-kpi warn"><small>Divergências</small><strong>{ind.divergencias}</strong><em>{ind.semRoteiro} sem roteiro</em></div>
-      <div className="cart-kpi"><small>Paradas (7 dias)</small><strong>{n(ind.minutosParados7d, 0)} min</strong><em>{ind.andonAbertos} Andon aberto(s) · refugo {n(ind.refugo, 0)}</em></div>
+      <div className="cart-kpi"><small>Paradas do recorte</small><strong>{n(ind.minutosParados7d, 0)} min</strong><em>{ind.andonAbertos} Andon aberto(s) · refugo {n(ind.refugo, 0)}</em></div>
     </section>}
 
     <nav className="cart-tabs" aria-label="Visões do PCP">
