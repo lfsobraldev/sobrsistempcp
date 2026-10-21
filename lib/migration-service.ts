@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { ordenarMigracoes } from "./migration-order";
 import { sql } from "@/lib/db";
 
 export const migrationFileSchema = z.object({
@@ -27,8 +28,10 @@ export async function listMigrationFiles(): Promise<MigrationFileInfo[]> {
     .sort();
 
   const result: MigrationFileInfo[] = [];
+  const dependencies = new Map<string,string[]>();
   for (const file of files) {
     const source = await readFile(path.join(dir, file), "utf8");
+    dependencies.set(file, [...source.matchAll(/^--\s*depends-on:\s*(\S+)\s*$/gm)].map(m=>m[1]));
     const checksum = createHash("sha256").update(source).digest("hex");
     const matchUp = source.match(/--\s*migrate:up\s*\n([\s\S]*?)(?:\n--\s*migrate:down\s*\n|$)/i);
     const matchDown = source.match(/--\s*migrate:down\s*\n([\s\S]*)$/i);
@@ -47,7 +50,7 @@ export async function listMigrationFiles(): Promise<MigrationFileInfo[]> {
       lastStatus: null,
     });
   }
-  return result;
+  return ordenarMigracoes(result,dependencies);
 }
 
 export const migrationRecordSchema = z.object({

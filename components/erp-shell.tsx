@@ -30,6 +30,9 @@ const menus: MenuGroup[] = [
     label: "PCP e Produção",
     items: [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
+      { path: "/programacao/sul", label: "Programação Sul", icon: ClipboardList },
+      { path: "/programacao/nordeste", label: "Programação Nordeste", icon: ClipboardList },
+      { path: "/programacao/consolidado", label: "Programação Consolidada", icon: LayoutDashboard },
       { path: "/programacao-gerente", label: "Planejamento", icon: Route },
       { path: "/apontamento-operacoes", label: "Apontamento de Operações", icon: ClipboardCheck },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
