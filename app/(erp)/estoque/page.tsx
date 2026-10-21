@@ -25,6 +25,7 @@ const post = (url: string, body: unknown) => api(url, { method: "POST", headers:
 export default function EstoquePage() {
   const { me } = useOps();
   const perfil = me?.perfil || "";
+  const [classificacao,setClassificacao]=useState("");
   const [aba, setAba] = useState<"SALDOS" | "MOVIMENTAR" | "HISTORICO" | "CADASTROS" | "INVENTARIO">("SALDOS");
   const [erro, setErro] = useState(""); const [ok, setOk] = useState("");
   const [prods, setProds] = useState<Prod[]>([]); const [locais, setLocais] = useState<Local[]>([]); const [unidades, setUnidades] = useState<Unidade[]>([]);
@@ -42,8 +43,8 @@ export default function EstoquePage() {
   const [det, setDet] = useState<{ p: Linha; d: any } | null>(null);
   const carregarSaldos = useCallback(async () => {
     setLoad(true);
-    try { const j = await api(`/api/estoque?q=${encodeURIComponent(q)}&local=${fLocal}&filtro=${filtro}`); setLinhas(j.produtos); setResumo(j.resumo); setErro(""); } catch (e) { msg(e); } finally { setLoad(false); }
-  }, [q, fLocal, filtro]);
+    try { const j = await api(`/api/estoque?classificacao=${classificacao}&q=${encodeURIComponent(q)}&local=${fLocal}&filtro=${filtro}`); setLinhas(j.produtos); setResumo(j.resumo); setErro(""); } catch (e) { msg(e); } finally { setLoad(false); }
+  }, [classificacao, q, fLocal, filtro]);
   useEffect(() => { if (aba !== "SALDOS") return; const t = setTimeout(() => void carregarSaldos(), 250); return () => clearTimeout(t); }, [aba, carregarSaldos]);
   async function abrirProduto(p: Linha) { setDet({ p, d: null }); try { setDet({ p, d: await api("/api/estoque?produto=" + p.produto_id) }); } catch (e) { msg(e); setDet(null); } }
 
@@ -103,6 +104,7 @@ export default function EstoquePage() {
     <nav className="cart-tabs" aria-label="Estoque">{([["SALDOS", "Saldos"], ["MOVIMENTAR", "Movimentar"], ["HISTORICO", "Histórico"], ["CADASTROS", "Cadastros"], ["INVENTARIO", "Inventário"]] as const).map(([k, t2]) => <button key={k} className={aba === k ? "active" : ""} onClick={() => { setAba(k); setOk(""); setErro(""); }}>{t2}</button>)}</nav>
 
     {aba === "SALDOS" && <>
+      <label>Tipo de material<select value={classificacao} onChange={e=>setClassificacao(e.target.value)}><option value="">Todos</option><option value="INSUMO">Insumos</option><option value="SEMIACABADO">Semiacabados</option><option value="ACABADO">Acabados</option><option value="NAO_CLASSIFICADO">A classificar</option></select></label>
       {resumo && <section className="cart-kpis">
         <button className="cart-kpi" onClick={() => setFiltro("")}><small>Produtos ativos</small><strong>{resumo.produtosAtivos}</strong><em>{resumo.comSaldo} com saldo</em></button>
         <button className="cart-kpi warn" onClick={() => setFiltro("abaixo-minimo")}><small>Abaixo do mínimo</small><strong>{resumo.abaixoMinimo}</strong><em>disponível menor que o mínimo</em></button>

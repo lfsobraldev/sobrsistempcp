@@ -1,11 +1,12 @@
 import { sql } from "@/lib/db";
 type Db = ReturnType<typeof sql>;
 
-/** DDL aditivo e idempotente do módulo de Estoque. Espelhado em database/migrations/2026-10-22_estoque.sql (gerado deste array). */
+/** DDL aditivo e idempotente do módulo de Estoque. Espelhado em bootstrap de database/migrations/2026-10-21_06_engenharia_of.sql (gerado deste array). */
 export const ESTOQUE_DDL: string[] = [
   `create table if not exists est_unidades(codigo varchar(10) primary key, descricao varchar(60) not null, fracionavel boolean not null default false)`,
   `insert into est_unidades(codigo,descricao,fracionavel) values ('UN','Unidade',false),('PC','Peça',false),('PAR','Par',false),('JG','Jogo',false),('CX','Caixa',false),('PCT','Pacote',false),('KG','Quilograma',true),('M','Metro',true),('M2','Metro quadrado',true),('M3','Metro cúbico',true),('L','Litro',true) on conflict (codigo) do nothing`,
   `create table if not exists est_produtos(id uuid primary key default gen_random_uuid(), codigo varchar(60) not null unique, descricao varchar(240) not null default '', unidade_base varchar(10) not null references est_unidades(codigo), estoque_minimo numeric(16,3) not null default 0 check(estoque_minimo>=0), ativo boolean not null default true, origem varchar(20) not null default 'MANUAL', criado_por varchar(120) not null default '', criado_em timestamptz not null default now(), atualizado_em timestamptz not null default now())`,
+  `alter table est_produtos add column if not exists classificacao text not null default 'NAO_CLASSIFICADO' check(classificacao in ('INSUMO','SEMIACABADO','ACABADO','NAO_CLASSIFICADO'))`,
   `create table if not exists est_produto_unidades(produto_id uuid not null references est_produtos(id) on delete cascade, unidade varchar(10) not null references est_unidades(codigo), fator numeric(16,6) not null check(fator>0), codigo_barras varchar(64), primary key(produto_id,unidade))`,
   `create unique index if not exists ux_est_codigo_barras on est_produto_unidades(codigo_barras) where codigo_barras is not null`,
   `create table if not exists est_locais(id uuid primary key default gen_random_uuid(), codigo varchar(40) not null unique, descricao varchar(160) not null default '', ativo boolean not null default true, criado_em timestamptz not null default now())`,

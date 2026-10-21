@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { identitySql } from "./db";
 import { cookies } from "next/headers";
 import type { Perfil, Sessao } from "@/types/pcp";
 
@@ -178,6 +179,7 @@ export function verifyToken(
     perfil:
       perfil as Perfil,
     processos: [],
+    emitidoEm:Number(ts),
   };
 }
 
@@ -195,6 +197,18 @@ export async function session():
 
   if (!s) {
     return null;
+  }
+
+  // Contas por ambiente são validadas contra a configuração atual. Contas de banco
+  // são revogadas imediatamente ao desativar, trocar perfil ou trocar senha.
+  const envAccount=users().find(u=>u.user===s.usuario);
+  if(envAccount){if(envAccount.role!==s.perfil)return null;}
+  else {
+    try{
+      const db=identitySql();
+      const [u]=await db`select ativo,perfil,atualizado_em from pcp_usuarios where usuario=${s.usuario}`;
+      if(!u?.ativo||u.perfil!==s.perfil||!s.emitidoEm||new Date(u.atualizado_em).getTime()>s.emitidoEm)return null;
+    }catch{return null;}
   }
 
   const processEnv =
