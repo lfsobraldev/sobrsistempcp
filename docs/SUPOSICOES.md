@@ -1,0 +1,11 @@
+# Suposições registradas
+
+| Suposição | Motivo | Como reverter |
+| --- | --- | --- |
+| O código operacional atual representa uma única empresa/planta até que o cadastro formal de empresas/filiais seja aprovado. | Não existe `empresa_id`/`filial_id` no schema inspecionado; inventar valores e atribuições pode misturar registros reais. | Manter novos vínculos nullable durante expansão; mapear cada registro com a empresa antes de tornar obrigatório. |
+| Compras novas devem referenciar o cadastro de fornecedor do próprio domínio e não inferir fornecedores a partir de texto livre ou NF. | Não foi localizado cadastro mestre de fornecedores. | Importar cadastros validados antes de liberar o fluxo; manter documentos importados em estado não aprovado. |
+| Recebimento não altera estoque até conferência explícita e registro em `est_movimentos`. | O ledger existente é a fonte auditável de saldo; evitar saldo paralelo ou entrada automática não conferida. | Corrigir recebimento por evento reverso no ledger, nunca editar/excluir movimentos. |
+| Reserva de material para OF deve usar os movimentos existentes de reserva/liberação e a chave da OF quando o modelo de OF for definido. | Mantém um único saldo/ledger; a relação atual com OF é apenas textual. | Liberar reserva com movimento compensatório e manter histórico. |
+| Valor de item e imposto em compra/venda são informativos até validação fiscal/contábil. | Alíquotas, CFOP, CST, regime tributário e regras de contabilização dependem do contador e da empresa. | Desativar adaptador fiscal e invalidar registros em rascunho; não apagar histórico aprovado. |
+| Tokens públicos do QR não são autorização para confirmar recebimento; confirmação exigirá identidade ou OTP e consentimento definidos. | O QR atual é um link de posse e não prova identidade do destinatário. | Revogar o token individual e manter consulta somente leitura. |
+| Inventário aberto bloqueia movimentos em todo o escopo cadastrado, mesmo para produtos ainda não adicionados à contagem. | Evita que movimentações alterem o conjunto contado após a abertura. | Alterar somente com regra formal de congelamento por item e trilha de exceção aprovada; validar concorrência em homologação. |

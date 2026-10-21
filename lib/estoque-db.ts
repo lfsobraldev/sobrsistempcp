@@ -27,9 +27,9 @@ export async function reservadoDoPedido(db: Q, produtoId: string, localId: strin
   const r = await db.query(`select coalesce(sum(case when tipo='RESERVA' then quantidade_base when tipo='LIBERA_RESERVA' then -quantidade_base when tipo='SAIDA' and baixa_reserva then -quantidade_base else 0 end),0)::float v from est_movimentos where produto_id=$1::uuid and local_origem_id=$2::uuid and pedido=$3`, [produtoId, localId, pedido]);
   return Number(r[0]?.v || 0);
 }
-export async function inventarioAberto(db: Q, produtoId: string, locais: string[]): Promise<number | null> {
+export async function inventarioAberto(db: Q, locais: string[]): Promise<number | null> {
   if (!locais.length) return null;
-  const r = await db.query(`select v.numero from est_inventario_itens i join est_inventarios v on v.id=i.inventario_id where v.status='EM_CONTAGEM' and i.produto_id=$1::uuid and i.local_id=any($2::uuid[]) limit 1`, [produtoId, locais]);
+  const r = await db.query(`select numero from est_inventarios where status='EM_CONTAGEM' and (tipo='GERAL' or local_id=any($1::uuid[])) limit 1`, [locais]);
   return r[0] ? Number(r[0].numero) : null;
 }
 
@@ -43,7 +43,7 @@ export async function executarMovimento(db: Q, m: Mov): Promise<Res> {
 
   const locais = [m.localOrigem, m.localDestino].filter(Boolean) as string[];
   if (!m.ignorarInventario) {
-    const n = await inventarioAberto(db, m.produtoId, locais);
+    const n = await inventarioAberto(db, locais);
     if (n !== null) return falha(409, "EM_INVENTARIO", `Produto/local em inventário aberto (nº ${n}). Conclua ou cancele o inventário antes de movimentar.`);
   }
   // Mensagem amigável antes de tentar (o banco continua sendo a barreira final via CHECK).

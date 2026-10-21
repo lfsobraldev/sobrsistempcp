@@ -5,3 +5,4 @@ node_modules
 
 # Sessões locais e CSVs do Consistem
 .consistem-local/
+.vscode/
