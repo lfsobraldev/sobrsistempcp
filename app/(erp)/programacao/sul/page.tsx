@@ -1,2 +1,2 @@
-import ProgramacaoMensal from "@/components/programacao-mensal";
-export default function Page() { return <ProgramacaoMensal unidade="SUL" />; }
+import { redirect } from "next/navigation";
+export default function Page(){redirect("/planejamento-mensal");}

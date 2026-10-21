@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { completarFiltro } from "@/lib/ia/completar-filtro";
@@ -6,7 +7,7 @@ import type { Produto } from "@/types/pcp";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     await requireRoles(["PCP"]);
     if (process.env.PCP_AI_RELEASE_ENRICHMENT === "disabled") {
@@ -27,3 +28,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: status === 403 ? "Sem permissão." : e?.message || "Falha na complementação." }, { status });
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

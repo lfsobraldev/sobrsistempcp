@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -24,7 +25,7 @@ const allowedMounts = new Set<MountType>([
   "MONTADO_ESTANCIA",
 ]);
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     await requireRoles(["PCP", "GERENTE", "ENCARREGADO"]);
 
@@ -271,3 +272,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

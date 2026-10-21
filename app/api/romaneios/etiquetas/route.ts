@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { createLabelsWorkbook } from "@/lib/romaneio/labels";
@@ -6,7 +7,7 @@ import type { ProcessingResult } from "@/lib/romaneio/types";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     await requireRoles(["PCP", "GERENTE", "ENCARREGADO", "LIDER"]);
 
@@ -54,3 +55,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

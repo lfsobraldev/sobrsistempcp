@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
 import {sql} from "@/lib/db";
 import {requireRoles} from "@/lib/auth";
@@ -24,7 +25,7 @@ async function dbReady(){
  )`;
  return db;
 }
-export async function GET(req:Request){
+async function unidadeGET(req:Request){
  try{await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL"]);const db=await dbReady();
  const pedido=new URL(req.url).searchParams.get("pedido")||"";
  const itens=pedido?await db`select * from pcp_comercial_especificacoes where pedido=${pedido} order by item`:
@@ -32,7 +33,7 @@ export async function GET(req:Request){
  return NextResponse.json({itens},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message||"Erro ao consultar especificações"},{status:403})}
 }
-export async function PUT(req:Request){
+async function unidadePUT(req:Request){
  try{const user=await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL"]);const b=await req.json();
  const pedido=String(b.pedido||"").trim(),item=String(b.item||"").trim().slice(0,50);
  const familia=String(b.familia||"").toUpperCase(),descricao=String(b.descricao||"").trim().slice(0,400);
@@ -60,3 +61,5 @@ export async function PUT(req:Request){
  return NextResponse.json({ok:true});
  }catch(e:any){return NextResponse.json({error:e?.message||"Erro ao salvar especificação"},{status:500})}
 }
+export const GET = unidadeHandler(unidadeGET);
+export const PUT = unidadeHandler(unidadePUT);

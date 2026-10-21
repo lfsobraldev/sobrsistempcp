@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
 import crypto from "node:crypto";
 import {sql} from "@/lib/db";
@@ -30,7 +31,7 @@ async function getFile(data:FormData){
  if(bytes.subarray(0,2).toString()!=="PK")throw new Error("O Google não retornou um arquivo XLSX. A planilha pode exigir login ou autorização de acesso.");
  return {bytes,name:"Google Sheets "+id+".xlsx"};
 }
-export async function POST(req:Request){
+async function unidadePOST(req:Request){
  try{
   const user=await requireRoles(["PCP","GERENTE"]);
   const data=await req.formData(),aplicar=data.get("aplicar")==="true";
@@ -132,3 +133,5 @@ export async function POST(req:Request){
   return NextResponse.json({ok:true,...summary,atualizados,datasAtualizadas,datasIgnoradas});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao importar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
+
+export const POST = unidadeHandler(unidadePOST);

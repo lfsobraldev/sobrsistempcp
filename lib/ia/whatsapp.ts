@@ -41,7 +41,7 @@ export function whatsappUser(phone:string,serialized:string|undefined):Sessao|nu
       typeof u?.phone==="string" && [...phoneVariants(u.phone)].some(v=>variants.has(v))
     ):null;
     if(!found || !roles.has(found.role) || typeof found.user!=="string" || !found.user.trim())return null;
-    return {usuario:found.user.slice(0,120),perfil:found.role as Perfil,processos:Array.isArray(found.processes)?found.processes.filter((x:unknown)=>typeof x==="string").slice(0,40):[]};
+    return {unidadeAtiva:["SUL","NORDESTE"].includes(found.unit)?found.unit:undefined,usuario:found.user.slice(0,120),perfil:found.role as Perfil,processos:Array.isArray(found.processes)?found.processes.filter((x:unknown)=>typeof x==="string").slice(0,40):[]};
   }catch{return null;}
 }
 export function textMessages(body:any):Array<{id:string;from:string;text:string}> {

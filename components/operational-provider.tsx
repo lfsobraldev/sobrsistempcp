@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { canalUnidade } from "@/lib/unidades/context-client";
 import type { Andon, Programacao, Sessao } from "@/types/pcp";
 import { produtoEntraPCP } from "@/lib/sort";
 
@@ -154,6 +155,8 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
   }, [loadSession, refresh]);
 
   useEffect(() => {
+    if(!me || (me.multiunidade && !me.unidadeAtiva))return;
+    const channel = canalUnidade(me.multiunidade ? me.unidadeAtiva??null : null);
     const key = process.env.NEXT_PUBLIC_PUSHER_KEY?.trim();
     const cluster = process.env.NEXT_PUBLIC_PUSHER_CLUSTER?.trim();
 
@@ -181,15 +184,23 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
         if (!stopped) setRealtimeStatus("conectando");
       };
 
-      socket.onmessage = (message) => {
+      socket.onmessage = async (message) => {
         try {
           const packet = JSON.parse(String(message.data || "{}"));
 
           if (packet.event === "pusher:connection_established") {
+            let auth: string | undefined;
+            if(me.multiunidade){
+              const connected=typeof packet.data === "string" ? JSON.parse(packet.data) : packet.data;
+              const r=await fetch("/api/realtime/auth",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({socket_id:connected.socket_id,channel_name:channel})});
+              if(!r.ok)throw new Error("Canal não autorizado");
+              auth=(await r.json()).auth;
+            }
+            if(stopped)return;
             socket?.send(
               JSON.stringify({
                 event: "pusher:subscribe",
-                data: { channel: CHANNEL },
+                data: { channel, ...(auth?{auth}:{}) },
               })
             );
             return;
@@ -207,7 +218,7 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
 
           if (
             packet.event === "pcp:atualizacao" &&
-            packet.channel === CHANNEL
+            packet.channel === channel
           ) {
             scheduleRefresh();
           }
@@ -234,7 +245,7 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
       if (retry) clearTimeout(retry);
       socket?.close();
     };
-  }, [scheduleRefresh]);
+  }, [scheduleRefresh,me?.multiunidade,me?.unidadeAtiva,me?.usuario]);
 
   const toast = useCallback(
     (type: Toast["type"], text: string) => {

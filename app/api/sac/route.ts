@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles, session } from "@/lib/auth";
@@ -23,7 +24,7 @@ async function ensureCrmLinks(db: Db) {
   await linksReady;
 }
 
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     const user = await session();
     if (!user || !(VIEW as readonly string[]).includes(user.perfil)) return NextResponse.json({error:"Sem permissão."},{status:403});
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
   } catch (e) { return NextResponse.json({error:e instanceof Error ? e.message : "Falha ao consultar SAC."},{status:500}); }
 }
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const user = await requireRoles([...EDIT]), b = await req.json();
     if (String(b.action||"").toUpperCase()==="COMENTARIO") {
@@ -89,7 +90,7 @@ export async function POST(req: Request) {
   } catch (e) { const forbidden=e instanceof Error && e.message==="SEM_PERMISSAO"; return NextResponse.json({error:forbidden?"Sem permissão.":e instanceof Error?e.message:"Falha ao criar atendimento."},{status:forbidden?403:500}); }
 }
 
-export async function PATCH(req: Request) {
+async function unidadePATCH(req: Request) {
   try {
     const user = await requireRoles([...SAC_TEAM]), b=await req.json(), id=clean(b.id,80), db=sql(); await ensureCrmLinks(db);
     if (!id) return NextResponse.json({error:"Atendimento não informado."},{status:400});
@@ -115,3 +116,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({item:updated});
   } catch (e) { const forbidden=e instanceof Error && e.message==="SEM_PERMISSAO"; return NextResponse.json({error:forbidden?"Sem permissão.":e instanceof Error?e.message:"Falha ao atualizar atendimento."},{status:forbidden?403:500}); }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);
+export const PATCH = unidadeHandler(unidadePATCH);

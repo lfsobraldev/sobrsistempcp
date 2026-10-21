@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -7,7 +8,7 @@ export const runtime = "nodejs";
 const LIMITE = 500;
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     const s = await requireRoles(["PCP", "GERENTE", "ENCARREGADO", "LIDER", "APONTADOR"]);
     const url = new URL(req.url);
@@ -62,3 +63,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: forb ? "Sem permissão." : e?.message || "Falha ao consultar operações." }, { status: forb ? 403 : 500 });
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);

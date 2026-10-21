@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -17,7 +18,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * - `requestId` torna o lançamento idempotente (toque duplo / reenvio não soma duas vezes).
  * - Limite opcional de operações EM_ANDAMENTO simultâneas por processo (pcp_recursos_regras), com trava por processo.
  */
-export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+async function unidadePATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const s = await requireRoles(["PCP", "ENCARREGADO", "LIDER", "APONTADOR"]);
     const { id } = await params;
@@ -136,3 +137,5 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: st === 403 ? "Sem permissão." : e?.message || "Falha ao atualizar operação." }, { status: st });
   }
 }
+
+export const PATCH = unidadeHandler(unidadePATCH);

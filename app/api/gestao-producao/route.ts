@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -52,7 +53,7 @@ async function ativa(db: ReturnType<typeof sql>) {
   return rows[0]?.id ? String(rows[0].id) : "";
 }
 
-export async function GET() {
+async function unidadeGET() {
   try {
     await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER"]);
     const db = sql();
@@ -149,7 +150,7 @@ export async function GET() {
   }
 }
 
-export async function PATCH(req: Request) {
+async function unidadePATCH(req: Request) {
   try {
     const s = await requireRoles(["PCP","GERENTE","ENCARREGADO"]);
     const body = await req.json();
@@ -218,7 +219,7 @@ export async function PATCH(req: Request) {
   }
 }
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const s = await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER"]);
     const body = await req.json();
@@ -280,3 +281,7 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const PATCH = unidadeHandler(unidadePATCH);
+export const POST = unidadeHandler(unidadePOST);

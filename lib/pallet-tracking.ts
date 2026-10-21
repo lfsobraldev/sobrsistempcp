@@ -22,3 +22,18 @@ export function verificarTokenRastreioPallet(token: string, secret: string) {
   if (received.length !== expected.length || !timingSafeEqual(received, expected)) return null;
   return palletId.toLowerCase();
 }
+
+/** V2 vincula o QR à unidade; v1 permanece restrito ao banco legado. */
+export function criarTokenRastreioUnidade(id:string,unidade:'SUL'|'NORDESTE',secret:string){
+ const palletId=id.toLowerCase();if(!UUID.test(palletId)||!secret)throw new Error('Pallet ou chave inválida.');
+ const payload=`v2.${unidade}.${palletId}`;
+ return payload+'.'+createHmac('sha256',secret).update('pallet-tracking:'+payload).digest('base64url');
+}
+export function verificarTokenRastreioUnidade(token:string,secret:string):{id:string;unidade:'SUL'|'NORDESTE'}|null{
+ const [v,unidade,id,sig,...rest]=token.split('.');
+ if(!secret||v!=='v2'||!['SUL','NORDESTE'].includes(unidade)||!UUID.test(id||'')||!sig||rest.length)return null;
+ const expected=createHmac('sha256',secret).update(`pallet-tracking:v2.${unidade}.${id}`).digest();
+ const received=Buffer.from(sig,'base64url');
+ if(received.length!==expected.length||!timingSafeEqual(received,expected))return null;
+ return {id,unidade:unidade as 'SUL'|'NORDESTE'};
+}

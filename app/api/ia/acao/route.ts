@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { session } from "@/lib/auth";
 import { verifyAction } from "@/lib/ia/claude";
@@ -5,7 +6,7 @@ import { sql } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const s = await session();
     if (!s) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
@@ -29,3 +30,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: e?.message || "Falha ao executar ação." }, { status: 500 });
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

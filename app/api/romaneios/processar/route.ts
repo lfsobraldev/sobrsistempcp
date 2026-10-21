@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import pdf from "pdf-parse";
 import { requireRoles } from "@/lib/auth";
@@ -22,7 +23,7 @@ const allowedMounts = new Set<MountType>([
   "MONTADO_ESTANCIA",
 ]);
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     await requireRoles(["PCP", "GERENTE", "ENCARREGADO", "LIDER"]);
 
@@ -176,3 +177,5 @@ export async function POST(req: Request) {
     );
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

@@ -1,10 +1,11 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { parsePedidoUsinagem } from "@/lib/order-import";
 import { requireRoles } from "@/lib/auth";
 export const runtime="nodejs";
 export const maxDuration=60;
 
-export async function POST(req:Request){
+async function unidadePOST(req:Request){
   try{
     await requireRoles(["PCP"]);
     const fd=await req.formData();
@@ -17,3 +18,5 @@ export async function POST(req:Request){
     return NextResponse.json({error:status===403?"Sem permissão.":e?.message||"Falha ao ler Pedido + Usinagem."},{status});
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -8,7 +9,7 @@ export const runtime = "nodejs";
 const erro = (e: any) => { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha." }, { status: f ? 403 : 500 }); };
 const dup = (e: any, msg: string) => (e?.code === "23505" ? NextResponse.json({ error: msg }, { status: 409 }) : null);
 
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     await requireRoles([...PERFIS_VER]);
     const db = sql(); await garantirEstoque(db);
@@ -27,7 +28,7 @@ export async function GET(req: Request) {
   } catch (e) { return erro(e); }
 }
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const s = await requireRoles(PERFIS_CADASTRO);
     const b = await req.json();
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
   } catch (e) { return erro(e); }
 }
 
-export async function PATCH(req: Request) {
+async function unidadePATCH(req: Request) {
   try {
     await requireRoles(PERFIS_CADASTRO);
     const b = await req.json();
@@ -96,3 +97,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (e) { return erro(e); }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);
+export const PATCH = unidadeHandler(unidadePATCH);

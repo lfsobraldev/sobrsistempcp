@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import UnidadeSelector from "./unidade-selector";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell, Boxes, BrainCircuit, Briefcase, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
@@ -30,9 +31,7 @@ const menus: MenuGroup[] = [
     label: "PCP e Produção",
     items: [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
-      { path: "/programacao/sul", label: "Programação Sul", icon: ClipboardList },
-      { path: "/programacao/nordeste", label: "Programação Nordeste", icon: ClipboardList },
-      { path: "/programacao/consolidado", label: "Programação Consolidada", icon: LayoutDashboard },
+      { path: "/planejamento-mensal", label: "Planejamento mensal", icon: ClipboardList },
       { path: "/programacao-gerente", label: "Planejamento", icon: Route },
       { path: "/apontamento-operacoes", label: "Apontamento de Operações", icon: ClipboardCheck },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
@@ -171,6 +170,7 @@ function Inner({ children }: { children: React.ReactNode }) {
           {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
         </button>
         <h2>{current}</h2>
+        <UnidadeSelector />
         <div className="search" role="search">
           <Search />
           <input aria-label="Buscar módulo" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") searchModule(); }} placeholder="Ir para módulo…" />
@@ -229,7 +229,7 @@ function Inner({ children }: { children: React.ReactNode }) {
               }}>×</button>
           </div>)}
         </nav>}
-        <div className={`page ${["/programacao", "/programacao-gerente"].includes(path) ? "industrial-page-area" : ""}`}>{children}</div>
+        <div className={`page ${["/programacao", "/programacao-gerente"].includes(path) ? "industrial-page-area" : ""}`}><UnidadeSelector bloquear>{children}</UnidadeSelector></div>
       </main>
       <AiAssistant />
       <RomaneioAIModal />

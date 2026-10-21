@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -9,7 +10,7 @@ async function exists(db: ReturnType<typeof sql>, name: string) {
   return Boolean(row?.name);
 }
 
-export async function GET() {
+async function unidadeGET() {
   try {
     await requireRoles([...VIEW]);
     const db = sql();
@@ -33,3 +34,4 @@ export async function GET() {
     return NextResponse.json({ error: forbidden ? "Sem permissão." : error instanceof Error ? error.message : "Falha ao consultar cadastros SAC." }, { status: forbidden ? 403 : 500 });
   }
 }
+export const GET = unidadeHandler(unidadeGET);

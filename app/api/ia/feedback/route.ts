@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { session } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -23,7 +24,7 @@ async function ensure() {
 }
 const autorizado=(perfil:string)=>["PCP","GERENTE"].includes(perfil);
 
-export async function POST(req:Request) {
+async function unidadePOST(req:Request) {
   try {
     const s=await session();
     if(!s)return NextResponse.json({error:"Não autenticado."},{status:401});
@@ -39,7 +40,7 @@ export async function POST(req:Request) {
     return NextResponse.json({ok:true,item,mensagem:"Correção enviada para validação; não altera automaticamente as decisões da IA."});
   }catch(e:any){return NextResponse.json({error:e?.message||"Erro ao registrar correção."},{status:500});}
 }
-export async function GET(){
+async function unidadeGET(){
   try{
     const s=await session();
     if(!s)return NextResponse.json({error:"Não autenticado."},{status:401});
@@ -50,7 +51,7 @@ export async function GET(){
     return NextResponse.json({itens},{headers:{"Cache-Control":"private, no-store"}});
   }catch(e:any){return NextResponse.json({error:e?.message||"Falha ao consultar feedback."},{status:500});}
 }
-export async function PATCH(req:Request){
+async function unidadePATCH(req:Request){
   try{
     const s=await session();
     if(!s)return NextResponse.json({error:"Não autenticado."},{status:401});
@@ -88,3 +89,7 @@ export async function PATCH(req:Request){
     return NextResponse.json({ok:true,item,mensagem:status==="APROVADO"?"Correção aprovada e incluída na Base de Conhecimento da Sobral IA.":"Revisão registrada."});
   }catch(e:any){return NextResponse.json({error:e?.message||"Erro ao revisar feedback."},{status:500});}
 }
+
+export const POST = unidadeHandler(unidadePOST);
+export const GET = unidadeHandler(unidadeGET);
+export const PATCH = unidadeHandler(unidadePATCH);

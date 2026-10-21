@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { session } from "@/lib/auth";
 import { runTool } from "@/lib/ia/tools";
@@ -6,7 +7,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 /** Centro de inteligência: leitura dos dados reais, sem executar mutações de PCP. */
-export async function GET() {
+async function unidadeGET() {
   try {
     const user = await session();
     if (!user) return NextResponse.json({error:"Não autenticado."},{status:401});
@@ -21,3 +22,5 @@ export async function GET() {
     return NextResponse.json({error:e instanceof Error?e.message:"Falha na inteligência operacional."},{status:500});
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);

@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import pdf from "pdf-parse";
 import * as XLSX from "xlsx";
@@ -22,7 +23,7 @@ async function textoDoArquivo(f: File): Promise<string> {
   throw new Error("Formato não suportado. Envie PDF, Excel, CSV ou TXT.");
 }
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     await requireRoles(["PCP", "GERENTE", "ENCARREGADO", "LIDER"]);
     const fd = await req.formData();
@@ -47,3 +48,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: msg }, { status: st });
   }
 }
+
+export const POST = unidadeHandler(unidadePOST);

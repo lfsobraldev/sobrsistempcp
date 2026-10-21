@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -12,7 +13,7 @@ const existe = async (db: Db, t: string) => (await db`select to_regclass(${"publ
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
 const dt = (v: unknown) => (v ? String(v).slice(0, 10) : null);
 
-export async function GET(req: Request) {
+async function unidadeGET(req: Request) {
   try {
     await requireRoles(["PCP", "GERENTE", "ENCARREGADO"]);
     const url = new URL(req.url);
@@ -91,3 +92,5 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha ao montar o painel." }, { status: f ? 403 : 500 });
   }
 }
+
+export const GET = unidadeHandler(unidadeGET);

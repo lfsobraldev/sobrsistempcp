@@ -23,9 +23,9 @@ export const ESTOQUE_DDL: string[] = [
   `create index if not exists ix_est_inv_item_pl on est_inventario_itens(produto_id,local_id)`,
 ];
 
-let pronto = false;
+const prontos = new WeakSet<Db>();
 export async function garantirEstoque(db: Db) {
-  if (pronto) return;
+  if (prontos.has(db)) return;
   for (const s of ESTOQUE_DDL) await db.query(s);
-  pronto = true;
+  prontos.add(db);
 }

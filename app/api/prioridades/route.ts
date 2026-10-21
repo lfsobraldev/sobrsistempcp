@@ -1,10 +1,11 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
 
 const VALIDAS = new Set(["NORMAL", "ALTA", "URGENTE"]);
 
-export async function PATCH(req: Request) {
+async function unidadePATCH(req: Request) {
   try {
     const s = await requireRoles(["PCP", "GERENTE", "ENCARREGADO"]);
     const b = await req.json();
@@ -102,3 +103,5 @@ export async function PATCH(req: Request) {
     );
   }
 }
+
+export const PATCH = unidadeHandler(unidadePATCH);

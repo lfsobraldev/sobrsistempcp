@@ -1,5 +1,6 @@
 import { createHash, createHmac } from "node:crypto";
 
+import { unidadeAtual,canalUnidade } from "./unidades/context";
 const CHANNEL = "sobral-pcp-live";
 
 export type RealtimeEvent =
@@ -26,7 +27,7 @@ export async function publishRealtimeEvent(
     const path = `/apps/${appId}/events`;
     const body = JSON.stringify({
       name: "pcp:atualizacao",
-      channel: CHANNEL,
+      channel: canalUnidade(unidadeAtual()),
       data: JSON.stringify({
         event,
         at: new Date().toISOString(),

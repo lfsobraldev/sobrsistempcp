@@ -1,13 +1,15 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import { criarTokenRastreioPallet } from "@/lib/pallet-tracking";
+import { unidadeAtual } from "@/lib/unidades/context";
+import { criarTokenRastreioUnidade,criarTokenRastreioPallet } from "@/lib/pallet-tracking";
 
 export const runtime = "nodejs";
 const ROLES = ["PCP", "GERENTE", "ENCARREGADO", "LIDER", "QUALIDADE"] as const;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     await requireRoles([...ROLES]);
     const body = await req.json();
@@ -20,10 +22,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "O rastreio público só é disponibilizado após a liberação do pallet." }, { status: 409 });
     }
 
-    const token = criarTokenRastreioPallet(id, process.env.AUTH_SECRET || "");
+    const unidade=unidadeAtual();
+    const token = unidade ? criarTokenRastreioUnidade(id,unidade,process.env.AUTH_SECRET||"") : criarTokenRastreioPallet(id, process.env.AUTH_SECRET || "");
     return NextResponse.json({ token }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const forbidden = error instanceof Error && error.message === "SEM_PERMISSAO";
     return NextResponse.json({ error: forbidden ? "Sem permissão." : "Não foi possível gerar o link de rastreio." }, { status: forbidden ? 403 : 500 });
   }
 }
+export const POST = unidadeHandler(unidadePOST);

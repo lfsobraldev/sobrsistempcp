@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -163,7 +164,7 @@ function number(value: unknown, label: string, min = 0, max = 1_000_000_000) {
   return result;
 }
 
-export async function GET() {
+async function unidadeGET() {
   try {
     await requireRoles([...READ_ROLES]);
     const db = sql();
@@ -201,7 +202,7 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const user = await requireRoles([...WRITE_ROLES]);
     const body = await req.json();
@@ -440,7 +441,7 @@ async function converter(db: Db, body: any, usuario: string) {
   return NextResponse.json({ ok: true, pedido: resultado[0].pedido }, { status: 201 });
 }
 
-export async function PATCH(req: Request) {
+async function unidadePATCH(req: Request) {
   try {
     const user = await requireRoles([...WRITE_ROLES]);
     const body = await req.json(), tipo = clean(body.tipo,30).toUpperCase(), id = clean(body.id,80);
@@ -585,3 +586,6 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: forbidden ? "Sem permissão." : duplicate ? "Documento já cadastrado." : error instanceof Error ? error.message : "Falha ao atualizar CRM." }, { status: forbidden ? 403 : duplicate ? 409 : 400 });
   }
 }
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);
+export const PATCH = unidadeHandler(unidadePATCH);

@@ -1,0 +1,9 @@
+'use client';
+import { useEffect,useState } from 'react';
+type Dado={codigo:string;titulo:string;valor:string|null;status:string};type Unidade={unidade:string;status:string;indicadores:Dado[]};
+export default function Page(){const [dados,setDados]=useState<Unidade[]|null>(null),[erro,setErro]=useState('');
+ useEffect(()=>{const c=new AbortController();fetch('/api/unidades/consolidado',{signal:c.signal,cache:'no-store'}).then(async r=>{const b=await r.json();if(!r.ok)throw new Error(b.error);return b;}).then(b=>setDados(b.unidades)).catch(e=>{if(e.name!=='AbortError')setErro(e.message);});return()=>c.abort();},[]);
+ const format=(v:string|null|undefined)=>v==null?'Não disponível':Number(v).toLocaleString('pt-BR',{maximumFractionDigits:2});
+ const codigos=[...new Map((dados||[]).flatMap(u=>u.indicadores).map(i=>[i.codigo,i])).values()];
+ return <main><h1>Gestão consolidada</h1><p>Dados consultados separadamente em cada unidade. A visão consolidada permite acompanhamento; operações são realizadas na unidade selecionada.</p>{erro&&<p role="alert">{erro}</p>}{!dados&&!erro&&<p role="status">Consultando Sul e Nordeste…</p>}{dados?.map(u=>u.status!=='OK'&&<p role="alert" key={u.unidade}>Unidade {u.unidade}: indisponível. Seus valores não foram considerados como zero.</p>)}{dados&&<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr>{['Indicador','Sul','Nordeste','Total disponível'].map(x=><th key={x} style={{padding:16,textAlign:'left'}}>{x}</th>)}</tr></thead><tbody>{codigos.map(i=>{const valores=['SUL','NORDESTE'].map(nome=>dados.find(u=>u.unidade===nome)?.indicadores.find(d=>d.codigo===i.codigo)?.valor);return <tr key={i.codigo}>{[i.titulo,...valores.map(format),valores.every(v=>v!=null)?format(String(valores.reduce((sum,v)=>sum+Number(v),0))):'Não disponível'].map((x,n)=><td key={n} style={{padding:16,borderTop:'1px solid #dce5ed'}}>{x}</td>)}</tr>;})}</tbody></table></div>}</main>;
+}

@@ -1,3 +1,4 @@
+import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
@@ -5,7 +6,7 @@ import { garantirApontamentos } from "@/lib/pcp-schema";
 import { PROCESSOS } from "@/lib/processos";
 
 export const runtime = "nodejs";
-export async function GET() {
+async function unidadeGET() {
   try {
     await requireRoles(["PCP", "GERENTE", "ENCARREGADO"]);
     const db = sql(); await garantirApontamentos(db);
@@ -13,7 +14,7 @@ export async function GET() {
     return NextResponse.json({ regras, processos: PROCESSOS }, { headers: { "Cache-Control": "no-store" } });
   } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão." : e?.message }, { status: f ? 403 : 500 }); }
 }
-export async function POST(req: Request) {
+async function unidadePOST(req: Request) {
   try {
     const s = await requireRoles(["PCP"]);
     const b = await req.json();
@@ -27,3 +28,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
   } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha ao salvar." }, { status: f ? 403 : 500 }); }
 }
+
+export const GET = unidadeHandler(unidadeGET);
+export const POST = unidadeHandler(unidadePOST);
