@@ -4,7 +4,9 @@
     "deploymentEnabled": {
       "erp-unidades-integracao": false,
       "erp-master-b1-filtros": false,
-      "erp-master-b23-unidades-meses": false
+      "erp-master-b23-unidades-meses": false,
+      "erp-etapa-a-fechamento": false,
+      "erp-etapa-b-ciclo": false
     }
   }
 }

@@ -1,3 +1,4 @@
+import {idsProdutosRecorte,OPCOES_PCP_SQL} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
@@ -721,7 +722,11 @@ async function unidadeGET(req: Request) {
       return NextResponse.json({ error: "Identificador de programação inválido." }, { status: 400 });
     }
 
-    const ativa = requestedId
+    const paramsURL=new URL(req.url).searchParams;
+    const recortada=paramsURL.get('recorte')==='1';
+    const recorteProdutos=recortada?await idsProdutosRecorte(db,paramsURL):null;
+    const recorteIds=recorteProdutos?.map(p=>String(p.id))||[];
+    const ativa = recortada ? [...new Set(recorteProdutos!.map(p=>String(p.programacao_id)))].map(id=>({id})) : requestedId
       ? await db`
           select id from pcp_programacoes where id = ${requestedId}::uuid limit 1
         `
@@ -731,12 +736,13 @@ async function unidadeGET(req: Request) {
 
     if (!ativa.length) {
       return NextResponse.json(
-        { programacao: null },
+        { programacao: null,opcoes:recortada?(await db.query(OPCOES_PCP_SQL))[0]:undefined },
         { headers: { "Cache-Control": "no-store" } }
       );
     }
 
     const programacaoId = String(ativa[0].id);
+    const programacaoIds=ativa.map(p=>String(p.id));
 
     /*
      * Faz a correção automaticamente na primeira leitura
@@ -745,7 +751,7 @@ async function unidadeGET(req: Request) {
     // Revisões de engenharia/OF já congeladas não podem sofrer reparos de roteiro na leitura.
     const [schemaOF] = await db`select to_regclass('public.erp_ordens_fabricacao') as tabela`;
     const temOF = schemaOF?.tabela ? (await db`select 1 from erp_ordens_fabricacao f join pcp_produtos p on p.id=f.origem_produto_id where p.programacao_id=${programacaoId} limit 1`).length>0 : false;
-    if(!temOF)await migrarProcessosLegados(db, programacaoId);
+    if(!recortada&&!temOF)await migrarProcessosLegados(db, programacaoId);
 
     const pgs = await db`
       select
@@ -788,7 +794,7 @@ async function unidadeGET(req: Request) {
       select p.*, coalesce(l.local_montagem, '') as local_montagem
       from pcp_produtos p
       left join pcp_pedido_local l on l.pedido = p.pedido
-      where p.programacao_id = ${programacaoId}
+      where p.programacao_id=any(${programacaoIds}::uuid[]) and (${!recortada} or p.id=any(${recorteIds}::uuid[]))
       order by (case when p.pedido ~ '^[0-9]{1,18}$' then p.pedido::numeric end) nulls last,
                p.pedido, p.item
     `;
@@ -797,12 +803,13 @@ async function unidadeGET(req: Request) {
       select o.*
       from pcp_operacoes o
       join pcp_produtos p on p.id = o.produto_id
-      where p.programacao_id = ${programacaoId}
+      where p.programacao_id=any(${programacaoIds}::uuid[]) and (${!recortada} or p.id=any(${recorteIds}::uuid[]))
       order by o.processo, o.ordem_fila, o.sequencia
     `;
 
     const produtos = products.map((p: any) => ({
       id: p.id,
+      programacaoId:p.programacao_id,
       filtro: p.filtro,
       pedido: p.pedido,
       item: p.item,
@@ -854,11 +861,14 @@ async function unidadeGET(req: Request) {
     const produtosCompletados = enriquecidos.produtos.map(p => completarPorRegras(p).produto);
     return NextResponse.json(
       {
+        opcoes:recortada?(await db.query(OPCOES_PCP_SQL))[0]:undefined,
         programacao: {
-          id: pg.id,
-          filtro: pg.filtro,
-          data: pg.data,
-          turno: pg.turno,
+          ids:programacaoIds,
+          somenteLeitura:recortada,
+          id: recortada&&programacaoIds.length>1?"":pg.id,
+          filtro: recortada&&programacaoIds.length>1?"Recorte":pg.filtro,
+          data: recortada&&programacaoIds.length>1?"":pg.data,
+          turno: recortada&&programacaoIds.length>1?"":pg.turno,
           status: pg.status,
           origem: pg.origem,
           criadoEm: pg.criado_em,
@@ -919,25 +929,13 @@ async function unidadeDELETE() {
       return NextResponse.json({ error: "Não existe programação ativa para excluir." }, { status: 404 });
     }
 
-    await db`
-      delete from pcp_programacoes
-      where id=${ativa.id}
-    `;
-
-    await db`
-      insert into pcp_eventos(usuario,tipo,descricao,depois)
-      values(
-        ${s.usuario},
-        'PROGRAMACAO_EXCLUIDA',
-        ${`Programação/filtro ${String(ativa.filtro || "")} excluído`},
-        ${JSON.stringify({ filtro: ativa.filtro })}::jsonb
-      )
-    `;
-
+    const [schema]=await db`select to_regprocedure('pcp_arquivar_programacao(uuid,text)') fn`;
+    if(!schema?.fn)return NextResponse.json({error:'Módulo aguardando migração'},{status:503});
+    await db`select pcp_arquivar_programacao(${ativa.id}::uuid,${s.usuario})`;
     return NextResponse.json({
       ok:true,
       filtro:String(ativa.filtro || ""),
-      mensagem:"Programação ativa excluída. Já é possível importar outro filtro."
+      mensagem:"Programação arquivada. Produtos, apontamentos e eventos preservados."
     });
   } catch (e:any) {
     return NextResponse.json(

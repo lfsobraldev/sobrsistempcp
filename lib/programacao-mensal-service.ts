@@ -28,7 +28,12 @@ export function selecionarFiliais(filiais: {id: unknown; codigo: unknown}[], uni
   return filiais.filter(f=>alvo.includes(String(f.codigo))).map(f=>String(f.id));
 }
 export async function consultarMensal(req: Request) {
-  const q = querySchema.parse(Object.fromEntries(new URL(req.url).searchParams));
+  const parametros=new URL(req.url).searchParams;
+  const entradas=Object.fromEntries(parametros);
+  if(parametros.has('filtro'))entradas.filtros=parametros.getAll('filtro').join('|');
+  if(parametros.has('pedido'))entradas.pedidos=parametros.getAll('pedido').join('|');
+  if(['TODOS','ATIVO','SELECAO'].includes(entradas.mes))entradas.mes='';
+  const q = querySchema.parse(entradas);
   const {sessao,db,filiais} = await acessoMensal();
   const ids = selecionarFiliais(filiais,q.unidade);
   const estadosHabilitados=process.env.ERP_PROGRAMACAO_STATUS==='enabled';

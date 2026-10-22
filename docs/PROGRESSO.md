@@ -50,3 +50,12 @@ O histórico acima está preservado; as entregas posteriores implementaram unida
 - Validação do grupo: 135 testes locais passaram; TypeScript e build aprovados. Envio pelo conector GitHub porque o terminal não tem credenciais de push.
 - O primeiro envio de B1 acionou um preview automático (`dpl_FYK5rdbEC6CbK56CQT2VbRicMz5C`), cancelado antes da conclusão. `vercel.json` agora bloqueia auto-deploy das duas branches. Nenhum deploy de produção neste trabalho.
 - Próximos incrementos: terminar adoção do recorte nas demais telas do Bloco 1; consolidado detalhado e assistente/URL mensal do grupo 2/3; depois engenharia/roteiros/OF e consumo por operação (Blocos 4–6) em nova branch. Não anunciar esses blocos concluídos.
+
+
+## Etapa A — fechamento das visões existentes
+
+Branch `erp-etapa-a-fechamento`, baseada em `erp-master-b23-unidades-meses`; um commit da etapa. Recorte compartilhado nos leitores industriais e consultas auxiliares, estoque paginado, consolidados detalhados (PCP/operações/programação/estoque), assistente mensal em três passos e parâmetros canônicos na URL. Histórico e programação ativa passam a arquivamento auditado com migração 09; sem schema, aguardando migração. Cadastros/metas sem relação com pedido não recebem rateio inventado. Nenhum módulo empresarial novo.
+
+Migração nova: `2026-10-22_09_historico_seguro.sql`, após 08 no catálogo, somente gerada. Validação local: 137 testes passaram, TypeScript e build aprovados. Testes SQL executados somente em PGlite isolado. Não houve consulta/migração no banco real.
+
+PR a abrir após envio: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-etapa-a-fechamento . Sem merge/deploy; auto-deploy bloqueado para esta branch e para a Etapa B. Próximo passo: Etapa B em `erp-etapa-b-ciclo`, evoluindo engenharia/OF/produção/estoque existentes.

@@ -55,3 +55,10 @@
 | Importação nova cria competência PLANEJADA; encerrado bloqueia alteração de lotes | Evitar misturar futuro em totais ativos e preservar documentos fechados | Fluxo de reabertura específico, autorizado e auditado, a implementar; não editar status diretamente |
 | Entradas por unidade selecionam a fonte autorizada e reaproveitam os mesmos componentes | Evitar módulos/tabelas Sul e Nordeste duplicados | Acessar a rota geral do módulo com seletor global; grants do servidor continuam obrigatórios |
 | Consolidado por módulo começa pelo resumo de gestão existente | Não misturar saldos de produtos/unidades de medida diferentes nem inventar correspondência entre cadastros | Implementar tabela detalhada com identificação de origem e regras de agregação explícitas em incremento próprio |
+
+
+## Etapa A — decisões
+
+- O recorte industrial filtra produtos/operações/planejamento. Estoque é posição atual dos códigos relacionados ao recorte; não inventa saldo histórico. Sem mês específico/pedidos/filtros explícitos, estoque mostra todos os produtos da unidade. Cadastros, capacidades e metas sem vínculo de pedido não são rateados artificialmente.
+- Leituras gerais podem juntar programações. Escritas que dependem de um cabeçalho único exigem seleção de uma programação; ações por ID preservam a origem original. Não usar um ID sintético para escrever.
+- “Excluir histórico” passa a arquivar, com auditoria e consulta de arquivados. O mesmo vale para excluir a programação ativa. Nada é removido em cascata. Para reverter o comportamento, criar fluxo explícito de desarquivamento; não reintroduzir DELETE físico.

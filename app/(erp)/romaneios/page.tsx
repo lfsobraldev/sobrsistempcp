@@ -57,7 +57,7 @@ const MONTAGENS: Array<{
 ];
 
 export default function RomaneiosPage() {
-  const { selectedProgramacaoId } = useOps();
+  const { selectedProgramacaoId,recorteQuery } = useOps();
   const [pedido, setPedido] = useState<File | null>(null);
   const [usinagem, setUsinagem] = useState<File | null>(null);
   const [produtosFiltro, setProdutosFiltro] = useState<Produto[]>([]);
@@ -84,7 +84,7 @@ export default function RomaneiosPage() {
     setCarregandoFiltro(true);
 
     Promise.all([
-      fetch("/api/programacoes/ativa" + (selectedProgramacaoId ? "?id=" + encodeURIComponent(selectedProgramacaoId) : ""), { cache: "no-store" }),
+      fetch("/api/programacoes/ativa?recorte=1&"+recorteQuery, { cache: "no-store" }),
       fetch("/api/romaneios/preparados", { cache: "no-store" }),
     ])
       .then(async ([response, preparedResponse]) => {
@@ -111,7 +111,7 @@ export default function RomaneiosPage() {
     return () => {
       active = false;
     };
-  }, [selectedProgramacaoId]);
+  }, [selectedProgramacaoId,recorteQuery]);
 
   const preparadosPorPedido = useMemo(
     () => new Map(preparados.map((item) => [String(item.pedido), item])),

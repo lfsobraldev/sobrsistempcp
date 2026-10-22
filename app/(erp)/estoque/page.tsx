@@ -23,7 +23,9 @@ async function api(url: string, init?: RequestInit) { const r = await fetch(url,
 const post = (url: string, body: unknown) => api(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 export default function EstoquePage() {
-  const { me } = useOps();
+  const { me,recorteQuery } = useOps();
+  const [page,setPage]=useState(1),[total,setTotal]=useState(0);
+  const saldoRequest=useRef(0);
   const perfil = me?.perfil || "";
   const [classificacao,setClassificacao]=useState("");
   const [aba, setAba] = useState<"SALDOS" | "MOVIMENTAR" | "HISTORICO" | "CADASTROS" | "INVENTARIO">("SALDOS");
@@ -42,9 +44,10 @@ export default function EstoquePage() {
   const [linhas, setLinhas] = useState<Linha[]>([]); const [resumo, setResumo] = useState<Resumo | null>(null); const [load, setLoad] = useState(true);
   const [det, setDet] = useState<{ p: Linha; d: any } | null>(null);
   const carregarSaldos = useCallback(async () => {
-    setLoad(true);
-    try { const j = await api(`/api/estoque?classificacao=${classificacao}&q=${encodeURIComponent(q)}&local=${fLocal}&filtro=${filtro}`); setLinhas(j.produtos); setResumo(j.resumo); setErro(""); } catch (e) { msg(e); } finally { setLoad(false); }
-  }, [classificacao, q, fLocal, filtro]);
+    setLoad(true);const requisicao=++saldoRequest.current;
+    try { const j = await api(`/api/estoque?recorte=1&${recorteQuery}&page=${page}&classificacao=${classificacao}&q=${encodeURIComponent(q)}&local=${fLocal}&saldo=${filtro}`);if(requisicao!==saldoRequest.current)return;setTotal(j.total); setLinhas(j.produtos); setResumo(j.resumo); setErro(""); } catch (e) { msg(e); } finally { setLoad(false); }
+  }, [classificacao, q, fLocal, filtro,recorteQuery,page]);
+  useEffect(()=>setPage(1),[recorteQuery,classificacao,q,fLocal,filtro]);
   useEffect(() => { if (aba !== "SALDOS") return; const t = setTimeout(() => void carregarSaldos(), 250); return () => clearTimeout(t); }, [aba, carregarSaldos]);
   async function abrirProduto(p: Linha) { setDet({ p, d: null }); try { setDet({ p, d: await api("/api/estoque?produto=" + p.produto_id) }); } catch (e) { msg(e); setDet(null); } }
 
@@ -122,7 +125,7 @@ export default function EstoquePage() {
           <tbody>{!linhas.length ? <tr><td colSpan={8} className="cart-empty" data-label="">{load ? "Carregando…" : prods.length ? "Nenhum produto corresponde ao filtro." : "Nenhum produto cadastrado. Use Cadastros para criar produtos ou importar os códigos da programação."}</td></tr> : linhas.map((l) => <tr key={l.produto_id} className="clickable" onClick={() => void abrirProduto(l)}>
             <td data-label="Produto"><b>{l.codigo}</b><small>{l.descricao}</small></td><td data-label="Un.">{l.unidade_base}</td><td className="num" data-label="Físico">{n(l.fisico)}</td><td className="num" data-label="Reservado">{n(l.reservado)}</td><td className="num" data-label="Bloqueado">{n(l.bloqueado)}</td>
             <td className="num" data-label="Disponível"><b>{n(l.disponivel)}</b>{l.estoque_minimo > 0 && l.disponivel < l.estoque_minimo && <small style={{ color: "var(--warning)" }}>abaixo do mínimo</small>}</td><td className="num" data-label="Mínimo">{n(l.estoque_minimo)}</td><td className="num" data-label="Locais">{l.locais}</td></tr>)}</tbody></table></div>
-        <p className="cart-note">Disponível = físico − reservado − bloqueado. Quantidades na unidade base de cada produto; produtos com unidades diferentes não são somados.</p>
+        <div><button disabled={page===1||load} onClick={()=>setPage(p=>p-1)}>Anterior</button> Página {page} · {total} produtos <button disabled={load||page*50>=total} onClick={()=>setPage(p=>p+1)}>Próxima</button></div><p className="cart-note">Disponível = físico − reservado − bloqueado. Quantidades na unidade base de cada produto; produtos com unidades diferentes não são somados.</p>
       </section></>}
 
     {aba === "MOVIMENTAR" && <section className="cart-panel">

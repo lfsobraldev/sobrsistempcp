@@ -26,3 +26,10 @@ Variável nova para a Vercel: `ERP_PROGRAMACAO_STATUS=enabled`. Padrão desligad
 Validação manual: ativar a flag em homologação com schema preparado; importar 11/2026 como planejado e verificar que não soma no ativo; consultar Planejados e Todos explicitamente; ativar novembro, conferir encerramento do anterior e auditoria; repetir ação sem novo evento; tentar importar/desfazer em mês encerrado (recusado). Testar filtros múltiplos de pedidos/filtros/competência/status e comparar lista, gráfico, totais e exportação. Com usuário Sul, tentar URL Nordeste e consolidado (recusado); com ambas as unidades e gestão, acessar resumo consolidado; trocar unidade e conferir que a URL anterior não é reaproveitada.
 
 Testes locais: 135 aprovados no grupo, incluindo SQL real de ativação/encerramento, planejados fora do ativo, rollback de mês sem itens e verificação de tenant/RBAC. TypeScript e build aprovados. Links pendentes de abertura dos PRs registrados em PROGRESSO; nenhuma nova URL de deploy, pois publicação está suspensa por instrução do usuário.
+
+## Etapa A — 22/10/2026
+Recorte compartilhado nas visões industriais e seus leitores auxiliares, OF/MRP e posição de estoque. Consolidados detalhados por módulo com grants em ambas as unidades. Assistente mensal em três passos e URL canônica. Histórico arquivado sem exclusão de eventos (migração 09 somente gerada). Operações em várias programações são consultivas quando a escrita exige origem única. Metas/cadastros sem vínculo com pedidos continuam globais da unidade.
+
+Validação: suíte local, tipos e build; nenhuma consulta ao banco de produção. Validar manualmente selecionando dois filtros, mês e pedidos no cabeçalho e navegando entre painel, sequenciamento, perdas e operações; conferir alteração de cartões/tabela/datas e preservação da URL; arquivar um histórico e confirmar consulta pela opção de arquivados. Importação: unidade/mês → arquivo → prévia → confirmação. Homologação visual com dados reais permanece necessária.
+
+Branch dependente da anterior; PR a abrir: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-etapa-a-fechamento . Sem merge/deploy.

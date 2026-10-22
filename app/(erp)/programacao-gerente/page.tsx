@@ -18,7 +18,7 @@ import {
   CalendarClock,
   AlertTriangle,
 } from "lucide-react";
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 import { Panel } from "@/components/ui";
 import type { Produto } from "@/types/pcp";
 import { LABELS, resumoMaquinas } from "@/lib/metrics";
@@ -171,7 +171,7 @@ function classStatus(value: string) {
 }
 
 export default function ProgramacaoGerentePage() {
-  const { pg, refresh, lastSync } = useOps();
+  const { pg, refresh, lastSync,recorteQuery } = useOps();
   const produtos = pg?.produtos || [];
 
   const [view, setView] = useState<ViewMode>("PEDIDOS");
@@ -190,7 +190,7 @@ export default function ProgramacaoGerentePage() {
 
   useEffect(() => {
     let ativo = true;
-    fetch("/api/gestao-producao", { cache: "no-store" })
+    fetch("/api/gestao-producao?recorte=1&"+recorteQuery, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { controles: [], excecoes: [] }))
       .then((j) => {
         if (ativo) {
@@ -203,7 +203,7 @@ export default function ProgramacaoGerentePage() {
     return () => {
       ativo = false;
     };
-  }, [pg?.id, lastSync?.getTime()]);
+  }, [pg?.id, lastSync?.getTime(),recorteQuery]);
 
   const pedidos = useMemo(() => {
     const map = new Map<string, Produto[]>();
@@ -407,7 +407,7 @@ export default function ProgramacaoGerentePage() {
   async function salvarPrazo(pedido: string, dataEntrega: string) {
     setSavingPrazo(pedido);
     try {
-      const r = await fetch("/api/gestao-producao", {
+      const r = await fetch("/api/gestao-producao?recorte=1&"+recorteQuery, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ pedido, dataEntrega }),

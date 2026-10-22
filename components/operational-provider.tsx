@@ -9,6 +9,8 @@ import {
   useRef,
   useState,
 } from "react";
+import {usePCPFilters} from "@/hooks/use-pcp-filters";
+import type {OpcoesPCP} from "@/components/pcp-filter-bar";
 import { canalUnidade } from "@/lib/unidades/context-client";
 import type { Andon, Programacao, Sessao } from "@/types/pcp";
 import { produtoEntraPCP } from "@/lib/sort";
@@ -26,6 +28,7 @@ type RealtimeStatus =
   | "indisponivel";
 
 type Ctx = {
+  pgVisao:Programacao|null; recorteLoading:boolean; recorteErro:string; recorteQuery:string; recorteOpcoes:OpcoesPCP;
   me: Sessao | null;
   pg: Programacao | null;
   selectedProgramacaoId: string;
@@ -46,6 +49,10 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
   const [pg, setPg] = useState<Programacao | null>(null);
   const [selectedProgramacaoId, setSelectedProgramacaoId] = useState("");
   const selectedProgramacaoIdRef = useRef("");
+  const {query:recorteQuery}=usePCPFilters(selectedProgramacaoId);
+  const [pgVisao,setPgVisao]=useState<Programacao|null>(null);
+  const [recorteLoading,setRecorteLoading]=useState(false),[recorteErro,setRecorteErro]=useState('');
+  const [recorteOpcoes,setRecorteOpcoes]=useState<OpcoesPCP>({filtros:[],meses:[],pedidos:[]});
   const [andon, setAndon] = useState<Andon[]>([]);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
@@ -266,10 +273,17 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
     []
   );
 
+  useEffect(()=>{
+    if(!me||(me.multiunidade&&!me.unidadeAtiva))return;
+    const c=new AbortController();setRecorteLoading(true);setRecorteErro('');setPgVisao(null);
+    fetch('/api/programacoes/ativa?recorte=1&'+recorteQuery,{signal:c.signal,cache:'no-store'}).then(async r=>{const b=await r.json();if(!r.ok)throw new Error(b.error||'Falha ao carregar o recorte.');return b;}).then(b=>{if(c.signal.aborted)return;setPgVisao(b.programacao?{...b.programacao,produtos:(b.programacao.produtos||[]).filter(produtoEntraPCP)}:null);if(b.opcoes)setRecorteOpcoes(b.opcoes);}).catch(e=>{if(!c.signal.aborted)setRecorteErro(e.message);}).finally(()=>{if(!c.signal.aborted)setRecorteLoading(false);});
+    return()=>c.abort();
+  },[recorteQuery,me?.usuario,me?.unidadeAtiva,lastSync]);
+
   const value = useMemo(
     () => ({
       me,
-      pg,
+      pg,pgVisao,recorteLoading,recorteErro,recorteQuery,recorteOpcoes,
       selectedProgramacaoId,
       selectProgramacao,
       andon,
@@ -281,7 +295,7 @@ export function OperationalProvider({ children }: { children: React.ReactNode })
     }),
     [
       me,
-      pg,
+      pg,pgVisao,recorteLoading,recorteErro,recorteQuery,recorteOpcoes,
       selectedProgramacaoId,
       selectProgramacao,
       andon,
@@ -314,3 +328,6 @@ export function useOps() {
   if (!v) throw new Error("useOps fora do provider");
   return v;
 }
+
+/** Somente visões/ações por ID; importação e contexto mantêm useOps operacional. */
+export function useOpsVisao(){const v=useOps();const ids=new Set(v.pgVisao?.produtos.flatMap(p=>p.operacoes.map(o=>o.id))||[]);return {...v,pg:v.pgVisao,andon:v.andon.filter(a=>ids.has(a.operacao_id)),loading:v.loading||v.recorteLoading};}

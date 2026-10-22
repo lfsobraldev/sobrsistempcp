@@ -5,13 +5,14 @@ import { Trash2 } from "lucide-react";
 import { useOps } from "@/components/operational-provider";
 import { Badge, DataTable, Card, PageHeader, Empty, type Tone } from "@/components/ui";
 
-type Programacao = { id: string; filtro: string; data: string; turno: string; origem: string; import_pedidos: number; import_ofs: number; import_pecas: number; status: string };
+type Programacao = { id: string; filtro: string; data: string; turno: string; origem: string; import_pedidos: number; import_ofs: number; import_pecas: number; status: string;arquivada?:boolean };
 type Evento = { id: string; criado_em: string; usuario: string; tipo: string; of?: string; processo?: string; descricao: string };
 
 const tone = (s: string): Tone => (s === "ATIVA" ? "success" : s === "ARQUIVADA" ? "neutral" : "info");
 
 export default function Historico() {
   const { toast, me } = useOps();
+  const [arquivadas,setArquivadas]=useState(false);
   const [h, setH] = useState<Programacao[]>([]);
   const [a, setA] = useState<Evento[]>([]);
   const [confirmClear, setConfirmClear] = useState(false);
@@ -19,13 +20,13 @@ export default function Historico() {
 
   useEffect(() => {
     Promise.all([
-      fetch("/api/programacoes/historico", { cache: "no-store" }),
+      fetch("/api/programacoes/historico?arquivadas="+arquivadas, { cache: "no-store" }),
       fetch("/api/auditoria", { cache: "no-store" }),
     ]).then(async ([x, y]) => {
       if (x.ok) setH((await x.json()).itens || []);
       if (y.ok) setA((await y.json()).itens || []);
     });
-  }, []);
+  }, [arquivadas]);
 
   async function apagarHistorico() {
     if (!confirmClear) {
@@ -37,13 +38,13 @@ export default function Historico() {
     try {
       const r = await fetch("/api/programacoes/historico", { method: "DELETE" });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Falha ao apagar histórico.");
+      if (!r.ok) throw new Error(j.error || "Falha ao arquivar histórico.");
       setConfirmClear(false);
       setH((atual) => atual.filter((x) => x.status === "ATIVA"));
-      setA([]);
+
       toast("success", j.mensagem || "Histórico apagado.");
     } catch (e: any) {
-      toast("error", e.message || "Falha ao apagar histórico.");
+      toast("error", e.message || "Falha ao arquivar histórico.");
     } finally {
       setBusy(false);
     }
@@ -63,12 +64,13 @@ export default function Historico() {
             onClick={() => void apagarHistorico()}
           >
             <Trash2 />
-            {confirmClear ? "Confirmar exclusão do histórico" : "Apagar histórico"}
+            {confirmClear ? "Confirmar arquivamento" : "Arquivar histórico"}
           </button>
         ) : undefined}
       />
 
-      <Card subtitle="Últimas 50 liberações" title="Programações" className="mb">
+      <label><input type="checkbox" checked={arquivadas} onChange={e=>setArquivadas(e.target.checked)}/> Mostrar programações arquivadas</label>
+      <Card subtitle="Últimas 200 liberações" title="Programações" className="mb">
         {h.length ? (
           <DataTable head={["Filtro", "Data", "Turno", "Origem", "Pedidos", "OFs", "Peças", "Status"]}>
             {h.map((x) => (
@@ -80,7 +82,7 @@ export default function Historico() {
                 <td className="num">{x.import_pedidos}</td>
                 <td className="num">{x.import_ofs}</td>
                 <td className="num">{Number(x.import_pecas || 0).toLocaleString("pt-BR")}</td>
-                <td><Badge tone={tone(x.status)}>{x.status}</Badge></td>
+                <td><Badge tone={tone(x.status)}>{x.arquivada?"ARQUIVADA":x.status}</Badge></td>
               </tr>
             ))}
           </DataTable>

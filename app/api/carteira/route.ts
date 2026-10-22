@@ -1,3 +1,4 @@
+import {idsProdutosRecorte} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
@@ -33,7 +34,11 @@ async function unidadeGET(req: Request) {
     await requireRoles([...ROLES]);
     const url = new URL(req.url);
     const db = sql();
-    const prog = await programacao(db, url.searchParams.get("programacaoId")?.trim() || "");
+    const selecao=url.searchParams.get("recorte")==="1"?await idsProdutosRecorte(db,url.searchParams):null;
+    const prodIds=selecao?.map(p=>String(p.id))||[];
+    const pgIds=[...new Set(selecao?.map(p=>String(p.programacao_id))||[])];
+    const progBase = await programacao(db, url.searchParams.get("programacaoId")?.trim() || "");
+    const prog=selecao?{id:pgIds[0]||null,filtro:"Recorte global"}:progBase;
     const [tCtl, tPed, tRom, tCar, tSac, tEv, tEt] = await Promise.all(
       ["pcp_controle_entregas", "pcp_pedido_controle", "pcp_romaneios_preparados", "pcp_controle_entregas_carregamentos", "pcp_sac_atendimentos", "pcp_controle_entregas_eventos", "pcp_controle_entregas_etapas"].map((t) => existe(db, t)),
     );
@@ -49,7 +54,7 @@ async function unidadeGET(req: Request) {
           coalesce(sum(case when p.percentual_produto>=100 then p.quantidade else 0 end),0) concluida,
           coalesce(sum(p.quantidade*p.percentual_produto/100.0),0) equivalente
         from pcp_produtos p
-        where p.programacao_id=${prog.id}
+        where (${selecao===null} and p.programacao_id=${prog.id}::uuid or p.id=any(${prodIds}::uuid[]))
           and not exists(select 1 from pcp_controle_entregas c where c.pedido=p.pedido and c.status='ENTREGUE')
         group by p.produto order by coalesce(sum(p.quantidade-(p.quantidade*p.percentual_produto/100.0)),0) desc limit 1000` : await db`
         select p.produto, max(p.descricao) descricao, max(p.categoria) categoria,
@@ -57,7 +62,7 @@ async function unidadeGET(req: Request) {
           coalesce(sum(case when p.percentual_produto>=100 then p.quantidade else 0 end),0) concluida,
           coalesce(sum(p.quantidade*p.percentual_produto/100.0),0) equivalente
         from pcp_produtos p
-        where p.programacao_id=${prog.id}
+        where (${selecao===null} and p.programacao_id=${prog.id}::uuid or p.id=any(${prodIds}::uuid[]))
         group by p.produto order by coalesce(sum(p.quantidade-(p.quantidade*p.percentual_produto/100.0)),0) desc limit 1000`;
       return NextResponse.json({
         programacaoId: String(prog.id), filtro: String(prog.filtro || ""),
@@ -70,7 +75,7 @@ async function unidadeGET(req: Request) {
     if (pedidoDet) {
       const itens = prog ? await db`
         select item,produto,descricao,tipo,cor,quantidade,of,percentual_produto,prioridade
-        from pcp_produtos where programacao_id=${prog.id} and pedido=${pedidoDet}
+        from pcp_produtos where (${selecao===null} and programacao_id=${prog.id}::uuid or id=any(${prodIds}::uuid[])) and pedido=${pedidoDet}
         order by case when item ~ '^[0-9]{1,9}$' then item::int end nulls last, item, of` : [];
       const cargas = tCar ? await db`select id,romaneio,quantidade,volume_m3,nota_fiscal,transportadora,data_saida::text data_saida,data_entrega::text data_entrega,status,usuario,criado_em from pcp_controle_entregas_carregamentos where pedido=${pedidoDet} order by criado_em desc` : [];
       const ev = tEv ? await db`select acao,anterior,atual,usuario,criado_em from pcp_controle_entregas_eventos where pedido=${pedidoDet} order by criado_em desc limit 100` : [];
@@ -96,15 +101,15 @@ async function unidadeGET(req: Request) {
         coalesce(nullif(max(nullif(trim(cc.nome_fantasia),'')),''),nullif(max(trim(cc.razao_social)),''),nullif(max(trim(p.pedido_cliente)),''),'') cliente_pcp
       from pcp_produtos p left join pcp_controle_entregas c on c.pedido=p.pedido
       left join crm_clientes cc on cc.id=c.crm_cliente_id
-      where p.programacao_id=${prog.id} group by p.pedido` : prog ? await db`
+      where (${selecao===null} and p.programacao_id=${prog.id}::uuid or p.id=any(${prodIds}::uuid[])) group by p.pedido` : prog ? await db`
       select p.pedido, count(*)::int linhas, count(distinct nullif(p.of,''))::int ofs,
         coalesce(sum(p.quantidade),0) pecas,
         coalesce(sum(case when p.percentual_produto>=100 then p.quantidade else 0 end),0) concluidas,
         coalesce(sum(p.quantidade*p.percentual_produto)/nullif(sum(p.quantidade),0),0) avanco,
         coalesce(nullif(max(trim(p.pedido_cliente)),''),'') cliente_pcp
-      from pcp_produtos p where p.programacao_id=${prog.id} group by p.pedido` : [];
-    const prazosPcp = prog && tPed ? await db`select pedido,cliente,data_entrega::text data_entrega,atualizado_por,atualizado_em from pcp_pedido_controle where programacao_id=${prog.id}` : [];
-    const rom = prog && tRom ? await db`select pedido,max(nullif(trim(cliente),'')) cliente from pcp_romaneios_preparados where programacao_id=${prog.id} group by pedido` : [];
+      from pcp_produtos p where (${selecao===null} and p.programacao_id=${prog.id}::uuid or p.id=any(${prodIds}::uuid[])) group by p.pedido` : [];
+    const prazosPcp = prog && tPed ? await db`select pedido,cliente,data_entrega::text data_entrega,atualizado_por,atualizado_em from pcp_pedido_controle where programacao_id=any(${selecao===null?[prog.id]:pgIds}::uuid[])` : [];
+    const rom = prog && tRom ? await db`select pedido,max(nullif(trim(cliente),'')) cliente from pcp_romaneios_preparados where programacao_id=any(${selecao===null?[prog.id]:pgIds}::uuid[]) group by pedido` : [];
     const ctl = tCtl && tCrmLink ? await db`select c.pedido,c.cliente,c.representante,c.crm_cliente_id,
       coalesce(nullif(cc.nome_fantasia,''),cc.razao_social) crm_cliente_nome,
       c.uf,c.cidade,c.status,c.previsao_informada::text previsao_informada,c.previsao_entrega::text previsao_entrega,
@@ -151,7 +156,7 @@ async function unidadeGET(req: Request) {
     return NextResponse.json({
       programacaoId: prog ? String(prog.id) : "", filtro: prog ? String(prog.filtro || "") : "",
       fontes: { controleEntregas: tCtl, prazosPcp: tPed, remessas: tCar, sac: tSac, estoque: false },
-      pedidos: itens,
+      pedidos: selecao?itens.filter(p=>selecao.some(i=>String(i.pedido)===p.pedido)):itens,
     }, { headers });
   } catch (e: any) {
     const forb = e?.message === "SEM_PERMISSAO";

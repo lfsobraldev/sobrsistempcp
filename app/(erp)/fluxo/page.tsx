@@ -1,6 +1,6 @@
 "use client";
 
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 import { LABELS, atual } from "@/lib/metrics";
 import { PROCESSOS } from "@/lib/processos";
 import { Badge, Empty, PageHeader, Status } from "@/components/ui";

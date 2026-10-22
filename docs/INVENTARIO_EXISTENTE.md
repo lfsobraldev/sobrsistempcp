@@ -52,3 +52,13 @@ As páginas mensais originais eram demonstrações estáticas. Foram substituíd
 | Validação de unidade em consulta | melhorado | `lib/unidades/core.ts`, `handler.ts`, seletor | URL não muda fonte; troca elimina query antiga |
 | Situação da competência mensal | criado | migração 08, `lib/programacao-mensal-service.ts`, API e componente mensal existentes | Conceito não existia: lotes tinham status próprio, distinto de mês ativo/planejado/encerrado. Sem tabela de programação paralela |
 | Filtros mensais por pedido e status | melhorado | `lib/programacao-mensal.ts`, service e componente mensal | Mesmos filtros alcançam lista, totais, gráfico e exportação |
+
+
+## Etapa A
+
+| Item | Situação | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Recorte nas visões restantes | melhorado | provider operacional, páginas industriais, APIs de carteira/entregas/gestão/perdas/inteligência/estoque | Query canônica com parâmetros repetidos; metadados sem vínculo industrial permanecem globais da unidade |
+| Consolidado por módulo | melhorado | API consolidada existente, `consolidado-modulo.ts`, componente de detalhe | PCP, operações, programação e estoque; paginação distribuída entre fontes; nenhuma soma de unidades incompatíveis |
+| Importação em passos | melhorado | componente mensal e hook existentes | Unidade/mês → arquivo → prévia/confirmação; restauração e exportação compartilham recorte |
+| Arquivamento seguro | melhorado | APIs de programação/histórico, migração 09 | Retém linhas e eventos; ausente a migração, ação bloqueada com mensagem explícita |

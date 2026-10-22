@@ -10,6 +10,7 @@ export type Operacao = {
   quantidadeRefugo: number; fixada?: boolean; iniciadoEm?: string|null; finalizadoEm?: string|null;
 };
 export type Produto = {
+  programacaoId?:string;
   id:string; filtro:string; pedido:string; item:string; produto:string; descricao:string; tipo:string; canal:string;
   rebaixo:string; acabamento:string; cor:string; quantidade:number; pedidoCliente:string; statusEngenharia:string;
   of:string; percentualProduto:number; codigoModelo:string; descricaoModelo:string; outrasCaracteristicas:string;

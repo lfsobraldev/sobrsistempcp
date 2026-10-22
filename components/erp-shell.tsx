@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import GlobalPCPFilters from "@/components/global-pcp-filters";
 import UnidadeSelector from "./unidade-selector";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -70,7 +71,7 @@ const menus: MenuGroup[] = [
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/comercial", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas", SAC: "/sac" };
 
 function Inner({ children }: { children: React.ReactNode }) {
-  const { me, pg, selectedProgramacaoId, selectProgramacao, lastSync, realtimeStatus, refresh, toast, loading } = useOps();
+  const { me, pg, selectedProgramacaoId, selectProgramacao, lastSync, realtimeStatus, refresh, toast, loading,recorteQuery } = useOps();
   const path = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -127,7 +128,7 @@ function Inner({ children }: { children: React.ReactNode }) {
   function searchModule() {
     const q = query.trim().toLocaleLowerCase("pt-BR");
     const found = q && allVisible.find((i) => i.label.toLocaleLowerCase("pt-BR").includes(q));
-    if (found) { router.push(found.path); setQuery(""); }
+    if (found) { router.push(found.path+window.location.search); setQuery(""); }
   }
 
   if (loading) return <div className="boot"><BrandLogo size={42} /><b>Sobral PCP</b><span>Preparando ambiente...</span></div>;
@@ -149,7 +150,7 @@ function Inner({ children }: { children: React.ReactNode }) {
               {g.items.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link key={item.path} href={item.path} className={`navlink ${path === item.path ? "active" : ""}`} title={collapsed ? item.label : undefined} aria-current={path === item.path ? "page" : undefined}>
+                  <Link key={item.path} href={item.path+"?"+recorteQuery} className={`navlink ${path === item.path ? "active" : ""}`} title={collapsed ? item.label : undefined} aria-current={path === item.path ? "page" : undefined}>
                     <Icon /><span>{item.label}</span>
                   </Link>
                 );
@@ -223,7 +224,7 @@ function Inner({ children }: { children: React.ReactNode }) {
       <main className="main">
         {workspaceTabs.length > 1 && <nav className="erp-workspace-tabs" aria-label="Módulos abertos">
           {workspaceTabs.map((tab) => <div key={tab.path} className={tab.path === path ? "erp-workspace-tab active" : "erp-workspace-tab"}>
-            <button type="button" onClick={() => router.push(tab.path)} title={tab.label}>{tab.label}</button>
+            <button type="button" onClick={() => router.push(tab.path+window.location.search)} title={tab.label}>{tab.label}</button>
             <button type="button" className="erp-workspace-close" title={`Fechar ${tab.label}`} aria-label={`Fechar ${tab.label}`}
               onClick={() => {
                 setWorkspaceTabs((previous) => previous.filter((item) => item.path !== tab.path));
@@ -231,7 +232,7 @@ function Inner({ children }: { children: React.ReactNode }) {
               }}>×</button>
           </div>)}
         </nav>}
-        <div className={`page ${["/programacao", "/programacao-gerente"].includes(path) ? "industrial-page-area" : ""}`}><UnidadeSelector bloquear>{children}</UnidadeSelector></div>
+        <div className={`page ${["/programacao", "/programacao-gerente"].includes(path) ? "industrial-page-area" : ""}`}><UnidadeSelector bloquear><GlobalPCPFilters/>{children}</UnidadeSelector></div>
       </main>
       <AiAssistant />
       <RomaneioAIModal />

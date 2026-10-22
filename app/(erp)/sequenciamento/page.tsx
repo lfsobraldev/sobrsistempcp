@@ -2,7 +2,7 @@
 
 import { ArrowDown, ArrowUp, FileSpreadsheet, Pin, PinOff } from "lucide-react";
 import { useState } from "react";
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 import { LABELS, queueRows } from "@/lib/metrics";
 import { PROCESSOS } from "@/lib/processos";
 import { FAMILIAS, familiaDe } from "@/lib/sort";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {useOps} from "@/components/operational-provider";
 import Link from "next/link";
 import { AlertTriangle, Download, RefreshCw, X } from "lucide-react";
 import { exportarExcel } from "@/lib/export";
@@ -26,6 +27,7 @@ const n = (v: number | null) => (v === null ? "—" : v.toLocaleString("pt-BR", 
 const BRANCO: Filtros = { q: "", cliente: "", situacao: "", statusEntrega: "", prazoDe: "", prazoAte: "", somenteComSaldo: false, somenteComSac: false, somenteComAlerta: false };
 
 export default function CarteiraPage() {
+  const {recorteQuery}=useOps();
   const [lista, setLista] = useState<PedidoCarteira[]>([]);
   const [prods, setProds] = useState<Prod[]>([]);
   const [fontes, setFontes] = useState<Fontes | null>(null);
@@ -45,20 +47,20 @@ export default function CarteiraPage() {
   const carregar = useCallback(async () => {
     setLoading(true); setErro("");
     try {
-      const [a, b] = await Promise.all([fetch("/api/carteira", { cache: "no-store" }), fetch("/api/carteira?visao=produtos", { cache: "no-store" })]);
+      const [a, b] = await Promise.all([fetch("/api/carteira?recorte=1&"+recorteQuery, { cache: "no-store" }), fetch("/api/carteira?visao=produtos&recorte=1&"+recorteQuery, { cache: "no-store" })]);
       const ja = await a.json(), jb = await b.json();
       if (!a.ok) throw new Error(ja.error || "Não foi possível carregar a carteira.");
       setLista(ja.pedidos || []); setFontes(ja.fontes || null); setFiltro(ja.filtro || ""); setProgId(ja.programacaoId || "");
       setProds(b.ok ? jb.produtos || [] : []);
     } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao carregar."); }
     finally { setLoading(false); }
-  }, []);
+  }, [recorteQuery]);
   useEffect(() => { void carregar(); }, [carregar]);
 
   const abrir = useCallback(async (p: PedidoCarteira) => {
     setSel(p); setDet(null); setDetErro("");
     try {
-      const r = await fetch("/api/carteira?pedido=" + encodeURIComponent(p.pedido) + (progId ? "&programacaoId=" + progId : ""), { cache: "no-store" });
+      const r = await fetch("/api/carteira?recorte=1&"+recorteQuery+"&pedido=" + encodeURIComponent(p.pedido) + (progId ? "&programacaoId=" + progId : ""), { cache: "no-store" });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Falha ao carregar o pedido.");
       setDet(j);

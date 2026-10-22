@@ -90,7 +90,7 @@ export default function ApontamentoOperacoes() {
     {ok && <p role="status" className="cart-msg info">{ok}</p>}
     <section className="cart-panel">
       <div className="cart-filters">
-        <PCPFilterBar filtros={filtros} opcoes={opcoes} onChange={setFiltros} onClear={limpar}/>
+
         <label>Setor<select value={processo} onChange={(e) => setProcesso(e.target.value)}><option value="">Todos</option>{meusSetores.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
         <label>Situação<select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todas</option>{STATUS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
         <label>Pesquisar<input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pedido, OF ou produto" /></label>

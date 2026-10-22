@@ -74,7 +74,7 @@ export default function PainelPCP() {
   return <div className="cart-page">
     <header className="cart-hero"><span>PCP · PLANEJAMENTO E CONTROLE</span><h1>Painel PCP</h1>
       <p>Planejado × realizado × restante por setor, capacidade, gargalos e pedidos em risco — calculados dos apontamentos e capacidades cadastrados. Programação <b>{d?.filtro || "—"}</b>.</p></header>
-    <PCPFilterBar filtros={filtros} opcoes={d?.opcoes||{filtros:[],meses:[],pedidos:[]}} onChange={setFiltros} onClear={limpar}/>
+
     <div className="cart-actions">
       <button className="cart-btn" onClick={() => void carregar()} disabled={loading}><RefreshCw size={16} /> {loading ? "Atualizando…" : "Atualizar"}</button>
       <button className="cart-btn" onClick={() => void exportar()} disabled={!d || d.vazio}><Download size={16} /> Exportar Excel</button>
