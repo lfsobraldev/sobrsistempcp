@@ -46,7 +46,7 @@ const menus: MenuGroup[] = [
       { path: "/andon", label: "Andon", icon: Bell },
     ],
   },
-  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }] },
+  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }, { path: "/qualidade-inspecao", label: "Inspeção e CAPA", icon: ClipboardCheck }] },
   {
     label: "Expedição e Entregas",
     items: [

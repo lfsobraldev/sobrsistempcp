@@ -849,6 +849,33 @@
       "verificacao": "26_2026-10-24_16_compras_terceiros.verify.sql",
       "down": "26_2026-10-24_16_compras_terceiros.down.sql",
       "baseline": "26_2026-10-24_16_compras_terceiros.baseline.sql"
+    },
+    {
+      "ordem": 27,
+      "arquivo": "2026-10-25_17_qualidade_inspecao.sql",
+      "descricao": "Planos de inspeção, instrumentos/calibração, medições com tolerância, quarentena, NC/CAPA e PPM",
+      "dependenciasDeclaradas": [
+        "2026-10-24_16_compras_terceiros.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "8df2d4bb2fd6597978d471ad31a52501731f6e8cb7e9243793ae1ec9685fb99e",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "qld_instrumentos",
+        "qld_planos",
+        "qld_plano_caracteristicas",
+        "qld_lotes_inspecao",
+        "qld_medicoes",
+        "qld_nao_conformidades",
+        "qld_acoes"
+      ],
+      "colunasAdicionadas": [],
+      "up": "27_2026-10-25_17_qualidade_inspecao.up.sql",
+      "verificacao": "27_2026-10-25_17_qualidade_inspecao.verify.sql",
+      "down": "27_2026-10-25_17_qualidade_inspecao.down.sql",
+      "baseline": "27_2026-10-25_17_qualidade_inspecao.baseline.sql"
     }
   ]
 }
