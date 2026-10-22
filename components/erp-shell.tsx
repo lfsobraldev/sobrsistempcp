@@ -6,9 +6,12 @@ import UnidadeSelector from "./unidade-selector";
 import { ResponsiveTables } from "./responsive-tables";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Bell, Boxes, BrainCircuit, Briefcase, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
+  Bell, Boxes, Briefcase, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
   PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
   UploadCloud, UsersRound, Truck, ClipboardCheck, type LucideIcon,
+  Megaphone, FileText, PackageCheck, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
+  AlertOctagon, Siren, ScanSearch, BadgeCheck, Undo2, Receipt, Landmark, Calculator, Wrench, FolderOpen, LineChart, Headset,
+  TrendingUp, Gauge, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { OperationalProvider, useOps } from "@/components/operational-provider";
@@ -16,6 +19,7 @@ import AiAssistant from "@/components/ai-assistant";
 import RomaneioAIModal from "@/components/romaneio-ai";
 import { allowedPath } from "@/lib/permissions";
 import { BrandLogo } from "@/components/brand-logo";
+import { DoorLoader } from "@/components/door-art";
 
 type MenuItem = { path: string; label: string; icon: LucideIcon };
 type MenuGroup = { label: string; items: MenuItem[] };
@@ -23,55 +27,55 @@ type MenuGroup = { label: string; items: MenuItem[] };
 const menus: MenuGroup[] = [
   { label: "Visão Geral", items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }] },
   { label: "Comercial", items: [
-    { path: "/marketing", label: "Marketing", icon: Briefcase },
+    { path: "/marketing", label: "Marketing", icon: Megaphone },
     { path: "/comercial", label: "CRM Comercial", icon: Briefcase },
-    { path: "/vendas", label: "Pedidos de Venda", icon: ClipboardList },
+    { path: "/vendas", label: "Pedidos de Venda", icon: ShoppingCart },
     { path: "/gestao-pedidos", label: "Pedidos e Entregas", icon: Truck },
   ] },
-  { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: ClipboardList }, { path: "/medicoes", label: "Medições e Aprovação", icon: ClipboardCheck }, { path: "/producao-consultas", label: "Rastreio e Onde é Usado", icon: ClipboardList }] },
-  { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: ClipboardList }] },
-  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Truck }, { path: "/estoque", label: "Estoque", icon: Boxes }] },
+  { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: Layers }, { path: "/medicoes", label: "Medições e Aprovação", icon: Ruler }, { path: "/producao-consultas", label: "Rastreio e Onde é Usado", icon: Target }] },
+  { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: FolderOpen }] },
+  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Receipt }, { path: "/estoque", label: "Estoque", icon: Warehouse }] },
   {
     label: "PCP e Produção",
     items: [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
-      { path: "/ordens-fabricacao", label: "Ordens de Fabricação", icon: ClipboardList },
-      { path: "/planejamento-mensal", label: "Planejamento mensal", icon: ClipboardList },
-      { path: "/planejamento-aps", label: "MRP, Gantt e S&OP", icon: Route },
-      { path: "/programacao-gerente", label: "Planejamento", icon: Route },
+      { path: "/ordens-fabricacao", label: "Ordens de Fabricação", icon: Hammer },
+      { path: "/planejamento-mensal", label: "Planejamento mensal", icon: CalendarRange },
+      { path: "/planejamento-aps", label: "MRP, Gantt e S&OP", icon: GanttChartSquare },
+      { path: "/programacao-gerente", label: "Planejamento", icon: ListOrdered },
       { path: "/apontamento-operacoes", label: "Apontamento de Operações", icon: ClipboardCheck },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
       { path: "/pcp-painel", label: "Painel PCP", icon: LayoutDashboard },
-      { path: "/integracao-consistem", label: "Integração Consistem", icon: RefreshCw },
+      { path: "/integracao-consistem", label: "Integração Consistem", icon: Network },
       { path: "/excecoes", label: "Faltas e Retrabalho", icon: PackageSearch },
-      { path: "/andon", label: "Andon", icon: Bell },
+      { path: "/andon", label: "Andon", icon: Siren },
     ],
   },
-  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }, { path: "/qualidade-inspecao", label: "Inspeção e CAPA", icon: ClipboardCheck }] },
+  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: BadgeCheck }, { path: "/qualidade-inspecao", label: "Inspeção e CAPA", icon: ScanSearch }] },
   {
     label: "Expedição e Entregas",
     items: [
-      { path: "/expedicao", label: "Remessas e Devoluções", icon: Truck },
-      { path: "/romaneios", label: "Romaneios", icon: Boxes },
-      { path: "/apontamento-entregas", label: "Apontamento de Entregas", icon: Truck },
+      { path: "/expedicao", label: "Remessas e Devoluções", icon: Undo2 },
+      { path: "/romaneios", label: "Romaneios", icon: FileText },
+      { path: "/apontamento-entregas", label: "Apontamento de Entregas", icon: PackageCheck },
     ],
   },
-  { label: "Custos, Fiscal e Financeiro", items: [{ path: "/custos", label: "Custos Industriais", icon: Boxes }, { path: "/fiscal", label: "Fiscal e NF-e", icon: ClipboardList }, { path: "/financeiro", label: "Financeiro e Contábil", icon: Boxes }] },
-  { label: "Manutenção e Documentos", items: [{ path: "/indicadores", label: "Indicadores e Integrações", icon: Boxes }, { path: "/manutencao", label: "Manutenção", icon: Boxes }, { path: "/documentos", label: "Documentos e Qualificação", icon: ClipboardList }] },
-  { label: "SAC", items: [{ path: "/sac", label: "Atendimento", icon: ClipboardList }] },
+  { label: "Custos, Fiscal e Financeiro", items: [{ path: "/custos", label: "Custos Industriais", icon: Calculator }, { path: "/fiscal", label: "Fiscal e NF-e", icon: Landmark }, { path: "/financeiro", label: "Financeiro e Contábil", icon: TrendingUp }] },
+  { label: "Manutenção e Documentos", items: [{ path: "/indicadores", label: "Indicadores e Integrações", icon: Gauge }, { path: "/manutencao", label: "Manutenção", icon: Wrench }, { path: "/documentos", label: "Documentos e Qualificação", icon: BookOpen }] },
+  { label: "SAC", items: [{ path: "/sac", label: "Atendimento", icon: Headset }] },
   {
     label: "Relatórios",
     items: [
       { path: "/prioridades", label: "Prioridades", icon: Flag },
-      { path: "/criticos", label: "Pedidos Críticos", icon: PackageSearch },
+      { path: "/criticos", label: "Pedidos Críticos", icon: AlertOctagon },
       { path: "/fluxo", label: "Fluxo de Produção", icon: Route },
-      { path: "/performance", label: "Performance", icon: RefreshCw },
-      { path: "/perdas", label: "Perdas de Produção", icon: PackageSearch },
+      { path: "/performance", label: "Performance", icon: LineChart },
+      { path: "/perdas", label: "Perdas de Produção", icon: TrendingDown },
       { path: "/historico", label: "Histórico", icon: History },
-      { path: "/sobral-ia", label: "Inteligência Operacional", icon: BrainCircuit },
+      { path: "/sobral-ia", label: "Assistente Operacional", icon: Activity },
     ],
   },
-  { label: "Administração", items: [{ path: "/acessos", label: "Usuários e Unidades", icon: ShieldCheck }, { path: "/configuracoes", label: "Configurações", icon: Settings }] },
+  { label: "Administração", items: [{ path: "/acessos", label: "Usuários e Unidades", icon: Users }, { path: "/configuracoes", label: "Configurações", icon: SlidersHorizontal }] },
 ];
 
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/comercial", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas", SAC: "/sac" };
@@ -85,6 +89,13 @@ function Inner({ children }: { children: React.ReactNode }) {
   const [mobileNav, setMobileNav] = useState(false);
   const [query, setQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [gruposAbertos, setGruposAbertos] = useState<string[]>([]);
+  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("erp:nav") || "[]"); if (Array.isArray(v)) setGruposAbertos(v.filter((x) => typeof x === "string")); } catch { /* sem armazenamento */ } }, []);
+  const alternarGrupo = (rotulo: string) => setGruposAbertos((a) => {
+    const n = a.includes(rotulo) ? a.filter((x) => x !== rotulo) : [...a, rotulo];
+    try { localStorage.setItem("erp:nav", JSON.stringify(n)); } catch { /* ignora */ }
+    return n;
+  });
   const [programacoesGlobais, setProgramacoesGlobais] = useState<Array<{id:string;filtro:string;data:string;turno:string;status:string}>>([]);
 
   const visible = useMemo(
@@ -148,7 +159,7 @@ function Inner({ children }: { children: React.ReactNode }) {
     if (found) { router.push(found.path+window.location.search); setQuery(""); }
   }
 
-  if (loading) return <div className="boot"><BrandLogo size={42} /><b>Sobral PCP</b><span>Preparando ambiente...</span></div>;
+  if (loading) return <div className="boot"><DoorLoader label="Sobral PCP" sub="Preparando ambiente" /></div>;
   if (!me) return null;
 
   const live = realtimeStatus === "tempo_real";
@@ -156,16 +167,17 @@ function Inner({ children }: { children: React.ReactNode }) {
     <div className={`shell ${collapsed ? "collapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
       <ResponsiveTables />
       <aside className="sidenav">
-        <div className="brand"><BrandLogo size={34} /><span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span></div>
         <div className="mobile-module-search search" role="search">
           <Search />
           <input aria-label="Buscar módulo" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") searchModule(); }} placeholder="Buscar módulo..." />
         </div>
         <nav aria-label="Navegação principal">
           {visible.map((g) => (
-            <section key={g.label} className="navgroup">
-              <label>{g.label}</label>
-              {g.items.map((item) => {
+            <section key={g.label} className={`navgroup ${(collapsed || gruposAbertos.includes(g.label) || g.items.some((i) => i.path === path)) ? "open" : ""}`}>
+              <button type="button" className="navgroup-head" aria-expanded={gruposAbertos.includes(g.label) || g.items.some((i) => i.path === path)} onClick={() => alternarGrupo(g.label)}>
+                <span>{g.label}</span><ChevronDown size={14} />
+              </button>
+              {(collapsed || gruposAbertos.includes(g.label) || g.items.some((i) => i.path === path)) && g.items.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link key={item.path} href={item.path+"?"+recorteQuery} className={`navlink ${path === item.path ? "active" : ""}`} title={collapsed ? item.label : undefined} aria-current={path === item.path ? "page" : undefined}>
@@ -186,6 +198,7 @@ function Inner({ children }: { children: React.ReactNode }) {
       {mobileNav && <button className="backdrop" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
 
       <header className="topbar2">
+        <Link href="/dashboard" className="shellbar-brand" aria-label="Sobral PCP, ir para o início"><BrandLogo size={30} /><span><b>Sobral PCP</b><small>Gestão industrial</small></span></Link>
         <button className="ghost iconBtn menubtn" onClick={() => setMobileNav(true)} aria-label="Abrir menu"><Menu /></button>
         <button className="ghost iconBtn" onClick={() => setCollapsed((v) => !v)} aria-label="Recolher menu" style={{ display: undefined }}>
           {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
