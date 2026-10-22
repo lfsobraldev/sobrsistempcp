@@ -1,0 +1,30 @@
+-- ATENÇÃO: revisar fonte, dependentes e backup antes de qualquer reversão.
+-- Down conservador pode não desfazer estrutura. Não tratar como recuperação de dados.
+BEGIN;
+select pg_advisory_xact_lock(hashtextextended('sobral:migracoes',0));
+drop function if exists erp_painel_funcao(text);
+drop trigger if exists erp_notif_alerta_t on sys_alertas;
+drop trigger if exists erp_notif_nc_t on qld_nao_conformidades;
+drop trigger if exists erp_notif_aprov_t on erp_aprovacoes;
+drop function if exists erp_trg_notif_alerta();
+drop function if exists erp_trg_notif_nc();
+drop function if exists erp_trg_notif_aprov();
+drop function if exists erp_notificacao_ler(uuid,text);
+drop function if exists erp_notificacoes_do_usuario(text,text,int);
+drop function if exists erp_notificar(text,text,text,text,text,text);
+drop table if exists erp_notificacoes_leituras;
+drop table if exists erp_notificacoes;
+drop function if exists erp_campo_gravar(text,text,text,jsonb,text);
+drop table if exists erp_campos_valores;
+drop table if exists erp_campos_def;
+drop trigger if exists erp_ev_periodo_t on fin_periodos;
+drop trigger if exists erp_ev_aprov_t on erp_aprovacoes;
+drop trigger if exists erp_ev_nc_t on qld_nao_conformidades;
+drop trigger if exists erp_ev_of_t on erp_ordens_fabricacao;
+drop function if exists erp_trg_ev_periodo();
+drop function if exists erp_trg_ev_aprov();
+drop function if exists erp_trg_ev_nc();
+drop function if exists erp_trg_ev_of();
+drop function if exists erp_evento(text,jsonb);
+drop table if exists erp_eventos;
+COMMIT;

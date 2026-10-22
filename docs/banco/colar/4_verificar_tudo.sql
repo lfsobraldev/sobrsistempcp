@@ -107,4 +107,42 @@ union all
 select 'migracao 27 registrada', exists(select 1 from schema_migrations where name='2026-11-04_27_wms_revisoes_sobras.sql' and status='APLICADA')
 union all
 select 'migracao 28 registrada', exists(select 1 from schema_migrations where name='2026-11-05_28_rh_ehs_projetos.sql' and status='APLICADA')
+union all
+select 'tabela erp_autorizacoes', to_regclass('public.erp_autorizacoes') is not null
+union all
+select 'tabela erp_aprovacoes', to_regclass('public.erp_aprovacoes') is not null
+union all
+select 'tabela erp_auditoria', to_regclass('public.erp_auditoria') is not null
+union all
+select 'tabela emb_planos', to_regclass('public.emb_planos') is not null
+union all
+select 'tabela cmp_fornecedor_avaliacoes', to_regclass('public.cmp_fornecedor_avaliacoes') is not null
+union all
+select 'tabela fin_periodos', to_regclass('public.fin_periodos') is not null
+union all
+select 'tabela fin_rateio_regras', to_regclass('public.fin_rateio_regras') is not null
+union all
+select 'tabela erp_eventos', to_regclass('public.erp_eventos') is not null
+union all
+select 'tabela erp_campos_def', to_regclass('public.erp_campos_def') is not null
+union all
+select 'tabela erp_notificacoes', to_regclass('public.erp_notificacoes') is not null
+union all
+select 'tabela rh_banco_horas_lanc', to_regclass('public.rh_banco_horas_lanc') is not null
+union all
+select 'tabela ehs_inspecoes', to_regclass('public.ehs_inspecoes') is not null
+union all
+select 'tabela ps_tarefa_dependencias', to_regclass('public.ps_tarefa_dependencias') is not null
+union all
+select 'migracao 30 registrada', exists(select 1 from schema_migrations where name='2026-11-07_30_seguranca_aprovacoes_auditoria.sql' and status='APLICADA')
+union all
+select 'migracao 31 registrada', exists(select 1 from schema_migrations where name='2026-11-08_31_embalagem_mrp_horizonte.sql' and status='APLICADA')
+union all
+select 'migracao 32 registrada', exists(select 1 from schema_migrations where name='2026-11-09_32_compras_qualidade_comercial.sql' and status='APLICADA')
+union all
+select 'migracao 33 registrada', exists(select 1 from schema_migrations where name='2026-11-10_33_financeiro_fechamento_rateio_margem.sql' and status='APLICADA')
+union all
+select 'migracao 34 registrada', exists(select 1 from schema_migrations where name='2026-11-11_34_plataforma_eventos_campos_notificacoes.sql' and status='APLICADA')
+union all
+select 'migracao 35 registrada', exists(select 1 from schema_migrations where name='2026-11-12_35_pessoas_ehs_projetos.sql' and status='APLICADA')
 ) x order by ok, item;
