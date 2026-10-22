@@ -1,3 +1,4 @@
+import {idsProdutosRecorte} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
@@ -53,12 +54,16 @@ async function ativa(db: ReturnType<typeof sql>) {
   return rows[0]?.id ? String(rows[0].id) : "";
 }
 
-async function unidadeGET() {
+async function unidadeGET(req:Request) {
   try {
     await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER"]);
     const db = sql();
     await ensure(db);
-    const programacaoId = await ativa(db);
+    const filtrada=new URL(req.url).searchParams.get('recorte')==='1';
+    const origem=filtrada?await idsProdutosRecorte(db,new URL(req.url).searchParams):null;
+    const pgIds=origem?[...new Set(origem.map(p=>String(p.programacao_id)))]:[await ativa(db)];
+    const pedidos=origem?[...new Set(origem.map(p=>String(p.pedido)))]:[];
+    const programacaoId=pgIds[0]||'';
 
     if (!programacaoId) {
       return NextResponse.json({ controles: [], excecoes: [] }, { headers: { "Cache-Control": "no-store" } });
@@ -79,7 +84,7 @@ async function unidadeGET() {
         atualizado_por,
         atualizado_em
       from pcp_pedido_controle
-      where programacao_id=${programacaoId}
+      where programacao_id=any(${pgIds}::uuid[]) and (${!filtrada} or pedido=any(${pedidos}::text[]))
       order by data_entrega nulls last, pedido
     `;
 
@@ -105,7 +110,7 @@ async function unidadeGET() {
         p.material
       from pcp_excecoes_peca e
       left join pcp_produtos p on p.id=e.produto_id
-      where e.programacao_id=${programacaoId}
+      where e.programacao_id=any(${pgIds}::uuid[]) and (${!filtrada} or pedido=any(${pedidos}::text[]))
       order by
         case when e.status='ABERTA' then 0 else 1 end,
         e.criado_em desc

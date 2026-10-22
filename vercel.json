@@ -2,7 +2,20 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
-      "erp-unidades-integracao": false
+      "erp-unidades-integracao": false,
+      "erp-master-b1-filtros": false,
+      "erp-master-b23-unidades-meses": false,
+      "erp-etapa-a-fechamento": false,
+      "erp-etapa-b-ciclo": false,
+      "erp-rodada-a-auditoria": false,
+      "erp-rodada-b-producao": false,
+      "erp-rodada-c-comercial": false,
+      "erp-rodada-d-qualidade": false,
+      "erp-rodada-e-compras": false,
+      "erp-rodada-f-mrp": false,
+      "erp-rodada-g-fiscal": false,
+      "erp-rodada-h-transversal": false,
+      "erp-final-auditoria-implantacao": false
     }
   }
 }

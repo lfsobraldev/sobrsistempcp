@@ -14,6 +14,8 @@ const arred = (n: number) => Math.round(n * 1000) / 1000;
 
 export function validarAcao(op: OpEstado, acao: Acao, valor: number | undefined, opts: { force?: boolean } = {}): Resultado {
   const st = op.status;
+  if(['SOMAR','PRODUZIDO','REFUGO'].includes(acao) && valor!==undefined && Number.isFinite(valor) && (Math.abs(valor)>9999999999999 || Math.abs(valor*1000-Math.round(valor*1000))>0.000001))
+    return bad(400,'QUANTIDADE_INVALIDA','Use quantidade com até três casas decimais, dentro do limite permitido.');
   switch (acao) {
     case "INICIAR":
       return ABERTAS.includes(st) ? { ok: true } : bad(409, "NAO_LIBERADA", "Essa operação ainda não está liberada.");
@@ -81,3 +83,6 @@ export function diagnosticarOperacoes(produtos: ProdutoDiag[], ops: OpDiag[]): D
   const peso = { ALTA: 0, MEDIA: 1, BAIXA: 2 } as const;
   return out.sort((a, b) => peso[a.gravidade] - peso[b.gravidade] || a.pedido.localeCompare(b.pedido, "pt-BR", { numeric: true }));
 }
+
+/** Ausência de setores é ausência de autorização; nunca significa acesso irrestrito. */
+export function podeOperarProcesso(perfil:string,processos:readonly string[]|undefined,processo:string){return ['PCP','GERENTE','ENCARREGADO'].includes(perfil)||(['LIDER','APONTADOR'].includes(perfil)&&Boolean(processos?.includes(processo)));}

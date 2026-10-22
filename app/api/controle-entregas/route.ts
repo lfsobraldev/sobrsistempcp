@@ -1,3 +1,5 @@
+import {enriquecerClientes} from '@/lib/clientes-operacionais';
+import {idsProdutosRecorte} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
 import {sql} from "@/lib/db";
@@ -68,12 +70,14 @@ async function unidadeGET(req:Request){
  try{
   const usuarioAtual=await requireRoles(["PCP","GERENTE","ENCARREGADO","COMERCIAL","LOGISTICA","LIDER_ENTREGAS"]);
   const db=sql();await ensure(db);
+  const parametros=new URL(req.url).searchParams,origem=parametros.get("recorte")==="1"?await idsProdutosRecorte(db,parametros):null,prodIds=origem?.map(p=>String(p.id))||[];
   const requestedId=new URL(req.url).searchParams.get("programacaoId")?.trim()||"";
   let active:any;
   if(requestedId){
    const found=await db`select id,filtro from pcp_programacoes where id=${requestedId} limit 1`;
    active=found[0];
-   if(!active)return NextResponse.json({error:"A programação selecionada não existe."},{status:404});
+   if(origem)active={id:origem[0]?.programacao_id||null,filtro:"Recorte global"};
+  if(!active)return NextResponse.json({error:"A programação selecionada não existe."},{status:404});
   }else{
    const rows=await db`select id,filtro from pcp_programacoes where status='ATIVA' order by criado_em desc limit 1`;
    active=rows[0];
@@ -88,7 +92,7 @@ async function unidadeGET(req:Request){
     left join pcp_pedido_controle pc on pc.programacao_id=p.programacao_id and pc.pedido=p.pedido
     left join pcp_romaneios_preparados rp on rp.programacao_id=p.programacao_id and rp.pedido=p.pedido
     left join pcp_controle_entregas ce on ce.pedido=p.pedido
-    where p.programacao_id=${active.id}
+    where (${origem===null} and p.programacao_id=${active.id}::uuid or p.id=any(${prodIds}::uuid[]))
     group by p.pedido
     order by case when p.pedido ~ '^[0-9]{1,18}$' then p.pedido::numeric end nulls last,p.pedido
   `;
@@ -103,13 +107,15 @@ async function unidadeGET(req:Request){
   });
   // Pedidos cadastrados no controle de entregas que não têm itens nesta programação continuam visíveis (antes ficavam ocultos).
   const naProgramacao=new Set(pedidos.map((p:any)=>normalizarPedido(p.pedido)));
-  for(const c of controls as any[]){
+  for(const c of origem?[]:controls as any[]){
     if(usuarioAtual.perfil==="LIDER_ENTREGAS")break; // líder de entregas continua vendo só a programação
     if(naProgramacao.has(normalizarPedido(c.pedido)))continue;
     pedidos.push({pedido:String(c.pedido),linhas:0,ofs:0,pecas:0,percentual:0,foraDaProgramacao:true,entrega:{...c,cliente:String(c.cliente||"").trim()}});
   }
+  const identificados=await enriquecerClientes(db,pedidos.map(p=>({...p,cliente:p.entrega?.cliente})));
+  pedidos.splice(0,pedidos.length,...identificados.map(p=>({...p,entrega:{...p.entrega,cliente:p.clienteNome,clienteCodigo:p.clienteCodigo,clienteId:p.clienteId,representante:p.representanteNome,representanteCodigo:p.representanteCodigo}})));
   if(usuarioAtual.perfil==="LIDER_ENTREGAS")return NextResponse.json({filtro:String(active.filtro||""),programacaoId:String(active.id),pedidos:pedidos.map((p:any)=>({pedido:p.pedido,ofs:p.ofs,pecas:p.pecas,percentual:p.percentual,entrega:{cliente:p.entrega?.cliente||""}}))},{headers:{"Cache-Control":"no-store"}});
-  return NextResponse.json({filtro:String(active.filtro||""),programacaoId:String(active.id),pedidos,eventos:events},{headers:{"Cache-Control":"no-store"}});
+  return NextResponse.json({filtro:String(active.filtro||""),programacaoId:String(active.id),pedidos,eventos:origem?events.filter((e:any)=>origem.some(p=>p.pedido===e.pedido)):events},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao consultar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}
 }
 function userScope(role:string,comercial:string[],logistica:string[]){return role==="COMERCIAL"?comercial:role==="LOGISTICA"?logistica:null;}

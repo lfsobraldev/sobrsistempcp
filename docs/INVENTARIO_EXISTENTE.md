@@ -33,3 +33,80 @@ CI de testes/build | parcial | `.github/workflows/verify-build.yml` | Testa/buil
 ## Revisão de 21/10/2026 — programação multimestre
 
 As páginas mensais originais eram demonstrações estáticas. Foram substituídas por `components/programacao-mensal.tsx` e `/api/programacao-mensal`. Importador reaproveitado: `lib/import-reader.ts`; parser/liberação industrial preservados. Não existe CSV de exemplo versionado. `pcp_programacoes.data_programacao` fornece competência dos dados legados, projetados sem cópia por views. Novos lotes/itens são a camada de planejamento mensal, sem duplicar ordens/produção. Detalhes, dependências, limites e validação: `RELATORIO_PROGRAMACAO_MULTIMES.md`. Referências e sequência de evolução ERP: `REFERENCIAS_ERP_INDUSTRIAL.md`.
+
+## Prompt Master — revisão incremental
+
+| Item | Situação | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Unidades globais e acessos centrais | existente | `lib/unidades`, `app/(erp)/acessos`, migrações 04/05 | Implementado no código anteriormente; inventário antigo acima não representa este estado. Configuração/homologação reais não verificadas neste incremento |
+| Engenharia, OF e campanhas | existente parcial | `lib/engenharia.ts`, `app/api/engenharia`, `app/api/ordens-fabricacao`, `app/api/marketing`, migrações 06/07 | BOM/OF persistentes e MRP consultivo existentes; OFs filhas e consumo automático ainda não implementados |
+| Recorte de PCP e apontamento | melhorado | `lib/pcp-filters.ts`, `hooks/use-pcp-filters.ts`, `components/pcp-filter-bar.tsx`, APIs e páginas existentes | Mesmo contrato SQL/URL para mês, filtro e pedido; não cria tabelas ou segundo módulo |
+| Visão geral por data | melhorado | `app/api/pcp/painel/route.ts`, `app/(erp)/pcp-painel/page.tsx` | Produtos e operações do mesmo recorte, sem limitar à última programação |
+| Data civil e precisão do apontamento | melhorado | `lib/carteira.ts`, `lib/apontamento.ts`, `tests/pcp-filtros-master.test.ts` | Fuso explícito e até três casas decimais |
+| Concorrência da seleção e OF congelada | melhorado | `components/operational-provider.tsx`, `app/api/programacoes/ativa/route.ts` | Descarte de resposta obsoleta; preservação de roteiros em programações com OF |
+
+
+| Item | Situação | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Entradas de módulo por unidade | melhorado | `app/(erp)/pcp/[unidade]`, `apontamento/[unidade]`, `estoque/[unidade]`, páginas mensais Sul/Nordeste existentes, `lib/unidades/module-page.tsx` | Reutiliza páginas existentes; valida perfil/grants no servidor antes de selecionar a unidade. Consolidado detalhado ainda pendente |
+| Validação de unidade em consulta | melhorado | `lib/unidades/core.ts`, `handler.ts`, seletor | URL não muda fonte; troca elimina query antiga |
+| Situação da competência mensal | criado | migração 08, `lib/programacao-mensal-service.ts`, API e componente mensal existentes | Conceito não existia: lotes tinham status próprio, distinto de mês ativo/planejado/encerrado. Sem tabela de programação paralela |
+| Filtros mensais por pedido e status | melhorado | `lib/programacao-mensal.ts`, service e componente mensal | Mesmos filtros alcançam lista, totais, gráfico e exportação |
+
+
+## Etapa A
+
+| Item | Situação | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Recorte nas visões restantes | melhorado | provider operacional, páginas industriais, APIs de carteira/entregas/gestão/perdas/inteligência/estoque | Query canônica com parâmetros repetidos; metadados sem vínculo industrial permanecem globais da unidade |
+| Consolidado por módulo | melhorado | API consolidada existente, `consolidado-modulo.ts`, componente de detalhe | PCP, operações, programação e estoque; paginação distribuída entre fontes; nenhuma soma de unidades incompatíveis |
+| Importação em passos | melhorado | componente mensal e hook existentes | Unidade/mês → arquivo → prévia/confirmação; restauração e exportação compartilham recorte |
+| Arquivamento seguro | melhorado | APIs de programação/histórico, migração 09 | Retém linhas e eventos; ausente a migração, ação bloqueada com mensagem explícita |
+
+## Etapa B — ciclo integrado
+
+| Item | Situação | Arquivos principais | Observação |
+| --- | --- | --- | --- |
+| Roteiros e versões de produção | criado (conceitos ausentes) | migração 10, `lib/ciclo-industrial.ts`, APIs/componente de engenharia existentes | Operações versionadas em JSON validado; cada componente da BOM pertence a uma operação; aprovação imutável; validade e faixa de lote sem sobreposição |
+| Centros e turnos | melhorado | `pcp_capacidades_maquina`, migração 10, engenharia | Reaproveita capacidade/máquina/turno; calendário semanal e empresa/filial, sem segundo cadastro de centros |
+| OF e semiacabados | melhorado | `erp_ordens_fabricacao`, `pcp_operacoes`, migração 10, `components/of-ciclo.tsx` | Snapshot, árvore, filhos sem duplicar demanda, reserva na confirmação, consumo direto por operação; OFs antigas preservadas |
+| Apontamentos e estoque | melhorado | `pcp_apontamentos`, `est_movimentos`, migração 10, rota de operações existente | Transação, locks, idempotência, boa/refugo/tempos, parcial, entrada automática, estorno inverso incluindo reservas e pendência com reprocessamento |
+| Lotes, séries e custos | criado/melhorado | `est_lotes`, associação `est_custeio_alocacoes`, ledger existente, `components/estoque-ciclo.tsx` | Lote/serial, custo médio no ledger e alocação PEPS auxiliar imutável; sem segunda tabela de movimentos |
+| Pallets e rastreio | melhorado | `pcp_pallets`, consultas de estoque existentes | Pallet nasce do apontamento de acabado, pendente de qualidade; estorno bloqueia o pallet, liberação prévia impede estorno; rastreio por lote/OF/apontamento/pallet/pedido |
+| Transferência entre fontes | criado (documento antes ausente) | migração 11, `lib/transferencias-unidades.ts`, API de estoque existente | Intenção central → saída operacional → em trânsito → recebimento no outro banco; retomada idempotente e mapeamento explícito de produto/depósito |
+| Chão de fábrica PWA | melhorado | apontamento existente, `lib/chao-fila.ts`, manifest e contingência públicos | QR de operação, câmera quando suportada, IndexedDB por login/unidade, reenvio com chave e identidade; não armazena cookies ou respostas privadas no service worker |
+
+## Rodada completa — etapa A
+
+| Item | Situação | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Cliente em visões operacionais | melhorado | `lib/clientes-operacionais.ts`, APIs de apontamento/programação/OF/carteira/entregas/pallets/rastreio e componentes existentes | Reutiliza CRM por ID; código/documento só resolve cadastro único; fallback da programação. Não cria cadastro paralelo |
+| Filtros cliente/representante | melhorado | hook, filtros e APIs existentes; programação mensal e consolidado | Mesma URL, múltipla seleção, resumo/tabela no mesmo recorte. Projeção nova da migração 12; opção indisponível sem projeção |
+| Códigos mestres e projeção | melhorado/criado (leitura) | migração 12 | Códigos opcionais em entidades existentes e view de identidade por produto/pedido; sem backfill assumido e sem execução real |
+| Permissão por processo | corrigido | regra central em `lib/apontamento.ts`, APIs de leitura/histórico/escrita | Setor vazio de líder/apontador não é acesso total |
+| Histórico e importação em passos | já existia | migrações 09, componente mensal | Preservados; não recriados. Filtros comerciais adicionados a URL e preferências |
+| Auditoria de todas as entradas | criado (relatório) | `docs/AUDITORIA_GERAL.md` | 44 páginas e 73 APIs inspecionadas estaticamente; homologação navegada com dados reais ainda pendente |
+
+## Rodada B — controle de execução e instruções
+
+| Item | Estado | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Bloqueio/cancelamento de OF | Melhorado | migração 13, ciclo-industrial, of-ciclo | Bloqueio herdado pelos filhos; cancelamento da árvore sem execução libera reservas no ledger e audita; nenhuma OF removida |
+| Instrução do operador | Melhorado | engenharia-ciclo, of-ciclo, operacaoRoteiro | Texto/revisão fazem parte do roteiro aprovado e snapshot existente; não substitui gestão documental completa da H |
+| Leitura por setor da OF | Melhorado | ciclo-consultas, API ordens-fabricacao | Sem setores não vê detalhe; componentes, movimentos, apontamentos e operações limitados ao setor autorizado |
+| Ciclo com semiacabado | Já existia / ampliado | tests/ciclo-industrial.test.ts | Regressão completa inclui bloqueio herdado, cancelamento com reserva e tentativa com execução |
+
+## Fechamento — base main e pacote presencial (22/10/2026)
+
+Esta seção prevalece sobre linhas antigas que chamavam pendências de criado/completo.
+
+| Item | Situação | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Consolidação do ciclo/filtros/clientes já enviados | Reaproveitado/melhorado | diff das branches anteriores, aplicado sobre main b8259b2 | Sem encadear commits; não reimplementa nem duplica entidades. Nenhum PR aberto encontrado na consulta |
+| Auditoria de 22 módulos e prioridades | Criado | LACUNAS_E_MELHORIAS, PESQUISA_ERP | Nenhum módulo completo por mera presença de tela; faltas explícitas |
+| Catálogo/baseline | Corrigido | migration-files, migration-service, admin/migracoes, scripts/migrate | SQL antigo deixa de virar up nulo; BASELINE é aplicado; down comentário não é reversão; administrador central; aplicação fictícia bloqueada |
+| Pacote de banco | Criado | BANCO_IMPLANTACAO, docs/banco, scripts/gerar-pacote-banco.ts | 23 migrações canônicas, up/verify/down/baseline, manifesto/checksums, prechecks/impactos/seed/smoke |
+| Validação completa local | Criado | scripts/validar-banco-local.ts, tests/migration-package.test.ts | Dois bancos descartáveis, sequência e reaplicação/preservação; pacote gerado também testado. Nenhum driver remoto |
+| Segurança de dependências | Melhorado | package.json/package-lock.json | SheetJS 0.20.3 oficial, csv-parse 7.0.3, uuid 11.1.1 no ExcelJS; audit posterior zero |
+| Comercial completo / Qualidade avançada / Compras / Fiscal / Financeiro | Parcial/ausente | Ver LACUNAS_E_MELHORIAS | Não implementados como ciclo completo neste incremento; pacote não os cria nem substitui |
+| Revogação QR / rate limit persistente / Playwright completo | Pendente | Backlog de endurecimento | Não anunciar segurança/homologação integral concluída |

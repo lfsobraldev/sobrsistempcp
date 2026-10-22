@@ -1,3 +1,4 @@
+import {idsProdutosRecorte} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
 import {multiAtiva} from "@/lib/unidades/core";
@@ -52,7 +53,10 @@ async function unidadeGET(req:Request){
   const user=await requireRoles(["PCP","GERENTE","ENCARREGADO","LIDER_ENTREGAS"]);
   const db=await ensure(),params=new URL(req.url).searchParams,pedido=params.get("pedido")||"",programacaoId=params.get("programacaoId")||"";
   let etapas:any[];
-  if(pedido && programacaoId){
+  if(params.get('recorte')==='1'){
+   const origem=await idsProdutosRecorte(db,params);
+   etapas=await db`select e.*,data_inicio::text,data_conclusao::text from pcp_controle_entregas_etapas e where exists(select 1 from pcp_produtos p where p.id=any(${origem.map(p=>String(p.id))}::uuid[]) and p.programacao_id=e.programacao_id and p.pedido=e.pedido) order by atualizado_em desc limit 1500`;
+  }else if(pedido && programacaoId){
    etapas=await db`select *,data_inicio::text as data_inicio,data_conclusao::text as data_conclusao from pcp_controle_entregas_etapas where pedido=${pedido} and programacao_id=${programacaoId} order by area,etapa`;
   }else if(pedido){
    etapas=await db`select *,data_inicio::text as data_inicio,data_conclusao::text as data_conclusao from pcp_controle_entregas_etapas where pedido=${pedido} order by area,etapa`;

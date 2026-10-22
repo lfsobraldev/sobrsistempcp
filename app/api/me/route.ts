@@ -6,5 +6,5 @@ export async function GET(){
   const s=await session();
   if(!s)return NextResponse.json({error:"Não autenticado."},{status:401});
   const unidades=await estadoUnidades().catch(()=>null);
-  return NextResponse.json({...s,multiunidade:multiAtiva(),unidadeAtiva:unidades?.selecionada??null},{headers:{"Cache-Control":"no-store"}});
+  return NextResponse.json({...s,cicloIndustrial:process.env.ERP_CICLO_INDUSTRIAL==="enabled",multiunidade:multiAtiva(),unidadeAtiva:unidades?.selecionada??null},{headers:{"Cache-Control":"no-store"}});
 }

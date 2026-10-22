@@ -1,4 +1,4 @@
-import { requireRoles } from "@/lib/auth";
+import {administradorCentral} from "@/lib/unidades/users";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { applyPendingMigrations, canApplyAdminMigrations, getMigrationCatalog, revertLastMigration } from "@/lib/migration-service";
@@ -10,17 +10,18 @@ const applyBody = z.object({
 });
 
 export async function GET() {
-  try { await requireRoles(["PCP"]); } catch { return NextResponse.json({error:"Sem permissão."},{status:403}); }
+  try { await administradorCentral(); } catch { return NextResponse.json({error:"Sem permissão."},{status:403}); }
   const enabled = await canApplyAdminMigrations();
-  const payload = await getMigrationCatalog();
+  const payload = await getMigrationCatalog().catch(() => null);
+  if (!payload) return NextResponse.json({error:"Módulo aguardando migração ou conferência do registro. Estado de aplicação desconhecido."},{status:503});
   return NextResponse.json({ enabled, ...payload }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: Request) {
-  let sessao; try { sessao=await requireRoles(["PCP"]); } catch { return NextResponse.json({error:"Sem permissão."},{status:403}); }
+  let sessao; try { sessao=await administradorCentral(); } catch { return NextResponse.json({error:"Sem permissão."},{status:403}); }
   const enabled = await canApplyAdminMigrations();
   if (!enabled) {
-    return NextResponse.json({ error: "Painel de migrações desabilitado. Defina ALLOW_ADMIN_MIGRATIONS=true." }, { status: 403 });
+    return NextResponse.json({ error: "Aplicação automática indisponível. Utilize docs/BANCO_IMPLANTACAO.md com o administrador." }, { status: 403 });
   }
 
   const body = applyBody.safeParse(await req.json().catch(() => ({})));

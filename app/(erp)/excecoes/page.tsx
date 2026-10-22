@@ -10,7 +10,7 @@ import {
   Search,
   Wrench,
 } from "lucide-react";
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 import { LABELS } from "@/lib/metrics";
 import { Badge, Card, DataTable, Empty, Field, PageHeader, Segmented, StatCard } from "@/components/ui";
 
@@ -48,7 +48,7 @@ function labelTipo(tipo: string) {
 }
 
 export default function ExcecoesPage() {
-  const { pg, refresh, toast, lastSync } = useOps();
+  const { pg, refresh, toast, lastSync,recorteQuery } = useOps();
   const produtos = pg?.produtos || [];
 
   const [itens, setItens] = useState<Excecao[]>([]);
@@ -63,7 +63,7 @@ export default function ExcecoesPage() {
   const [busy, setBusy] = useState(false);
 
   async function load() {
-    const r = await fetch("/api/gestao-producao", { cache: "no-store" });
+    const r = await fetch("/api/gestao-producao?recorte=1&"+recorteQuery, { cache: "no-store" });
     if (r.ok) {
       const j = await r.json();
       setItens(j.excecoes || []);
@@ -72,7 +72,7 @@ export default function ExcecoesPage() {
 
   useEffect(() => {
     void load();
-  }, [pg?.id, lastSync?.getTime()]);
+  }, [pg?.id, lastSync?.getTime(),recorteQuery]);
 
   const pedidos = useMemo(
     () =>
@@ -135,7 +135,7 @@ export default function ExcecoesPage() {
 
     setBusy(true);
     try {
-      const r = await fetch("/api/gestao-producao", {
+      const r = await fetch("/api/gestao-producao?recorte=1&"+recorteQuery, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -168,7 +168,7 @@ export default function ExcecoesPage() {
   async function resolver(id: string) {
     setBusy(true);
     try {
-      const r = await fetch("/api/gestao-producao", {
+      const r = await fetch("/api/gestao-producao?recorte=1&"+recorteQuery, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action: "RESOLVER_EXCECAO", id }),

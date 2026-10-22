@@ -70,7 +70,9 @@ const dataValida = (v: unknown): v is string => typeof v === "string" && /^\d{4}
 export const soData = (v: unknown): string | null => (dataValida(v) ? v.slice(0, 10) : null);
 
 export function hojeISO(d = new Date()): Hoje {
-  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const partes = new Intl.DateTimeFormat('en-US', {timeZone:'America/Maceio',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
+  const valor=(tipo:string)=>partes.find(p=>p.type===tipo)!.value;
+  return `${valor('year')}-${valor('month')}-${valor('day')}`;
 }
 
 export function diasEntre(de: string, ate: string): number {

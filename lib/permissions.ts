@@ -19,6 +19,8 @@ const BY_ROLE: Record<Perfil, string[]> = {
 };
 
 export function allowedPath(role: string, path: string) {
+  const unidade=/^\/(pcp|apontamento|estoque|programacao)\/(sul|nordeste|consolidado)$/.exec(path);
+  if(unidade)path=({pcp:'/pcp-painel',apontamento:'/apontamento-operacoes',estoque:'/estoque',programacao:'/planejamento-mensal'} as Record<string,string>)[unidade[1]];
   return (BY_ROLE as Record<string, string[]>)[role]?.includes(path) ?? false;
 }
 export function pathsFor(role: string) {

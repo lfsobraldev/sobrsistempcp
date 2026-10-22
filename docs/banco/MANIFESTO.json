@@ -1,0 +1,754 @@
+{
+  "data": "2026-10-22",
+  "aplicacaoRemota": "não verificada",
+  "migracoes": [
+    {
+      "ordem": 1,
+      "arquivo": "2026-10-02_pallet_quality_msac.sql",
+      "descricao": "Pallets, inspeções Qualidade/MSAC, fotos e eventos",
+      "dependenciasDeclaradas": [],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "2d2164da721137d2f6ed27ec9081f26fe64d88e1e341309946688bb52f877a3b",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "médio",
+      "objetos": [
+        "pcp_pallets",
+        "pcp_pallet_inspecoes",
+        "pcp_pallet_fotos",
+        "pcp_pallet_eventos"
+      ],
+      "colunasAdicionadas": [],
+      "up": "01_2026-10-02_pallet_quality_msac.up.sql",
+      "verificacao": "01_2026-10-02_pallet_quality_msac.verify.sql",
+      "down": "01_2026-10-02_pallet_quality_msac.down.sql",
+      "baseline": "01_2026-10-02_pallet_quality_msac.baseline.sql"
+    },
+    {
+      "ordem": 2,
+      "arquivo": "2026-10-02_pallet_quality_v2.sql",
+      "descricao": "Não conformidades e medições de pallets",
+      "dependenciasDeclaradas": [],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "9a3d31df8555c800cbd8d35e91ca30573698e9203a5d5406b3c49b52dcb708d4",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "pcp_pallet_nao_conformidades",
+        "pcp_pallet_medicoes"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "pcp_pallet_fotos",
+          "coluna": "nc_id"
+        },
+        {
+          "tabela": "pcp_pallet_fotos",
+          "coluna": "tipo"
+        }
+      ],
+      "up": "02_2026-10-02_pallet_quality_v2.up.sql",
+      "verificacao": "02_2026-10-02_pallet_quality_v2.verify.sql",
+      "down": "02_2026-10-02_pallet_quality_v2.down.sql",
+      "baseline": "02_2026-10-02_pallet_quality_v2.baseline.sql"
+    },
+    {
+      "ordem": 3,
+      "arquivo": "2026-10-06_operational_excellence.sql",
+      "descricao": "Andon, perdas, capacidades, metas, setups e ações operacionais",
+      "dependenciasDeclaradas": [],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "528db6a97cc6fdf1b99df7baa2e99cdfd74cc6dc2cc0a41d474d117db82e0783",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "pcp_perdas_producao",
+        "pcp_capacidades_maquina",
+        "pcp_metas_maquina",
+        "pcp_setups",
+        "pcp_acoes_operacionais"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "pcp_andon",
+          "coluna": "prioridade"
+        },
+        {
+          "tabela": "pcp_andon",
+          "coluna": "responsavel"
+        },
+        {
+          "tabela": "pcp_andon",
+          "coluna": "assumido_por"
+        },
+        {
+          "tabela": "pcp_andon",
+          "coluna": "assumido_em"
+        },
+        {
+          "tabela": "pcp_andon",
+          "coluna": "tratamento_em"
+        },
+        {
+          "tabela": "pcp_andon",
+          "coluna": "resolvido_por"
+        },
+        {
+          "tabela": "pcp_andon",
+          "coluna": "observacao_final"
+        }
+      ],
+      "up": "03_2026-10-06_operational_excellence.up.sql",
+      "verificacao": "03_2026-10-06_operational_excellence.verify.sql",
+      "down": "03_2026-10-06_operational_excellence.down.sql",
+      "baseline": "03_2026-10-06_operational_excellence.baseline.sql"
+    },
+    {
+      "ordem": 4,
+      "arquivo": "2026-10-08_quality_user.sql",
+      "descricao": "Usuários e restrição de perfis; pode conflitar com perfis comerciais já cadastrados",
+      "dependenciasDeclaradas": [],
+      "destino": "compartilhado (conferir arquitetura)",
+      "checksum": "2d0a4a92a13aca00741c9476df73858e27880b9a3d504e35ca2f43d08bb469c9",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "pcp_usuarios"
+      ],
+      "colunasAdicionadas": [],
+      "up": "04_2026-10-08_quality_user.up.sql",
+      "verificacao": "04_2026-10-08_quality_user.verify.sql",
+      "down": "04_2026-10-08_quality_user.down.sql",
+      "baseline": "04_2026-10-08_quality_user.baseline.sql"
+    },
+    {
+      "ordem": 5,
+      "arquivo": "2026-10-09_tipo_pedido_embalagem.sql",
+      "descricao": "Tipo de pedido e montagem para embalagem; normaliza valores existentes",
+      "dependenciasDeclaradas": [],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "dbced338019029687344b9b65fb0c73eb43e161ae81c05d107e2f526f19c8a54",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "médio",
+      "objetos": [],
+      "colunasAdicionadas": [
+        {
+          "tabela": "pcp_produtos",
+          "coluna": "tipo_pedido"
+        },
+        {
+          "tabela": "pcp_produtos",
+          "coluna": "montagem_engenharia"
+        }
+      ],
+      "up": "05_2026-10-09_tipo_pedido_embalagem.up.sql",
+      "verificacao": "05_2026-10-09_tipo_pedido_embalagem.verify.sql",
+      "down": "05_2026-10-09_tipo_pedido_embalagem.down.sql",
+      "baseline": "05_2026-10-09_tipo_pedido_embalagem.baseline.sql"
+    },
+    {
+      "ordem": 6,
+      "arquivo": "2026-10-12_ia.sql",
+      "descricao": "Logs de IA e histórico de romaneios",
+      "dependenciasDeclaradas": [],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "38c3375aee822de309d3ca73c2041d262cd02d65ba299c43101058820fb1a949",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "pcp_ia_log",
+        "pcp_romaneios_hist"
+      ],
+      "colunasAdicionadas": [],
+      "up": "06_2026-10-12_ia.up.sql",
+      "verificacao": "06_2026-10-12_ia.verify.sql",
+      "down": "06_2026-10-12_ia.down.sql",
+      "baseline": "06_2026-10-12_ia.baseline.sql"
+    },
+    {
+      "ordem": 7,
+      "arquivo": "2026-10-16_local_montagem.sql",
+      "descricao": "Local de montagem por pedido",
+      "dependenciasDeclaradas": [],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "d52071480a97c6ceecf4c7eaeb717ab6054270b455e6b22a2e16b092a2a29260",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "pcp_pedido_local"
+      ],
+      "colunasAdicionadas": [],
+      "up": "07_2026-10-16_local_montagem.up.sql",
+      "verificacao": "07_2026-10-16_local_montagem.verify.sql",
+      "down": "07_2026-10-16_local_montagem.down.sql",
+      "baseline": "07_2026-10-16_local_montagem.baseline.sql"
+    },
+    {
+      "ordem": 8,
+      "arquivo": "2026-10-19_sac_industrial.sql",
+      "descricao": "SAC, eventos e ampliação de perfis",
+      "dependenciasDeclaradas": [],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "25b5a71db88394de48f8aef2ce9ecd87257823a10811dee53629a6699e66332d",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "médio",
+      "objetos": [
+        "pcp_sac_atendimentos",
+        "pcp_sac_eventos"
+      ],
+      "colunasAdicionadas": [],
+      "up": "08_2026-10-19_sac_industrial.up.sql",
+      "verificacao": "08_2026-10-19_sac_industrial.verify.sql",
+      "down": "08_2026-10-19_sac_industrial.down.sql",
+      "baseline": "08_2026-10-19_sac_industrial.baseline.sql"
+    },
+    {
+      "ordem": 9,
+      "arquivo": "2026-10-20_crm_comercial.sql",
+      "descricao": "Clientes, representantes, oportunidades, propostas e vínculos de entregas",
+      "dependenciasDeclaradas": [],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "3cc9545c10d0adf76aea812554deb684f64024b93a6cd300c0ef1a5cb246a43e",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "médio",
+      "objetos": [
+        "crm_clientes",
+        "crm_cliente_contatos",
+        "crm_cliente_enderecos",
+        "crm_representantes",
+        "crm_cliente_representantes",
+        "crm_oportunidades",
+        "crm_interacoes",
+        "crm_propostas",
+        "crm_historico"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "pcp_controle_entregas",
+          "coluna": "crm_cliente_id"
+        },
+        {
+          "tabela": "pcp_controle_entregas",
+          "coluna": "crm_representante_id"
+        }
+      ],
+      "up": "09_2026-10-20_crm_comercial.up.sql",
+      "verificacao": "09_2026-10-20_crm_comercial.verify.sql",
+      "down": "09_2026-10-20_crm_comercial.down.sql",
+      "baseline": "09_2026-10-20_crm_comercial.baseline.sql"
+    },
+    {
+      "ordem": 10,
+      "arquivo": "2026-10-20_medicoes_engenharia.sql",
+      "descricao": "Medições/revisões/aprovação técnica vinculadas ao CRM",
+      "dependenciasDeclaradas": [],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "ac3193b586bdf65b1c3c4a9977159246e51231840fecef070e3d127091bfa42f",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "médio",
+      "objetos": [
+        "pcp_medicao_revisoes",
+        "pcp_medicao_eventos"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "crm_oportunidades",
+          "coluna": "medicao_obrigatoria"
+        },
+        {
+          "tabela": "pcp_controle_entregas",
+          "coluna": "medicao_obrigatoria"
+        },
+        {
+          "tabela": "pcp_comercial_especificacoes",
+          "coluna": "medicao_id"
+        },
+        {
+          "tabela": "pcp_sac_atendimentos",
+          "coluna": "crm_cliente_id"
+        },
+        {
+          "tabela": "pcp_sac_atendimentos",
+          "coluna": "crm_representante_id"
+        },
+        {
+          "tabela": "pcp_sac_atendimentos",
+          "coluna": "medicao_id"
+        },
+        {
+          "tabela": "pcp_sac_atendimentos",
+          "coluna": "item_referencia"
+        }
+      ],
+      "up": "10_2026-10-20_medicoes_engenharia.up.sql",
+      "verificacao": "10_2026-10-20_medicoes_engenharia.verify.sql",
+      "down": "10_2026-10-20_medicoes_engenharia.down.sql",
+      "baseline": "10_2026-10-20_medicoes_engenharia.baseline.sql"
+    },
+    {
+      "ordem": 11,
+      "arquivo": "2026-10-21_02_schema_migrations.sql",
+      "descricao": "Controle de checksum, aplicação, baseline e eventos de migração",
+      "dependenciasDeclaradas": [],
+      "destino": "compartilhado (conferir arquitetura)",
+      "checksum": "024463b51bead1b8ed375bd091a52dc67ee9013d701f731b78906c8f3d6d7708",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "schema_migrations",
+        "schema_migration_events"
+      ],
+      "colunasAdicionadas": [],
+      "up": "11_2026-10-21_02_schema_migrations.up.sql",
+      "verificacao": "11_2026-10-21_02_schema_migrations.verify.sql",
+      "down": "11_2026-10-21_02_schema_migrations.down.sql",
+      "baseline": "11_2026-10-21_02_schema_migrations.baseline.sql"
+    },
+    {
+      "ordem": 12,
+      "arquivo": "2026-10-21_fundacao_multiempresa.sql",
+      "descricao": "Empresas, filiais, vínculos, permissões e auditoria imutável",
+      "dependenciasDeclaradas": [],
+      "destino": "compartilhado (conferir arquitetura)",
+      "checksum": "9b31f1b20d65bfacf82fede1765222f0feb2d3dd6cd6a0409e0248564a438468",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "pcp_empresas",
+        "pcp_filiais",
+        "pcp_usuario_empresas",
+        "pcp_usuario_filiais",
+        "pcp_permissoes",
+        "pcp_perfil_permissoes",
+        "pcp_auditoria_global"
+      ],
+      "colunasAdicionadas": [],
+      "up": "12_2026-10-21_fundacao_multiempresa.up.sql",
+      "verificacao": "12_2026-10-21_fundacao_multiempresa.verify.sql",
+      "down": "12_2026-10-21_fundacao_multiempresa.down.sql",
+      "baseline": "12_2026-10-21_fundacao_multiempresa.baseline.sql"
+    },
+    {
+      "ordem": 13,
+      "arquivo": "2026-10-21_03_programacao_multimes.sql",
+      "descricao": "Lotes/itens mensais, acessos e projeção legada; cadastros técnicos PCP_LEGADO/SUL/NORDESTE",
+      "dependenciasDeclaradas": [
+        "2026-10-21_fundacao_multiempresa.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "01511da9fcdf278478ac7590b23e6d972f573c4e21ac51616fd0ef095da093bb",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "alto",
+      "objetos": [
+        "pcp_programacao_lotes",
+        "pcp_programacao_mensal_itens",
+        "pcp_programacao_acessos",
+        "pcp_programacao_mensal_base",
+        "pcp_programacao_mensal_efetiva"
+      ],
+      "colunasAdicionadas": [],
+      "up": "13_2026-10-21_03_programacao_multimes.up.sql",
+      "verificacao": "13_2026-10-21_03_programacao_multimes.verify.sql",
+      "down": "13_2026-10-21_03_programacao_multimes.down.sql",
+      "baseline": "13_2026-10-21_03_programacao_multimes.baseline.sql"
+    },
+    {
+      "ordem": 14,
+      "arquivo": "2026-10-21_04_unidades_globais.sql",
+      "descricao": "Identidade homologada do banco e projeção legada por unidade",
+      "dependenciasDeclaradas": [
+        "2026-10-21_03_programacao_multimes.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "5d7a9ef9202472621496e573202b2714e4a52d45d85edd3780e3729915b0bd2d",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "alto",
+      "objetos": [
+        "erp_identidade_banco",
+        "pcp_programacao_mensal_base"
+      ],
+      "colunasAdicionadas": [],
+      "up": "14_2026-10-21_04_unidades_globais.up.sql",
+      "verificacao": "14_2026-10-21_04_unidades_globais.verify.sql",
+      "down": "14_2026-10-21_04_unidades_globais.down.sql",
+      "baseline": "14_2026-10-21_04_unidades_globais.baseline.sql"
+    },
+    {
+      "ordem": 15,
+      "arquivo": "2026-10-21_05_acessos_centrais.sql",
+      "descricao": "Perfis e grants centrais por unidade, etapa e turno",
+      "dependenciasDeclaradas": [
+        "2026-10-21_fundacao_multiempresa.sql"
+      ],
+      "destino": "identidade",
+      "checksum": "c29a4470ccb943d1320d2a87472714418d368be936899f82f64d14ae1d8c1375",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "pcp_lider_unidade_etapas"
+      ],
+      "colunasAdicionadas": [],
+      "up": "15_2026-10-21_05_acessos_centrais.up.sql",
+      "verificacao": "15_2026-10-21_05_acessos_centrais.verify.sql",
+      "down": "15_2026-10-21_05_acessos_centrais.down.sql",
+      "baseline": "15_2026-10-21_05_acessos_centrais.baseline.sql"
+    },
+    {
+      "ordem": 16,
+      "arquivo": "2026-10-21_06_engenharia_of.sql",
+      "descricao": "Bootstrap do estoque existente, classificações, BOM, explosão e OF",
+      "dependenciasDeclaradas": [
+        "2026-10-21_04_unidades_globais.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "ad5b8e3709f3f0fc1126c9b01536151e14e344211406448d87408ab03f70551d",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "alto",
+      "objetos": [
+        "est_unidades",
+        "est_produtos",
+        "est_produto_unidades",
+        "est_locais",
+        "est_saldos",
+        "est_movimentos",
+        "est_inventarios",
+        "est_inventario_itens",
+        "erp_estruturas",
+        "erp_estrutura_itens",
+        "erp_ordens_fabricacao",
+        "erp_of_materiais"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "est_produtos",
+          "coluna": "classificacao"
+        },
+        {
+          "tabela": "est_produtos",
+          "coluna": "classificacao"
+        }
+      ],
+      "up": "16_2026-10-21_06_engenharia_of.up.sql",
+      "verificacao": "16_2026-10-21_06_engenharia_of.verify.sql",
+      "down": "16_2026-10-21_06_engenharia_of.down.sql",
+      "baseline": "16_2026-10-21_06_engenharia_of.baseline.sql"
+    },
+    {
+      "ordem": 17,
+      "arquivo": "2026-10-21_07_marketing.sql",
+      "descricao": "Campanhas, despesas imutáveis e vínculo com CRM",
+      "dependenciasDeclaradas": [
+        "2026-10-20_crm_comercial.sql",
+        "2026-10-21_fundacao_multiempresa.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "f35e1f0cf49cd020514aafbc1a5cac87946c1b2de621b1c7dbec0ec7e8ca9ba8",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "erp_marketing_campanhas",
+        "erp_marketing_despesas",
+        "erp_marketing_oportunidades"
+      ],
+      "colunasAdicionadas": [],
+      "up": "17_2026-10-21_07_marketing.up.sql",
+      "verificacao": "17_2026-10-21_07_marketing.verify.sql",
+      "down": "17_2026-10-21_07_marketing.down.sql",
+      "baseline": "17_2026-10-21_07_marketing.baseline.sql"
+    },
+    {
+      "ordem": 18,
+      "arquivo": "2026-10-21_08_competencias_programacao.sql",
+      "descricao": "Competências ativas/planejadas/encerradas, preenchimento inicial e proteção de lotes",
+      "dependenciasDeclaradas": [
+        "2026-10-21_04_unidades_globais.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "96c03490764cd802fee4d12bb405eb0246d1b8567b658e18e2811b8af4b36608",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "alto",
+      "objetos": [
+        "pcp_programacao_competencias"
+      ],
+      "colunasAdicionadas": [],
+      "up": "18_2026-10-21_08_competencias_programacao.up.sql",
+      "verificacao": "18_2026-10-21_08_competencias_programacao.verify.sql",
+      "down": "18_2026-10-21_08_competencias_programacao.down.sql",
+      "baseline": "18_2026-10-21_08_competencias_programacao.baseline.sql"
+    },
+    {
+      "ordem": 19,
+      "arquivo": "2026-10-22_09_historico_seguro.sql",
+      "descricao": "Arquivamento auditado sem apagar programações",
+      "dependenciasDeclaradas": [
+        "2026-10-21_fundacao_multiempresa.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "1f300fa902d93e1063ba564065afadbafe40aa8a2440ec7654e3181a97f6f7d9",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "médio",
+      "objetos": [],
+      "colunasAdicionadas": [
+        {
+          "tabela": "pcp_programacoes",
+          "coluna": "arquivada"
+        },
+        {
+          "tabela": "pcp_programacoes",
+          "coluna": "arquivada_em"
+        },
+        {
+          "tabela": "pcp_programacoes",
+          "coluna": "arquivada_por"
+        }
+      ],
+      "up": "19_2026-10-22_09_historico_seguro.up.sql",
+      "verificacao": "19_2026-10-22_09_historico_seguro.verify.sql",
+      "down": "19_2026-10-22_09_historico_seguro.down.sql",
+      "baseline": "19_2026-10-22_09_historico_seguro.baseline.sql"
+    },
+    {
+      "ordem": 20,
+      "arquivo": "2026-10-22_10_ciclo_industrial.sql",
+      "descricao": "Roteiros/versões, OF filhas/snapshot/reservas, apontamentos, ledger, lotes e custos",
+      "dependenciasDeclaradas": [
+        "2026-10-21_06_engenharia_of.sql",
+        "2026-10-22_09_historico_seguro.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "bd592492fdba5cb375919cc7e60674641c20354c66abef552eb3f29fe765b394",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "erp_roteiros",
+        "erp_versoes_producao",
+        "pcp_apontamentos",
+        "est_lotes",
+        "est_custeio_alocacoes",
+        "est_saldos_lotes"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "pcp_capacidades_maquina",
+          "coluna": "calendario"
+        },
+        {
+          "tabela": "pcp_capacidades_maquina",
+          "coluna": "empresa_id"
+        },
+        {
+          "tabela": "pcp_capacidades_maquina",
+          "coluna": "filial_id"
+        },
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "empresa_id"
+        },
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "filial_id"
+        },
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "versao_producao_id"
+        },
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "of_pai_id"
+        },
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "origem_raiz_id"
+        },
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "snapshot"
+        },
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "local_id"
+        },
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "falta_saldo"
+        },
+        {
+          "tabela": "pcp_operacoes",
+          "coluna": "of_id"
+        },
+        {
+          "tabela": "pcp_operacoes",
+          "coluna": "roteiro_snapshot"
+        },
+        {
+          "tabela": "pcp_apontamentos",
+          "coluna": "ciclo_payload"
+        },
+        {
+          "tabela": "pcp_apontamentos",
+          "coluna": "estoque_status"
+        },
+        {
+          "tabela": "pcp_apontamentos",
+          "coluna": "estoque_erro"
+        },
+        {
+          "tabela": "pcp_apontamentos",
+          "coluna": "estorno_de"
+        },
+        {
+          "tabela": "est_movimentos",
+          "coluna": "empresa_id"
+        },
+        {
+          "tabela": "est_movimentos",
+          "coluna": "filial_id"
+        },
+        {
+          "tabela": "est_movimentos",
+          "coluna": "of_id"
+        },
+        {
+          "tabela": "est_movimentos",
+          "coluna": "operacao_id"
+        },
+        {
+          "tabela": "est_movimentos",
+          "coluna": "apontamento_id"
+        },
+        {
+          "tabela": "est_movimentos",
+          "coluna": "lote_id"
+        },
+        {
+          "tabela": "est_movimentos",
+          "coluna": "estorno_de"
+        },
+        {
+          "tabela": "est_movimentos",
+          "coluna": "custo_total"
+        },
+        {
+          "tabela": "pcp_pallets",
+          "coluna": "apontamento_id"
+        },
+        {
+          "tabela": "pcp_pallets",
+          "coluna": "lote_id"
+        }
+      ],
+      "up": "20_2026-10-22_10_ciclo_industrial.up.sql",
+      "verificacao": "20_2026-10-22_10_ciclo_industrial.verify.sql",
+      "down": "20_2026-10-22_10_ciclo_industrial.down.sql",
+      "baseline": "20_2026-10-22_10_ciclo_industrial.baseline.sql"
+    },
+    {
+      "ordem": 21,
+      "arquivo": "2026-10-22_11_transferencias_unidades.sql",
+      "descricao": "Documento central de transferência em trânsito entre bancos",
+      "dependenciasDeclaradas": [
+        "2026-10-22_10_ciclo_industrial.sql"
+      ],
+      "destino": "identidade",
+      "checksum": "cf29fe2470a336e371176b8f736c8a8b27700184139c472f790f3ef88972f0a7",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "est_transferencias_unidades"
+      ],
+      "colunasAdicionadas": [],
+      "up": "21_2026-10-22_11_transferencias_unidades.up.sql",
+      "verificacao": "21_2026-10-22_11_transferencias_unidades.verify.sql",
+      "down": "21_2026-10-22_11_transferencias_unidades.down.sql",
+      "baseline": "21_2026-10-22_11_transferencias_unidades.baseline.sql"
+    },
+    {
+      "ordem": 22,
+      "arquivo": "2026-10-22_12_identidades_operacionais.sql",
+      "descricao": "Códigos mestres e resolução unificada de cliente/representante nos documentos",
+      "dependenciasDeclaradas": [
+        "2026-10-20_crm_comercial.sql",
+        "2026-10-22_10_ciclo_industrial.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "6efdb01442e19fe1cb5284e2d495152b5db940f67d794890e3b372b7075cbf62",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "pcp_controle_entregas",
+        "pcp_clientes_operacionais"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "crm_clientes",
+          "coluna": "codigo"
+        },
+        {
+          "tabela": "crm_representantes",
+          "coluna": "codigo"
+        },
+        {
+          "tabela": "pcp_controle_entregas",
+          "coluna": "crm_cliente_id"
+        },
+        {
+          "tabela": "pcp_controle_entregas",
+          "coluna": "crm_representante_id"
+        }
+      ],
+      "up": "22_2026-10-22_12_identidades_operacionais.up.sql",
+      "verificacao": "22_2026-10-22_12_identidades_operacionais.verify.sql",
+      "down": "22_2026-10-22_12_identidades_operacionais.down.sql",
+      "baseline": "22_2026-10-22_12_identidades_operacionais.baseline.sql"
+    },
+    {
+      "ordem": 23,
+      "arquivo": "2026-10-22_13_controle_of.sql",
+      "descricao": "Bloqueio herdado e cancelamento da árvore com liberação de reservas",
+      "dependenciasDeclaradas": [
+        "2026-10-22_10_ciclo_industrial.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "723595cdb31798751d886ee91097c631065669babbec9b7d0a6216179912e797",
+      "reversao": "sem down automático; conservar dados",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [],
+      "colunasAdicionadas": [
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "bloqueada"
+        },
+        {
+          "tabela": "erp_ordens_fabricacao",
+          "coluna": "bloqueio_motivo"
+        }
+      ],
+      "up": "23_2026-10-22_13_controle_of.up.sql",
+      "verificacao": "23_2026-10-22_13_controle_of.verify.sql",
+      "down": "23_2026-10-22_13_controle_of.down.sql",
+      "baseline": "23_2026-10-22_13_controle_of.baseline.sql"
+    }
+  ]
+}

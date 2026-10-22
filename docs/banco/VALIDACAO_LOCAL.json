@@ -1,0 +1,221 @@
+{
+  "data": "2026-10-22",
+  "motor": "PGlite PostgreSQL local em memória; destruído com close()",
+  "bancoRemotoAcessado": false,
+  "limites": [
+    "pgcrypto omitida apenas no teste; gen_random_uuid nativo",
+    "baseline schema.sql obrigatório; migrações incrementais não substituem instalação inicial",
+    "legado sintético não é cópia do banco real",
+    "teste não comprova concorrência multi-conexão, câmera, RLS/provedor ou performance Neon"
+  ],
+  "resultados": [
+    {
+      "cenario": "vazio_com_baseline",
+      "ok": true,
+      "preservado": true,
+      "passos": [
+        {
+          "arquivo": "database/schema.sql (baseline obrigatório)",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-02_pallet_quality_msac.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-02_pallet_quality_v2.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-06_operational_excellence.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-08_quality_user.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-09_tipo_pedido_embalagem.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-12_ia.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-16_local_montagem.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-19_sac_industrial.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-20_crm_comercial.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-20_medicoes_engenharia.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_02_schema_migrations.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_fundacao_multiempresa.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_03_programacao_multimes.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_04_unidades_globais.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_05_acessos_centrais.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_06_engenharia_of.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_07_marketing.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_08_competencias_programacao.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_09_historico_seguro.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_10_ciclo_industrial.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_11_transferencias_unidades.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_12_identidades_operacionais.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_13_controle_of.sql",
+          "ok": true
+        }
+      ],
+      "reaplicacao": true
+    },
+    {
+      "cenario": "legado_sintetico",
+      "ok": true,
+      "preservado": true,
+      "passos": [
+        {
+          "arquivo": "database/schema.sql (baseline obrigatório)",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-02_pallet_quality_msac.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-02_pallet_quality_v2.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-06_operational_excellence.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-08_quality_user.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-09_tipo_pedido_embalagem.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-12_ia.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-16_local_montagem.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-19_sac_industrial.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-20_crm_comercial.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-20_medicoes_engenharia.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_02_schema_migrations.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_fundacao_multiempresa.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_03_programacao_multimes.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_04_unidades_globais.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_05_acessos_centrais.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_06_engenharia_of.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_07_marketing.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-21_08_competencias_programacao.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_09_historico_seguro.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_10_ciclo_industrial.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_11_transferencias_unidades.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_12_identidades_operacionais.sql",
+          "ok": true
+        },
+        {
+          "arquivo": "2026-10-22_13_controle_of.sql",
+          "ok": true
+        }
+      ],
+      "reaplicacao": true
+    }
+  ]
+}

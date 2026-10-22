@@ -34,3 +34,71 @@
 - Uma OF cobre o item inteiro da programação existente, sem dividir ou copiar suas operações. Só pode ser criada antes de execução e para programação liberada. Necessidades multinível são congeladas na liberação; consumir/reservar/receber exige ação explícita no ledger existente com referência OF-N. MRP é consultivo, sem programação automática de compras ou reposição.
 - Campanhas usam os clientes e oportunidades do CRM existente. Cada oportunidade tem uma origem de campanha exclusiva; despesas são registros imutáveis e idempotentes em centavos. Estornos de despesas, orçamento com aprovações e faturamento financeiro permanecem pendentes; valor estimado de oportunidade ganha não é receita realizada.
 - Nada nesta etapa autoriza inferir regras fiscais, CFOP, integração bancária, assinatura de anúncios ou envio de mensagens em nome da empresa. Os módulos pendentes estão registrados na entrega integrada.
+
+## Prompt Master — Bloco 1
+
+| Suposição | Motivo | Como reverter |
+| --- | --- | --- |
+| Data civil industrial usa America/Maceio para Sul e Nordeste | Ambas usam UTC-3 no período operacional; evitar dependência de host/browser. O ledger existente usa America/Sao_Paulo, equivalente no período atual | Parametrizar fuso por filial se houver operação fora desse padrão; preservar datas civis já registradas |
+| Visão por competência consulta todas as programações ATIVA/ENCERRADA no mês; seleção do cabeçalho continua disponível como modo separado | Não confundir um filtro ativo com todo o histórico mensal nem incluir rascunhos | Selecionar Programação do cabeçalho ou Ativo; implementar status mensal separado no grupo 2/3 |
+| Metas e capacidade continuam globais por setor | O cadastro não atribui meta a pedido ou filtro | Evoluir cadastro e versionar política antes de distribuir metas proporcionalmente |
+| Perdas sem operação não entram no recorte de pedidos | Não há vínculo confiável para rateio | Corrigir vínculo na origem ou exibir painel separado de perdas sem atribuição |
+| Não reparar automaticamente roteiro de programação que já possui OF formal | Proteger snapshot, status e quantidades contra escrita durante consulta | Implementar migração explícita de roteiros com validação/auditoria; não reativar reparo automático em OF congelada |
+
+
+## Prompt Master — competências e unidades
+
+| Suposição | Motivo | Como reverter |
+| --- | --- | --- |
+| Um mês ativo por filial; ativar próximo encerra anterior | Padrão simples para separar demanda ativa e planejada | Evoluir política em migração futura antes de aceitar mais de um ativo |
+| Competência do legado ativo segue a data real da programação ATIVA; outros meses existentes começam planejados | Preservar dados sem inventar encerramento de históricos; nenhuma atribuição nova de unidade | Administrador revisa e ativa/encerra os meses depois da aplicação; não renomear competência |
+| Importação nova cria competência PLANEJADA; encerrado bloqueia alteração de lotes | Evitar misturar futuro em totais ativos e preservar documentos fechados | Fluxo de reabertura específico, autorizado e auditado, a implementar; não editar status diretamente |
+| Entradas por unidade selecionam a fonte autorizada e reaproveitam os mesmos componentes | Evitar módulos/tabelas Sul e Nordeste duplicados | Acessar a rota geral do módulo com seletor global; grants do servidor continuam obrigatórios |
+| Consolidado por módulo começa pelo resumo de gestão existente | Não misturar saldos de produtos/unidades de medida diferentes nem inventar correspondência entre cadastros | Implementar tabela detalhada com identificação de origem e regras de agregação explícitas em incremento próprio |
+
+
+## Etapa A — decisões
+
+- O recorte industrial filtra produtos/operações/planejamento. Estoque é posição atual dos códigos relacionados ao recorte; não inventa saldo histórico. Sem mês específico/pedidos/filtros explícitos, estoque mostra todos os produtos da unidade. Cadastros, capacidades e metas sem vínculo de pedido não são rateados artificialmente.
+- Leituras gerais podem juntar programações. Escritas que dependem de um cabeçalho único exigem seleção de uma programação; ações por ID preservam a origem original. Não usar um ID sintético para escrever.
+- “Excluir histórico” passa a arquivar, com auditoria e consulta de arquivados. O mesmo vale para excluir a programação ativa. Nada é removido em cascata. Para reverter o comportamento, criar fluxo explícito de desarquivamento; não reintroduzir DELETE físico.
+
+## Etapa B — decisões do ciclo
+
+| Suposição | Motivo | Como reverter |
+| --- | --- | --- |
+| `ERP_CICLO_INDUSTRIAL` desligado por padrão; habilitar com `enabled` após homologação e migração | Preservar fluxos legados sem schema novo | Desligar a flag; OFs integradas continuam protegidas contra escrita pelo apontamento legado |
+| Snapshot é congelado já na geração; confirmação reserva a mesma revisão | Não trocar a engenharia enquanto o planejador confirma | Uma futura revisão de OF precisa ser explícita, antes da confirmação, com auditoria; nunca editar snapshot |
+| Roteiro usa quantidades da BOM na unidade base cadastrada; quantidade informada no ciclo também é base | Reutilizar conversões do estoque e evitar duas regras de conversão | Evoluir o assistente para escolher unidade alternativa, convertendo pelo cadastro existente antes de enviar |
+| Cada componente pertence a exatamente uma operação; entrada de produto apenas na última | Evitar dupla baixa e dupla entrada | Evoluir política versionada de rateio entre operações antes de permitir múltiplos vínculos |
+| Falta de saldo pode bloquear ou deixar movimento pendente; nunca cria saldo negativo | Preservar constraints atuais de estoque | Exige projeto específico e migração antes de autorizar estoque negativo |
+| Filho produz a falta do semiacabado calculada na geração; confirmação revalida disponibilidade | Não reservar saldo inexistente; filhos usam o mesmo fluxo de OF | Alterações de disponibilidade entre planejamento e confirmação precisam ser resolvidas no planejamento; não forçar saldo |
+| Estornos seguem operações posteriores e ordem inversa dos apontamentos | Preservar rastreio e arredondamento acumulado | Criar recomposição de custos/consumo antes de permitir estorno fora de ordem |
+| Custos legados não informados valem zero e não são estimados | Não inventar valorização histórica | Homologar abertura/inventário valorizado com o responsável financeiro; PEPS de legado sem camadas exige saneamento |
+| Centro é capacidade/máquina/turno existente, com calendário semanal ISO | Evitar cadastro paralelo e manter capacidade conhecida | Expandir o mesmo cadastro para exceções/feriados; não criar outro centro de trabalho |
+| Chave EXTERNA é cadastrável, mas execução bloqueada sem remessa/retorno conferidos | Beneficiamento externo pertence ao Bloco 9 e não foi criado nesta rodada | Integrar o fluxo de terceirização ao roteiro existente quando autorizado |
+| Transferência é saga, pois os bancos são independentes; produto de destino é escolhido explicitamente | Não supor IDs/códigos iguais nem prometer transação distribuída | Reprocessar a mesma chave; o documento só é recebido depois do crédito confirmado no destino |
+| PWA guarda propostas offline; autorização e saldo são validados novamente no servidor | Login/unidade podem mudar durante a falta de conexão | Voltar com o login e unidade de origem; corrigir/descartar propostas recusadas, sem alterar o ledger |
+| Câmera usa BarcodeDetector; navegador sem essa API usa leitor físico ou digitação | Não introduzir dependência externa de câmera nesta etapa | Adicionar decodificador local com homologação de iOS se câmera universal for necessária |
+
+## Rodada completa — etapa A
+
+- Cliente segue o ID explícito do CRM; quando só há código/documento, a resolução exige um cadastro único. Homônimos não são vinculados automaticamente. Cadastro sem código mostra “sem código”; manutenção/validação na etapa C. Reverter por ajuste auditado do vínculo mestre, nunca por renomear textos em massa.
+- Sem CRM instalado, leitura preserva nome da programação; filtros comerciais novos dependem da projeção da migração 12 e não podem produzir totais falsos. A opção não é preenchida enquanto o schema não estiver disponível.
+- Nome de cliente não é número de pedido do cliente. O campo de referência de compra permanece separado.
+- Auditoria geral é inspeção do código de todas as entradas e testes locais dos caminhos corrigidos. Campos vazios/latência em produção não foram medidos nem inferidos; homologação com dados reais permanece necessária.
+
+## Rodada B
+
+- Bloqueio é herdado da OF pai; remover o bloqueio de uma filha não remove o do pai. Motivo obrigatório. Reversão: desbloquear explicitamente a OF responsável pelo impedimento.
+- Cancelar árvore exige ausência de execução vigente e filhas concluídas; apontamentos devem ser estornados antes. Não cancela parcialmente árvore com produção.
+- Instrução textual e revisão congeladas no roteiro bastam para o primeiro acesso do operador. Arquivos/aprovação documental independente continuam pendentes na H; nova revisão de roteiro não altera OF liberada.
+
+## Fechamento / implantação presencial
+
+- Sem acesso ao Neon, status real de migrações e fidelidade total do legado são desconhecidos. Teste usa schema do repositório e dados sintéticos, não dump de produção. Confirmar com precheck presencial; nunca marcar todos como pendentes por ausência de registro.
+- Aplicador antigo não executava SQL. Manter aplicação/reversão automáticas bloqueadas mesmo com flag; pacote SQL com backup/conferência é o fluxo disponível. Implementar executor somente com destino explícito, transações, locks, checksum e homologação própria.
+- Migração 03 assume Sul numa view temporária; 04 substitui essa projeção por identidade homologada. Manter sistema fechado entre etapas e homologar unidade antes de 08. Nunca escolher Sul por padrão.
+- Condições de pagamento, motivos persistentes de refugo, fiscal/contábil e comissões completas não têm entidades/fluxos suficientes. CSV de implantação é proposta, não seed de módulo inexistente. Não criar tabelas paralelas para maquiar conclusão.
+- Fiscal requer homologação do contador: regime, NCM/CFOP/CST/cClassTrib, benefícios, alíquotas, vigências, arredondamentos/rateios, XSD/NT, obrigações e provedor. Fontes consultadas em 22/10/2026 não autorizam transmissão ou regra fixa. Nenhuma emissão fiscal implementada neste incremento.
+- Branch nova baseada em main reaproveita diff das entregas pendentes. Não é encadeamento de commits nem merge; PR consolidado deve substituir revisão das branches antigas equivalentes após comparação, sem aplicar migrações duas vezes.

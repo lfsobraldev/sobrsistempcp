@@ -19,7 +19,7 @@ import {
   UploadCloud,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 import { Badge, Card, DataTable, PageHeader, Progress, StatCard, type Tone } from "@/components/ui";
 import { LABELS, resumoMaquinas } from "@/lib/metrics";
 import { fmt, fmtPct, pct } from "@/lib/format";
@@ -72,7 +72,7 @@ function tipoExcecao(tipo: string) {
 }
 
 export default function Dashboard() {
-  const { pg, lastSync, refresh } = useOps();
+  const { pg, lastSync, refresh,recorteQuery } = useOps();
   const produtos = pg?.produtos || [];
   const maquinas = useMemo(() => resumoMaquinas(produtos), [produtos]);
   const operacoes = produtos.flatMap((p) => p.operacoes);
@@ -93,8 +93,8 @@ export default function Dashboard() {
   useEffect(() => {
     let alive = true;
     Promise.all([
-      fetch("/api/gestao-producao", { cache: "no-store" }),
-      fetch("/api/inteligencia/resumo", { cache: "no-store" }),
+      fetch("/api/gestao-producao?recorte=1&"+recorteQuery, { cache: "no-store" }),
+      fetch("/api/inteligencia/resumo?recorte=1&"+recorteQuery, { cache: "no-store" }),
     ])
       .then(async ([r, ri]) => {
         const j = r.ok ? await r.json() : { controles: [], excecoes: [] };
@@ -110,7 +110,7 @@ export default function Dashboard() {
     return () => {
       alive = false;
     };
-  }, [pg?.id, lastSync?.getTime()]);
+  }, [pg?.id, lastSync?.getTime(),recorteQuery]);
 
   const planejado = operacoes.reduce((s, o) => s + Number(o.quantidadePlanejada || 0), 0);
   const produzido = operacoes.reduce((s, o) => s + Number(o.quantidadeProduzida || 0), 0);
@@ -191,12 +191,12 @@ export default function Dashboard() {
     setBusy(true);
     try {
       await refresh();
-      const r = await fetch("/api/gestao-producao", { cache: "no-store" });
+      const r = await fetch("/api/gestao-producao?recorte=1&"+recorteQuery, { cache: "no-store" });
       if (r.ok) {
         const j = await r.json();
         setGestao({ controles: j.controles || [], excecoes: j.excecoes || [] });
       }
-      const ri = await fetch("/api/inteligencia/resumo", { cache: "no-store" });
+      const ri = await fetch("/api/inteligencia/resumo?recorte=1&"+recorteQuery, { cache: "no-store" });
       if (ri.ok) {
         const ji = await ri.json();
         setInteligencia({

@@ -1,12 +1,15 @@
 "use client";
+import OFCiclo from "@/components/of-ciclo";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { History, RefreshCw, X } from "lucide-react";
+import PCPFilterBar,{type OpcoesPCP} from "@/components/pcp-filter-bar";
+import {usePCPFilters} from "@/hooks/use-pcp-filters";
 import { useOps } from "@/components/operational-provider";
 import { PROCESSOS } from "@/lib/processos";
 
 type Op = {
-  id: string; pedido: string; of: string; produto: string; descricao: string; cor: string; processo: string; sequencia: number; status: string;
+  clienteNome:string;clienteCodigo:string;representanteNome:string;representanteCodigo:string;id: string; pedido: string; of: string; produto: string; descricao: string; cor: string; processo: string; sequencia: number; status: string;
   planejada: number; produzida: number; refugo: number; percentual: number; anterior_processo: string | null; anterior_status: string | null; atualizado_em: string;
 };
 type Hist = { lancamentos: { tipo: string; quantidade: number; usuario: string; data_producao: string; criado_em: string }[]; eventos: { tipo: string; descricao: string; usuario: string; criado_em: string }[] };
@@ -18,9 +21,10 @@ const uuid = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? cr
 const TIPO_LANC: Record<string, string> = { PRODUCAO: "Produção", CORRECAO: "Correção", FINALIZACAO: "Conclusão da operação", REFUGO: "Refugo" };
 
 export default function ApontamentoOperacoes() {
-  const { me } = useOps();
-  const [progs, setProgs] = useState<ProgLista[]>([]);
-  const [progId, setProgId] = useState("");
+  const { me,selectedProgramacaoId } = useOps();
+  const {filtros,setFiltros,query,limpar}=usePCPFilters(selectedProgramacaoId);
+  const [opcoes,setOpcoes]=useState<OpcoesPCP>({filtros:[],meses:[],pedidos:[]});
+  const [page,setPage]=useState(1);
   const [filtro, setFiltro] = useState("");
   const [ops, setOps] = useState<Op[]>([]);
   const [truncado, setTruncado] = useState(false);
@@ -39,23 +43,17 @@ export default function ApontamentoOperacoes() {
   const pode = ["PCP", "ENCARREGADO", "LIDER", "APONTADOR"].includes(me?.perfil || "");
   const meusSetores = me?.processos?.length && ["LIDER", "APONTADOR"].includes(me?.perfil || "") ? PROCESSOS.filter((x) => me.processos.includes(x)) : PROCESSOS;
 
-  useEffect(() => {
-    fetch("/api/programacoes/historico", { cache: "no-store" }).then((r) => r.json()).then((j) => {
-      const l = (j.itens || []) as ProgLista[]; setProgs(l);
-      const ini = l.find((x) => x.status === "ATIVA") || l[0]; if (ini) setProgId(ini.id);
-    }).catch(() => setProgId(""));
-  }, []);
-
-  const carregar = useCallback(async () => {
+  const carregar = useCallback(async (signal?:AbortSignal) => {
     setLoading(true); setErro("");
     try {
-      const p = new URLSearchParams(); if (progId) p.set("programacaoId", progId); if (processo) p.set("processo", processo); if (status) p.set("status", status); if (q.trim()) p.set("q", q.trim());
-      const r = await fetch("/api/pcp/operacoes?" + p, { cache: "no-store" }); const j = await r.json();
+      const p = new URLSearchParams(query);p.set("page",String(page)); if (processo) p.set("processo", processo); if (status) p.set("status", status); if (q.trim()) p.set("q", q.trim());
+      const r = await fetch("/api/pcp/operacoes?" + p, { cache: "no-store",signal }); const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Falha ao carregar operações.");
-      setOps(j.operacoes || []); setFiltro(j.filtro || ""); setTruncado(!!j.truncado); setRestrito(!!j.restritoAosSeusSetores);
-    } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao carregar."); } finally { setLoading(false); }
-  }, [progId, processo, status, q]);
-  useEffect(() => { const t = setTimeout(() => void carregar(), 250); return () => clearTimeout(t); }, [carregar]);
+      if(signal?.aborted)return;setOpcoes(j.opcoes||{filtros:[],meses:[],pedidos:[]});setOps(j.operacoes || []); setFiltro(j.filtro || ""); setTruncado(!!j.truncado); setRestrito(!!j.restritoAosSeusSetores);
+    } catch (e) { if(!signal?.aborted)setErro(e instanceof Error ? e.message : "Falha ao carregar."); } finally { if(!signal?.aborted)setLoading(false); }
+  }, [query, page, processo, status, q]);
+  useEffect(() => {const c=new AbortController(); const t = setTimeout(() => void carregar(c.signal), 250); return () => {clearTimeout(t);c.abort();}; }, [carregar]);
+  useEffect(()=>setPage(1),[query,processo,status,q]);
 
   async function enviar(op: Op, action: string, extra: Record<string, unknown> = {}) {
     const chave = op.id + "|" + action + "|" + JSON.stringify(extra);
@@ -86,14 +84,14 @@ export default function ApontamentoOperacoes() {
     plan: ops.reduce((s, o) => s + o.planejada, 0), prod: ops.reduce((s, o) => s + Math.min(o.produzida, o.planejada), 0),
   }), [ops]);
 
-  return <div className="cart-page">
+  return <div className="cart-page"><OFCiclo chao/>
     <header className="cart-hero"><span>PCP · PRODUÇÃO</span><h1>Apontamento de Quantidades</h1>
       <p>Lançamento de peças produzidas por operação, com responsável, data e histórico. Programação <b>{filtro || "—"}</b>.{restrito ? " Você vê apenas os setores liberados para o seu usuário." : ""}</p></header>
     {erro && <p role="alert" className="cart-msg err">{erro}</p>}
     {ok && <p role="status" className="cart-msg info">{ok}</p>}
     <section className="cart-panel">
       <div className="cart-filters">
-        <label>Programação<select value={progId} onChange={(e) => setProgId(e.target.value)}>{progs.map((x) => <option key={x.id} value={x.id}>Filtro {x.filtro} · {x.data}{x.status === "ATIVA" ? " · ATUAL" : ""}</option>)}</select></label>
+
         <label>Setor<select value={processo} onChange={(e) => setProcesso(e.target.value)}><option value="">Todos</option>{meusSetores.map((p) => <option key={p} value={p}>{p}</option>)}</select></label>
         <label>Situação<select value={status} onChange={(e) => setStatus(e.target.value)}><option value="">Todas</option>{STATUS.map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
         <label>Pesquisar<input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Pedido, OF ou produto" /></label>
@@ -102,7 +100,8 @@ export default function ApontamentoOperacoes() {
         <button className="cart-btn" onClick={() => void carregar()} disabled={loading}><RefreshCw size={16} /> {loading ? "Atualizando…" : "Atualizar"}</button>
         <span style={{ alignSelf: "center", fontSize: 13, color: "var(--text-2)" }}>{ops.length} operação(ões) · {resumo.abertas} liberada(s)/em andamento · {f(resumo.prod)} de {f(resumo.plan)} peça(s) apontadas</span>
       </div>
-      {truncado && <p className="cart-note">Mostrando as primeiras 500 operações. Refine por setor, situação ou pesquisa.</p>}
+      {truncado && <p className="cart-note">Há mais operações nas próximas páginas. Os totais desta lista correspondem à página atual.</p>}
+      <div><button className="cart-btn" disabled={loading||page===1} onClick={()=>setPage(p=>p-1)}>Anterior</button> Página {page} <button className="cart-btn" disabled={loading||!truncado} onClick={()=>setPage(p=>p+1)}>Próxima</button></div>
       <div className="cart-wrap"><table className="cart-table stack" style={{ minWidth: 1000 }}>
         <thead><tr><th>Pedido / OF</th><th>Produto</th><th>Setor</th><th>Situação</th><th className="num">Planejada</th><th className="num">Produzida</th><th className="num">Restante</th><th className="num">Refugo</th><th style={{ textAlign: "right" }}>Ação</th></tr></thead>
         <tbody>
@@ -111,7 +110,7 @@ export default function ApontamentoOperacoes() {
             : ops.map((o) => {
               const aberta = ["LIBERADA", "EM_ANDAMENTO"].includes(o.status), rest = o.status === "CONCLUIDA" ? 0 : Math.max(0, o.planejada - o.produzida), ocupado = busy === o.id;
               return <tr key={o.id}>
-                <td data-label="Pedido / OF"><b>{o.pedido}</b><small>OF {o.of || "—"}</small></td>
+                <td data-label="Pedido / OF"><b>{o.pedido}</b><small>OF {o.of || "—"}</small><small>Cliente: {o.clienteNome} · {o.clienteCodigo||"sem código"}</small><small>Representante: {o.representanteNome}</small></td>
                 <td data-label="Produto">{o.produto || "—"}<small>{[o.descricao, o.cor].filter(Boolean).join(" · ")}</small></td>
                 <td data-label="Setor">{o.processo}<small>seq. {o.sequencia}</small></td>
                 <td data-label="Situação"><span className={"cart-badge st-" + o.status}>{rot(o.status)}</span>{o.status === "PENDENTE" && o.anterior_processo && <small>aguarda {o.anterior_processo}</small>}</td>

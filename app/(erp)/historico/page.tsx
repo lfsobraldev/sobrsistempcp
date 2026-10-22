@@ -5,27 +5,28 @@ import { Trash2 } from "lucide-react";
 import { useOps } from "@/components/operational-provider";
 import { Badge, DataTable, Card, PageHeader, Empty, type Tone } from "@/components/ui";
 
-type Programacao = { id: string; filtro: string; data: string; turno: string; origem: string; import_pedidos: number; import_ofs: number; import_pecas: number; status: string };
+type Programacao = { id: string; filtro: string; data: string; turno: string; origem: string; import_pedidos: number; import_ofs: number; import_pecas: number; status: string;arquivada?:boolean };
 type Evento = { id: string; criado_em: string; usuario: string; tipo: string; of?: string; processo?: string; descricao: string };
 
 const tone = (s: string): Tone => (s === "ATIVA" ? "success" : s === "ARQUIVADA" ? "neutral" : "info");
 
 export default function Historico() {
-  const { toast, me } = useOps();
+  const { toast, me,recorteQuery } = useOps();
+  const [page,setPage]=useState(1),[total,setTotal]=useState(0);
+  useEffect(()=>setPage(1),[recorteQuery]);
+  const [arquivadas,setArquivadas]=useState(false);
   const [h, setH] = useState<Programacao[]>([]);
   const [a, setA] = useState<Evento[]>([]);
   const [confirmClear, setConfirmClear] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/programacoes/historico", { cache: "no-store" }),
-      fetch("/api/auditoria", { cache: "no-store" }),
-    ]).then(async ([x, y]) => {
-      if (x.ok) setH((await x.json()).itens || []);
-      if (y.ok) setA((await y.json()).itens || []);
-    });
-  }, []);
+    const c=new AbortController();Promise.all([
+      fetch('/api/programacoes/historico?'+recorteQuery+'&arquivadas='+arquivadas+'&page='+page,{cache:'no-store',signal:c.signal}),
+      fetch('/api/auditoria?recorte=1&'+recorteQuery,{cache:'no-store',signal:c.signal})
+    ]).then(async([x,y])=>{const a=await x.json();if(!x.ok)throw new Error(a.error);if(!c.signal.aborted){setH(a.itens||[]);setTotal(a.total||0);}if(y.ok){const b=await y.json();if(!c.signal.aborted)setA(b.itens||[]);}}).catch(e=>{if(!c.signal.aborted)toast('error',e.message);});return()=>c.abort();
+  },[arquivadas,page,recorteQuery,toast]);
+
 
   async function apagarHistorico() {
     if (!confirmClear) {
@@ -37,13 +38,13 @@ export default function Historico() {
     try {
       const r = await fetch("/api/programacoes/historico", { method: "DELETE" });
       const j = await r.json();
-      if (!r.ok) throw new Error(j.error || "Falha ao apagar histórico.");
+      if (!r.ok) throw new Error(j.error || "Falha ao arquivar histórico.");
       setConfirmClear(false);
       setH((atual) => atual.filter((x) => x.status === "ATIVA"));
-      setA([]);
+
       toast("success", j.mensagem || "Histórico apagado.");
     } catch (e: any) {
-      toast("error", e.message || "Falha ao apagar histórico.");
+      toast("error", e.message || "Falha ao arquivar histórico.");
     } finally {
       setBusy(false);
     }
@@ -63,12 +64,14 @@ export default function Historico() {
             onClick={() => void apagarHistorico()}
           >
             <Trash2 />
-            {confirmClear ? "Confirmar exclusão do histórico" : "Apagar histórico"}
+            {confirmClear ? "Confirmar arquivamento" : "Arquivar todo histórico da unidade"}
           </button>
         ) : undefined}
       />
 
-      <Card subtitle="Últimas 50 liberações" title="Programações" className="mb">
+      <label><input type="checkbox" checked={arquivadas} onChange={e=>setArquivadas(e.target.checked)}/> Mostrar programações arquivadas</label>
+      <div><button disabled={page===1} onClick={()=>setPage(p=>p-1)}>Anterior</button> Página {page}<button disabled={page*50>=total} onClick={()=>setPage(p=>p+1)}>Próxima</button></div>
+      <Card subtitle="Programações do recorte selecionado" title="Programações" className="mb">
         {h.length ? (
           <DataTable head={["Filtro", "Data", "Turno", "Origem", "Pedidos", "OFs", "Peças", "Status"]}>
             {h.map((x) => (
@@ -80,7 +83,7 @@ export default function Historico() {
                 <td className="num">{x.import_pedidos}</td>
                 <td className="num">{x.import_ofs}</td>
                 <td className="num">{Number(x.import_pecas || 0).toLocaleString("pt-BR")}</td>
-                <td><Badge tone={tone(x.status)}>{x.status}</Badge></td>
+                <td><Badge tone={tone(x.status)}>{x.arquivada?"ARQUIVADA":x.status}</Badge></td>
               </tr>
             ))}
           </DataTable>

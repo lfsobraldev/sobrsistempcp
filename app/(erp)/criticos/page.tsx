@@ -2,7 +2,7 @@
 
 import { FileSpreadsheet } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 import { LABELS } from "@/lib/metrics";
 import { ordenarProcessos } from "@/lib/processos";
 import { calcularCriticos } from "@/lib/criticos";
