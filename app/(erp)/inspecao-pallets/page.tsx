@@ -1,4 +1,5 @@
 "use client";
+import IdentidadePedido from '@/components/identidade-pedido';
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
@@ -262,7 +263,7 @@ export default function InspecaoPallets(){
             {itens.map((p) => (
               <tr key={p.id} className={`clickRow ${p.status === "BLOQUEADO" ? "critRow" : ""}`} onClick={() => openPallet(p.id)}>
                 <td><b>{p.pallet}</b><small className="palletCode" style={{ display: "block" }}>{p.codigo}</small></td>
-                <td>{p.pedido}</td><td>{p.cliente || "-"}</td><td>{p.filtro || "-"}</td><td>{p.tipo_produto || "-"}</td>
+                <td>{p.pedido}<IdentidadePedido pedido={p.pedido}/></td><td>{p.cliente || "-"}</td><td>{p.filtro || "-"}</td><td>{p.tipo_produto || "-"}</td>
                 <td className="num">{fmt(p.quantidade)}</td><td className="num">{fmt(p.jogos)}</td>
                 <td><Badge tone={tomStatus(p.qualidade_status)}>{statusLabel(p.qualidade_status)}</Badge></td>
                 <td><Badge tone={tomStatus(p.msac_status)}>{statusLabel(p.msac_status)}</Badge></td>

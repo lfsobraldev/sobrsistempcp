@@ -75,3 +75,14 @@ As páginas mensais originais eram demonstrações estáticas. Foram substituíd
 | Pallets e rastreio | melhorado | `pcp_pallets`, consultas de estoque existentes | Pallet nasce do apontamento de acabado, pendente de qualidade; estorno bloqueia o pallet, liberação prévia impede estorno; rastreio por lote/OF/apontamento/pallet/pedido |
 | Transferência entre fontes | criado (documento antes ausente) | migração 11, `lib/transferencias-unidades.ts`, API de estoque existente | Intenção central → saída operacional → em trânsito → recebimento no outro banco; retomada idempotente e mapeamento explícito de produto/depósito |
 | Chão de fábrica PWA | melhorado | apontamento existente, `lib/chao-fila.ts`, manifest e contingência públicos | QR de operação, câmera quando suportada, IndexedDB por login/unidade, reenvio com chave e identidade; não armazena cookies ou respostas privadas no service worker |
+
+## Rodada completa — etapa A
+
+| Item | Situação | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Cliente em visões operacionais | melhorado | `lib/clientes-operacionais.ts`, APIs de apontamento/programação/OF/carteira/entregas/pallets/rastreio e componentes existentes | Reutiliza CRM por ID; código/documento só resolve cadastro único; fallback da programação. Não cria cadastro paralelo |
+| Filtros cliente/representante | melhorado | hook, filtros e APIs existentes; programação mensal e consolidado | Mesma URL, múltipla seleção, resumo/tabela no mesmo recorte. Projeção nova da migração 12; opção indisponível sem projeção |
+| Códigos mestres e projeção | melhorado/criado (leitura) | migração 12 | Códigos opcionais em entidades existentes e view de identidade por produto/pedido; sem backfill assumido e sem execução real |
+| Permissão por processo | corrigido | regra central em `lib/apontamento.ts`, APIs de leitura/histórico/escrita | Setor vazio de líder/apontador não é acesso total |
+| Histórico e importação em passos | já existia | migrações 09, componente mensal | Preservados; não recriados. Filtros comerciais adicionados a URL e preferências |
+| Auditoria de todas as entradas | criado (relatório) | `docs/AUDITORIA_GERAL.md` | 44 páginas e 73 APIs inspecionadas estaticamente; homologação navegada com dados reais ainda pendente |

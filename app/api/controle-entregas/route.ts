@@ -1,3 +1,4 @@
+import {enriquecerClientes} from '@/lib/clientes-operacionais';
 import {idsProdutosRecorte} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import {NextResponse} from "next/server";
@@ -111,6 +112,8 @@ async function unidadeGET(req:Request){
     if(naProgramacao.has(normalizarPedido(c.pedido)))continue;
     pedidos.push({pedido:String(c.pedido),linhas:0,ofs:0,pecas:0,percentual:0,foraDaProgramacao:true,entrega:{...c,cliente:String(c.cliente||"").trim()}});
   }
+  const identificados=await enriquecerClientes(db,pedidos.map(p=>({...p,cliente:p.entrega?.cliente})));
+  pedidos.splice(0,pedidos.length,...identificados.map(p=>({...p,entrega:{...p.entrega,cliente:p.clienteNome,clienteCodigo:p.clienteCodigo,clienteId:p.clienteId,representante:p.representanteNome,representanteCodigo:p.representanteCodigo}})));
   if(usuarioAtual.perfil==="LIDER_ENTREGAS")return NextResponse.json({filtro:String(active.filtro||""),programacaoId:String(active.id),pedidos:pedidos.map((p:any)=>({pedido:p.pedido,ofs:p.ofs,pecas:p.pecas,percentual:p.percentual,entrega:{cliente:p.entrega?.cliente||""}}))},{headers:{"Cache-Control":"no-store"}});
   return NextResponse.json({filtro:String(active.filtro||""),programacaoId:String(active.id),pedidos,eventos:origem?events.filter((e:any)=>origem.some(p=>p.pedido===e.pedido)):events},{headers:{"Cache-Control":"no-store"}});
  }catch(e:any){return NextResponse.json({error:e?.message==="SEM_PERMISSAO"?"Sem permissão":e?.message||"Falha ao consultar"},{status:e?.message==="SEM_PERMISSAO"?403:500})}

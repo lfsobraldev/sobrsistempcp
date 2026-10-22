@@ -1,3 +1,4 @@
+import {enriquecerClientes} from '@/lib/clientes-operacionais';
 import {idsProdutosRecorte} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
@@ -153,10 +154,11 @@ async function unidadeGET(req: Request) {
         cargas: mCar.get(k) || [], sacAbertos: mSac.get(k) || 0,
       });
     }
+    const identificados=await enriquecerClientes(db,itens);
     return NextResponse.json({
       programacaoId: prog ? String(prog.id) : "", filtro: prog ? String(prog.filtro || "") : "",
       fontes: { controleEntregas: tCtl, prazosPcp: tPed, remessas: tCar, sac: tSac, estoque: false },
-      pedidos: selecao?itens.filter(p=>selecao.some(i=>String(i.pedido)===p.pedido)):itens,
+      pedidos: selecao?identificados.filter(p=>selecao.some(i=>String(i.pedido)===p.pedido)):identificados,
     }, { headers });
   } catch (e: any) {
     const forb = e?.message === "SEM_PERMISSAO";

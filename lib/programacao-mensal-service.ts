@@ -1,3 +1,5 @@
+import {opcoesComerciais} from './pcp-filters';
+import {enriquecerClientes} from './clientes-operacionais';
 import { z } from "zod";
 import { unidadeAtual } from "./unidades/context";
 import { multiAtiva } from "./unidades/core";
@@ -31,6 +33,8 @@ export async function consultarMensal(req: Request) {
   const parametros=new URL(req.url).searchParams;
   const entradas=Object.fromEntries(parametros);
   if(parametros.has('filtro'))entradas.filtros=parametros.getAll('filtro').join('|');
+  if(parametros.has('cliente'))entradas.clientes=parametros.getAll('cliente').join('|');
+  if(parametros.has('representante'))entradas.representantes=parametros.getAll('representante').join('|');
   if(parametros.has('pedido'))entradas.pedidos=parametros.getAll('pedido').join('|');
   if(['TODOS','ATIVO','SELECAO'].includes(entradas.mes))entradas.mes='';
   const q = querySchema.parse(entradas);
@@ -47,11 +51,11 @@ export async function consultarMensal(req: Request) {
     where b.filial_id=any($1::uuid[]) and ($2='' or to_char(b.competencia,'YYYY-MM')=$2)
     and ($3='' or b.filtro ilike '%'||$3||'%' or b.descricao ilike '%'||$3||'%' or b.produto ilike '%'||$3||'%')
     and (cardinality($4::text[])=0 or b.filtro=any($4::text[]))
-    and (cardinality($5::text[])=0 or b.pedido=any($5::text[])) ${statusWhere}`;
-  const args = [ids,q.mes,q.busca,filtros,q.pedidos.split("|").filter(Boolean),q.estado];
+    and (cardinality($5::text[])=0 or b.pedido=any($5::text[])) ${statusWhere} ${q.clientes||q.representantes?" and exists(select 1 from pcp_clientes_operacionais i where i.pedido=b.pedido and (cardinality($7::text[])=0 or i.cliente_id::text=any($7::text[]) or i.cliente_codigo=any($7::text[])) and (cardinality($8::text[])=0 or i.representante_id::text=any($8::text[]) or i.representante_codigo=any($8::text[])))":" and ($7::text[] is not null and $8::text[] is not null)"}`;
+  const args = [ids,q.mes,q.busca,filtros,q.pedidos.split("|").filter(Boolean),q.estado,q.clientes.split('|').filter(Boolean),q.representantes.split('|').filter(Boolean)];
   const limit = q.formato ? 10001 : 50;
   const [rows,resumo,mensal,opcoes,lotes,competencias,opcoesPedidos] = await Promise.all([
-    db.query(`select b.*,f.codigo as unidade ${base} order by ${columns[q.sort]} ${q.dir},b.id limit $7 offset $8`,[...args,limit,q.formato?0:(q.page-1)*50]),
+    db.query(`select b.*,f.codigo as unidade ${base} order by ${columns[q.sort]} ${q.dir},b.id limit $9 offset $10`,[...args,limit,q.formato?0:(q.page-1)*50]),
     db.query(`select count(*)::int as itens,coalesce(sum(b.quantidade),0) as quantidade,
       count(*) filter(where b.data<current_date)::int as vencidos,
       coalesce(sum(b.quantidade) filter(where f.codigo='SUL'),0) as sul,
@@ -62,5 +66,5 @@ export async function consultarMensal(req: Request) {
     estadosHabilitados?db`select c.*,f.codigo unidade from pcp_programacao_competencias c join pcp_filiais f on f.id=c.filial_id where c.filial_id=any(${ids}::uuid[]) order by c.competencia desc limit 120`:[],
     db`select distinct pedido from pcp_programacao_mensal_efetiva where filial_id=any(${ids}::uuid[]) order by pedido limit 500`,
   ]);
-  return {q,rows,competencias,opcoesPedidos,estadosHabilitados,resumo:resumo[0],mensal,opcoes,lotes,pagina:q.page,porPagina:50,podeImportar:sessao.perfil==='PCP',sessao,db};
+  return {q,rows:await enriquecerClientes(db,rows),opcoesComerciais:await opcoesComerciais(db),competencias,opcoesPedidos,estadosHabilitados,resumo:resumo[0],mensal,opcoes,lotes,pagina:q.page,porPagina:50,podeImportar:sessao.perfil==='PCP',sessao,db};
 }

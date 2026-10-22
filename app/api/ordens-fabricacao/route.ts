@@ -1,3 +1,4 @@
+import {enriquecerClientes} from '@/lib/clientes-operacionais';
 import {NextResponse} from 'next/server';
 import {unidadeHandler} from '@/lib/unidades/handler';
 import {requireRoles} from '@/lib/auth';
@@ -18,10 +19,10 @@ export const GET=unidadeHandler(async(req:Request)=>{try{
  return NextResponse.json({rows,page,aviso:'MRP consultivo: reservas, compras, consumo e entrada de acabados continuam exigindo movimentação explícita.'},{headers:{'Cache-Control':'no-store'}});
  }
  const [rows,total,estruturas]=await Promise.all([
- db`select o.*,p.codigo,p.descricao,(select count(*)::int from pcp_operacoes op where ((to_jsonb(op)->>'of_id')::uuid=o.id or op.produto_id=o.origem_produto_id) and op.status='CONCLUIDA') operacoes_concluidas,(select count(*)::int from pcp_operacoes op where ((to_jsonb(op)->>'of_id')::uuid=o.id or op.produto_id=o.origem_produto_id)) operacoes_totais from erp_ordens_fabricacao o join est_produtos p on p.id=o.produto_estoque_id where (${ids}::uuid[] is null or coalesce((to_jsonb(o)->>'origem_raiz_id')::uuid,o.origem_produto_id)=any(${ids}::uuid[])) order by o.numero desc limit 50 offset ${(page-1)*50}`,
+ db`select o.*,coalesce((to_jsonb(o)->>'origem_raiz_id')::uuid,o.origem_produto_id) produto_id,p.codigo,p.descricao,(select count(*)::int from pcp_operacoes op where ((to_jsonb(op)->>'of_id')::uuid=o.id or op.produto_id=o.origem_produto_id) and op.status='CONCLUIDA') operacoes_concluidas,(select count(*)::int from pcp_operacoes op where ((to_jsonb(op)->>'of_id')::uuid=o.id or op.produto_id=o.origem_produto_id)) operacoes_totais from erp_ordens_fabricacao o join est_produtos p on p.id=o.produto_estoque_id where (${ids}::uuid[] is null or coalesce((to_jsonb(o)->>'origem_raiz_id')::uuid,o.origem_produto_id)=any(${ids}::uuid[])) order by o.numero desc limit 50 offset ${(page-1)*50}`,
  db`select count(*)::int total from erp_ordens_fabricacao o where (${ids}::uuid[] is null or coalesce((to_jsonb(o)->>'origem_raiz_id')::uuid,o.origem_produto_id)=any(${ids}::uuid[]))`,
  db`select e.id,p.codigo,e.versao from erp_estruturas e join est_produtos p on p.id=e.produto_id where e.status='APROVADA' order by p.codigo,e.versao desc limit 500`]);
- return NextResponse.json({rows,total:total[0].total,page,estruturas},{headers:{'Cache-Control':'no-store'}});
+ return NextResponse.json({rows:await enriquecerClientes(db,rows),total:total[0].total,page,estruturas},{headers:{'Cache-Control':'no-store'}});
  }catch(e){return falha(e);}});
 export const POST=unidadeHandler(async(req:Request)=>{try{
  const s=await requireRoles(['PCP','GERENTE']);const entrada=await req.json();if(String(entrada.acao||'').startsWith('CICLO_'))return NextResponse.json({ok:true,rows:await gravarOFCiclo(sql(),entrada,s.usuario)});const parsed=ofEntrada.safeParse(entrada);if(!parsed.success)return NextResponse.json({error:parsed.error.issues.map(i=>i.message).join(' ')},{status:400});const b=parsed.data,db=sql();

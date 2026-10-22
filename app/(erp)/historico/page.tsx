@@ -11,7 +11,9 @@ type Evento = { id: string; criado_em: string; usuario: string; tipo: string; of
 const tone = (s: string): Tone => (s === "ATIVA" ? "success" : s === "ARQUIVADA" ? "neutral" : "info");
 
 export default function Historico() {
-  const { toast, me } = useOps();
+  const { toast, me,recorteQuery } = useOps();
+  const [page,setPage]=useState(1),[total,setTotal]=useState(0);
+  useEffect(()=>setPage(1),[recorteQuery]);
   const [arquivadas,setArquivadas]=useState(false);
   const [h, setH] = useState<Programacao[]>([]);
   const [a, setA] = useState<Evento[]>([]);
@@ -19,14 +21,12 @@ export default function Historico() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch("/api/programacoes/historico?arquivadas="+arquivadas, { cache: "no-store" }),
-      fetch("/api/auditoria", { cache: "no-store" }),
-    ]).then(async ([x, y]) => {
-      if (x.ok) setH((await x.json()).itens || []);
-      if (y.ok) setA((await y.json()).itens || []);
-    });
-  }, [arquivadas]);
+    const c=new AbortController();Promise.all([
+      fetch('/api/programacoes/historico?'+recorteQuery+'&arquivadas='+arquivadas+'&page='+page,{cache:'no-store',signal:c.signal}),
+      fetch('/api/auditoria?recorte=1&'+recorteQuery,{cache:'no-store',signal:c.signal})
+    ]).then(async([x,y])=>{const a=await x.json();if(!x.ok)throw new Error(a.error);if(!c.signal.aborted){setH(a.itens||[]);setTotal(a.total||0);}if(y.ok){const b=await y.json();if(!c.signal.aborted)setA(b.itens||[]);}}).catch(e=>{if(!c.signal.aborted)toast('error',e.message);});return()=>c.abort();
+  },[arquivadas,page,recorteQuery,toast]);
+
 
   async function apagarHistorico() {
     if (!confirmClear) {
@@ -64,13 +64,14 @@ export default function Historico() {
             onClick={() => void apagarHistorico()}
           >
             <Trash2 />
-            {confirmClear ? "Confirmar arquivamento" : "Arquivar histórico"}
+            {confirmClear ? "Confirmar arquivamento" : "Arquivar todo histórico da unidade"}
           </button>
         ) : undefined}
       />
 
       <label><input type="checkbox" checked={arquivadas} onChange={e=>setArquivadas(e.target.checked)}/> Mostrar programações arquivadas</label>
-      <Card subtitle="Últimas 200 liberações" title="Programações" className="mb">
+      <div><button disabled={page===1} onClick={()=>setPage(p=>p-1)}>Anterior</button> Página {page}<button disabled={page*50>=total} onClick={()=>setPage(p=>p+1)}>Próxima</button></div>
+      <Card subtitle="Programações do recorte selecionado" title="Programações" className="mb">
         {h.length ? (
           <DataTable head={["Filtro", "Data", "Turno", "Origem", "Pedidos", "OFs", "Peças", "Status"]}>
             {h.map((x) => (

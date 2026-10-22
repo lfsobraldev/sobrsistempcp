@@ -1,4 +1,5 @@
-import {idsProdutosRecorte,OPCOES_PCP_SQL} from "@/lib/pcp-filters";
+import {enriquecerClientes} from '@/lib/clientes-operacionais';
+import {idsProdutosRecorte,OPCOES_PCP_SQL,opcoesPCP} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
@@ -736,7 +737,7 @@ async function unidadeGET(req: Request) {
 
     if (!ativa.length) {
       return NextResponse.json(
-        { programacao: null,opcoes:recortada?(await db.query(OPCOES_PCP_SQL))[0]:undefined },
+        { programacao: null,opcoes:recortada?await opcoesPCP(db):undefined },
         { headers: { "Cache-Control": "no-store" } }
       );
     }
@@ -858,10 +859,10 @@ async function unidadeGET(req: Request) {
     // Reconsulta o Catálogo Mestre por código ao abrir a programação ativa;
     // atualiza as descrições técnicas sem mudar OF, pedido, quantidades nem operações salvas.
     const enriquecidos = await enriquecerComCatalogo(produtos, db);
-    const produtosCompletados = enriquecidos.produtos.map(p => completarPorRegras(p).produto);
+    const produtosCompletados = await enriquecerClientes(db,enriquecidos.produtos.map(p => completarPorRegras(p).produto),'id');
     return NextResponse.json(
       {
-        opcoes:recortada?(await db.query(OPCOES_PCP_SQL))[0]:undefined,
+        opcoes:recortada?await opcoesPCP(db):undefined,
         programacao: {
           ids:programacaoIds,
           somenteLeitura:recortada,

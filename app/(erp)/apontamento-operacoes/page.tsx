@@ -9,7 +9,7 @@ import { useOps } from "@/components/operational-provider";
 import { PROCESSOS } from "@/lib/processos";
 
 type Op = {
-  id: string; pedido: string; of: string; produto: string; descricao: string; cor: string; processo: string; sequencia: number; status: string;
+  clienteNome:string;clienteCodigo:string;representanteNome:string;representanteCodigo:string;id: string; pedido: string; of: string; produto: string; descricao: string; cor: string; processo: string; sequencia: number; status: string;
   planejada: number; produzida: number; refugo: number; percentual: number; anterior_processo: string | null; anterior_status: string | null; atualizado_em: string;
 };
 type Hist = { lancamentos: { tipo: string; quantidade: number; usuario: string; data_producao: string; criado_em: string }[]; eventos: { tipo: string; descricao: string; usuario: string; criado_em: string }[] };
@@ -110,7 +110,7 @@ export default function ApontamentoOperacoes() {
             : ops.map((o) => {
               const aberta = ["LIBERADA", "EM_ANDAMENTO"].includes(o.status), rest = o.status === "CONCLUIDA" ? 0 : Math.max(0, o.planejada - o.produzida), ocupado = busy === o.id;
               return <tr key={o.id}>
-                <td data-label="Pedido / OF"><b>{o.pedido}</b><small>OF {o.of || "—"}</small></td>
+                <td data-label="Pedido / OF"><b>{o.pedido}</b><small>OF {o.of || "—"}</small><small>Cliente: {o.clienteNome} · {o.clienteCodigo||"sem código"}</small><small>Representante: {o.representanteNome}</small></td>
                 <td data-label="Produto">{o.produto || "—"}<small>{[o.descricao, o.cor].filter(Boolean).join(" · ")}</small></td>
                 <td data-label="Setor">{o.processo}<small>seq. {o.sequencia}</small></td>
                 <td data-label="Situação"><span className={"cart-badge st-" + o.status}>{rot(o.status)}</span>{o.status === "PENDENTE" && o.anterior_processo && <small>aguarda {o.anterior_processo}</small>}</td>

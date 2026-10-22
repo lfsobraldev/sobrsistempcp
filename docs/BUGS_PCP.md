@@ -28,3 +28,11 @@ Validação: testes de SQL real em PGlite para filtros combinados, competência,
 | Interrupção após crédito no destino poderia repetir entrada | Confirmação central e bancos operacionais são independentes | Saga retomável; teste usa serviço real com duas fontes locais e falha simulada antes de marcar recebida |
 
 Validação manual do filtro/datas: no cabeçalho, escolha mês, dois filtros e pedidos; navegue painel → sequenciamento → apontamento/perdas. Cartões, tabela e visão de datas devem usar os mesmos itens e a URL deve preservar a seleção. Limpe filtros e repita na outra unidade. No consolidado, login com uma unidade deve receber recusa no servidor. Datas de produção são civis; validar virada de mês às 23h/00h no fuso da fábrica. Testes automatizados de datas/filtros existentes continuam na suíte.
+
+## Rodada completa — etapa A
+
+- **Cliente vazio no apontamento:** query não selecionava identidade. Corrigido com resolução central pelo CRM/vínculo do pedido, código/documento unívoco e fallback da programação. Mesmo enriquecimento em programação, OF, carteira/entregas, pallets e rastreio; não usa número do pedido do cliente como nome mestre.
+- **Líder/apontador sem setores via todos:** `processos.length > 0` desativava a restrição quando não configurado. Leitura/histórico/escrita agora recusam setor não autorizado. Teste cobre ausência, setor permitido e setor diferente.
+- **Cliente/representante fora do filtro central:** contrato URL/SQL e visões existentes ampliados; tabelas, totais e consultas recebem a mesma seleção. Migração ausente normalizada como aguardando migração.
+- **Preferência mensal perdia novos filtros:** salvar/restaurar/limpar passa a incluir clientes e representantes e reinicia a página na troca.
+- Auditoria e backlog por prioridade em AUDITORIA_GERAL; itens não confirmados por navegação real não foram declarados corrigidos.

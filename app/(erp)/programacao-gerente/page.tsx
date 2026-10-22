@@ -1,4 +1,5 @@
 "use client";
+import IdentidadePedido from '@/components/identidade-pedido';
 
 import {contagemKitsPedido} from "@/lib/industrial/kits";
 
@@ -568,7 +569,7 @@ export default function ProgramacaoGerentePage() {
           <p>Conferir antes de comprar: {fmt(consumoMaterial.semClassificacao)} peça(s) sem classificação STD/ULTRA/PINUS e {fmt(consumoMaterial.semComprimento)} peça(s) sem comprimento válido. Os dois grupos podem se sobrepor.</p>
           <details><summary>Ver exatamente quais peças estão pendentes ({consumoMaterial.pendencias.length} linhas)</summary>
             <div className="tableWrap"><table><thead><tr><th>PEDIDO</th><th>OF</th><th>CÓDIGO</th><th>FAMÍLIA</th><th>DESCRIÇÃO</th><th>MATERIAL ORIGINAL</th><th>MEDIDA ORIGINAL</th><th className="num">PEÇAS</th><th>MOTIVO</th></tr></thead>
-            <tbody>{consumoMaterial.pendencias.map((x, i) => <tr key={i}><td>{x.pedido}</td><td>{x.of}</td><td>{x.codigo}</td><td>{x.familia}</td><td>{x.descricao}</td><td>{x.material || "—"}</td><td>{x.medida || "—"}</td><td className="num">{fmt(x.quantidade)}</td><td>{x.motivo}</td></tr>)}</tbody></table></div>
+            <tbody>{consumoMaterial.pendencias.map((x, i) => <tr key={i}><td>{x.pedido}<IdentidadePedido pedido={x.pedido}/></td><td>{x.of}</td><td>{x.codigo}</td><td>{x.familia}</td><td>{x.descricao}</td><td>{x.material || "—"}</td><td>{x.medida || "—"}</td><td className="num">{fmt(x.quantidade)}</td><td>{x.motivo}</td></tr>)}</tbody></table></div>
           </details>
         </>}
       </Panel>
@@ -878,7 +879,7 @@ export default function ProgramacaoGerentePage() {
                   <tr key={o.id}>
                     <td><b>{LABELS[o.processo] || o.processo}</b></td>
                     <td><b>{o.ordemFila || "-"}</b></td>
-                    <td>{p.pedido}</td>
+                    <td>{p.pedido}<IdentidadePedido pedido={p.pedido}/></td>
                     <td>{p.of || "-"}</td>
                     <td>{familiaProduto(p)}</td>
                     <td>{p.descricao}</td>

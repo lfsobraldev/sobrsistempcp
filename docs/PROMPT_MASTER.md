@@ -13,3 +13,6 @@ Fonte: instruções do usuário nesta conversa. O arquivo não existia na retoma
 - Registrar decisões em SUPOSICOES, bugs em BUGS_PCP, progresso/validação/links em PROGRESSO e inventário atualizado. Não declarar implementado o que não foi entregue/testado.
 - A: recorte unidade/mês/filtro/pedido nas visões operacionais, URL compartilhada; arquivamento seguro do histórico; consolidados detalhados; assistente de importação em passos.
 - B: roteiros/versionamento/centros/turnos, versão de produção, snapshot, filhos de semiacabados, reservas, consumo por operação, entradas/estornos, pendências, lotes/séries, rastreio, valorização, transferências em trânsito e PWA idempotente. Testar ciclo ponta a ponta em ambiente local.
+
+## Rodada completa — instrução vigente de 22/10/2026
+A regra anterior de parar após B foi substituída pelo usuário: executar A auditoria; B produção; C comercial; D medições/qualidade; E estoque/compras; F MRP/custos; G fiscal por adaptador; H financeiro/manutenção/transversal. Uma branch por etapa, com pesquisa atualizada antes de cada módulo, inventário e progresso; testes/tipos/build antes de publicar, sem merge/deploy nem banco real. Relatórios em RELATORIO_RODADA, PESQUISA_ERP e AUDITORIA_GERAL. Fiscal somente fontes oficiais, parâmetros versionados com vigência e homologação do contador; não fixar alíquotas ou cronogramas no código.

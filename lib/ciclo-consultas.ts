@@ -1,3 +1,4 @@
+import {enriquecerClientes} from './clientes-operacionais';
 import {z} from 'zod';
 import {idsProdutosRecorte,lerFiltrosPCP} from './pcp-filters';
 import type {Db} from './db';
@@ -25,10 +26,10 @@ export async function consultarOFCiclo(db:Db,id:string,page:number,pendentes=fal
  db`select m.id,m.tipo,m.produto_id,p.codigo,m.quantidade_base,m.custo_total,m.apontamento_id,m.estorno_de,l.codigo lote,m.criado_em from est_movimentos m join est_produtos p on p.id=m.produto_id left join est_lotes l on l.id=m.lote_id where m.of_id=${id}::uuid order by m.id desc limit 50 offset ${offset}`,
  db`select a.* from pcp_apontamentos a join pcp_operacoes op on op.id=a.operacao_id where op.of_id=${id}::uuid order by a.id desc limit 50 offset ${offset}`,
  db`select m.*,p.codigo,p.unidade_base,coalesce((select sum(case when v.tipo='SAIDA' then v.quantidade_base when v.tipo='ENTRADA' and v.estorno_de is not null then -v.quantidade_base else 0 end) from est_movimentos v where v.of_id=m.of_id and v.produto_id=m.produto_id),0) consumo_real,coalesce((select fisico-reservado-bloqueado from est_saldos where produto_id=m.produto_id and local_id=${of.local_id}::uuid),0) disponivel from erp_of_materiais m join est_produtos p on p.id=m.produto_id where m.of_id=${id}::uuid order by p.codigo`]);
- return {of,arvore,operacoes,movimentos,apontamentos,materiais,page};
+ return {of:(await enriquecerClientes(db,[{...of,produto_id:of.origem_raiz_id||of.origem_produto_id}]))[0],arvore,operacoes,movimentos,apontamentos,materiais,page};
 }
 export async function consultarLotesCiclo(db:Db,q:URLSearchParams,page:number){
- await exigirCiclo(db);const s=await escopoCiclo(db);const id=q.get('loteId'),offset=(page-1)*50;const filtro=lerFiltrosPCP(q),filtrado=filtro.filtros.length>0||filtro.pedidos.length>0||!['SELECAO','ATIVO','TODOS'].includes(filtro.mes);const codigos=filtrado?(await idsProdutosRecorte(db,q)).map(p=>String(p.produto)):null;
+ await exigirCiclo(db);const s=await escopoCiclo(db);const id=q.get('loteId'),offset=(page-1)*50;const filtro=lerFiltrosPCP(q),filtrado=filtro.clientes.length>0||filtro.representantes.length>0||filtro.filtros.length>0||filtro.pedidos.length>0||!['SELECAO','ATIVO','TODOS'].includes(filtro.mes);const codigos=filtrado?(await idsProdutosRecorte(db,q)).map(p=>String(p.produto)):null;
  if(id){
  z.string().uuid().parse(id);const [lot]=await db`select id from est_lotes where id=${id}::uuid and empresa_id=${s.empresa_id}::uuid and filial_id=${s.filial_id}::uuid`;if(!lot)throw new Error('Lote não encontrado.');
  const direcao=z.enum(['FRENTE','TRAS']).parse(q.get('direcao')||'FRENTE');

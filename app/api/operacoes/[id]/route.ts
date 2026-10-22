@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { requireRoles } from "@/lib/auth";
 import { publishRealtimeEvent } from "@/lib/realtime-server";
-import { validarAcao, type Acao } from "@/lib/apontamento";
+import { validarAcao,podeOperarProcesso, type Acao } from "@/lib/apontamento";
 import { garantirApontamentos } from "@/lib/pcp-schema";
 
 export const runtime = "nodejs";
@@ -42,7 +42,7 @@ async function unidadePATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const [op] = await db`select o.id,o.processo,o.status,o.quantidade_planejada,o.quantidade_produzida,o.quantidade_refugo,p.of,p.pedido from pcp_operacoes o join pcp_produtos p on p.id=o.produto_id where o.id=${id}`;
     if (!op) return NextResponse.json({ error: "Operação não encontrada." }, { status: 404 });
-    if (["LIDER", "APONTADOR"].includes(s.perfil) && s.processos?.length && !s.processos.includes(op.processo))
+    if (!podeOperarProcesso(s.perfil,s.processos,op.processo))
       return NextResponse.json({ error: `Você não tem permissão para apontar no setor ${op.processo}.`, codigo: "SETOR_NAO_PERMITIDO" }, { status: 403 });
 
     const v = validarAcao({ status: op.status, quantidadePlanejada: Number(op.quantidade_planejada), quantidadeProduzida: Number(op.quantidade_produzida), quantidadeRefugo: Number(op.quantidade_refugo) }, acao, valor, { force });

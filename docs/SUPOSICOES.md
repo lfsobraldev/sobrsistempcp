@@ -80,3 +80,10 @@
 | Transferência é saga, pois os bancos são independentes; produto de destino é escolhido explicitamente | Não supor IDs/códigos iguais nem prometer transação distribuída | Reprocessar a mesma chave; o documento só é recebido depois do crédito confirmado no destino |
 | PWA guarda propostas offline; autorização e saldo são validados novamente no servidor | Login/unidade podem mudar durante a falta de conexão | Voltar com o login e unidade de origem; corrigir/descartar propostas recusadas, sem alterar o ledger |
 | Câmera usa BarcodeDetector; navegador sem essa API usa leitor físico ou digitação | Não introduzir dependência externa de câmera nesta etapa | Adicionar decodificador local com homologação de iOS se câmera universal for necessária |
+
+## Rodada completa — etapa A
+
+- Cliente segue o ID explícito do CRM; quando só há código/documento, a resolução exige um cadastro único. Homônimos não são vinculados automaticamente. Cadastro sem código mostra “sem código”; manutenção/validação na etapa C. Reverter por ajuste auditado do vínculo mestre, nunca por renomear textos em massa.
+- Sem CRM instalado, leitura preserva nome da programação; filtros comerciais novos dependem da projeção da migração 12 e não podem produzir totais falsos. A opção não é preenchida enquanto o schema não estiver disponível.
+- Nome de cliente não é número de pedido do cliente. O campo de referência de compra permanece separado.
+- Auditoria geral é inspeção do código de todas as entradas e testes locais dos caminhos corrigidos. Campos vazios/latência em produção não foram medidos nem inferidos; homologação com dados reais permanece necessária.

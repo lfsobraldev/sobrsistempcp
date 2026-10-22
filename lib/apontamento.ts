@@ -83,3 +83,6 @@ export function diagnosticarOperacoes(produtos: ProdutoDiag[], ops: OpDiag[]): D
   const peso = { ALTA: 0, MEDIA: 1, BAIXA: 2 } as const;
   return out.sort((a, b) => peso[a.gravidade] - peso[b.gravidade] || a.pedido.localeCompare(b.pedido, "pt-BR", { numeric: true }));
 }
+
+/** Ausência de setores é ausência de autorização; nunca significa acesso irrestrito. */
+export function podeOperarProcesso(perfil:string,processos:readonly string[]|undefined,processo:string){return ['PCP','GERENTE','ENCARREGADO'].includes(perfil)||(['LIDER','APONTADOR'].includes(perfil)&&Boolean(processos?.includes(processo)));}

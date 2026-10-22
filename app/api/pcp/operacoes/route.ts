@@ -1,4 +1,6 @@
-import {lerFiltrosPCP,recortePCP,OPCOES_PCP_SQL} from "@/lib/pcp-filters";
+import {enriquecerClientes} from '@/lib/clientes-operacionais';
+import {podeOperarProcesso} from '@/lib/apontamento';
+import {lerFiltrosPCP,recortePCP,OPCOES_PCP_SQL,opcoesPCP} from "@/lib/pcp-filters";
 import {ZodError} from "zod";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
@@ -16,14 +18,14 @@ async function unidadeGET(req: Request) {
     const url = new URL(req.url);
     const db = sql();
     await garantirApontamentos(db);
-    const restrito = ["LIDER", "APONTADOR"].includes(s.perfil) && s.processos?.length > 0;
+    const restrito = ["LIDER", "APONTADOR"].includes(s.perfil) && true;
 
     const hist = url.searchParams.get("historico");
     if (hist) {
       if (!/^[0-9a-f-]{36}$/i.test(hist)) return NextResponse.json({ error: "Operação inválida." }, { status: 400 });
       const [op] = await db`select processo from pcp_operacoes where id=${hist}`;
       if (!op) return NextResponse.json({ error: "Operação não encontrada." }, { status: 404 });
-      if (restrito && !s.processos.includes(op.processo)) return NextResponse.json({ error: "Sem permissão para este setor." }, { status: 403 });
+      if (!podeOperarProcesso(s.perfil,s.processos,op.processo)) return NextResponse.json({ error: "Sem permissão para este setor." }, { status: 403 });
       const [lancamentos, eventos] = await Promise.all([
         db`select tipo,quantidade,usuario,data_producao::text data_producao,criado_em from pcp_apontamentos where operacao_id=${hist} order by criado_em desc limit 100`,
         db`select tipo,descricao,usuario,criado_em from pcp_eventos where operacao_id=${hist} order by criado_em desc limit 50`,
@@ -36,14 +38,14 @@ async function unidadeGET(req: Request) {
     if(!Number.isInteger(page)||page<1||page>100000)return NextResponse.json({error:'Página inválida.'},{status:400});
     const ids=await db.query(`select p.id from pcp_produtos p join pcp_programacoes g on g.id=p.programacao_id where ${recorte.sql}`,recorte.values);
     const produtosIds=ids.map(p=>String(p.id));
-    const opcoes=(await db.query(OPCOES_PCP_SQL))[0];
+    const opcoes=await opcoesPCP(db);
     const processo = (url.searchParams.get("processo") || "").trim();
     const status = (url.searchParams.get("status") || "").trim();
     const q = "%" + (url.searchParams.get("q") || "").trim().replace(/[%_\\]/g, "") + "%";
     const permitidos = restrito ? (s.processos as string[]) : null;
     const rows = await db`
       select *,count(*) over()::int total_filtrado from (
-        select o.id,p.pedido,p.of,p.produto,p.descricao,p.cor,p.quantidade::float quantidade_produto,o.processo,o.sequencia,o.status,
+        select o.id,p.id produto_id,p.pedido,p.of,p.produto,p.descricao,p.cor,p.quantidade::float quantidade_produto,o.processo,o.sequencia,o.status,
           o.quantidade_planejada::float planejada,o.quantidade_produzida::float produzida,o.quantidade_refugo::float refugo,o.percentual::float percentual,
           lag(o.processo) over(partition by o.produto_id order by o.sequencia) anterior_processo,
           lag(o.status) over(partition by o.produto_id order by o.sequencia) anterior_status,
@@ -58,7 +60,7 @@ async function unidadeGET(req: Request) {
     const truncado = rows.length > LIMITE;
     return NextResponse.json({
       programacaoId: filtros.programacaoId||"", filtro: filtros.filtros.join(", ")||"Todos no período", opcoes,page,truncado,total:Number(rows[0]?.total_filtrado||0),
-      operacoes: rows.slice(0, LIMITE), restritoAosSeusSetores: restrito,
+      operacoes: await enriquecerClientes(db,rows.slice(0, LIMITE)), restritoAosSeusSetores: restrito,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (e: any) {
     if(/relation .* does not exist|column .* does not exist/.test(String(e?.message)))return NextResponse.json({error:'Módulo aguardando migração',codigo:'MIGRACAO_PENDENTE'},{status:503,headers:{'Cache-Control':'no-store'}});

@@ -1,4 +1,5 @@
 "use client";
+import IdentidadePedido from '@/components/identidade-pedido';
 
 import { FileSpreadsheet, Filter, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -264,7 +265,7 @@ export default function Lideres() {
       {!!pendenciasTecnicas.length && <details className="card mb" style={{padding:16}}>
         <summary><b>Conferência do catálogo: {pendenciasTecnicas.length} linha(s) com campos técnicos ausentes neste setor</b></summary>
         <p className="muted">Dados ausentes na programação ativa ou sem especificação no catálogo. Verifique o código no Catálogo Mestre. Não são preenchidos com valores presumidos.</p>
-        <div style={{overflowX:"auto",maxHeight:300}}><table><thead><tr><th>Código</th><th>Pedido</th><th>OF</th><th>Campos para conferir</th></tr></thead><tbody>{pendenciasTecnicas.map((x,i)=><tr key={i}><td>{x.codigo}</td><td>{x.pedido}</td><td>{x.of}</td><td>{x.campos}</td></tr>)}</tbody></table></div>
+        <div style={{overflowX:"auto",maxHeight:300}}><table><thead><tr><th>Código</th><th>Pedido</th><th>OF</th><th>Campos para conferir</th></tr></thead><tbody>{pendenciasTecnicas.map((x,i)=><tr key={i}><td>{x.codigo}</td><td>{x.pedido}<IdentidadePedido pedido={x.pedido}/></td><td>{x.of}</td><td>{x.campos}</td></tr>)}</tbody></table></div>
       </details>}
 
       <div className="leader-mobile-cards" aria-label="Apontamento em formato de cartões">

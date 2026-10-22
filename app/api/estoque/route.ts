@@ -44,7 +44,7 @@ async function unidadeGET(req: Request) {
     const local = (url.searchParams.get("local") || "").trim();
     const filtro = url.searchParams.get('saldo') || '';
     const page=Number(url.searchParams.get('page')||1);if(!Number.isInteger(page)||page<1||page>100000)return NextResponse.json({error:'Página inválida.'},{status:400});
-    const f=lerFiltrosPCP(url.searchParams),escopo=f.filtros.length>0||f.pedidos.length>0||!['SELECAO','ATIVO','TODOS'].includes(f.mes);
+    const f=lerFiltrosPCP(url.searchParams),escopo=f.clientes.length>0||f.representantes.length>0||f.filtros.length>0||f.pedidos.length>0||!['SELECAO','ATIVO','TODOS'].includes(f.mes);
     const codigos=escopo?(await idsProdutosRecorte(db,url.searchParams)).map(p=>String(p.produto)):null;
     const base=`select p.id produto_id,p.codigo,p.descricao,p.unidade_base,p.estoque_minimo::float estoque_minimo,
       coalesce(sum(s.fisico),0)::float fisico,coalesce(sum(s.reservado),0)::float reservado,coalesce(sum(s.bloqueado),0)::float bloqueado,

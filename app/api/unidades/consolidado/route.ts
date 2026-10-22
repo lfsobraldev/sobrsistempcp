@@ -1,4 +1,5 @@
-import {OPCOES_PCP_SQL} from "@/lib/pcp-filters";
+import {enriquecerClientes} from '@/lib/clientes-operacionais';
+import {OPCOES_PCP_SQL,opcoesPCP} from "@/lib/pcp-filters";
 import {consultaModulo,moduloConsolidado,janelasConsolidadas} from "@/lib/unidades/consolidado-modulo";
 import { NextResponse } from 'next/server';
 import { estadoUnidades,verificarBanco } from '@/lib/unidades/access';
@@ -29,11 +30,11 @@ export async function GET(req:Request){try{
    const schema=await db`select to_regclass(x) tabela from unnest(${consulta.tabelas}::text[]) x`;
    if(schema.some(t=>!t.tabela))throw new Error('MIGRACAO_PENDENTE');
    const [c]=await db.query(`select count(*)::int total from (${consulta.sql}) x`,consulta.values);
-   const [opcoes]=await db.query(OPCOES_PCP_SQL);return {db,unidade,total:Number(c.total),opcoes};
+   const opcoes=await opcoesPCP(db);return {db,unidade,total:Number(c.total),opcoes};
   }));
   const janelas=janelasConsolidadas(fontes.map(f=>f.total),page);
-  const partes=await Promise.all(fontes.map(async(f,i)=>janelas[i].limit?(await f.db.query(`select * from (${consulta.sql}) x order by id limit $${consulta.values.length+1} offset $${consulta.values.length+2}`,[...consulta.values,janelas[i].limit,janelas[i].offset])).map(r=>({...r,unidade:f.unidade})):[]));
-  return NextResponse.json({opcoes:{filtros:[...new Set(fontes.flatMap(f=>f.opcoes.filtros))],meses:[...new Set(fontes.flatMap(f=>f.opcoes.meses))],pedidos:[...new Set(fontes.flatMap(f=>f.opcoes.pedidos))]},modulo,colunas:['unidade',...consulta.colunas],rows:partes.flat(),total:fontes.reduce((s,f)=>s+f.total,0),comparativo:fontes.map(({unidade,total})=>({unidade,total})),page},{headers:{'Cache-Control':'no-store'}});
+  const partes=await Promise.all(fontes.map(async(f,i)=>janelas[i].limit?(await enriquecerClientes(f.db,await f.db.query(`select * from (${consulta.sql}) x order by id limit $${consulta.values.length+1} offset $${consulta.values.length+2}`,[...consulta.values,janelas[i].limit,janelas[i].offset]))).map(r=>({...r,unidade:f.unidade})):[]));
+  return NextResponse.json({opcoes:{clientes:fontes.flatMap(f=>f.opcoes.clientes),representantes:fontes.flatMap(f=>f.opcoes.representantes),filtros:[...new Set(fontes.flatMap(f=>f.opcoes.filtros))],meses:[...new Set(fontes.flatMap(f=>f.opcoes.meses))],pedidos:[...new Set(fontes.flatMap(f=>f.opcoes.pedidos))]},modulo,colunas:['unidade',...consulta.colunas,...(modulo==='estoque'?[]:['clienteNome','clienteCodigo','representanteNome'])],rows:partes.flat(),total:fontes.reduce((s,f)=>s+f.total,0),comparativo:fontes.map(({unidade,total})=>({unidade,total})),page},{headers:{'Cache-Control':'no-store'}});
  }
  const resultados=await Promise.all((['SUL','NORDESTE'] as Unidade[]).map(async unidade=>{
   try{const db=await verificarBanco(unidade);const dados=[];
