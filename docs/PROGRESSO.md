@@ -97,3 +97,7 @@ Corrigidos catálogo de SQL sem marcador, BASELINE/down, acesso administrativo e
 Link para abrir PR após envio: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-final-auditoria-implantacao . Auto-deploy desabilitado. O PR consolidado é alternativa às branches antigas equivalentes, não orientação de merge duplicado. Aplicação do banco somente pelo administrador presencial, após backup/precheck/baseline e revisão de escopo.
 
 Pendente: concluir lacunas amplas do miolo (substitutos/onde-é-usado/retrabalho), depois 2.2–2.7 e demais críticos/altos 2.8 (QR/limite distribuído/IDOR de todas rotas/e2e). Módulos ausentes requerem código/telas/testes; não serão criados apenas aplicando este pacote. Homologação do legado real depende da conferência presencial, sem inferir dados que não foram consultados.
+
+## ERP industrial completo — branch `erp-industrial-completo` (blocos 1–12)
+
+Blocos 1 a 12 concluídos com migrações 14–24 aditivas (up/down testadas em PGlite), sem merge, sem deploy e sem execução em banco remoto. Roteiros de 10 passos por bloco e pendências em `docs/ERP_INDUSTRIAL_ROTEIROS.md`.
