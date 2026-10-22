@@ -37,6 +37,7 @@ const menus: MenuGroup[] = [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
       { path: "/ordens-fabricacao", label: "Ordens de Fabricação", icon: ClipboardList },
       { path: "/planejamento-mensal", label: "Planejamento mensal", icon: ClipboardList },
+      { path: "/planejamento-aps", label: "MRP, Gantt e S&OP", icon: Route },
       { path: "/programacao-gerente", label: "Planejamento", icon: Route },
       { path: "/apontamento-operacoes", label: "Apontamento de Operações", icon: ClipboardCheck },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },

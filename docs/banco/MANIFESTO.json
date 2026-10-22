@@ -876,6 +876,29 @@
       "verificacao": "27_2026-10-25_17_qualidade_inspecao.verify.sql",
       "down": "27_2026-10-25_17_qualidade_inspecao.down.sql",
       "baseline": "27_2026-10-25_17_qualidade_inspecao.baseline.sql"
+    },
+    {
+      "ordem": 28,
+      "arquivo": "2026-10-26_18_mrp_aps.sql",
+      "descricao": "MRP líquido, operações abertas (carga), agenda fixa de OF e geração de OF pela sugestão",
+      "dependenciasDeclaradas": [
+        "2026-10-25_17_qualidade_inspecao.sql",
+        "2026-10-22_09_historico_seguro.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "ed352cf0db7557a3c9c5d36e6288e57c852f80abfb8019c55f1553944b435c48",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "erp_of_agenda",
+        "erp_v_ops_abertas"
+      ],
+      "colunasAdicionadas": [],
+      "up": "28_2026-10-26_18_mrp_aps.up.sql",
+      "verificacao": "28_2026-10-26_18_mrp_aps.verify.sql",
+      "down": "28_2026-10-26_18_mrp_aps.down.sql",
+      "baseline": "28_2026-10-26_18_mrp_aps.baseline.sql"
     }
   ]
 }

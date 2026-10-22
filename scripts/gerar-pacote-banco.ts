@@ -28,7 +28,8 @@ const descricoes:Record<string,string>={
  '14_vendas_comissoes':'Pedidos de venda, aprovação/crédito, regras e ledger imutável de comissões',
  '15_vendas_producao':'Necessidade do pedido, disponibilidade de componentes, onde-é-usado e rastreio (somente leitura)',
  '16_compras_terceiros':'Compras (solicitação, cotação, pedido com alçada, recebimento/NF-e), terceirização, ABC/XYZ e sugestão de compra',
- '17_qualidade_inspecao':'Planos de inspeção, instrumentos/calibração, medições com tolerância, quarentena, NC/CAPA e PPM'
+ '17_qualidade_inspecao':'Planos de inspeção, instrumentos/calibração, medições com tolerância, quarentena, NC/CAPA e PPM',
+ '18_mrp_aps':'MRP líquido, operações abertas (carga), agenda fixa de OF e geração de OF pela sugestão'
 };
 const literal=(s:string)=>"'"+s.replaceAll("'","''")+"'";
 function objetos(m:MigrationSource){return [...new Set([...m.up.matchAll(/create\s+(?:or\s+replace\s+)?(?:table\s+(?:if\s+not\s+exists\s+)?|view\s+)([a-z_][a-z0-9_]*)/gi)].map(x=>x[1]))];}
