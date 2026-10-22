@@ -1140,6 +1140,106 @@
       "verificacao": "36_2026-11-03_26_sac_qualidade_oee.verify.sql",
       "down": "36_2026-11-03_26_sac_qualidade_oee.down.sql",
       "baseline": "36_2026-11-03_26_sac_qualidade_oee.baseline.sql"
+    },
+    {
+      "ordem": 37,
+      "arquivo": "2026-11-04_27_wms_revisoes_sobras.sql",
+      "descricao": "WMS: setores do armazém, localização de pallets, revisões de pedido que somam e subtraem, sobras, separação com conferência, recebimento e etiquetas",
+      "dependenciasDeclaradas": [
+        "2026-11-03_26_sac_qualidade_oee.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "7a68606915a4426f256b0f1f9a1413e179234743a826169b0fed9525709042e6",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "alto",
+      "objetos": [
+        "wms_setores",
+        "wms_pallet_posicoes",
+        "wms_pallet_movs",
+        "pcp_pedido_revisoes",
+        "pcp_pedido_revisao_itens",
+        "wms_sobras",
+        "wms_etiquetas",
+        "wms_picking_listas",
+        "wms_picking_itens",
+        "wms_recebimentos",
+        "wms_recebimento_itens",
+        "wms_v_revisoes_paradas",
+        "wms_v_mapa"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "est_enderecos",
+          "coluna": "setor_id"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "rua"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "modulo"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "nivel"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "tipo_posicao"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "capacidade_pallets"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "bloqueado"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "motivo_bloqueio"
+        }
+      ],
+      "up": "37_2026-11-04_27_wms_revisoes_sobras.up.sql",
+      "verificacao": "37_2026-11-04_27_wms_revisoes_sobras.verify.sql",
+      "down": "37_2026-11-04_27_wms_revisoes_sobras.down.sql",
+      "baseline": "37_2026-11-04_27_wms_revisoes_sobras.baseline.sql"
+    },
+    {
+      "ordem": 38,
+      "arquivo": "2026-11-05_28_rh_ehs_projetos.sql",
+      "descricao": "RH (cargos, colaboradores, ponto, folha gerencial), EHS (ocorrências, EPI, treinamentos) e Projetos (tarefas, custos, orçamento)",
+      "dependenciasDeclaradas": [
+        "2026-11-04_27_wms_revisoes_sobras.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "1ea072a4844c5b994ac4b52ee50c3c8d15e97470707d498b691450128bef8af1",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "rh_cargos",
+        "rh_colaboradores",
+        "rh_ausencias",
+        "rh_ponto",
+        "rh_folha",
+        "ehs_ocorrencias",
+        "ehs_epis",
+        "ehs_epi_entregas",
+        "ehs_treinamentos",
+        "ehs_treinamento_registros",
+        "ehs_v_vencimentos",
+        "ps_projetos",
+        "ps_tarefas",
+        "ps_custos"
+      ],
+      "colunasAdicionadas": [],
+      "up": "38_2026-11-05_28_rh_ehs_projetos.up.sql",
+      "verificacao": "38_2026-11-05_28_rh_ehs_projetos.verify.sql",
+      "down": "38_2026-11-05_28_rh_ehs_projetos.down.sql",
+      "baseline": "38_2026-11-05_28_rh_ehs_projetos.baseline.sql"
     }
   ]
 }

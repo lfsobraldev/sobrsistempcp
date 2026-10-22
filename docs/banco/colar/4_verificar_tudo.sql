@@ -75,4 +75,36 @@ union all
 select 'migracao 25 registrada', exists(select 1 from schema_migrations where name='2026-11-02_25_pendencias_producao_estoque_financeiro.sql' and status='APLICADA')
 union all
 select 'migracao 26 registrada', exists(select 1 from schema_migrations where name='2026-11-03_26_sac_qualidade_oee.sql' and status='APLICADA')
+union all
+select 'tabela wms_setores', to_regclass('public.wms_setores') is not null
+union all
+select 'tabela wms_pallet_posicoes', to_regclass('public.wms_pallet_posicoes') is not null
+union all
+select 'tabela pcp_pedido_revisoes', to_regclass('public.pcp_pedido_revisoes') is not null
+union all
+select 'tabela pcp_pedido_revisao_itens', to_regclass('public.pcp_pedido_revisao_itens') is not null
+union all
+select 'tabela wms_sobras', to_regclass('public.wms_sobras') is not null
+union all
+select 'tabela wms_etiquetas', to_regclass('public.wms_etiquetas') is not null
+union all
+select 'tabela wms_picking_listas', to_regclass('public.wms_picking_listas') is not null
+union all
+select 'tabela wms_recebimentos', to_regclass('public.wms_recebimentos') is not null
+union all
+select 'tabela rh_colaboradores', to_regclass('public.rh_colaboradores') is not null
+union all
+select 'tabela rh_folha', to_regclass('public.rh_folha') is not null
+union all
+select 'tabela ehs_ocorrencias', to_regclass('public.ehs_ocorrencias') is not null
+union all
+select 'tabela ehs_epis', to_regclass('public.ehs_epis') is not null
+union all
+select 'tabela ps_projetos', to_regclass('public.ps_projetos') is not null
+union all
+select 'tabela ps_tarefas', to_regclass('public.ps_tarefas') is not null
+union all
+select 'migracao 27 registrada', exists(select 1 from schema_migrations where name='2026-11-04_27_wms_revisoes_sobras.sql' and status='APLICADA')
+union all
+select 'migracao 28 registrada', exists(select 1 from schema_migrations where name='2026-11-05_28_rh_ehs_projetos.sql' and status='APLICADA')
 ) x order by ok, item;

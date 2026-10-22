@@ -38,7 +38,7 @@ async function unidadeGET(req: Request) {
     if(!Number.isInteger(page)||page<1||page>100000)return NextResponse.json({error:'Página inválida.'},{status:400});
     const ids=await db.query(`select p.id from pcp_produtos p join pcp_programacoes g on g.id=p.programacao_id where ${recorte.sql}`,recorte.values);
     const produtosIds=ids.map(p=>String(p.id));
-    const opcoes=await opcoesPCP(db);
+    const opcoes=await opcoesPCP(db,filtros.mes);
     const processo = (url.searchParams.get("processo") || "").trim();
     const status = (url.searchParams.get("status") || "").trim();
     const q = "%" + (url.searchParams.get("q") || "").trim().replace(/[%_\\]/g, "") + "%";

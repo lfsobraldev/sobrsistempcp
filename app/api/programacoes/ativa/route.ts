@@ -748,7 +748,7 @@ async function unidadeGET(req: Request) {
 
     if (!ativa.length) {
       return NextResponse.json(
-        { programacao: null,opcoes:recortada?await opcoesPCP(db):undefined },
+        { programacao: null,opcoes:recortada?await opcoesPCP(db,paramsURL.get('mes')||undefined):undefined },
         { headers: { "Cache-Control": "no-store" } }
       );
     }
@@ -873,7 +873,7 @@ async function unidadeGET(req: Request) {
     const produtosCompletados = await enriquecerClientes(db,enriquecidos.produtos.map(p => completarPorRegras(p).produto),'id');
     return NextResponse.json(
       {
-        opcoes:recortada?await opcoesPCP(db):undefined,
+        opcoes:recortada?await opcoesPCP(db,paramsURL.get('mes')||undefined):undefined,
         programacao: {
           ids:programacaoIds,
           somenteLeitura:recortada,

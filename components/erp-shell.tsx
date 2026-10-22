@@ -11,7 +11,7 @@ import {
   UploadCloud, UsersRound, Truck, ClipboardCheck, type LucideIcon,
   Megaphone, FileText, PackageCheck, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
   AlertOctagon, Siren, ScanSearch, BadgeCheck, Undo2, Receipt, Landmark, Calculator, Wrench, FolderOpen, LineChart, Headset,
-  TrendingUp, Gauge, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
+  TrendingUp, Gauge, Container, Building2, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { OperationalProvider, useOps } from "@/components/operational-provider";
@@ -34,7 +34,7 @@ const menus: MenuGroup[] = [
   ] },
   { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: Layers }, { path: "/medicoes", label: "Medições e Aprovação", icon: Ruler }, { path: "/producao-consultas", label: "Rastreio e Onde é Usado", icon: Target }] },
   { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: FolderOpen }] },
-  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Receipt }, { path: "/estoque", label: "Estoque", icon: Warehouse }, { path: "/estoque-avancado", label: "Endereços, Cíclico e PEPS", icon: Layers }] },
+  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Receipt }, { path: "/estoque", label: "Estoque", icon: Warehouse }, { path: "/estoque-avancado", label: "Endereços, Cíclico e PEPS", icon: Layers }, { path: "/wms", label: "WMS: Setores, Pallets e Revisões", icon: Container }] },
   {
     label: "PCP e Produção",
     items: [
@@ -62,6 +62,7 @@ const menus: MenuGroup[] = [
   },
   { label: "Custos, Fiscal e Financeiro", items: [{ path: "/custos", label: "Custos Industriais", icon: Calculator }, { path: "/fiscal", label: "Fiscal e NF-e", icon: Landmark }, { path: "/financeiro", label: "Financeiro e Contábil", icon: TrendingUp }] },
   { label: "Manutenção e Documentos", items: [{ path: "/indicadores", label: "Indicadores e Integrações", icon: Gauge }, { path: "/manutencao", label: "Manutenção", icon: Wrench }, { path: "/documentos", label: "Documentos e Qualificação", icon: BookOpen }] },
+  { label: "Pessoas, Segurança e Projetos", items: [{ path: "/corporativo", label: "RH, EHS e Projetos", icon: Building2 }] },
   { label: "SAC", items: [{ path: "/sac", label: "Atendimento", icon: Headset }] },
   {
     label: "Relatórios",
@@ -190,7 +191,6 @@ function Inner({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="sidefoot">
           Programação ativa
-          <b>{pg?.filtro || "Sem filtro"}</b>
           {pg ? `Turno ${pg.turno} · ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}` : "Aguardando programação"}
         </div>
       </aside>
@@ -210,28 +210,10 @@ function Inner({ children }: { children: React.ReactNode }) {
           <input aria-label="Buscar módulo" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") searchModule(); }} placeholder="Ir para módulo…" />
         </div>
         <div className="spacer" />
-        <div className="ctxmeta ctxmeta-global">
-          <label className="ctxfilter-select">
-            <span>Filtro / programação</span>
-            <select
-              aria-label="Selecionar filtro e programação para todo o sistema"
-              value={selectedProgramacaoId || pg?.id || ""}
-              onChange={async (e) => {
-                try { await selectProgramacao(e.target.value); }
-                catch (error) { toast("error", error instanceof Error ? error.message : "Não foi possível trocar a programação global."); }
-              }}
-              disabled={!programacoesGlobais.length}
-            >
-              {!programacoesGlobais.length && <option value="">Sem programações</option>}
-              {programacoesGlobais.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {`Filtro ${x.filtro || "-"} · ${x.data || "sem data"} · Turno ${x.turno || "-"}${x.status === "ATIVA" ? " · Atual" : ""}`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span>Turno<b>{pg?.turno || "-"}</b></span>
-          <span>Data<b>{pg?.data ? new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR") : "-"}</b></span>
+        <div className="ctxmeta ctxmeta-global" aria-label="Programação em exibição">
+          <span className="ctx-chip" title="Programação ativa">
+            {pg ? `Turno ${pg.turno || "-"} · ${pg.data ? new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR") : "sem data"}` : "Sem programação"}
+          </span>
         </div>
         <span className={`livedot ${live ? "on" : ""}`} title={live ? "Tempo real ativo" : "Sincronizando"} />
         <button className="ghost iconBtn" onClick={() => void refresh()} aria-label="Atualizar" title="Atualizar"><RefreshCw /></button>

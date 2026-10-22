@@ -38,4 +38,23 @@ export async function opcoesComerciais(db:{query:(sql:string,args?:unknown[])=>P
  const [r]=await db.query("select to_regclass('pcp_clientes_operacionais') is not null existe");if(!r?.existe)return {clientes:[],representantes:[]};
  const [c,p]=await Promise.all([db.query("select distinct cliente_id::text id,cliente_codigo codigo,cliente_nome nome from pcp_clientes_operacionais where cliente_id is not null order by cliente_nome,cliente_id::text limit 500"),db.query("select distinct representante_id::text id,representante_codigo codigo,representante_nome nome from pcp_clientes_operacionais where representante_id is not null order by representante_nome,representante_id::text limit 500")]);const schema=z.array(z.object({id:z.string().uuid(),codigo:z.string(),nome:z.string()}));return {clientes:schema.parse(c),representantes:schema.parse(p)};
 }
-export async function opcoesPCP(db:{query:(sql:string,args?:unknown[])=>Promise<Record<string,unknown>[]>}){const b=(await db.query(OPCOES_PCP_SQL))[0];return {filtros:z.array(z.string()).parse(b.filtros),meses:z.array(z.string()).parse(b.meses),pedidos:z.array(z.string()).parse(b.pedidos),...await opcoesComerciais(db)};}
+/** Mês corrente e próximo no formato YYYY-MM (fuso de Brasília). */
+export function mesesReferencia(agora=new Date()){
+ const f=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit'}).formatToParts(agora);
+ const ano=Number(f.find(x=>x.type==='year')!.value),mes=Number(f.find(x=>x.type==='month')!.value);
+ const fmt=(a:number,m:number)=>`${a}-${String(m).padStart(2,'0')}`;
+ return {atual:fmt(ano,mes),proximo:mes===12?fmt(ano+1,1):fmt(ano,mes+1)};
+}
+/** Opções dos filtros; com um mês escolhido (YYYY-MM) filtros e pedidos acompanham só aquele mês. */
+export async function opcoesPCP(db:{query:(sql:string,args?:unknown[])=>Promise<Record<string,unknown>[]>},mes?:string){
+ const ref=mesesReferencia();
+ const escopo=mes&&/^\d{4}-(0[1-9]|1[0-2])$/.test(mes)?mes:null;
+ const b=escopo
+  ?(await db.query(`select
+ array(select distinct coalesce(nullif(p.filtro,''),g.filtro) from pcp_produtos p join pcp_programacoes g on g.id=p.programacao_id where g.status in ('ATIVA','ENCERRADA') and to_char(g.data_programacao,'YYYY-MM')=$1 order by 1 limit 500) filtros,
+ array(select distinct to_char(data_programacao,'YYYY-MM') from pcp_programacoes where status in ('ATIVA','ENCERRADA') order by 1 desc limit 120) meses,
+ array(select distinct p.pedido from pcp_produtos p join pcp_programacoes g on g.id=p.programacao_id where g.status in ('ATIVA','ENCERRADA') and to_char(g.data_programacao,'YYYY-MM')=$1 order by p.pedido limit 500) pedidos`,[escopo]))[0]
+  :(await db.query(OPCOES_PCP_SQL))[0];
+ const meses=[...new Set([ref.proximo,ref.atual,...z.array(z.string()).parse(b.meses)])].sort().reverse();
+ return {filtros:z.array(z.string()).parse(b.filtros),meses,mesAtual:ref.atual,mesProximo:ref.proximo,pedidos:z.array(z.string()).parse(b.pedidos),...await opcoesComerciais(db)};
+}
