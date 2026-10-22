@@ -1030,6 +1030,38 @@
       "verificacao": "32_2026-10-30_22_financeiro_contabil.verify.sql",
       "down": "32_2026-10-30_22_financeiro_contabil.down.sql",
       "baseline": "32_2026-10-30_22_financeiro_contabil.baseline.sql"
+    },
+    {
+      "ordem": 33,
+      "arquivo": "2026-10-31_23_manutencao_documentos.sql",
+      "descricao": "Manutenção (ativos, preventivas, corretivas por Andon, peças, MTBF/MTTR), documentos controlados com versão e aprovação, instruções na operação e qualificação por posto",
+      "dependenciasDeclaradas": [
+        "2026-10-30_22_financeiro_contabil.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "89c1af7ff48562b99ada6ee34925df0583f5688abc8273773291cdef89b6c5a8",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "mnt_ativos",
+        "mnt_planos",
+        "mnt_ordens",
+        "mnt_paradas",
+        "mnt_pecas",
+        "doc_documentos",
+        "doc_versoes",
+        "doc_vinculos",
+        "doc_leituras",
+        "qlf_config",
+        "qlf_requisitos",
+        "qlf_qualificacoes"
+      ],
+      "colunasAdicionadas": [],
+      "up": "33_2026-10-31_23_manutencao_documentos.up.sql",
+      "verificacao": "33_2026-10-31_23_manutencao_documentos.verify.sql",
+      "down": "33_2026-10-31_23_manutencao_documentos.down.sql",
+      "baseline": "33_2026-10-31_23_manutencao_documentos.baseline.sql"
     }
   ]
 }

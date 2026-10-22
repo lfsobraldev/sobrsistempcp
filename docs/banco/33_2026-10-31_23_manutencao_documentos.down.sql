@@ -1,0 +1,38 @@
+-- ATENÇÃO: revisar fonte, dependentes e backup antes de qualquer reversão.
+-- Down conservador pode não desfazer estrutura. Não tratar como recuperação de dados.
+BEGIN;
+select pg_advisory_xact_lock(hashtextextended('sobral:migracoes',0));
+drop trigger if exists qlf_apontamento_t on pcp_apontamentos;
+drop function if exists qlf_trg_apontamento();
+drop function if exists qlf_pode_apontar(text,text,date);
+drop table if exists qlf_qualificacoes;
+drop table if exists qlf_requisitos;
+drop table if exists qlf_config;
+drop function if exists doc_da_operacao(uuid);
+drop function if exists doc_reprovar(uuid,text);
+drop function if exists doc_aprovar(uuid,text,boolean);
+drop function if exists doc_enviar(uuid,text);
+drop function if exists doc_nova_versao(uuid,text,text,text,text);
+drop trigger if exists doc_versao_protegida_t on doc_versoes;
+drop function if exists doc_versao_protegida();
+drop table if exists doc_leituras;
+drop table if exists doc_vinculos;
+drop table if exists doc_versoes;
+drop table if exists doc_documentos;
+drop function if exists mnt_indicadores(timestamptz,timestamptz);
+drop function if exists mnt_gerar_preventivas(date,text);
+drop function if exists mnt_consumir_peca(uuid,uuid,uuid,numeric,text);
+drop function if exists mnt_cancelar(uuid,text);
+drop function if exists mnt_concluir(uuid,text,text,text);
+drop function if exists mnt_iniciar(uuid,text);
+drop trigger if exists mnt_andon_fim_t on pcp_andon;
+drop function if exists mnt_trg_andon_fim();
+drop trigger if exists mnt_andon_t on pcp_andon;
+drop function if exists mnt_trg_andon();
+drop function if exists mnt_ativo_da_andon(uuid,text);
+drop table if exists mnt_pecas;
+drop table if exists mnt_paradas;
+drop table if exists mnt_ordens;
+drop table if exists mnt_planos;
+drop table if exists mnt_ativos;
+COMMIT;

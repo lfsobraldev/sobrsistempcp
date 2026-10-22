@@ -1,4 +1,5 @@
 "use client";
+import { InstrucaoOperacao } from "@/components/instrucao-operacao";
 import OFCiclo from "@/components/of-ciclo";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -39,6 +40,7 @@ export default function ApontamentoOperacoes() {
   const [busy, setBusy] = useState("");
   const [confirma, setConfirma] = useState<{ op: Op; tipo: "FINALIZAR" | "DIVERGENCIA"; obs: string } | null>(null);
   const [hist, setHist] = useState<{ op: Op; dados: Hist | null; erro: string } | null>(null);
+  const [instr, setInstr] = useState<Op | null>(null);
   const tentativas = useRef<Record<string, string>>({}); // requestId por operação+ação até o servidor confirmar (retry idempotente)
   const pode = ["PCP", "ENCARREGADO", "LIDER", "APONTADOR"].includes(me?.perfil || "");
   const meusSetores = me?.processos?.length && ["LIDER", "APONTADOR"].includes(me?.perfil || "") ? PROCESSOS.filter((x) => me.processos.includes(x)) : PROCESSOS;
@@ -124,6 +126,7 @@ export default function ApontamentoOperacoes() {
                     <button className="cart-btn sm primary" disabled={ocupado} onClick={() => lancar(o)}>{ocupado ? "…" : "Lançar"}</button>
                     <button className="cart-btn sm" disabled={ocupado} onClick={() => setConfirma({ op: o, tipo: "FINALIZAR", obs: "" })}>Finalizar</button></>}
                   {pode && !["CONCLUIDA", "DIVERGENCIA"].includes(o.status) && <button className="cart-btn sm danger" disabled={ocupado} onClick={() => setConfirma({ op: o, tipo: "DIVERGENCIA", obs: "" })}>Divergência</button>}
+                  <button className="cart-btn sm" onClick={() => setInstr(o)} aria-label="Instruções">Instruções</button>
                   <button className="cart-btn sm" onClick={() => void abrirHist(o)} aria-label="Histórico"><History size={14} /> Histórico</button>
                   {!pode && null}
                 </div>{o.status === "PENDENTE" && <div className="ap-wait">Aguardando a operação anterior ser concluída</div>}</td>
@@ -143,6 +146,8 @@ export default function ApontamentoOperacoes() {
         <div className="row"><button className="cart-btn" onClick={() => setConfirma(null)}>Cancelar</button>
           <button className={"cart-btn " + (confirma.tipo === "FINALIZAR" ? "primary" : "danger")} disabled={confirma.tipo === "DIVERGENCIA" && !confirma.obs.trim()} onClick={() => { const c = confirma; setConfirma(null); void enviar(c.op, c.tipo, c.tipo === "DIVERGENCIA" ? { observacao: c.obs.trim() } : {}); }}>Confirmar</button></div>
       </div></div>}
+
+    {instr && <InstrucaoOperacao operacaoId={instr.id} titulo={`${instr.processo} · ${instr.pedido}`} onClose={() => setInstr(null)} />}
 
     {hist && <div className="cart-drawer-shade" onMouseDown={(e) => { if (e.target === e.currentTarget) setHist(null); }}>
       <aside className="cart-drawer" role="dialog" aria-label="Histórico da operação">
