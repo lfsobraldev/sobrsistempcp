@@ -3,6 +3,7 @@
 import Link from "next/link";
 import GlobalPCPFilters from "@/components/global-pcp-filters";
 import UnidadeSelector from "./unidade-selector";
+import { ResponsiveTables } from "./responsive-tables";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell, Boxes, BrainCircuit, Briefcase, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
@@ -90,6 +91,17 @@ function Inner({ children }: { children: React.ReactNode }) {
   const current = allVisible.find((i) => i.path === path)?.label || "Central de Produção";
 
   useEffect(() => {
+    const atalho = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>('.topbar .search input, header .search input, .search input[aria-label="Buscar módulo"]')?.focus();
+      }
+    };
+    window.addEventListener("keydown", atalho);
+    return () => window.removeEventListener("keydown", atalho);
+  }, []);
+
+  useEffect(() => {
     if (!me || !allowedPath(me.perfil, path)) return;
     const label = allVisible.find((item) => item.path === path)?.label || path;
     setWorkspaceTabs((previous) => previous.some((item) => item.path === path)
@@ -138,6 +150,7 @@ function Inner({ children }: { children: React.ReactNode }) {
   const live = realtimeStatus === "tempo_real";
   return (
     <div className={`shell ${collapsed ? "collapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
+      <ResponsiveTables />
       <aside className="sidenav">
         <div className="brand"><BrandLogo size={34} /><span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span></div>
         <div className="mobile-module-search search" role="search">
