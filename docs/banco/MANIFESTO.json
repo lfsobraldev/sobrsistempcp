@@ -783,6 +783,28 @@
       "verificacao": "24_2026-10-23_14_vendas_comissoes.verify.sql",
       "down": "24_2026-10-23_14_vendas_comissoes.down.sql",
       "baseline": "24_2026-10-23_14_vendas_comissoes.baseline.sql"
+    },
+    {
+      "ordem": 25,
+      "arquivo": "2026-10-23_15_vendas_producao.sql",
+      "descricao": "Necessidade do pedido, disponibilidade de componentes, onde-é-usado e rastreio (somente leitura)",
+      "dependenciasDeclaradas": [
+        "2026-10-23_14_vendas_comissoes.sql",
+        "2026-10-22_13_controle_of.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "0723933be67d6e303c2413da2aacd6180fef7da2a01ccf96cbc2d8c192eadbdf",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "erp_v_of_comercial"
+      ],
+      "colunasAdicionadas": [],
+      "up": "25_2026-10-23_15_vendas_producao.up.sql",
+      "verificacao": "25_2026-10-23_15_vendas_producao.verify.sql",
+      "down": "25_2026-10-23_15_vendas_producao.down.sql",
+      "baseline": "25_2026-10-23_15_vendas_producao.baseline.sql"
     }
   ]
 }

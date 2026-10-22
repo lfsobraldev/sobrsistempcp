@@ -40,6 +40,7 @@ export default function VendasPage() {
   const [editor, setEditor] = useState<{ id?: string; v: Row; itens: ItemDraft[] } | null>(null);
   const [fin, setFin] = useState<{ acao: string; valor: string } | null>(null);
   const [cancel, setCancel] = useState<string | null>(null);
+  const [nec, setNec] = useState<Row[] | null>(null);
 
   const carregar = useCallback(async () => {
     try {
@@ -53,7 +54,7 @@ export default function VendasPage() {
   }, [f, page]);
   useEffect(() => { void carregar(); }, [carregar]);
 
-  const abrir = async (id: string) => { try { setDetalhe(await api(`/api/vendas/pedidos?id=${id}`)); } catch (e) { setErro(e instanceof Error ? e.message : "Falha."); } };
+  const abrir = async (id: string) => { setNec(null); try { setDetalhe(await api(`/api/vendas/pedidos?id=${id}`)); api(`/api/producao/consultas?tipo=necessidade-pedido&id=${id}`).then((j) => setNec(j.rows)).catch(() => setNec(null)); } catch (e) { setErro(e instanceof Error ? e.message : "Falha."); } };
   const executar = async (body: Record<string, unknown>, msg: string) => {
     setBusy(true); setErro(""); setOk("");
     try {
@@ -150,6 +151,13 @@ export default function VendasPage() {
               {detalhe.itens.map((i: Row) => <tr key={i.id}><td data-label="#">{i.linha}</td><td data-label="Descrição">{i.descricao}</td><td data-label="Qtd">{Number(i.quantidade)} {i.unidade}</td><td data-label="Preço">{brl(i.preco_unitario)}</td><td data-label="Desc.%">{Number(i.desconto_percentual)}</td><td data-label="Total">{brl(i.total)}</td></tr>)}
             </DataTable>
             <div>Total: <b>{brl(p.total)}</b> · Faturado: <b>{brl(p.faturado_valor)}</b> · Recebido: <b>{brl(p.recebido_valor)}</b> · Devolvido: <b>{brl(p.devolvido_valor)}</b></div>
+            {nec && nec.length > 0 && (
+              <div><b>Necessidade de produção</b>
+                <DataTable head={["#", "Item", "Pedido", "Em OF", "Saldo livre", "Produzir", "Situação"]}>
+                  {nec.map((n) => <tr key={n.linha}><td data-label="#">{n.linha}</td><td data-label="Item">{n.item_codigo || n.descricao}</td><td data-label="Pedido">{Number(n.quantidade)}</td><td data-label="Em OF">{Number(n.em_of)}</td><td data-label="Saldo livre">{Number(n.saldo_livre)}</td><td data-label="Produzir">{Number(n.falta_producao)}</td><td data-label="Situação"><Badge tone={n.situacao === "COBERTO" ? "success" : n.situacao === "PRODUZIR" ? "warning" : "neutral"}>{n.situacao === "COBERTO" ? "Coberto" : n.situacao === "PRODUZIR" ? "Programar" : "Sem produto no estoque"}</Badge></td></tr>)}
+                </DataTable>
+              </div>
+            )}
             {detalhe.comissoes.length > 0 && <div><b>Comissões</b>{detalhe.comissoes.map((c: Row) => <div key={c.id}>{c.tipo} · {brl(c.valor)} · {c.status} · {c.competencia}</div>)}</div>}
             <details><summary>Histórico</summary>{detalhe.historico.map((h: Row) => <div key={h.id}>{new Date(h.criado_em).toLocaleString("pt-BR")} · {h.evento} {h.de ? `${LABEL[h.de] ?? h.de} → ${LABEL[h.para] ?? h.para}` : ""} · {h.usuario}</div>)}</details>
           </div>

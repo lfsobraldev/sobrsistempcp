@@ -27,7 +27,7 @@ const menus: MenuGroup[] = [
     { path: "/vendas", label: "Pedidos de Venda", icon: ClipboardList },
     { path: "/gestao-pedidos", label: "Pedidos e Entregas", icon: Truck },
   ] },
-  { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: ClipboardList }, { path: "/medicoes", label: "Medições e Aprovação", icon: ClipboardCheck }] },
+  { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: ClipboardList }, { path: "/medicoes", label: "Medições e Aprovação", icon: ClipboardCheck }, { path: "/producao-consultas", label: "Rastreio e Onde é Usado", icon: ClipboardList }] },
   { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: ClipboardList }] },
   { label: "Compras e Estoque", items: [{ path: "/estoque", label: "Estoque", icon: Boxes }] },
   {
