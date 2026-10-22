@@ -9,7 +9,7 @@ import {
   Bell, Boxes, Briefcase, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
   PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
   UploadCloud, UsersRound, Truck, ClipboardCheck, type LucideIcon,
-  Megaphone, FileText, PackageCheck, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
+  Megaphone, FileText, PackageCheck, Scissors, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
   AlertOctagon, Siren, ScanSearch, BadgeCheck, Undo2, Receipt, Landmark, Calculator, Wrench, FolderOpen, LineChart, Headset,
   TrendingUp, Gauge, Container, Building2, ShieldAlert, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
 } from "lucide-react";
@@ -57,6 +57,8 @@ const menus: MenuGroup[] = [
     items: [
       { path: "/expedicao", label: "Remessas e Devoluções", icon: Undo2 },
       { path: "/romaneios", label: "Romaneios", icon: FileText },
+      { path: "/embalagem", label: "Plano de Embalagem", icon: PackageCheck },
+      { path: "/plano-corte", label: "Plano de Corte", icon: Scissors },
       { path: "/apontamento-entregas", label: "Apontamento de Entregas", icon: PackageCheck },
     ],
   },

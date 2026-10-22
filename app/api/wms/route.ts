@@ -158,6 +158,10 @@ async function unidadePOST(req: Request) {
       const custo = Number(String(b.custo ?? "").replace(",", "."));
       if (!Number.isFinite(custo) || custo < 0 || custo > 1e9) throw new Error("Custo inválido.");
       await q("update wms_sobras set custo=$2,atualizado_em=now() where id=$1::uuid", [need(b.id, "Sobra inválida."), custo]);
+    } else if (acao === "SOBRA_CRIAR") {
+      const qtdS = num(b.quantidade, "Quantidade inválida.");
+      await q("insert into wms_sobras(descricao,medida,material,acabamento,mao,quantidade,origem_pedido,endereco_id,criado_por) values($1,$2,$3,$4,$5,$6,$7,$8::uuid,$9)",
+        [clean(b.descricao, 300) || "Retalho", clean(b.medida, 80), clean(b.material, 80), clean(b.acabamento, 80), clean(b.mao, 10), qtdS, clean(b.origem, 60), opt(b.enderecoId, "Endereço inválido."), ator]);
     } else if (acao === "PICKING_CRIAR") {
       const [r] = await q("select wms_picking_criar($1,$2::uuid,$3) id", [clean(b.pedido, 60), opt(b.remessaId, "Remessa inválida."), ator]);
       resp = { ok: true, id: r.id };

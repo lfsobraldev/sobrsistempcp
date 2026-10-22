@@ -33,9 +33,10 @@ export default function PlanejamentoApsPage() {
   const [sim, setSim] = useState<Row | null>(null);
   const [aviso, setAviso] = useState<Row | null>(null);
 
+  const [horizonte, setHorizonte] = useState("TODOS");
   const carregar = useCallback(async () => {
-    try { const j = await api("/api/planejamento/aps"); setD(j); setAgenda(j.agenda); setErro(""); } catch (e) { setErro(e instanceof Error ? e.message : "Falha."); }
-  }, []);
+    try { const j = await api("/api/planejamento/aps?horizonte=" + horizonte); setD(j); setAgenda(j.agenda); setErro(""); } catch (e) { setErro(e instanceof Error ? e.message : "Falha."); }
+  }, [horizonte]);
   useEffect(() => { void carregar(); }, [carregar]);
   useEffect(() => { api("/api/compras").then((j) => setAux({ produtos: j.produtos, locais: j.locais, fornecedores: j.fornecedores })).catch(() => undefined); }, []);
 
@@ -104,7 +105,15 @@ export default function PlanejamentoApsPage() {
       </div>
       <Segmented value={aba} onChange={setAba} options={[{ value: "MRP", label: "MRP" }, { value: "GANTT", label: "Gantt" }, { value: "CARGA", label: "Carga" }, { value: "SOP", label: "S&OP" }, { value: "URGENTE", label: "Pedido urgente" }]} />
       <div style={{ marginTop: 12 }}>
-        {aba === "MRP" && (
+        {aba === "MRP" && (<>
+          <label className="fb-field" style={{ display: "inline-flex", flexDirection: "column", gap: 3, marginBottom: 8, fontSize: 11, fontWeight: 600 }}>Horizonte do MRP
+            <select value={horizonte} onChange={(e) => setHorizonte(e.target.value)}>
+              <option value="TODOS">Todas as OFs abertas</option>
+              {d?.meses?.atual && <option value="ATUAL">Mês atual · {d.meses.atual}</option>}
+              {d?.meses?.proximo && <option value="PROXIMO">Próximo mês · {d.meses.proximo}</option>}
+              <option value="ATE30">Próximos 30 dias</option><option value="ATE60">Próximos 60 dias</option>
+            </select>
+          </label>
           <DataTable head={["Item", "Classe", "Necessidade", "Saldo", "Em compra", "Em produção", "Líquida", "Ação"]} empty={<Empty title="Sem necessidade em OFs abertas" />}>
             {(d?.mrp ?? []).map((m: Row) => (
               <tr key={m.produto_id}><td data-label="Item"><b>{m.codigo}</b> {m.descricao}</td><td data-label="Classe">{m.classificacao}</td><td data-label="Necessidade">{n3(m.necessidade_bruta)}</td><td data-label="Saldo">{n3(m.saldo_livre)}</td><td data-label="Em compra">{n3(m.em_compra)}</td><td data-label="Em produção">{n3(m.em_producao)}</td><td data-label="Líquida"><b>{n3(m.necessidade_liquida)}</b></td>
@@ -113,6 +122,7 @@ export default function PlanejamentoApsPage() {
                 ) : <Badge tone="warning">{m.acao === "COMPRAR" ? "Comprar" : "Produzir"}</Badge>}</td></tr>
             ))}
           </DataTable>
+          </>
         )}
 
         {aba === "GANTT" && (ofs.length === 0 ? <Empty title="Nenhuma OF aberta para programar" sub="Gere/confirme OFs integradas (ciclo industrial) para vê-las aqui." /> : (
