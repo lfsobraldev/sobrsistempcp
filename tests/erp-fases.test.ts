@@ -136,3 +136,90 @@ test("Postgres: fechamento de período, rateio, margem, sugestão de conciliaç�
     assert.ok(Array.isArray(pr.p) && pr.p.length === 6);
   } finally { await db.close(); }
 });
+
+test("Postgres: eventos (outbox), campos customizados, notificações e painel por função", async () => {
+  const { db, one, all, n } = await bancoCompleto();
+  try {
+    // webhook novo evento + NC dispara fila e notificação
+    await one("insert into sys_webhooks(nome,url,segredo,eventos,criado_por) values('w','https://ex.com/h','segredo-xyz',array['nc.aberta'],'t')");
+    await assert.rejects(one("insert into sys_webhooks(nome,url,segredo,eventos,criado_por) values('w2','https://ex.com/h','s',array['evento.inexistente'],'t')"));
+    await one("insert into qld_nao_conformidades(descricao,criado_por) values('peça trincada','t')");
+    assert.equal(n((await one("select count(*) c from sys_webhook_fila where evento='nc.aberta'")).c), 1);
+    assert.equal(n((await one("select count(*) c from erp_eventos where tipo='nc.aberta'")).c), 1);
+    const nt = await all("select * from erp_notificacoes_do_usuario('ana','QUALIDADE')");
+    assert.equal(nt.length, 1);
+    assert.equal(nt[0].lida, false);
+    await one("select erp_notificacao_ler($1,'ana')", [nt[0].id]);
+    assert.equal((await all("select * from erp_notificacoes_do_usuario('ana','QUALIDADE')"))[0].lida, true);
+    assert.equal((await all("select * from erp_notificacoes_do_usuario('joao','QUALIDADE')"))[0].lida, false);
+    assert.equal((await all("select * from erp_notificacoes_do_usuario('x','LIDER')")).length, 0);
+    await assert.rejects(one("select erp_notificar('','','INFO','t','','')"), /destino/);
+    // campos customizados
+    await one("insert into erp_campos_def(entidade,chave,rotulo,tipo,obrigatorio,criado_por) values('PEDIDO_VENDA','obra','Obra','TEXTO',true,'t')");
+    await one("insert into erp_campos_def(entidade,chave,rotulo,tipo,criado_por) values('PEDIDO_VENDA','qtd_andares','Andares','NUMERO','t')");
+    await one("insert into erp_campos_def(entidade,chave,rotulo,tipo,opcoes,criado_por) values('PEDIDO_VENDA','fase','Fase','LISTA','[\"A\",\"B\"]'::jsonb,'t')");
+    await assert.rejects(one("insert into erp_campos_def(entidade,chave,rotulo,tipo,criado_por) values('PEDIDO_VENDA','Chave Ruim','x','TEXTO','t')"));
+    await assert.rejects(one("select erp_campo_gravar('PEDIDO_VENDA','p1','obra','\"\"'::jsonb,'t')"), /CAMPO_OBRIGATORIO/);
+    await assert.rejects(one("select erp_campo_gravar('PEDIDO_VENDA','p1','qtd_andares','\"x\"'::jsonb,'t')"), /CAMPO_INVALIDO/);
+    await assert.rejects(one("select erp_campo_gravar('PEDIDO_VENDA','p1','fase','\"C\"'::jsonb,'t')"), /fora das opções/);
+    await one("select erp_campo_gravar('PEDIDO_VENDA','p1','obra','\"Torre Sul\"'::jsonb,'t')");
+    await one("select erp_campo_gravar('PEDIDO_VENDA','p1','qtd_andares','12'::jsonb,'t')");
+    await one("select erp_campo_gravar('PEDIDO_VENDA','p1','fase','\"B\"'::jsonb,'t')");
+    assert.equal(n((await one("select count(*) c from erp_campos_valores where registro_id='p1'")).c), 3);
+    // painel por função
+    const pg = (await one("select erp_painel_funcao('GERENTE') p")).p as { chave: string }[];
+    assert.ok(pg.some((c) => c.chave === "aprovacoes") && pg.some((c) => c.chave === "receber_vencido"));
+    const pl = (await one("select erp_painel_funcao('LOGISTICA') p")).p as { chave: string }[];
+    assert.deepEqual(pl.map((c) => c.chave), ["embalagem"]);
+  } finally { await db.close(); }
+});
+
+test("Postgres: banco de horas, férias, custo hora-homem, EHS e cronograma de projetos", async () => {
+  const { db, one, all, n } = await bancoCompleto();
+  try {
+    const col = (await one("insert into rh_colaboradores(matricula,nome,admissao,salario_base,usuario_login,criado_por) values('M1','Ana','2024-01-10',4400,'ana','t') returning id")).id;
+    await assert.rejects(one("insert into rh_colaboradores(matricula,nome,admissao,salario_base,usuario_login,criado_por) values('M2','Ana2','2024-01-10',1000,'ANA','t')"), /duplicate|unique/i);
+    // banco de horas: 2 dias úteis (9h e 10h) + sábado 4h = +1 +2 +4 = 7
+    await one("insert into rh_ponto(colaborador_id,data,horas,criado_por) values($1,'2026-10-05',9,'t'),($1,'2026-10-06',10,'t'),($1,'2026-10-10',4,'t')", [col]);
+    assert.equal(n(await one("select rh_banco_saldo($1) s", [col]).then((r) => r.s)), 7);
+    await assert.rejects(one("select rh_banco_lancar($1,current_date,3,'COMPENSACAO','x','t')", [col]), /negativo/);
+    await assert.rejects(one("select rh_banco_lancar($1,current_date,-9,'COMPENSACAO','folga','t')", [col]), /SALDO_INSUFICIENTE/);
+    assert.equal(n(await one("select rh_banco_lancar($1,current_date,-5,'COMPENSACAO','folga','t') s", [col]).then((r) => r.s)), 2);
+    // custo hora: 4400*1.7/220 = 34
+    assert.equal(n(await one("select rh_custo_hora($1) c", [col]).then((r) => r.c)), 34);
+    const pj = (await one("insert into ps_projetos(codigo,nome,inicio,fim_previsto,criado_por) values('P1','Obra','2026-10-01','2026-12-31','t') returning id")).id;
+    assert.equal(n(await one("select ps_apontar_horas($1,$2,10,'2026-10-07','t') v", [pj, col]).then((r) => r.v)), 340);
+    assert.equal(n((await one("select sum(valor) s from ps_custos where projeto_id=$1", [pj])).s), 340);
+    // férias: ciclo 1 após 10/01/2025; 30 dias, frações
+    await assert.rejects(one("insert into rh_ausencias(colaborador_id,tipo,inicio,fim,criado_por) values($1,'FERIAS','2024-06-01','2024-06-20','t')", [col]), /FERIAS_SEM_DIREITO/);
+    await assert.rejects(one("insert into rh_ausencias(colaborador_id,tipo,inicio,fim,criado_por) values($1,'FERIAS','2025-03-01','2025-03-03','t')", [col]), /FERIAS_FRACAO/);
+    await one("insert into rh_ausencias(colaborador_id,tipo,inicio,fim,criado_por) values($1,'FERIAS','2025-03-01','2025-03-14','t')", [col]);
+    await assert.rejects(one("insert into rh_ausencias(colaborador_id,tipo,inicio,fim,criado_por) values($1,'FALTA','2025-03-10','2025-03-10','t')", [col]), /AUSENCIA_SOBREPOSTA/);
+    await assert.rejects(one("insert into rh_ausencias(colaborador_id,tipo,inicio,fim,criado_por) values($1,'FERIAS','2025-06-01','2025-06-20','t')", [col]), /FERIAS_SALDO/);
+    await one("insert into rh_ausencias(colaborador_id,tipo,inicio,fim,criado_por) values($1,'FERIAS','2025-06-01','2025-06-16','t')", [col]);
+    assert.equal(n((await all("select saldo_dias from rh_v_ferias_saldo where colaborador_id=$1 and ciclo=1", [col]))[0].saldo_dias), 0);
+    // EHS: inspeção gera ocorrência; CAT obrigatória
+    await assert.rejects(one("select ehs_inspecao_registrar('EPI','Corte','2026-10-20','[{\"item\":\"Luva\",\"conforme\":false}]'::jsonb,'t')"), /ITEM_SEM_OBS/);
+    const insp = (await one("select ehs_inspecao_registrar('EPI','Corte','2026-10-20',$1::jsonb,'t') id", [JSON.stringify([{ item: "Luva", conforme: true }, { item: "Óculos", conforme: false, obs: "riscado" }])])).id;
+    const oc = (await one("select ocorrencia_id from ehs_inspecoes where id=$1", [insp])).ocorrencia_id;
+    assert.ok(oc);
+    const ac = (await one("insert into ehs_ocorrencias(tipo,data,gravidade,colaborador_id,descricao,acao_corretiva,criado_por) values('ACIDENTE','2026-10-01','GRAVE',$1,'corte profundo','x','t') returning id", [col])).id;
+    await assert.rejects(one("update ehs_ocorrencias set status='ENCERRADA' where id=$1", [ac]), /CAT_OBRIGATORIA/);
+    await one("update ehs_ocorrencias set cat_numero='CAT123',cat_data='2026-10-02',status='ENCERRADA' where id=$1", [ac]);
+    assert.equal((await one("select emitiu_cat from ehs_ocorrencias where id=$1", [ac])).emitiu_cat, true);
+    // PS: dependências, ciclo, reprogramação e caminho crítico
+    const t = async (w: string, i: string, f: string) => (await one("insert into ps_tarefas(projeto_id,wbs,nome,inicio,fim,criado_por) values($1,$2,$2,$3,$4,'t') returning id", [pj, w, i, f])).id as string;
+    const a = await t("1", "2026-10-01", "2026-10-10");
+    const b = await t("2", "2026-10-11", "2026-10-20");
+    const c = await t("3", "2026-10-11", "2026-10-15");
+    const d = await t("4", "2026-10-21", "2026-10-25");
+    for (const [x, y] of [[b, a], [c, a], [d, b], [d, c]]) await one("insert into ps_tarefa_dependencias(tarefa_id,predecessora_id) values($1,$2)", [x, y]);
+    await assert.rejects(one("insert into ps_tarefa_dependencias(tarefa_id,predecessora_id) values($1,$2)", [a, d]), /DEPENDENCIA_CIRCULAR/);
+    const cc = await all("select wbs from ps_caminho_critico($1)", [pj]);
+    assert.deepEqual(cc.map((x) => x.wbs), ["1", "2", "4"]);
+    await one("select ps_reprogramar($1,'2026-10-06','t')", [a]); // +5 dias
+    const r = await all("select wbs,inicio::text i from ps_tarefas where projeto_id=$1 order by wbs", [pj]);
+    assert.equal(String(r[1].i).slice(0, 10), "2026-10-16");
+    assert.equal(String(r[3].i).slice(0, 10), "2026-10-26");
+  } finally { await db.close(); }
+});

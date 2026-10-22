@@ -9,7 +9,8 @@ export const runtime = "nodejs";
 const H = { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" };
 const limitado = criarLimitador(60);
 const dia = (v: string | null, pad: string) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? v : pad);
-const ESCOPO: Record<string, string> = { indicadores: "indicadores", alertas: "alertas" };
+const ESCOPO: Record<string, string> = { indicadores: "indicadores", alertas: "alertas", pedidos: "pedidos", ordens: "ordens", estoque: "estoque", qualidade: "qualidade" };
+const pagina = (v: string | null) => Math.min(Math.max(Math.floor(Number(v) || 0), 0), 100000);
 
 export async function GET(req: Request, ctx: { params: Promise<{ recurso: string }> }) {
   const nao = (s: number, m: string) => NextResponse.json({ error: m }, { status: s, headers: H });
@@ -31,6 +32,23 @@ export async function GET(req: Request, ctx: { params: Promise<{ recurso: string
       return NextResponse.json({ alertas }, { headers: H });
     }
     const u = new URL(req.url);
+    const off = pagina(u.searchParams.get("offset"));
+    if (recurso === "pedidos") {
+      const pedidos = await db`select numero,pedido_pcp,status,total,faturado_valor,data_emissao,data_entrega from crm_pedidos_venda order by numero desc limit 200 offset ${off}`;
+      return NextResponse.json({ pedidos, offset: off }, { headers: H });
+    }
+    if (recurso === "ordens") {
+      const ordens = await db`select numero,pedido,status,quantidade,prazo,liberado_em,concluido_em from erp_ordens_fabricacao order by numero desc limit 200 offset ${off}`;
+      return NextResponse.json({ ordens, offset: off }, { headers: H });
+    }
+    if (recurso === "estoque") {
+      const estoque = await db`select p.codigo,p.descricao,coalesce(sum(s.fisico),0) saldo from est_produtos p left join est_saldos s on s.produto_id=p.id where p.ativo group by p.id order by p.codigo limit 200 offset ${off}`;
+      return NextResponse.json({ estoque, offset: off }, { headers: H });
+    }
+    if (recurso === "qualidade") {
+      const naoConformidades = await db`select numero,origem,status,descricao,criado_em,encerrado_em from qld_nao_conformidades order by numero desc limit 200 offset ${off}`;
+      return NextResponse.json({ naoConformidades, offset: off }, { headers: H });
+    }
     const hoje = new Date(Date.now() - 3 * 3600_000).toISOString().slice(0, 10);
     const fim = dia(u.searchParams.get("fim"), hoje), ini = dia(u.searchParams.get("ini"), `${fim.slice(0, 8)}01`);
     const [r] = await db`select ind_painel(${ini}::date,${fim}::date) p`;
