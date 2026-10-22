@@ -9,7 +9,7 @@ import {
   Bell, Boxes, Briefcase, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
   PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
   UploadCloud, UsersRound, Truck, ClipboardCheck, type LucideIcon,
-  Megaphone, FileText, PackageCheck, Scissors, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
+  Megaphone, FileText, PackageCheck, Scissors, Scale, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
   AlertOctagon, Siren, ScanSearch, BadgeCheck, Undo2, Receipt, Landmark, Calculator, Wrench, FolderOpen, LineChart, Headset,
   TrendingUp, Gauge, Container, Building2, ShieldAlert, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
 } from "lucide-react";
@@ -34,7 +34,7 @@ const menus: MenuGroup[] = [
   ] },
   { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: Layers }, { path: "/medicoes", label: "Medições e Aprovação", icon: Ruler }, { path: "/producao-consultas", label: "Rastreio e Onde é Usado", icon: Target }] },
   { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: FolderOpen }] },
-  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Receipt }, { path: "/estoque", label: "Estoque", icon: Warehouse }, { path: "/estoque-avancado", label: "Endereços, Cíclico e PEPS", icon: Layers }, { path: "/wms", label: "WMS: Setores, Pallets e Revisões", icon: Container }] },
+  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Receipt }, { path: "/cotacoes", label: "Cotações e Fornecedores", icon: Scale }, { path: "/estoque", label: "Estoque", icon: Warehouse }, { path: "/estoque-avancado", label: "Endereços, Cíclico e PEPS", icon: Layers }, { path: "/wms", label: "WMS: Setores, Pallets e Revisões", icon: Container }] },
   {
     label: "PCP e Produção",
     items: [
@@ -62,7 +62,7 @@ const menus: MenuGroup[] = [
       { path: "/apontamento-entregas", label: "Apontamento de Entregas", icon: PackageCheck },
     ],
   },
-  { label: "Custos, Fiscal e Financeiro", items: [{ path: "/custos", label: "Custos Industriais", icon: Calculator }, { path: "/fiscal", label: "Fiscal e NF-e", icon: Landmark }, { path: "/financeiro", label: "Financeiro e Contábil", icon: TrendingUp }] },
+  { label: "Custos, Fiscal e Financeiro", items: [{ path: "/custos", label: "Custos Industriais", icon: Calculator }, { path: "/fiscal", label: "Fiscal e NF-e", icon: Landmark }, { path: "/financeiro", label: "Financeiro e Contábil", icon: TrendingUp }, { path: "/controladoria", label: "Controladoria", icon: Scale }] },
   { label: "Manutenção e Documentos", items: [{ path: "/indicadores", label: "Indicadores e Integrações", icon: Gauge }, { path: "/manutencao", label: "Manutenção", icon: Wrench }, { path: "/documentos", label: "Documentos e Qualificação", icon: BookOpen }] },
   { label: "Pessoas, Segurança e Projetos", items: [{ path: "/corporativo", label: "RH, EHS e Projetos", icon: Building2 }] },
   { label: "SAC", items: [{ path: "/sac", label: "Atendimento", icon: Headset }] },
