@@ -1,11 +1,11 @@
--- GERADO do arquivo canônico 2026-10-27_19_expedicao_logistica.sql; SHA256 9b546a48bfb1bfe380887494fb4ae8bbb02b61bd204b790aa332e6d3dc57fcbf
+-- GERADO do arquivo canônico 2026-10-27_19_expedicao_logistica.sql; SHA256 10402fdcf6d29430b5f42be1687da9971c2e85093de243fb356d1a0f5a2c200b
 -- Destino: operacional (Sul/Nordeste). Dependências: 2026-10-26_18_mrp_aps.sql.
 -- Administrador: executar 00_registro.sql antes; conferir baseline e destino.
 BEGIN;
 select pg_advisory_xact_lock(hashtextextended('sobral:migracoes',0));
 do $pacote$ begin
  if exists(select 1 from schema_migrations where name='2026-10-27_19_expedicao_logistica.sql' and status in('APLICADA','BASELINE')) then raise exception 'Arquivo já registrado; conferir checksum e não reaplicar';end if;
- if exists(select 1 from schema_migrations where name='2026-10-27_19_expedicao_logistica.sql' and checksum<>'9b546a48bfb1bfe380887494fb4ae8bbb02b61bd204b790aa332e6d3dc57fcbf') then raise exception 'Checksum divergente; interromper e investigar';end if;
+ if exists(select 1 from schema_migrations where name='2026-10-27_19_expedicao_logistica.sql' and checksum<>'10402fdcf6d29430b5f42be1687da9971c2e85093de243fb356d1a0f5a2c200b') then raise exception 'Checksum divergente; interromper e investigar';end if;
 end $pacote$;
 create extension if not exists pgcrypto;
 
@@ -94,6 +94,13 @@ language sql stable as $$
  select l.v::numeric,pr.v::numeric,(l.v+pr.v)::numeric,(l.v+pr.v)>=p_qtd from l,pr
 $$;
 
+-- Custo médio unitário do depósito (mesma fórmula do ciclo industrial: entradas - saídas / físico).
+create or replace function exp_custo_medio(p_prod uuid,p_local uuid) returns numeric language sql stable as $$
+ select greatest(0,coalesce(sum(case when m.tipo='ENTRADA' then m.custo_total when m.tipo='SAIDA' then -m.custo_total else 0 end),0))
+  /nullif((select fisico from est_saldos where produto_id=p_prod and local_id=p_local),0)
+ from est_movimentos m where m.produto_id=p_prod and (m.local_destino_id=p_local or m.local_origem_id=p_local)
+$$;
+
 -- Reserva de estoque para o pedido de venda (chave legada: est_movimentos.pedido = 'PV-<n>').
 create or replace function exp_reservar(p_pedido uuid,p_prod uuid,p_local uuid,p_qtd numeric,p_ator text) returns bigint language plpgsql as $$
 declare pv crm_pedidos_venda%rowtype;s est_saldos%rowtype;u text;v_id bigint;
@@ -131,7 +138,7 @@ end$$;
 -- Fecha a carga: todos os pallets do pedido lidos e liberados; baixa estoque (e reserva); gera evento de faturamento.
 create or replace function exp_fechar_remessa(p_remessa uuid,p_ator text) returns uuid language plpgsql as $$
 declare r exp_remessas%rowtype;pv crm_pedidos_venda%rowtype;it record;pl record;s est_saldos%rowtype;u text;res numeric;v_mov bigint;
- enviado numeric;pedido_qtd numeric;tudo boolean=true;ev uuid;falta text;payload jsonb;novo text;
+ enviado numeric;pedido_qtd numeric;v_custo numeric;tudo boolean=true;ev uuid;falta text;payload jsonb;novo text;
 begin
  select * into strict r from exp_remessas where id=p_remessa for update;
  if r.status not in ('ABERTA','SEPARANDO') then raise exception 'Remessa % não pode ser fechada',r.status;end if;
@@ -150,9 +157,10 @@ begin
   select greatest(0,coalesce(sum(case when tipo='RESERVA' then quantidade_base when tipo='LIBERA_RESERVA' or (tipo='SAIDA' and baixa_reserva) then -quantidade_base else 0 end),0)) into res
    from est_movimentos where pedido='PV-'||pv.numero and produto_id=it.produto_id and local_origem_id=r.local_id;
   if s.fisico-s.bloqueado-(s.reservado-least(res,it.quantidade))<it.quantidade then raise exception 'SALDO_INSUFICIENTE: item % da remessa',it.linha;end if;
+  v_custo=round(coalesce(exp_custo_medio(it.produto_id,r.local_id),0)*it.quantidade,6);
   update est_saldos set fisico=fisico-it.quantidade,reservado=reservado-least(res,it.quantidade),atualizado_em=now() where produto_id=it.produto_id and local_id=r.local_id;
-  insert into est_movimentos(tipo,produto_id,local_origem_id,quantidade_base,quantidade_informada,unidade_informada,baixa_reserva,documento,pedido,motivo,usuario)
-  values('SAIDA',it.produto_id,r.local_id,it.quantidade,it.quantidade,u,least(res,it.quantidade)>0,'REMESSA '||r.numero,'PV-'||pv.numero,'EXPEDICAO',p_ator) returning id into v_mov;
+  insert into est_movimentos(tipo,produto_id,local_origem_id,quantidade_base,quantidade_informada,unidade_informada,baixa_reserva,documento,pedido,motivo,usuario,custo_total)
+  values('SAIDA',it.produto_id,r.local_id,it.quantidade,it.quantidade,u,least(res,it.quantidade)>0,'REMESSA '||r.numero,'PV-'||pv.numero,'EXPEDICAO',p_ator,v_custo) returning id into v_mov;
   update exp_remessa_itens set movimento_id=v_mov where remessa_id=p_remessa and linha=it.linha;
  end loop;
  update exp_remessas set status='FECHADA',fechada_em=now() where id=p_remessa;
@@ -184,7 +192,7 @@ end$$;
 -- Devolução: volta ao estoque (ou quarentena), reduz o faturado líquido e estorna a comissão proporcional.
 create or replace function exp_devolver(p_remessa uuid,p_prod uuid,p_qtd numeric,p_destino text,p_motivo text,p_local uuid,p_ator text) returns uuid language plpgsql as $$
 declare r exp_remessas%rowtype;pv crm_pedidos_venda%rowtype;enviado numeric;devolvido numeric;preco numeric;v_valor numeric;aplicar numeric;nova_dev numeric;
- lib numeric;ja_est numeric;devido numeric;est numeric;prov uuid;rep uuid;bas text;v_mov bigint;did uuid;
+ lib numeric;v_cu numeric;ja_est numeric;devido numeric;est numeric;prov uuid;rep uuid;bas text;v_mov bigint;did uuid;
 begin
  select * into strict r from exp_remessas where id=p_remessa for update;
  if r.status not in ('FECHADA','ENTREGUE') then raise exception 'Devolução só de remessa expedida';end if;
@@ -199,7 +207,8 @@ begin
  select coalesce(sum(pi.total/nullif(pi.quantidade,0)*ri.quantidade)/nullif(sum(ri.quantidade),0),0) into preco
   from exp_remessa_itens ri join crm_pedido_venda_itens pi on pi.pedido_id=pv.id and pi.linha=ri.pedido_linha where ri.remessa_id=p_remessa and ri.produto_id=p_prod;
  v_valor=round(preco*p_qtd,2);
- v_mov=cmp_mov_estoque('ENTRADA',p_prod,p_local,p_qtd,'DEV REMESSA '||r.numero,'DEVOLUCAO CLIENTE',0,p_ator);
+ select coalesce(sum(m.custo_total)/nullif(sum(m.quantidade_base),0),0) into v_cu from exp_remessa_itens ri join est_movimentos m on m.id=ri.movimento_id where ri.remessa_id=p_remessa and ri.produto_id=p_prod;
+ v_mov=cmp_mov_estoque('ENTRADA',p_prod,p_local,p_qtd,'DEV REMESSA '||r.numero,'DEVOLUCAO CLIENTE',round(v_cu*p_qtd,6),p_ator);
  if p_destino='QUARENTENA' then update est_saldos set bloqueado=bloqueado+p_qtd where produto_id=p_prod and local_id=p_local;end if;
  aplicar=least(v_valor,greatest(0,pv.faturado_valor-pv.devolvido_valor));
  nova_dev=pv.devolvido_valor+aplicar;
@@ -222,6 +231,6 @@ begin
  values(p_remessa,pv.id,p_prod,p_qtd,p_destino,v_valor,aplicar,p_motivo,p_local,v_mov,p_ator) returning id into did;
  return did;
 end$$;
-insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) values('2026-10-27_19_expedicao_logistica.sql','9b546a48bfb1bfe380887494fb4ae8bbb02b61bd204b790aa332e6d3dc57fcbf',now(),current_user,'APLICADA') on conflict(name) do update set checksum=excluded.checksum,aplicada_em=excluded.aplicada_em,aplicada_por=excluded.aplicada_por,status='APLICADA',erro=null,atualizado_em=now();
-insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-10-27_19_expedicao_logistica.sql','9b546a48bfb1bfe380887494fb4ae8bbb02b61bd204b790aa332e6d3dc57fcbf','APLICAR',current_user,'APLICADA');
+insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) values('2026-10-27_19_expedicao_logistica.sql','10402fdcf6d29430b5f42be1687da9971c2e85093de243fb356d1a0f5a2c200b',now(),current_user,'APLICADA') on conflict(name) do update set checksum=excluded.checksum,aplicada_em=excluded.aplicada_em,aplicada_por=excluded.aplicada_por,status='APLICADA',erro=null,atualizado_em=now();
+insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-10-27_19_expedicao_logistica.sql','10402fdcf6d29430b5f42be1687da9971c2e85093de243fb356d1a0f5a2c200b','APLICAR',current_user,'APLICADA');
 COMMIT;

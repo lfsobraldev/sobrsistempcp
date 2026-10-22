@@ -7,6 +7,7 @@ drop function if exists exp_entregar(uuid,text,text);
 drop function if exists exp_fechar_remessa(uuid,text);
 drop function if exists exp_ler_pallet(uuid,text,text);
 drop function if exists exp_reservar(uuid,uuid,uuid,numeric,text);
+drop function if exists exp_custo_medio(uuid,uuid);
 drop function if exists exp_atp(uuid,numeric,date);
 drop table if exists exp_portal_tokens;
 drop table if exists exp_eventos_faturamento;

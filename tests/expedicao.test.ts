@@ -17,6 +17,7 @@ test("Postgres: expedição - ATP, reserva, leitura de pallet, fechamento, devol
     const { id: local } = await one("insert into est_locais(codigo) values('PADRAO') returning id");
     const { id: prod } = await one("insert into est_produtos(codigo,unidade_base,classificacao) values('PAL','UN','ACABADO') returning id");
     await db.query("insert into est_saldos(produto_id,local_id,fisico) values($1,$2,100)", [prod, local]);
+    await db.query("insert into est_movimentos(tipo,produto_id,local_destino_id,quantidade_base,quantidade_informada,unidade_informada,usuario,custo_total) values('ENTRADA',$1,$2,100,100,'UN','t',500)", [prod, local]);
     const { id: cli } = await one("insert into crm_clientes(razao_social,criado_por,atualizado_por) values('ACME','t','t') returning id");
     const { id: rep } = await one("insert into crm_representantes(nome,criado_por,atualizado_por) values('Rep','t','t') returning id");
     // pedido: 10 peças a R$100 = 1000; comissão 5% = 50 (base FATURADO), já faturado 1000 e comissão liberada 50
@@ -54,6 +55,7 @@ test("Postgres: expedição - ATP, reserva, leitura de pallet, fechamento, devol
     const s = await one<{ fisico: string; reservado: string }>("select fisico,reservado from est_saldos where produto_id=$1", [prod]);
     assert.deepEqual([Number(s.fisico), Number(s.reservado)], [90, 0]);
     assert.equal((await one<{ status: string }>("select status from crm_pedidos_venda where id=$1", [pv])).status, "ATENDIDO");
+    assert.equal(Number((await one<{ c: string }>("select custo_total c from est_movimentos where tipo='SAIDA' and documento like 'REMESSA%'")).c), 50);
     const ev = await one<{ payload: { itens: Array<{ valor: number }> } }>("select payload from exp_eventos_faturamento where remessa_id=$1", [rem]);
     assert.equal(ev.payload.itens[0].valor, 1000);
     await assert.rejects(one("select exp_fechar_remessa($1,'t')", [rem]), /não pode ser fechada/);
@@ -62,6 +64,7 @@ test("Postgres: expedição - ATP, reserva, leitura de pallet, fechamento, devol
     await assert.rejects(one("select exp_devolver($1,$2,11,'ESTOQUE','Cliente recusou',$3,'t')", [rem, prod, local]), /maior que o expedido/);
     await assert.rejects(one("select exp_devolver($1,$2,4,'ESTOQUE','',$3,'t')", [rem, prod, local]), /motivo/);
     await one("select exp_devolver($1,$2,4,'QUARENTENA','Peças avariadas',$3,'t')", [rem, prod, local]);
+    assert.equal(Number((await one<{ c: string }>("select custo_total c from est_movimentos where documento like 'DEV REMESSA%' order by id limit 1")).c), 20);
     const s2 = await one<{ fisico: string; bloqueado: string }>("select fisico,bloqueado from est_saldos where produto_id=$1", [prod]);
     assert.deepEqual([Number(s2.fisico), Number(s2.bloqueado)], [94, 4]);
     assert.equal(Number((await one<{ devolvido_valor: string }>("select devolvido_valor from crm_pedidos_venda where id=$1", [pv])).devolvido_valor), 400);

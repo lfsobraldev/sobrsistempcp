@@ -908,7 +908,7 @@
         "2026-10-26_18_mrp_aps.sql"
       ],
       "destino": "operacional (Sul/Nordeste)",
-      "checksum": "9b546a48bfb1bfe380887494fb4ae8bbb02b61bd204b790aa332e6d3dc57fcbf",
+      "checksum": "10402fdcf6d29430b5f42be1687da9971c2e85093de243fb356d1a0f5a2c200b",
       "reversao": "down disponível; revisar alcance e destrutividade",
       "alteraDadosOuCadastros": false,
       "risco": "baixo",
@@ -927,6 +927,33 @@
       "verificacao": "29_2026-10-27_19_expedicao_logistica.verify.sql",
       "down": "29_2026-10-27_19_expedicao_logistica.down.sql",
       "baseline": "29_2026-10-27_19_expedicao_logistica.baseline.sql"
+    },
+    {
+      "ordem": 30,
+      "arquivo": "2026-10-28_20_custos_industriais.sql",
+      "descricao": "Custos: padrão da BOM e roteiro, padrão × real por OF com variações, valorização de estoque e margem real",
+      "dependenciasDeclaradas": [
+        "2026-10-27_19_expedicao_logistica.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "0dc76fdda50306b11bf89f1875239295283c6ceeab09b75b0eee875462554cca",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "cst_taxas",
+        "cst_precos_padrao",
+        "cst_padrao",
+        "cst_horas_of",
+        "cst_of_resultados",
+        "cst_v_valorizacao",
+        "cst_v_margem_pedidos"
+      ],
+      "colunasAdicionadas": [],
+      "up": "30_2026-10-28_20_custos_industriais.up.sql",
+      "verificacao": "30_2026-10-28_20_custos_industriais.verify.sql",
+      "down": "30_2026-10-28_20_custos_industriais.down.sql",
+      "baseline": "30_2026-10-28_20_custos_industriais.baseline.sql"
     }
   ]
 }
