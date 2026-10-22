@@ -1,5 +1,6 @@
 "use client";
 
+import ImportarMedicoes from "@/components/importar-medicoes";
 import { useCallback, useEffect, useState } from "react";
 import { Badge, DataTable, Empty, Field, Kpi, Modal, PageHeader, Segmented, type Tone } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
@@ -114,6 +115,7 @@ export default function QualidadeInspecaoPage() {
               </div>}
             </div>;
           })}
+          {["ABERTO", "QUARENTENA"].includes(l.status) && <ImportarMedicoes instrumentos={validos} busy={busy} onImportar={async (medicoes, instrumentoId) => { const j = await post({ acao: "MEDIR_LOTE", loteId: l.id, instrumentoId, medicoes }, "Medições importadas.", l.id); return !!j; }} />}
           {l.decisao_por && <small>Decisão por {l.decisao_por} em {new Date(l.decisao_em).toLocaleString("pt-BR")} {l.decisao_motivo && `— ${l.decisao_motivo}`}</small>}
         </div>}
       </Modal>

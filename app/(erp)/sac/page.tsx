@@ -1,5 +1,7 @@
 "use client";
 
+import SacAnexos from "@/components/sac-anexos";
+import { useOps } from "@/components/operational-provider";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ClipboardList, Download, Plus, RefreshCw, Search, X } from "lucide-react";
 
@@ -11,6 +13,7 @@ const PRIORITY:Record<string,string>={BAIXA:"Baixa",NORMAL:"Normal",ALTA:"Alta",
 const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
 const blank=()=>({crm_cliente_id:"",crm_representante_id:"",medicao_id:"",item_referencia:"",cliente:"",pedido:"",of:"",tipo:"ASSISTENCIA",assunto:"",descricao:"",solicitante:"",responsavel:"",prioridade:"NORMAL",prazo:"",medicao:"",observacoes:""});
 export default function SacPage(){
+ const {me}=useOps();
  const [items,setItems]=useState<Item[]>([]),[q,setQ]=useState(""),[status,setStatus]=useState(""),[loading,setLoading]=useState(true),[error,setError]=useState(""),[notice,setNotice]=useState(""),[creating,setCreating]=useState(false),[saving,setSaving]=useState(false),[form,setForm]=useState(blank()),[selected,setSelected]=useState<Item|null>(null);
  const [catalogos,setCatalogos]=useState<Catalogos>({clientes:[],representantes:[],vinculos:[],pedidos:[],medicoes:[]}),[catalogoErro,setCatalogoErro]=useState("");
  const [eventos,setEventos]=useState<Evento[]>([]),[comentario,setComentario]=useState("");
@@ -64,6 +67,7 @@ export default function SacPage(){
     <label>Prazo<input type="date" value={selected.prazo?.slice(0,10)||""} onChange={e=>setSelected({...selected,prazo:e.target.value||null})}/><button disabled={saving} onClick={()=>void update({prazo:selected.prazo||""})}>Salvar prazo</button></label>
     <label className="wide">Medição / informações técnicas<textarea rows={3} value={selected.medicao||""} onChange={e=>setSelected({...selected,medicao:e.target.value})}/><button disabled={saving} onClick={()=>void update({medicao:selected.medicao})}>Salvar medição</button></label>
     <label className="wide">Observações de acompanhamento<textarea rows={4} value={selected.observacoes||""} onChange={e=>setSelected({...selected,observacoes:e.target.value})}/><button disabled={saving} onClick={()=>void update({observacoes:selected.observacoes})}>Salvar observações</button></label>
+    <SacAnexos atendimentoId={selected.id} podeEditar={true} podeApagar={["PCP","GERENTE"].includes(me?.perfil||"")}/>
     <section className="sacTimeline"><h3>Histórico cronológico</h3>
      <form onSubmit={comentar}><label>Adicionar comentário interno<textarea required maxLength={4000} value={comentario} onChange={e=>setComentario(e.target.value)} placeholder="Registro de contato, encaminhamento ou decisão"/></label><button className="primary" disabled={saving||!comentario.trim()}>{saving?"Salvando...":"Registrar comentário"}</button></form>
      {eventos.length?eventos.map(event=><article key={event.id}><small>{new Date(event.criado_em).toLocaleString("pt-BR")} · {event.usuario} · {event.tipo}</small><p>{event.descricao||"Atualização registrada."}</p></article>):<p className="sacAudit">Nenhum evento detalhado disponível para este atendimento.</p>}

@@ -1,0 +1,35 @@
+-- ATENÇÃO: revisar fonte, dependentes e backup antes de qualquer reversão.
+-- Down conservador pode não desfazer estrutura. Não tratar como recuperação de dados.
+BEGIN;
+select pg_advisory_xact_lock(hashtextextended('sobral:migracoes',0));
+drop function if exists ctb_semear_encargos();
+drop function if exists fin_baixar_completo(uuid,uuid,date,numeric,numeric,numeric,numeric,uuid,text);
+drop function if exists fin_desconto(uuid,numeric,text,text);
+drop function if exists fin_encargos_sugeridos(uuid,date,numeric,numeric);
+drop table if exists fin_ajustes;
+drop function if exists cmp_confirmar_entrega(uuid,date,text,text);
+drop table if exists cmp_confirmacoes;
+drop table if exists cmp_portal_tokens;
+drop function if exists est_peps_resumo();
+drop function if exists est_peps_camadas(uuid,uuid);
+drop function if exists est_ciclico_cancelar(uuid,text);
+drop function if exists est_ciclico_ajustar(uuid,text,text);
+drop function if exists est_ciclico_contar(uuid,numeric,text);
+drop function if exists est_ciclico_abrir(date,integer,text);
+drop function if exists est_ciclico_devidos(date);
+drop table if exists est_ciclico_contagens;
+drop table if exists est_ciclico_regras;
+drop view if exists est_v_pendente_enderecar;
+drop function if exists est_endereco_mover(uuid,uuid,uuid,numeric,text);
+drop table if exists est_endereco_movs;
+drop table if exists est_endereco_saldos;
+drop table if exists est_enderecos;
+drop function if exists cst_of_analise_ext(uuid);
+drop function if exists cst_registrar_retrabalho(uuid,text,numeric,numeric,numeric,uuid,text,text);
+drop table if exists cst_retrabalho;
+drop function if exists erp_gerar_ofs_pedido(uuid,uuid,uuid,uuid,text);
+drop table if exists crm_pedido_venda_of;
+drop function if exists erp_substitutos_disponibilidade(uuid,numeric,uuid);
+drop table if exists erp_of_substituicoes;
+drop table if exists erp_substitutos;
+COMMIT;

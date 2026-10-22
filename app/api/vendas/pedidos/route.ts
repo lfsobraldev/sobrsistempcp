@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { escopoCiclo, exigirCiclo } from "@/lib/ciclo-industrial";
 import {
   calcularComissaoPedido, calcularItens, calcularTotais, comissaoEstorno, comissaoProporcional, competenciaDe,
   exigeAprovacaoPorDesconto, pedidoEditavel, podeTransicionarPedido, STATUS_PEDIDO, statusAoEnviar, toCents, fromCents, verificarCredito,
@@ -231,7 +232,7 @@ async function unidadePOST(req: Request) {
     const body = await req.json();
     const acao = clean(body.acao, 20).toUpperCase();
     const fin = acao === "FATURAR" || acao === "RECEBER" || acao === "DEVOLVER" || acao === "APROVAR";
-    const user = await requireRoles([...(fin ? FIN_ROLES : WRITE_ROLES)]);
+    const user = await requireRoles(acao === "GERAR_OFS" ? ["PCP", "GERENTE", "ENCARREGADO"] : [...(fin ? FIN_ROLES : WRITE_ROLES)]);
     const db = sql();
     if (acao === "SALVAR") return NextResponse.json({ ok: true, id: await salvar(db, body, user.usuario) });
     if (acao === "DE_PROPOSTA") {
@@ -243,6 +244,16 @@ async function unidadePOST(req: Request) {
       return NextResponse.json({ ok: true, id: await salvar(db, { clienteId: pr.cliente_id, representanteId: pr.representante_id, propostaId: pr.id, itens }, user.usuario) });
     }
     if (acao === "FATURAR" || acao === "RECEBER" || acao === "DEVOLVER") { await financeiro(db, body, user.usuario, acao); return NextResponse.json({ ok: true }); }
+    if (acao === "GERAR_OFS") {
+      await exigirCiclo(db);
+      const s = await escopoCiclo(db);
+      const id = clean(body.id, 40), localId = clean(body.localId, 40);
+      if (!/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Pedido inválido.");
+      const local = /^[0-9a-f-]{36}$/i.test(localId) ? localId : (await q(db, `select id from est_locais where ativo order by codigo limit 1`, []))[0]?.id;
+      if (!local) throw new Error("Cadastre um depósito para gerar as OFs.");
+      const rows = await q(db, `select * from erp_gerar_ofs_pedido($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5)`, [id, s.empresa_id, s.filial_id, local, user.usuario]);
+      return NextResponse.json({ ok: true, resultado: rows });
+    }
     const p = await carregar(db, clean(body.id, 40));
     if (acao === "ENVIAR") {
       if (!pedidoEditavel(p.status)) throw new Error("Pedido já enviado.");

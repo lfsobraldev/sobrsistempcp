@@ -35,8 +35,10 @@ export default function CustosPage() {
 
   const carregar = useCallback(async () => { try { setD(await api("/api/custos")); setErro(""); } catch (e) { setErro(e instanceof Error ? e.message : "Falha."); } }, []);
   useEffect(() => { void carregar(); }, [carregar]);
+  const [ext, setExt] = useState<Row | null>(null);
+  const [rt, setRt] = useState<Row>({ processo: "", quantidade: "1", minutos: "0", material: "0", motivo: "" });
   const abrirOf = useCallback(async (id: string) => {
-    try { const j = await api(`/api/custos?of=${id}`); setAn(j); setOfId(id); setHoras(Object.fromEntries(j.operacoes.map((o: Row) => [o.id, o.minutos == null ? "" : String(o.minutos)]))); } catch (e) { setErro(e instanceof Error ? e.message : "Falha."); }
+    try { const j = await api(`/api/custos?of=${id}`); setAn(j); setOfId(id); api("/api/custos", { acao: "ANALISE_EXT", ofId: id }).then((x) => setExt(x.analise)).catch(() => setExt(null)); setHoras(Object.fromEntries(j.operacoes.map((o: Row) => [o.id, o.minutos == null ? "" : String(o.minutos)]))); } catch (e) { setErro(e instanceof Error ? e.message : "Falha."); }
   }, []);
   const run = async (fn: () => Promise<unknown>, msg: string) => {
     setBusy(true); setErro(""); setOk("");
@@ -171,6 +173,20 @@ export default function CustosPage() {
                 <td data-label="Custo padrão">{l ? brl(l.custo_padrao) : "—"}</td><td data-label="Custo real">{l ? brl(l.custo_real) : "—"}</td><td data-label="Var. eficiência">{l ? brl(l.var_eficiencia) : "—"}</td></tr>);
             })}
           </DataTable>
+          {ext && (<>
+            <h4>Retrabalho e refugo</h4>
+            <div className="kpis"><Kpi label="Retrabalho" value={brl(ext.retrabalho.valor)} sub={`${ext.retrabalho.registros.length} registro(s)`} /><Kpi label="Conversão perdida no refugo" value={brl(ext.refugo_conversao.valor)} sub="mão de obra, máquina e GG já aplicados nas peças refugadas" tone={Number(ext.refugo_conversao.valor) > 0 ? "danger" : "success"} /></div>
+            {ext.refugo_conversao.detalhe.length > 0 && <DataTable head={["Operação", "Refugo", "Custo de conversão"]}>{ext.refugo_conversao.detalhe.map((r: Row, i: number) => <tr key={i}><td data-label="Operação">{r.processo}</td><td data-label="Refugo">{n2(r.refugo)}</td><td data-label="Custo de conversão">{brl(r.custo_conversao)}</td></tr>)}</DataTable>}
+            {ext.retrabalho.registros.length > 0 && <DataTable head={["Processo", "Qtd", "Min", "Material", "Valor", "Motivo"]}>{ext.retrabalho.registros.map((r: Row, i: number) => <tr key={i}><td data-label="Processo">{r.processo || "—"}</td><td data-label="Qtd">{n2(r.quantidade)}</td><td data-label="Min">{n2(r.minutos)}</td><td data-label="Material">{brl(r.material)}</td><td data-label="Valor">{brl(r.valor)}</td><td data-label="Motivo">{r.motivo}</td></tr>)}</DataTable>}
+            <div className="formGrid">
+              <Field label="Processo"><select value={rt.processo} onChange={(e) => setRt({ ...rt, processo: e.target.value })}><option value="">—</option>{an.operacoes.map((o: Row) => <option key={o.id} value={o.processo}>{o.sequencia} · {o.processo}</option>)}</select></Field>
+              <Field label="Qtd retrabalhada"><input inputMode="decimal" value={rt.quantidade} onChange={(e) => setRt({ ...rt, quantidade: e.target.value })} /></Field>
+              <Field label="Minutos gastos"><input inputMode="decimal" value={rt.minutos} onChange={(e) => setRt({ ...rt, minutos: e.target.value })} /></Field>
+              <Field label="Material extra (R$)"><input inputMode="decimal" value={rt.material} onChange={(e) => setRt({ ...rt, material: e.target.value })} /></Field>
+              <Field label="Motivo *"><input value={rt.motivo} onChange={(e) => setRt({ ...rt, motivo: e.target.value })} /></Field>
+              <button className="crm-secondary" disabled={busy || rt.motivo.trim().length < 3} onClick={() => run(async () => { const op = an.operacoes.find((o: Row) => o.processo === rt.processo); await api("/api/custos", { acao: "RETRABALHO", ofId, processo: rt.processo, centroId: op?.centro_id ?? "", quantidade: rt.quantidade, minutos: rt.minutos, material: rt.material, motivo: rt.motivo }); setRt({ processo: "", quantidade: "1", minutos: "0", material: "0", motivo: "" }); await abrirOf(ofId); }, "Retrabalho registrado.")}>Registrar retrabalho</button>
+            </div>
+          </>)}
         </>)}
       </Modal>
 

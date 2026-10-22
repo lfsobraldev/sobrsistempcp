@@ -20,7 +20,7 @@ async function unidadeGET(req: Request) {
     const of = url.searchParams.get("of");
     if (of) {
       const [r] = await q(`select cst_of_analise($1::uuid) a`, [need(of, "OF inválida.")]);
-      const ops = await q(`select po.id,po.processo,po.sequencia,h.minutos from pcp_operacoes po left join cst_horas_of h on h.of_id=po.of_id and h.operacao_id=po.id where po.of_id=$1 order by po.sequencia`, [of]);
+      const ops = await q(`select po.id,po.processo,po.sequencia,h.minutos,po.roteiro_snapshot->>'centro_id' centro_id from pcp_operacoes po left join cst_horas_of h on h.of_id=po.of_id and h.operacao_id=po.id where po.of_id=$1 order by po.sequencia`, [of]);
       return NextResponse.json({ analise: r.a, operacoes: ops }, { headers: { "Cache-Control": "no-store" } });
     }
     const [taxas, centros, precos, padroes, ofs, valorizacao, pedidos, produtos] = await Promise.all([
@@ -62,6 +62,12 @@ async function unidadePOST(req: Request) {
     } else if (acao === "HORAS") {
       await q(`insert into cst_horas_of(of_id,operacao_id,minutos,informado_por) values($1,$2,$3,$4) on conflict(of_id,operacao_id) do update set minutos=excluded.minutos,informado_por=excluded.informado_por,informado_em=now()`,
         [need(clean(b.ofId, 40), "OF inválida."), need(clean(b.operacaoId, 40), "Operação inválida."), nonNeg(b.minutos, "Minutos inválidos."), ator]);
+    } else if (acao === "RETRABALHO") {
+      const centro = clean(b.centroId, 40);
+      await q(`select cst_registrar_retrabalho($1::uuid,$2,$3::numeric,$4::numeric,$5::numeric,$6::uuid,$7,$8)`, [need(clean(b.ofId, 40), "OF inválida."), clean(b.processo, 80), nonNeg(b.quantidade, "Quantidade inválida."), nonNeg(b.minutos, "Minutos inválidos."), nonNeg(b.material, "Material inválido."), centro ? need(centro, "Centro inválido.") : null, clean(b.motivo, 500), ator]);
+    } else if (acao === "ANALISE_EXT") {
+      const [r] = await q(`select cst_of_analise_ext($1::uuid) a`, [need(clean(b.ofId, 40), "OF inválida.")]);
+      return NextResponse.json({ ok: true, analise: r.a });
     } else if (acao === "REGISTRAR") {
       const [r] = await q(`select cst_of_registrar($1::uuid,$2) a`, [need(clean(b.ofId, 40), "OF inválida."), ator]);
       return NextResponse.json({ ok: true, analise: r.a });

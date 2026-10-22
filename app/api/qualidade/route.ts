@@ -59,7 +59,7 @@ async function unidadePOST(req: Request) {
   try {
     const b = await req.json();
     const acao = clean(b.acao, 30).toUpperCase();
-    const user = await requireRoles([...(acao === "MEDIR" ? MEDIR : WRITE)]);
+    const user = await requireRoles([...(acao === "MEDIR" || acao === "MEDIR_LOTE" ? MEDIR : WRITE)]);
     const uname = user.usuario;
 
     if (acao === "INSTRUMENTO") {
@@ -97,6 +97,14 @@ async function unidadePOST(req: Request) {
     if (acao === "ABRIR_LOTE") {
       const [r] = await q(`select qld_abrir_lote($1::uuid,$2::numeric,$3,$4,$5::uuid,$6::uuid,$7) id`, [need(clean(b.planoId, 40), "Selecione o plano."), num(b.quantidade, "Quantidade inválida."), clean(b.referenciaTipo, 20) || "MANUAL", clean(b.referencia, 80), clean(b.loteEstoqueId, 40) || null, clean(b.localId, 40) || null, uname]);
       return NextResponse.json({ ok: true, id: r.id });
+    }
+    if (acao === "MEDIR_LOTE") {
+      const linhas = Array.isArray(b.medicoes) ? b.medicoes : [];
+      if (!linhas.length || linhas.length > 2000) throw new Error("Informe de 1 a 2000 medições.");
+      const med = linhas.map((m: any) => ({ linha: Number(m.linha), valor: Number(String(m.valor).replace(",", ".")) }));
+      if (med.some((m: any) => !Number.isInteger(m.linha) || m.linha < 1 || !Number.isFinite(m.valor))) throw new Error("Há medições com característica ou valor inválido.");
+      const [r] = await q(`select qld_medir_lote($1::uuid,$2::jsonb,$3::uuid,$4) n`, [need(clean(b.loteId, 40), "Lote inválido."), JSON.stringify(med), need(clean(b.instrumentoId, 40), "Selecione o instrumento."), uname]);
+      return NextResponse.json({ ok: true, importadas: Number(r.n) });
     }
     if (acao === "MEDIR") {
       const [r] = await q(`select qld_medir($1::uuid,$2::int,$3::numeric,$4::uuid,$5) conforme`, [need(clean(b.loteId, 40), "Lote inválido."), Number(b.linha), num(b.valor, "Valor inválido."), need(clean(b.instrumentoId, 40), "Selecione o instrumento."), uname]);

@@ -1086,6 +1086,60 @@
       "verificacao": "34_2026-11-01_24_indicadores_integracoes.verify.sql",
       "down": "34_2026-11-01_24_indicadores_integracoes.down.sql",
       "baseline": "34_2026-11-01_24_indicadores_integracoes.baseline.sql"
+    },
+    {
+      "ordem": 35,
+      "arquivo": "2026-11-02_25_pendencias_producao_estoque_financeiro.sql",
+      "descricao": "Substitutos de componente, OF do pedido com um clique, custo de retrabalho e refugo, endereçamento, inventário cíclico, PEPS, portal do fornecedor e juros/multa/desconto na baixa",
+      "dependenciasDeclaradas": [
+        "2026-11-01_24_indicadores_integracoes.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "ac30c4e94780e573ae53b25273fd8cadf3fbd290e40c03eaf53ab81f48e0e5f9",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "baixo",
+      "objetos": [
+        "erp_substitutos",
+        "erp_of_substituicoes",
+        "crm_pedido_venda_of",
+        "cst_retrabalho",
+        "est_enderecos",
+        "est_endereco_saldos",
+        "est_endereco_movs",
+        "est_v_pendente_enderecar",
+        "est_ciclico_regras",
+        "est_ciclico_contagens",
+        "cmp_portal_tokens",
+        "cmp_confirmacoes",
+        "fin_ajustes"
+      ],
+      "colunasAdicionadas": [],
+      "up": "35_2026-11-02_25_pendencias_producao_estoque_financeiro.up.sql",
+      "verificacao": "35_2026-11-02_25_pendencias_producao_estoque_financeiro.verify.sql",
+      "down": "35_2026-11-02_25_pendencias_producao_estoque_financeiro.down.sql",
+      "baseline": "35_2026-11-02_25_pendencias_producao_estoque_financeiro.baseline.sql"
+    },
+    {
+      "ordem": 36,
+      "arquivo": "2026-11-03_26_sac_qualidade_oee.sql",
+      "descricao": "Anexos do SAC, índice de reclamação, importação de medições em lote e OEE completo",
+      "dependenciasDeclaradas": [
+        "2026-11-02_25_pendencias_producao_estoque_financeiro.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "1f1a5a6436c356f74b31bb2677ef787d3ef94fbf41b354389cfa04e4a84ea9e0",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "sac_anexos"
+      ],
+      "colunasAdicionadas": [],
+      "up": "36_2026-11-03_26_sac_qualidade_oee.up.sql",
+      "verificacao": "36_2026-11-03_26_sac_qualidade_oee.verify.sql",
+      "down": "36_2026-11-03_26_sac_qualidade_oee.down.sql",
+      "baseline": "36_2026-11-03_26_sac_qualidade_oee.baseline.sql"
     }
   ]
 }

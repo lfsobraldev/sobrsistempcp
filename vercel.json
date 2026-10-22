@@ -17,5 +17,11 @@
       "erp-rodada-h-transversal": false,
       "erp-final-auditoria-implantacao": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/rotinas",
+      "schedule": "0 9 * * *"
+    }
+  ]
 }

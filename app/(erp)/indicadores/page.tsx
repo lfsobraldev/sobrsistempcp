@@ -29,6 +29,7 @@ export default function IndicadoresPage() {
   const [fim, setFim] = useState(hojeIso());
   const [d, setD] = useState<Row | null>(null);
   const [integ, setInteg] = useState<Row | null>(null);
+  const [sac, setSac] = useState<Row | null>(null);
   const [erro, setErro] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,6 +40,7 @@ export default function IndicadoresPage() {
   const carregar = useCallback(async () => { try { setD(await api(`/api/indicadores?ini=${ini}&fim=${fim}`)); setErro(""); } catch (e) { setErro(e instanceof Error ? e.message : "Falha."); } }, [ini, fim]);
   const carregarInteg = useCallback(async () => { if (!gerente) return; try { setInteg(await api("/api/integracoes")); } catch (e) { setErro(e instanceof Error ? e.message : "Falha."); } }, [gerente]);
   useEffect(() => { void carregar(); }, [carregar]);
+  useEffect(() => { api(`/api/sac/indice?ini=${ini}&fim=${fim}`).then((j) => setSac(j.indice)).catch(() => setSac(null)); }, [ini, fim]);
   useEffect(() => { if (aba === "INTEGRACOES") void carregarInteg(); }, [aba, carregarInteg]);
   const run = async (fn: () => Promise<any>, msg: string, depois?: () => Promise<void>) => {
     setBusy(true); setErro(""); setOk("");
@@ -69,11 +71,19 @@ export default function IndicadoresPage() {
             <Kpi label="PPM" value={num(p.ppm.ppm, 0)} sub={`${num(p.ppm.bloqueado, 0)} de ${num(p.ppm.inspecionado, 0)} peças`} />
           </div>
           <div className="kpis">
-            <Kpi label="OEE parcial" value={pct(p.oee.oeeParcial)} sub={`Disp. ${pct(p.oee.disponibilidade)} × Qual. ${pct(p.oee.qualidade)}`} />
+            <Kpi label={p.oee.oee != null ? "OEE" : "OEE parcial"} value={pct(p.oee.oee ?? p.oee.oeeParcial)} sub={`Disp. ${pct(p.oee.disponibilidade)} × Desemp. ${pct(p.oee.desempenho)} × Qual. ${pct(p.oee.qualidade)}`} />
             <Kpi label="Carteira a faturar" value={brl(p.carteira.saldoAFaturar)} sub={`${p.carteira.pedidosAbertos} pedidos abertos`} />
             <Kpi label="Carteira atrasada" value={brl(p.carteira.saldoAtrasado)} sub={`${p.carteira.atrasados} pedidos`} tone={p.carteira.atrasados ? "danger" : "success"} />
             <Kpi label="Comissões a pagar" value={brl(p.comissoes.A_PAGAR)} sub={`Previstas ${brl(p.comissoes.PREVISTA)}`} />
           </div>
+          {sac && (
+            <div className="kpis">
+              <Kpi label="Reclamações" value={sac.reclamacoes} sub={`${sac.atendimentos} atendimentos no período`} tone={sac.reclamacoes ? "warn" : "success"} />
+              <Kpi label="Índice de reclamação" value={sac.por100Pedidos == null ? "—" : `${num(sac.por100Pedidos, 2)} / 100 pedidos`} sub={`${sac.pedidosEntregues} pedidos entregues`} />
+              <Kpi label="Tempo de resolução" value={sac.resolucao.diasMedios == null ? "—" : `${num(sac.resolucao.diasMedios)} d`} sub={`${sac.resolucao.concluidos} concluídos · ${sac.resolucao.noPrazo} no prazo`} />
+              <Kpi label="Clientes reincidentes" value={sac.clientesReincidentes} sub="mais de um atendimento" />
+            </div>
+          )}
           <p className="muted">{p.oee.observacao}. Giro = custo das saídas no período anualizado ÷ valor atual do estoque.</p>
         </>)}
       </>)}

@@ -33,6 +33,8 @@ const descricoes:Record<string,string>={
  '22_financeiro_contabil':'Financeiro e contabilidade: títulos automáticos, baixa, conciliação, plano de contas, lançamentos, razão, balancete, DRE, fluxo e orçado x realizado',
  '23_manutencao_documentos':'Manutenção (ativos, preventivas, corretivas por Andon, peças, MTBF/MTTR), documentos controlados com versão e aprovação, instruções na operação e qualificação por posto',
  '24_indicadores_integracoes':'Indicadores (OTIF, lead time, giro, PPM, OEE parcial, comissões, carteira), alertas proativos, tokens de API e webhooks assinados',
+ '25_pendencias_producao_estoque_financeiro':'Substitutos de componente, OF do pedido com um clique, custo de retrabalho e refugo, endereçamento, inventário cíclico, PEPS, portal do fornecedor e juros/multa/desconto na baixa',
+ '26_sac_qualidade_oee':'Anexos do SAC, índice de reclamação, importação de medições em lote e OEE completo',
  '21_fiscal':'Fiscal: cadastros, regras com vigência, montagem de NF-e por adaptador, estados do documento, apuração simplificada e IBS/CBS parametrizado',
  '20_custos_industriais':'Custos: padrão da BOM e roteiro, padrão × real por OF com variações, valorização de estoque e margem real',
  '19_expedicao_logistica':'Expedição: ATP, reserva, leitura de pallet, fechamento de carga, devolução com estorno de comissão, portal do cliente'

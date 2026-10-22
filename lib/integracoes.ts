@@ -12,6 +12,13 @@ export function gerarToken(unidade: string) {
 }
 export const unidadeDoToken = (t: string) => (/^sbl\.([A-Z0-9_-]{2,20})\.[0-9a-f]{48}$/i.exec(t)?.[1] ?? null);
 
+/** Link do portal do fornecedor: sbp.<unidade>.<48 hex>; só o hash fica no banco. */
+export function gerarTokenPortal(unidade: string) {
+  const token = `sbp.${unidade}.${randomBytes(24).toString("hex")}`;
+  return { token, hash: hashToken(token) };
+}
+export const unidadeDoTokenPortal = (t: string) => (/^sbp\.([A-Z0-9_-]{2,20})\.[0-9a-f]{48}$/i.exec(t)?.[1] ?? null);
+
 export const assinarWebhook = (corpo: string, segredo: string, ts: number) =>
   "sha256=" + createHmac("sha256", segredo).update(`${ts}.${corpo}`).digest("hex");
 export function conferirAssinatura(corpo: string, segredo: string, ts: number, assinatura: string, agora = Date.now(), tolerancia = 300) {
