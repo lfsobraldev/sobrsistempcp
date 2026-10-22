@@ -1062,6 +1062,30 @@
       "verificacao": "33_2026-10-31_23_manutencao_documentos.verify.sql",
       "down": "33_2026-10-31_23_manutencao_documentos.down.sql",
       "baseline": "33_2026-10-31_23_manutencao_documentos.baseline.sql"
+    },
+    {
+      "ordem": 34,
+      "arquivo": "2026-11-01_24_indicadores_integracoes.sql",
+      "descricao": "Indicadores (OTIF, lead time, giro, PPM, OEE parcial, comissões, carteira), alertas proativos, tokens de API e webhooks assinados",
+      "dependenciasDeclaradas": [
+        "2026-10-31_23_manutencao_documentos.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "4caf9e1bf5252376bbd28a35db20e00899a470aa5d7d21c7f8a79e97b09935a3",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "sys_alertas",
+        "sys_tokens_api",
+        "sys_webhooks",
+        "sys_webhook_fila"
+      ],
+      "colunasAdicionadas": [],
+      "up": "34_2026-11-01_24_indicadores_integracoes.up.sql",
+      "verificacao": "34_2026-11-01_24_indicadores_integracoes.verify.sql",
+      "down": "34_2026-11-01_24_indicadores_integracoes.down.sql",
+      "baseline": "34_2026-11-01_24_indicadores_integracoes.baseline.sql"
     }
   ]
 }

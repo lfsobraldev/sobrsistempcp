@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 
 export function middleware(req:NextRequest){
   const p=req.nextUrl.pathname;
-  if(p==="/rastreio/pallet"||p==="/rastreio/entrega"||p==="/api/expedicao/portal"||p==="/api/pallets/public-tracking")return NextResponse.next();
+  if(p==="/rastreio/pallet"||p==="/rastreio/entrega"||p==="/api/expedicao/portal"||p==="/api/pallets/public-tracking"||p.startsWith("/api/v1/"))return NextResponse.next();
   if(p==="/api/ia/whatsapp"||p.startsWith("/login")||p.startsWith("/api/auth")||p.startsWith("/_next"))return NextResponse.next();
   if(!req.cookies.get("pcp_session")){
     const u=req.nextUrl.clone();

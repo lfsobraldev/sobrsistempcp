@@ -12,6 +12,7 @@ const GRUPOS: { re: RegExp; tools: string[] }[] = [
   { re: /romaneio|etiqueta|carga|volume/, tools: ["gerar_romaneio", "gerar_documentos_pedido", "historico_romaneios"] },
   { re: /planilha|excel|exportar|usinagem/, tools: ["gerar_planilha_programacao", "gerar_planilha_usinagem", "diagnosticar_usinagem"] },
   { re: /prioridade|priorizar/, tools: ["propor_prioridade", "buscar_pedido"] },
+  { re: /indicador|otif|oee|giro|lead ?time|ppm|comiss|carteira|alerta|ruptura|calibra|credito|kpi/, tools: ["consultar_indicadores", "listar_alertas"] },
   { re: /qualidade|pallet|inspec/, tools: ["resumo_qualidade"] },
   { re: /procedimento|regra|ensin|como funciona|conhecimento/, tools: ["consultar_conhecimento", "mapa_fontes_sistema"] },
 ];

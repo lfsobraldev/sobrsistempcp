@@ -57,7 +57,7 @@ const menus: MenuGroup[] = [
     ],
   },
   { label: "Custos, Fiscal e Financeiro", items: [{ path: "/custos", label: "Custos Industriais", icon: Boxes }, { path: "/fiscal", label: "Fiscal e NF-e", icon: ClipboardList }, { path: "/financeiro", label: "Financeiro e Contábil", icon: Boxes }] },
-  { label: "Manutenção e Documentos", items: [{ path: "/manutencao", label: "Manutenção", icon: Boxes }, { path: "/documentos", label: "Documentos e Qualificação", icon: ClipboardList }] },
+  { label: "Manutenção e Documentos", items: [{ path: "/indicadores", label: "Indicadores e Integrações", icon: Boxes }, { path: "/manutencao", label: "Manutenção", icon: Boxes }, { path: "/documentos", label: "Documentos e Qualificação", icon: ClipboardList }] },
   { label: "SAC", items: [{ path: "/sac", label: "Atendimento", icon: ClipboardList }] },
   {
     label: "Relatórios",
