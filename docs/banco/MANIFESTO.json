@@ -805,6 +805,50 @@
       "verificacao": "25_2026-10-23_15_vendas_producao.verify.sql",
       "down": "25_2026-10-23_15_vendas_producao.down.sql",
       "baseline": "25_2026-10-23_15_vendas_producao.baseline.sql"
+    },
+    {
+      "ordem": 26,
+      "arquivo": "2026-10-24_16_compras_terceiros.sql",
+      "descricao": "Compras (solicitação, cotação, pedido com alçada, recebimento/NF-e), terceirização, ABC/XYZ e sugestão de compra",
+      "dependenciasDeclaradas": [
+        "2026-10-23_15_vendas_producao.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "018d647f9f6f47a6a8fbc21d0aaeb4507a7474cf578209a79d83c8d5dae09b75",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "baixo",
+      "objetos": [
+        "cmp_fornecedores",
+        "cmp_alcadas",
+        "cmp_solicitacoes",
+        "cmp_solicitacao_itens",
+        "cmp_cotacao_propostas",
+        "cmp_pedidos",
+        "cmp_pedido_itens",
+        "cmp_recebimentos",
+        "cmp_recebimento_itens",
+        "cmp_terceiros_movs",
+        "cmp_saldo_terceiros"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "est_produtos",
+          "coluna": "estoque_seguranca"
+        },
+        {
+          "tabela": "est_produtos",
+          "coluna": "lead_time_dias"
+        },
+        {
+          "tabela": "est_produtos",
+          "coluna": "lote_compra"
+        }
+      ],
+      "up": "26_2026-10-24_16_compras_terceiros.up.sql",
+      "verificacao": "26_2026-10-24_16_compras_terceiros.verify.sql",
+      "down": "26_2026-10-24_16_compras_terceiros.down.sql",
+      "baseline": "26_2026-10-24_16_compras_terceiros.baseline.sql"
     }
   ]
 }
