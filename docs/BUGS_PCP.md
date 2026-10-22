@@ -14,3 +14,17 @@
 | Dashboard industrial e telas legadas têm recortes próprios | Foram construídos em torno de uma única programação operacional | Etapa A: provider de visão compartilhado adotado em dashboard, gerente, líderes, fluxo, prioridades, sequenciamento, críticos, performance, perdas, Andon e OF; carteira/entregas recebem o recorte na consulta. Cadastros e dados sem vínculo industrial mantêm escopo de unidade, sem atribuição inventada |
 
 Validação: testes de SQL real em PGlite para filtros combinados, competência, datas e totais; teste de virada de mês/ano e precisão de apontamento. Unidade é validada no servidor pela barreira global existente; não é escolhida por parâmetros livres de consulta. Nenhuma consulta ou migração em produção.
+
+## Correções do ciclo na Etapa B
+
+| Erro / risco concreto | Causa | Correção / validação |
+| --- | --- | --- |
+| Finalização legada podia completar quantidade sem baixa | Quantidade era elevada ao planejado no FINALIZAR | OF integrada usa função própria: só finaliza quantidade realmente apontada e movimentos processados; trigger rejeita escrita legada |
+| Consumo não distinguia operação | OF anterior tinha necessidade achatada e movimentos manuais | Snapshot direto e vínculo componente/operação; teste de duas operações comprova baixa somente do componente da operação |
+| Reenvio repetia produção ou movimento | Fila/conexão instável sem contrato do ciclo | Chave de apontamento + comparação do payload/ator + lock/transação; teste de chamadas paralelas e chave reutilizada |
+| Estorno físico não restaurava compromisso da OF | Liberação de reserva acompanha a saída | Estorno devolve componentes, retira produto e recria reservas liberadas; ledger original fica intacto |
+| Filhas desapareciam no consolidado | Operações filhas não têm demanda própria em pcp_produtos | Consolidado usa origem raiz para o recorte e SKU real da OF; teste inclui pai e filha |
+| Resposta/tela podia conservar dados ao trocar unidade | Formulários mantinham estado local entre fontes | Componentes integrados remontam por login/unidade; APIs validam escopo e a fila envia usuário e unidade esperados |
+| Interrupção após crédito no destino poderia repetir entrada | Confirmação central e bancos operacionais são independentes | Saga retomável; teste usa serviço real com duas fontes locais e falha simulada antes de marcar recebida |
+
+Validação manual do filtro/datas: no cabeçalho, escolha mês, dois filtros e pedidos; navegue painel → sequenciamento → apontamento/perdas. Cartões, tabela e visão de datas devem usar os mesmos itens e a URL deve preservar a seleção. Limpe filtros e repita na outra unidade. No consolidado, login com uma unidade deve receber recusa no servidor. Datas de produção são civis; validar virada de mês às 23h/00h no fuso da fábrica. Testes automatizados de datas/filtros existentes continuam na suíte.

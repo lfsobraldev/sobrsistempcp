@@ -23,7 +23,7 @@ export async function GET(req:Request){try{
  if(params.has('modulo')){
   const modulo=moduloConsolidado.parse(params.get('modulo')),page=Number(params.get('page')||1);
   if(!Number.isInteger(page)||page<1||page>100000)return NextResponse.json({error:'Página inválida.'},{status:400});
-  const consulta=consultaModulo(modulo,params);
+  const consulta=consultaModulo(modulo,params,process.env.ERP_CICLO_INDUSTRIAL==='enabled');
   const fontes=await Promise.all((['SUL','NORDESTE'] as Unidade[]).map(async unidade=>{
    const db=await verificarBanco(unidade);
    const schema=await db`select to_regclass(x) tabela from unnest(${consulta.tabelas}::text[]) x`;

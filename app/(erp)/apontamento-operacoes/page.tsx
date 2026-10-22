@@ -1,4 +1,5 @@
 "use client";
+import OFCiclo from "@/components/of-ciclo";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { History, RefreshCw, X } from "lucide-react";
@@ -83,7 +84,7 @@ export default function ApontamentoOperacoes() {
     plan: ops.reduce((s, o) => s + o.planejada, 0), prod: ops.reduce((s, o) => s + Math.min(o.produzida, o.planejada), 0),
   }), [ops]);
 
-  return <div className="cart-page">
+  return <div className="cart-page"><OFCiclo chao/>
     <header className="cart-hero"><span>PCP · PRODUÇÃO</span><h1>Apontamento de Quantidades</h1>
       <p>Lançamento de peças produzidas por operação, com responsável, data e histórico. Programação <b>{filtro || "—"}</b>.{restrito ? " Você vê apenas os setores liberados para o seu usuário." : ""}</p></header>
     {erro && <p role="alert" className="cart-msg err">{erro}</p>}

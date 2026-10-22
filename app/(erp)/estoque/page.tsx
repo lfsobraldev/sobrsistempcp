@@ -1,4 +1,5 @@
 "use client";
+import EstoqueCiclo from "@/components/estoque-ciclo";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RefreshCw, X } from "lucide-react";
@@ -99,7 +100,7 @@ export default function EstoquePage() {
   const prodsFiltrados = useMemo(() => prods.filter((p) => !cq || (p.codigo + " " + p.descricao + " " + p.unidades.map((u) => u.codigo_barras || "").join(" ")).toLowerCase().includes(cq.toLowerCase())), [prods, cq]);
   const listaSelProd = useMemo(() => prodsAtivos.filter((p) => !f.filtroProd || (p.codigo + " " + p.descricao).toLowerCase().includes(f.filtroProd.toLowerCase())).slice(0, 200), [prodsAtivos, f.filtroProd]);
 
-  return <div className="cart-page">
+  return <div className="cart-page"><EstoqueCiclo/>
     <header className="cart-hero"><span>ESTOQUE · EXPEDIÇÃO · PCP</span><h1>Estoque e Inventário</h1>
       <p>Saldo físico, disponível, reservado e bloqueado por produto e local, com histórico auditável de cada movimento, conversão de unidades e inventário com contagem e conferência. Nada é movimentado automaticamente.</p></header>
     {erro && <p role="alert" className="cart-msg err">{erro}</p>}

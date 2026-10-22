@@ -1,3 +1,5 @@
+import QRCode from "qrcode";
+import { exigirCiclo,escopoCiclo,gravarOperacaoCiclo } from "@/lib/ciclo-industrial";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
@@ -20,10 +22,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 async function unidadePATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const s = await requireRoles(["PCP", "ENCARREGADO", "LIDER", "APONTADOR"]);
+    const b = await req.json();
+    const s = await requireRoles(String(b.action||"").startsWith("CICLO_")?["PCP","GERENTE","ENCARREGADO","LIDER","APONTADOR"]:["PCP", "ENCARREGADO", "LIDER", "APONTADOR"]);
     const { id } = await params;
     if (!UUID.test(id)) return NextResponse.json({ error: "Operação inválida." }, { status: 400 });
-    const b = await req.json();
+    if(String(b.action||"").startsWith("CICLO_")){
+     if(b.action==='CICLO_APONTAR'&&req.headers.get('X-ERP-Usuario')!==s.usuario)return NextResponse.json({error:'A fila pertence a outro login. Entre com o usuário de origem.'},{status:403});
+     const rows=await gravarOperacaoCiclo(sql(),id,b,s.usuario,s.processos,["LIDER","APONTADOR"].includes(s.perfil));await publishRealtimeEvent("PRODUCAO_ATUALIZADA",{operacaoId:id,acao:b.action});return NextResponse.json({ok:true,rows});
+    }
     const acao = String(b.action || "") as Acao;
     if (!ACOES.includes(acao)) return NextResponse.json({ error: "Ação inválida." }, { status: 400 });
     const rid = String(b.requestId || "").trim().slice(0, 80);
@@ -133,9 +139,18 @@ async function unidadePATCH(req: Request, { params }: { params: Promise<{ id: st
     await publishRealtimeEvent("PRODUCAO_ATUALIZADA", { operacaoId: id, acao });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    const st = e?.message === "SEM_PERMISSAO" ? 403 : 500;
+    const st = e?.message === "SEM_PERMISSAO" ? 403 : /aguardando migração|does not exist/.test(e?.message||"")?503:409;
     return NextResponse.json({ error: st === 403 ? "Sem permissão." : e?.message || "Falha ao atualizar operação." }, { status: st });
   }
 }
 
 export const PATCH = unidadeHandler(unidadePATCH);
+
+export const GET=unidadeHandler(async(req:Request,{params}:{params:Promise<{id:string}>})=>{try{
+ const s=await requireRoles(['PCP','GERENTE','ENCARREGADO','LIDER','APONTADOR']),{id}=await params;if(!UUID.test(id))return NextResponse.json({error:'Operação inválida.'},{status:400});const db=sql();await exigirCiclo(db);const esc=await escopoCiclo(db);
+ const [op]=await db`select op.id,op.processo,op.of_id from pcp_operacoes op join erp_ordens_fabricacao o on o.id=op.of_id where op.id=${id}::uuid and o.empresa_id=${esc.empresa_id}::uuid and o.filial_id=${esc.filial_id}::uuid`;
+ if(!op)return NextResponse.json({error:'Operação integrada não encontrada.'},{status:404});if(['LIDER','APONTADOR'].includes(s.perfil)&&!s.processos?.includes(op.processo))return NextResponse.json({error:'Sem permissão para este setor.'},{status:403});
+ if(new URL(req.url).searchParams.get('qr')==='1')return new Response(await QRCode.toString('OP:'+id,{type:'svg'}),{headers:{'Content-Type':'image/svg+xml','Cache-Control':'private, no-store'}});
+ return NextResponse.json({id:op.id,ofId:op.of_id,processo:op.processo},{headers:{'Cache-Control':'no-store'}});
+ }catch(e){const m=e instanceof Error?e.message:'Falha na operação.';return NextResponse.json({error:m},{status:m==='SEM_PERMISSAO'?403:/migração|does not exist/.test(m)?503:409});}
+});

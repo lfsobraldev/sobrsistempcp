@@ -25,7 +25,7 @@ export type Programacao = {
   diagnostico?:DiagnosticoImportacao; produtos:Produto[];
 };
 export type ImportResult = DiagnosticoImportacao & { filtro:string; produtos:Produto[]; romaneioProdutos?:Produto[]; linhasDescartadas?:number; avisos?:string[] };
-export type Sessao = { usuario:string; perfil:Perfil; processos:string[]; emitidoEm?:number; multiunidade?:boolean; unidadeAtiva?:"SUL"|"NORDESTE"|null };
+export type Sessao = { usuario:string; perfil:Perfil; processos:string[]; emitidoEm?:number; multiunidade?:boolean; cicloIndustrial?:boolean; unidadeAtiva?:"SUL"|"NORDESTE"|null };
 export type Andon = { id:string; operacao_id:string; processo:string; motivo:string; observacao:string; status:string;
   usuario_abertura:string; criado_em:string; pedido?:string; of?:string; categoria?:string; prioridade?:string; responsavel?:string;
   assumido_por?:string; assumido_em?:string; tratamento_em?:string; resolvido_por?:string; resolvido_em?:string; observacao_final?:string };

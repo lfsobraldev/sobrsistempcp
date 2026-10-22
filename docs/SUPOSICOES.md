@@ -62,3 +62,21 @@
 - O recorte industrial filtra produtos/operações/planejamento. Estoque é posição atual dos códigos relacionados ao recorte; não inventa saldo histórico. Sem mês específico/pedidos/filtros explícitos, estoque mostra todos os produtos da unidade. Cadastros, capacidades e metas sem vínculo de pedido não são rateados artificialmente.
 - Leituras gerais podem juntar programações. Escritas que dependem de um cabeçalho único exigem seleção de uma programação; ações por ID preservam a origem original. Não usar um ID sintético para escrever.
 - “Excluir histórico” passa a arquivar, com auditoria e consulta de arquivados. O mesmo vale para excluir a programação ativa. Nada é removido em cascata. Para reverter o comportamento, criar fluxo explícito de desarquivamento; não reintroduzir DELETE físico.
+
+## Etapa B — decisões do ciclo
+
+| Suposição | Motivo | Como reverter |
+| --- | --- | --- |
+| `ERP_CICLO_INDUSTRIAL` desligado por padrão; habilitar com `enabled` após homologação e migração | Preservar fluxos legados sem schema novo | Desligar a flag; OFs integradas continuam protegidas contra escrita pelo apontamento legado |
+| Snapshot é congelado já na geração; confirmação reserva a mesma revisão | Não trocar a engenharia enquanto o planejador confirma | Uma futura revisão de OF precisa ser explícita, antes da confirmação, com auditoria; nunca editar snapshot |
+| Roteiro usa quantidades da BOM na unidade base cadastrada; quantidade informada no ciclo também é base | Reutilizar conversões do estoque e evitar duas regras de conversão | Evoluir o assistente para escolher unidade alternativa, convertendo pelo cadastro existente antes de enviar |
+| Cada componente pertence a exatamente uma operação; entrada de produto apenas na última | Evitar dupla baixa e dupla entrada | Evoluir política versionada de rateio entre operações antes de permitir múltiplos vínculos |
+| Falta de saldo pode bloquear ou deixar movimento pendente; nunca cria saldo negativo | Preservar constraints atuais de estoque | Exige projeto específico e migração antes de autorizar estoque negativo |
+| Filho produz a falta do semiacabado calculada na geração; confirmação revalida disponibilidade | Não reservar saldo inexistente; filhos usam o mesmo fluxo de OF | Alterações de disponibilidade entre planejamento e confirmação precisam ser resolvidas no planejamento; não forçar saldo |
+| Estornos seguem operações posteriores e ordem inversa dos apontamentos | Preservar rastreio e arredondamento acumulado | Criar recomposição de custos/consumo antes de permitir estorno fora de ordem |
+| Custos legados não informados valem zero e não são estimados | Não inventar valorização histórica | Homologar abertura/inventário valorizado com o responsável financeiro; PEPS de legado sem camadas exige saneamento |
+| Centro é capacidade/máquina/turno existente, com calendário semanal ISO | Evitar cadastro paralelo e manter capacidade conhecida | Expandir o mesmo cadastro para exceções/feriados; não criar outro centro de trabalho |
+| Chave EXTERNA é cadastrável, mas execução bloqueada sem remessa/retorno conferidos | Beneficiamento externo pertence ao Bloco 9 e não foi criado nesta rodada | Integrar o fluxo de terceirização ao roteiro existente quando autorizado |
+| Transferência é saga, pois os bancos são independentes; produto de destino é escolhido explicitamente | Não supor IDs/códigos iguais nem prometer transação distribuída | Reprocessar a mesma chave; o documento só é recebido depois do crédito confirmado no destino |
+| PWA guarda propostas offline; autorização e saldo são validados novamente no servidor | Login/unidade podem mudar durante a falta de conexão | Voltar com o login e unidade de origem; corrigir/descartar propostas recusadas, sem alterar o ledger |
+| Câmera usa BarcodeDetector; navegador sem essa API usa leitor físico ou digitação | Não introduzir dependência externa de câmera nesta etapa | Adicionar decodificador local com homologação de iOS se câmera universal for necessária |

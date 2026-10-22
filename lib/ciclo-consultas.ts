@@ -1,0 +1,41 @@
+import {z} from 'zod';
+import {idsProdutosRecorte,lerFiltrosPCP} from './pcp-filters';
+import type {Db} from './db';
+import {exigirCiclo,escopoCiclo} from './ciclo-industrial';
+export async function consultarEngenhariaCiclo(db:Db,page:number){
+ await exigirCiclo(db);const s=await escopoCiclo(db);const offset=(page-1)*50;
+ const [roteiros,versoes,centros,estruturas,locais]=await Promise.all([
+ db`select r.*,p.codigo,count(*) over()::int total from erp_roteiros r join est_produtos p on p.id=r.produto_id where r.empresa_id=${s.empresa_id}::uuid and r.filial_id=${s.filial_id}::uuid order by r.criado_em desc,r.id limit 50 offset ${offset}`,
+ db`select v.*,p.codigo,r.versao roteiro_versao,e.versao bom_versao from erp_versoes_producao v join est_produtos p on p.id=v.produto_id join erp_roteiros r on r.id=v.roteiro_id join erp_estruturas e on e.id=v.estrutura_id where v.empresa_id=${s.empresa_id}::uuid and v.filial_id=${s.filial_id}::uuid order by v.criado_em desc,v.id limit 50 offset ${offset}`,
+ db`select id,processo,maquina,turno,minutos_disponiveis,calendario from pcp_capacidades_maquina where empresa_id=${s.empresa_id}::uuid and filial_id=${s.filial_id}::uuid order by processo,maquina,turno limit 50 offset ${offset}`,
+ db`select e.id,e.produto_id,e.versao,p.codigo,coalesce(jsonb_agg(jsonb_build_object('produto_id',i.componente_id,'codigo',c.codigo,'quantidade',i.quantidade,'perda',i.perda_percentual)) filter(where c.id is not null),'[]') componentes from erp_estruturas e join est_produtos p on p.id=e.produto_id left join erp_estrutura_itens i on i.estrutura_id=e.id left join est_produtos c on c.id=i.componente_id where e.status='APROVADA' group by e.id,p.codigo order by p.codigo,e.versao desc limit 50 offset ${offset}`,
+ db`select id,codigo from est_locais where ativo order by codigo limit 100`]);
+ return {roteiros,versoes,centros,estruturas,locais,page};
+}
+export async function consultarOFCiclo(db:Db,id:string,page:number,pendentes=false,params?:URLSearchParams){
+ await exigirCiclo(db);const s=await escopoCiclo(db);const offset=(page-1)*50;
+ const ids=params?(await idsProdutosRecorte(db,params)).map(p=>String(p.id)):null;
+ if(pendentes)return {pendentes:await db`select a.id,a.operacao_id,a.estoque_erro,a.ciclo_payload,a.criado_em,o.numero,op.processo,count(*) over()::int total from pcp_apontamentos a join pcp_operacoes op on op.id=a.operacao_id join erp_ordens_fabricacao o on o.id=op.of_id where a.estoque_status='PENDENTE' and (${ids}::uuid[] is null or coalesce(o.origem_raiz_id,o.origem_produto_id)=any(${ids}::uuid[])) and o.empresa_id=${s.empresa_id}::uuid and o.filial_id=${s.filial_id}::uuid order by a.id limit 50 offset ${offset}`,page};
+ z.string().uuid().parse(id);
+ const [of]=await db`select o.*,p.codigo from erp_ordens_fabricacao o join est_produtos p on p.id=o.produto_estoque_id where o.id=${id}::uuid and o.empresa_id=${s.empresa_id}::uuid and o.filial_id=${s.filial_id}::uuid`;
+ if(!of)throw new Error('OF não encontrada.');
+ const [arvore,operacoes,movimentos,apontamentos,materiais]=await Promise.all([
+ db`with recursive a as(select o.*,0 nivel from erp_ordens_fabricacao o where o.id=${id}::uuid union all select f.*,a.nivel+1 from erp_ordens_fabricacao f join a on f.of_pai_id=a.id where a.nivel<25) select a.id,a.numero,a.of_pai_id,a.quantidade,a.status,a.nivel,p.codigo from a join est_produtos p on p.id=a.produto_estoque_id order by nivel,numero limit 200`,
+ db`select id,processo,sequencia,status,quantidade_planejada,quantidade_produzida,quantidade_refugo,roteiro_snapshot from pcp_operacoes where of_id=${id}::uuid order by sequencia`,
+ db`select m.id,m.tipo,m.produto_id,p.codigo,m.quantidade_base,m.custo_total,m.apontamento_id,m.estorno_de,l.codigo lote,m.criado_em from est_movimentos m join est_produtos p on p.id=m.produto_id left join est_lotes l on l.id=m.lote_id where m.of_id=${id}::uuid order by m.id desc limit 50 offset ${offset}`,
+ db`select a.* from pcp_apontamentos a join pcp_operacoes op on op.id=a.operacao_id where op.of_id=${id}::uuid order by a.id desc limit 50 offset ${offset}`,
+ db`select m.*,p.codigo,p.unidade_base,coalesce((select sum(case when v.tipo='SAIDA' then v.quantidade_base when v.tipo='ENTRADA' and v.estorno_de is not null then -v.quantidade_base else 0 end) from est_movimentos v where v.of_id=m.of_id and v.produto_id=m.produto_id),0) consumo_real,coalesce((select fisico-reservado-bloqueado from est_saldos where produto_id=m.produto_id and local_id=${of.local_id}::uuid),0) disponivel from erp_of_materiais m join est_produtos p on p.id=m.produto_id where m.of_id=${id}::uuid order by p.codigo`]);
+ return {of,arvore,operacoes,movimentos,apontamentos,materiais,page};
+}
+export async function consultarLotesCiclo(db:Db,q:URLSearchParams,page:number){
+ await exigirCiclo(db);const s=await escopoCiclo(db);const id=q.get('loteId'),offset=(page-1)*50;const filtro=lerFiltrosPCP(q),filtrado=filtro.filtros.length>0||filtro.pedidos.length>0||!['SELECAO','ATIVO','TODOS'].includes(filtro.mes);const codigos=filtrado?(await idsProdutosRecorte(db,q)).map(p=>String(p.produto)):null;
+ if(id){
+ z.string().uuid().parse(id);const [lot]=await db`select id from est_lotes where id=${id}::uuid and empresa_id=${s.empresa_id}::uuid and filial_id=${s.filial_id}::uuid`;if(!lot)throw new Error('Lote não encontrado.');
+ const direcao=z.enum(['FRENTE','TRAS']).parse(q.get('direcao')||'FRENTE');
+ const rows=await db`with recursive ligacao as(select distinct c.lote_id origem,e.lote_id destino,c.of_id from est_movimentos c join est_movimentos e on e.of_id=c.of_id and e.tipo='ENTRADA' and e.estorno_de is null where c.tipo='SAIDA' and c.estorno_de is null and c.lote_id is not null and e.lote_id is not null),caminho(id,trilha) as(select ${id}::uuid,array[${id}::uuid] union all select case when ${direcao}='FRENTE' then l.destino else l.origem end,c.trilha||case when ${direcao}='FRENTE' then l.destino else l.origem end from caminho c join ligacao l on case when ${direcao}='FRENTE' then l.origem else l.destino end=c.id where cardinality(c.trilha)<25 and not (case when ${direcao}='FRENTE' then l.destino else l.origem end)=any(c.trilha)) select m.id,m.tipo,m.quantidade_base,m.of_id,m.apontamento_id,m.estorno_de,p.codigo,l.codigo lote,of.pedido,pal.codigo pallet,pal.status pallet_status,m.usuario,m.criado_em from est_movimentos m join est_lotes l on l.id=m.lote_id join est_produtos p on p.id=m.produto_id left join erp_ordens_fabricacao of on of.id=m.of_id left join pcp_pallets pal on pal.apontamento_id=m.apontamento_id where m.lote_id in(select id from caminho) and m.empresa_id=${s.empresa_id}::uuid and m.filial_id=${s.filial_id}::uuid order by m.id desc limit 50 offset ${offset}`;
+ return {rastreio:rows,page,direcao};
+ }
+ const rows=await db`select l.id,l.codigo,l.serie,l.validade,p.codigo produto,p.unidade_base,s.local_id,loc.codigo deposito,s.saldo,count(*) over()::int total from est_lotes l join est_produtos p on p.id=l.produto_id left join est_saldos_lotes s on s.lote_id=l.id left join est_locais loc on loc.id=s.local_id where (${codigos}::text[] is null or p.codigo=any(${codigos}::text[])) and l.empresa_id=${s.empresa_id}::uuid and l.filial_id=${s.filial_id}::uuid order by l.criado_em desc,l.id limit 50 offset ${offset}`;
+ const custos=await db`select p.id,p.codigo,p.unidade_base,coalesce((select sum(fisico) from est_saldos where produto_id=p.id),0) saldo,coalesce((select sum(case when tipo='ENTRADA' then custo_total when tipo='SAIDA' then -custo_total else 0 end) from est_movimentos where produto_id=p.id),0) valor_medio,coalesce((select sum(m.custo_total-coalesce((select sum(a.custo) from est_custeio_alocacoes a where a.entrada_id=m.id),0)) from est_movimentos m where m.produto_id=p.id and m.tipo='ENTRADA' and m.estorno_de is null),0) valor_peps from est_produtos p where (${codigos}::text[] is null or p.codigo=any(${codigos}::text[])) and exists(select 1 from est_lotes where produto_id=p.id and empresa_id=${s.empresa_id}::uuid and filial_id=${s.filial_id}::uuid) order by p.codigo limit 50 offset ${offset}`;
+ return {lotes:rows,custos,page,aviso:'Recebimentos legados sem custo têm valor zero. Saldo físico inclui estoque anterior ao controle por lote.'};
+}

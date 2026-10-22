@@ -1,3 +1,5 @@
+import {listarTransferencias} from "@/lib/transferencias-unidades";
+import {consultarLotesCiclo} from "@/lib/ciclo-consultas";
 import {idsProdutosRecorte,lerFiltrosPCP} from "@/lib/pcp-filters";
 import { classificacaoSchema } from "@/lib/engenharia";
 import { unidadeHandler } from "@/lib/unidades/handler";
@@ -14,6 +16,8 @@ async function unidadeGET(req: Request) {
     const db = sql(); await garantirEstoque(db);
     const url = new URL(req.url);
     const headers = { "Cache-Control": "no-store" };
+    if(url.searchParams.get('visao')==='transferencias'){const page=Number(url.searchParams.get('page')||1);if(!Number.isInteger(page)||page<1||page>100000)return NextResponse.json({error:'Página inválida.'},{status:400});return NextResponse.json(await listarTransferencias(page,url.searchParams),{headers});}
+    if(url.searchParams.get('visao')==='lotes'){const page=Number(url.searchParams.get('page')||1);if(!Number.isInteger(page)||page<1||page>100000)return NextResponse.json({error:'Página inválida.'},{status:400});return NextResponse.json(await consultarLotesCiclo(db,url.searchParams,page),{headers});}
 
     const categoria=url.searchParams.get("classificacao")||"";
     if(categoria&&!classificacaoSchema.safeParse(categoria).success)return NextResponse.json({error:"Classificação inválida."},{status:400});
@@ -63,7 +67,7 @@ async function unidadeGET(req: Request) {
       total:Number(contagens[0].total),page,
       resumo:contagens[0],
     }, { headers });
-  } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha." }, { status: f ? 403 : 500 }); }
+  } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha." }, { status: f ? 403 : /aguardando migração|does not exist/.test(e?.message||"")?503:500 }); }
 }
 
 export const GET = unidadeHandler(unidadeGET);

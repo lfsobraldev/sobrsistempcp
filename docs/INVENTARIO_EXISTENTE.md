@@ -62,3 +62,16 @@ As páginas mensais originais eram demonstrações estáticas. Foram substituíd
 | Consolidado por módulo | melhorado | API consolidada existente, `consolidado-modulo.ts`, componente de detalhe | PCP, operações, programação e estoque; paginação distribuída entre fontes; nenhuma soma de unidades incompatíveis |
 | Importação em passos | melhorado | componente mensal e hook existentes | Unidade/mês → arquivo → prévia/confirmação; restauração e exportação compartilham recorte |
 | Arquivamento seguro | melhorado | APIs de programação/histórico, migração 09 | Retém linhas e eventos; ausente a migração, ação bloqueada com mensagem explícita |
+
+## Etapa B — ciclo integrado
+
+| Item | Situação | Arquivos principais | Observação |
+| --- | --- | --- | --- |
+| Roteiros e versões de produção | criado (conceitos ausentes) | migração 10, `lib/ciclo-industrial.ts`, APIs/componente de engenharia existentes | Operações versionadas em JSON validado; cada componente da BOM pertence a uma operação; aprovação imutável; validade e faixa de lote sem sobreposição |
+| Centros e turnos | melhorado | `pcp_capacidades_maquina`, migração 10, engenharia | Reaproveita capacidade/máquina/turno; calendário semanal e empresa/filial, sem segundo cadastro de centros |
+| OF e semiacabados | melhorado | `erp_ordens_fabricacao`, `pcp_operacoes`, migração 10, `components/of-ciclo.tsx` | Snapshot, árvore, filhos sem duplicar demanda, reserva na confirmação, consumo direto por operação; OFs antigas preservadas |
+| Apontamentos e estoque | melhorado | `pcp_apontamentos`, `est_movimentos`, migração 10, rota de operações existente | Transação, locks, idempotência, boa/refugo/tempos, parcial, entrada automática, estorno inverso incluindo reservas e pendência com reprocessamento |
+| Lotes, séries e custos | criado/melhorado | `est_lotes`, associação `est_custeio_alocacoes`, ledger existente, `components/estoque-ciclo.tsx` | Lote/serial, custo médio no ledger e alocação PEPS auxiliar imutável; sem segunda tabela de movimentos |
+| Pallets e rastreio | melhorado | `pcp_pallets`, consultas de estoque existentes | Pallet nasce do apontamento de acabado, pendente de qualidade; estorno bloqueia o pallet, liberação prévia impede estorno; rastreio por lote/OF/apontamento/pallet/pedido |
+| Transferência entre fontes | criado (documento antes ausente) | migração 11, `lib/transferencias-unidades.ts`, API de estoque existente | Intenção central → saída operacional → em trânsito → recebimento no outro banco; retomada idempotente e mapeamento explícito de produto/depósito |
+| Chão de fábrica PWA | melhorado | apontamento existente, `lib/chao-fila.ts`, manifest e contingência públicos | QR de operação, câmera quando suportada, IndexedDB por login/unidade, reenvio com chave e identidade; não armazena cookies ou respostas privadas no service worker |

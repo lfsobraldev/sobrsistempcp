@@ -59,3 +59,13 @@ Branch `erp-etapa-a-fechamento`, baseada em `erp-master-b23-unidades-meses`; um 
 Migração nova: `2026-10-22_09_historico_seguro.sql`, após 08 no catálogo, somente gerada. Validação local: 137 testes passaram, TypeScript e build aprovados. Testes SQL executados somente em PGlite isolado. Não houve consulta/migração no banco real.
 
 PR a abrir após envio: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-etapa-a-fechamento . Sem merge/deploy; auto-deploy bloqueado para esta branch e para a Etapa B. Próximo passo: Etapa B em `erp-etapa-b-ciclo`, evoluindo engenharia/OF/produção/estoque existentes.
+
+## Etapa B — ciclo integrado (estado atual)
+
+Etapa A enviada: commit `b877631caba91f736bd2a851485db2ce6b50b341`, branch `erp-etapa-a-fechamento`; 137 testes, tipos e build aprovados. Link para abrir PR: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-etapa-a-fechamento . Não é PR já aberto.
+
+Etapa B em `erp-etapa-b-ciclo`, dependente de A: roteiros/versões/centros e turnos; OF com snapshot/filhas/reservas; apontamento integrado por operação, entradas, pallets, estorno, pendência; lotes/rastreio/custos; transferência em trânsito entre fontes e PWA com fila idempotente. Reutiliza entidades, APIs e páginas existentes. Migrações **10 operacional** e **11 identidade**, somente geradas, depois da **09** da A. Flag nova `ERP_CICLO_INDUSTRIAL=enabled`, desligada por padrão; schema ausente mostra aguardando migração.
+
+Validação: 142 testes locais passaram, tipos e build aprovados; SQL/serviços testados em PGlite, inclusive interrupção na transferência. Homologação de navegador/câmera, concorrência Neon real, dados de abertura e permissões reais permanece pendente. Detalhes e limites no RELATORIO_MASTER. Este ciclo não conclui todos os itens amplos dos Blocos 4–7 do Master original.
+
+Link pendente de abertura após envio da B: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-etapa-b-ciclo . Uma branch/commit nesta etapa, envio autenticado pelo conector GitHub porque o terminal não tem credenciais. Nenhum merge, deploy ou comando contra banco real. Auto-deploy das branches está bloqueado. Parar após esta entrega; nenhum bloco seguinte iniciado.
