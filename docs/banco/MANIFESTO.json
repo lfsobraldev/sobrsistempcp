@@ -999,6 +999,37 @@
       "verificacao": "31_2026-10-29_21_fiscal.verify.sql",
       "down": "31_2026-10-29_21_fiscal.down.sql",
       "baseline": "31_2026-10-29_21_fiscal.baseline.sql"
+    },
+    {
+      "ordem": 32,
+      "arquivo": "2026-10-30_22_financeiro_contabil.sql",
+      "descricao": "Financeiro e contabilidade: títulos automáticos, baixa, conciliação, plano de contas, lançamentos, razão, balancete, DRE, fluxo e orçado x realizado",
+      "dependenciasDeclaradas": [
+        "2026-10-29_21_fiscal.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "964a57b1e24b4003bd35dffc897bd60735156bf2c359e1594dfb3452a164f896",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "fin_contas_bancarias",
+        "fin_centros_custo",
+        "ctb_contas",
+        "ctb_regras_lancamento",
+        "ctb_lancamentos",
+        "ctb_partidas",
+        "ctb_pendencias",
+        "fin_titulos",
+        "fin_extratos",
+        "fin_baixas",
+        "fin_orcamento"
+      ],
+      "colunasAdicionadas": [],
+      "up": "32_2026-10-30_22_financeiro_contabil.up.sql",
+      "verificacao": "32_2026-10-30_22_financeiro_contabil.verify.sql",
+      "down": "32_2026-10-30_22_financeiro_contabil.down.sql",
+      "baseline": "32_2026-10-30_22_financeiro_contabil.baseline.sql"
     }
   ]
 }
