@@ -25,7 +25,17 @@ const descricoes:Record<string,string>={
  '11_transferencias_unidades':'Documento central de transferência em trânsito entre bancos',
  '12_identidades_operacionais':'Códigos mestres e resolução unificada de cliente/representante nos documentos',
  '13_controle_of':'Bloqueio herdado e cancelamento da árvore com liberação de reservas',
- '14_vendas_comissoes':'Pedidos de venda, aprovação/crédito, regras e ledger imutável de comissões'
+ '14_vendas_comissoes':'Pedidos de venda, aprovação/crédito, regras e ledger imutável de comissões',
+ '15_vendas_producao':'Necessidade do pedido, disponibilidade de componentes, onde-é-usado e rastreio (somente leitura)',
+ '16_compras_terceiros':'Compras (solicitação, cotação, pedido com alçada, recebimento/NF-e), terceirização, ABC/XYZ e sugestão de compra',
+ '17_qualidade_inspecao':'Planos de inspeção, instrumentos/calibração, medições com tolerância, quarentena, NC/CAPA e PPM',
+ '18_mrp_aps':'MRP líquido, operações abertas (carga), agenda fixa de OF e geração de OF pela sugestão',
+ '22_financeiro_contabil':'Financeiro e contabilidade: títulos automáticos, baixa, conciliação, plano de contas, lançamentos, razão, balancete, DRE, fluxo e orçado x realizado',
+ '23_manutencao_documentos':'Manutenção (ativos, preventivas, corretivas por Andon, peças, MTBF/MTTR), documentos controlados com versão e aprovação, instruções na operação e qualificação por posto',
+ '24_indicadores_integracoes':'Indicadores (OTIF, lead time, giro, PPM, OEE parcial, comissões, carteira), alertas proativos, tokens de API e webhooks assinados',
+ '21_fiscal':'Fiscal: cadastros, regras com vigência, montagem de NF-e por adaptador, estados do documento, apuração simplificada e IBS/CBS parametrizado',
+ '20_custos_industriais':'Custos: padrão da BOM e roteiro, padrão × real por OF com variações, valorização de estoque e margem real',
+ '19_expedicao_logistica':'Expedição: ATP, reserva, leitura de pallet, fechamento de carga, devolução com estorno de comissão, portal do cliente'
 };
 const literal=(s:string)=>"'"+s.replaceAll("'","''")+"'";
 function objetos(m:MigrationSource){return [...new Set([...m.up.matchAll(/create\s+(?:or\s+replace\s+)?(?:table\s+(?:if\s+not\s+exists\s+)?|view\s+)([a-z_][a-z0-9_]*)/gi)].map(x=>x[1]))];}

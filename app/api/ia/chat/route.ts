@@ -198,6 +198,16 @@ Data/hora local da fábrica (Sergipe): ${dataLocal}.`;
         execute: async (input) =>
           runTool("diagnosticar_usinagem", input, { user: s, attachments }),
       }),
+      consultar_indicadores: tool({
+        description: TOOL_META.consultar_indicadores,
+        inputSchema: z.object({ ini: z.string().optional(), fim: z.string().optional() }),
+        execute: async (input) => runTool("consultar_indicadores", input, { user: s, attachments }),
+      }),
+      listar_alertas: tool({
+        description: TOOL_META.listar_alertas,
+        inputSchema: z.object({}),
+        execute: async (input) => runTool("listar_alertas", input, { user: s, attachments }),
+      }),
       listar_andon: tool({
         description: TOOL_META.listar_andon,
         inputSchema: z.object({}),

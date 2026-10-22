@@ -3,6 +3,7 @@
 import Link from "next/link";
 import GlobalPCPFilters from "@/components/global-pcp-filters";
 import UnidadeSelector from "./unidade-selector";
+import { ResponsiveTables } from "./responsive-tables";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Bell, Boxes, BrainCircuit, Briefcase, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
@@ -27,15 +28,16 @@ const menus: MenuGroup[] = [
     { path: "/vendas", label: "Pedidos de Venda", icon: ClipboardList },
     { path: "/gestao-pedidos", label: "Pedidos e Entregas", icon: Truck },
   ] },
-  { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: ClipboardList }, { path: "/medicoes", label: "Medições e Aprovação", icon: ClipboardCheck }] },
+  { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: ClipboardList }, { path: "/medicoes", label: "Medições e Aprovação", icon: ClipboardCheck }, { path: "/producao-consultas", label: "Rastreio e Onde é Usado", icon: ClipboardList }] },
   { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: ClipboardList }] },
-  { label: "Compras e Estoque", items: [{ path: "/estoque", label: "Estoque", icon: Boxes }] },
+  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Truck }, { path: "/estoque", label: "Estoque", icon: Boxes }] },
   {
     label: "PCP e Produção",
     items: [
       { path: "/programacao", label: "Programação", icon: UploadCloud },
       { path: "/ordens-fabricacao", label: "Ordens de Fabricação", icon: ClipboardList },
       { path: "/planejamento-mensal", label: "Planejamento mensal", icon: ClipboardList },
+      { path: "/planejamento-aps", label: "MRP, Gantt e S&OP", icon: Route },
       { path: "/programacao-gerente", label: "Planejamento", icon: Route },
       { path: "/apontamento-operacoes", label: "Apontamento de Operações", icon: ClipboardCheck },
       { path: "/lideres", label: "Líderes / Setores", icon: UsersRound },
@@ -45,14 +47,17 @@ const menus: MenuGroup[] = [
       { path: "/andon", label: "Andon", icon: Bell },
     ],
   },
-  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }] },
+  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: ShieldCheck }, { path: "/qualidade-inspecao", label: "Inspeção e CAPA", icon: ClipboardCheck }] },
   {
     label: "Expedição e Entregas",
     items: [
+      { path: "/expedicao", label: "Remessas e Devoluções", icon: Truck },
       { path: "/romaneios", label: "Romaneios", icon: Boxes },
       { path: "/apontamento-entregas", label: "Apontamento de Entregas", icon: Truck },
     ],
   },
+  { label: "Custos, Fiscal e Financeiro", items: [{ path: "/custos", label: "Custos Industriais", icon: Boxes }, { path: "/fiscal", label: "Fiscal e NF-e", icon: ClipboardList }, { path: "/financeiro", label: "Financeiro e Contábil", icon: Boxes }] },
+  { label: "Manutenção e Documentos", items: [{ path: "/indicadores", label: "Indicadores e Integrações", icon: Boxes }, { path: "/manutencao", label: "Manutenção", icon: Boxes }, { path: "/documentos", label: "Documentos e Qualificação", icon: ClipboardList }] },
   { label: "SAC", items: [{ path: "/sac", label: "Atendimento", icon: ClipboardList }] },
   {
     label: "Relatórios",
@@ -88,6 +93,17 @@ function Inner({ children }: { children: React.ReactNode }) {
   );
   const allVisible = useMemo(() => visible.flatMap((g) => g.items), [visible]);
   const current = allVisible.find((i) => i.path === path)?.label || "Central de Produção";
+
+  useEffect(() => {
+    const atalho = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>('.topbar .search input, header .search input, .search input[aria-label="Buscar módulo"]')?.focus();
+      }
+    };
+    window.addEventListener("keydown", atalho);
+    return () => window.removeEventListener("keydown", atalho);
+  }, []);
 
   useEffect(() => {
     if (!me || !allowedPath(me.perfil, path)) return;
@@ -138,6 +154,7 @@ function Inner({ children }: { children: React.ReactNode }) {
   const live = realtimeStatus === "tempo_real";
   return (
     <div className={`shell ${collapsed ? "collapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
+      <ResponsiveTables />
       <aside className="sidenav">
         <div className="brand"><BrandLogo size={34} /><span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span></div>
         <div className="mobile-module-search search" role="search">

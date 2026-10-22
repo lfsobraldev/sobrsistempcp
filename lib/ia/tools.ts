@@ -36,6 +36,8 @@ export const TOOL_META = {
   resumo_metros_lineares: "Consulta consumo físico por pedido ou total da programação ativa, separando PINUS, ULTRA, STD e não classificados pelo código e narrativa do Catálogo Mestre. Mostra peças, metros lineares e faltas de medida.",
   resumo_producao: "Resumo da programação ativa: filtro, turno, total de pedidos/OFs/peças e progresso por processo.",
   buscar_pedido: "Detalhes de um pedido na programação ativa: itens/OFs, prioridade e andamento por processo.",
+  consultar_indicadores: "Indicadores do ERP no período (OTIF, lead time de OF, giro de estoque, PPM, OEE parcial, comissões e carteira de pedidos). Somente leitura; informa quando um indicador não tem dados.",
+  listar_alertas: "Alertas proativos abertos: OF atrasada, ruptura de estoque, calibração vencendo/vencida e pedido bloqueado por crédito. Somente leitura.",
   listar_andon: "Chamados Andon abertos (paradas/problemas na produção).",
   listar_excecoes: "Faltas e retrabalhos de peças (exceções). Status padrão: ABERTA.",
   resumo_qualidade: "Contagem de pallets por status de qualidade/MSAC.",
@@ -573,6 +575,18 @@ export async function runTool(name: string, input: any, ctx: ToolCtx): Promise<u
         });
       }
 
+      case "consultar_indicadores": {
+        if (!allowedPath(ctx.user.perfil, "/indicadores")) return { erro: "Sem permissão para indicadores." };
+        const hoje = localHoje();
+        const dia = (v: unknown, pad: string) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? v : pad);
+        const fim = dia(input?.fim, hoje), ini = dia(input?.ini, `${fim.slice(0, 8)}01`);
+        const [r] = await sql()`select ind_painel(${ini}::date,${fim}::date) p`;
+        return j(r.p);
+      }
+      case "listar_alertas": {
+        if (!allowedPath(ctx.user.perfil, "/indicadores")) return { erro: "Sem permissão para alertas." };
+        return j(await sql()`select tipo,severidade,mensagem,criado_em from sys_alertas where resolvido_em is null order by case severidade when 'ALTA' then 0 else 1 end, criado_em desc limit 50`);
+      }
       case "listar_andon": {
         const db = sql();
         const r = await db`select processo, motivo, observacao, status, prioridade, usuario_abertura, criado_em from pcp_andon where status<>'RESOLVIDO' order by criado_em desc limit 30`;

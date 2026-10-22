@@ -783,6 +783,309 @@
       "verificacao": "24_2026-10-23_14_vendas_comissoes.verify.sql",
       "down": "24_2026-10-23_14_vendas_comissoes.down.sql",
       "baseline": "24_2026-10-23_14_vendas_comissoes.baseline.sql"
+    },
+    {
+      "ordem": 25,
+      "arquivo": "2026-10-23_15_vendas_producao.sql",
+      "descricao": "Necessidade do pedido, disponibilidade de componentes, onde-é-usado e rastreio (somente leitura)",
+      "dependenciasDeclaradas": [
+        "2026-10-23_14_vendas_comissoes.sql",
+        "2026-10-22_13_controle_of.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "0723933be67d6e303c2413da2aacd6180fef7da2a01ccf96cbc2d8c192eadbdf",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "erp_v_of_comercial"
+      ],
+      "colunasAdicionadas": [],
+      "up": "25_2026-10-23_15_vendas_producao.up.sql",
+      "verificacao": "25_2026-10-23_15_vendas_producao.verify.sql",
+      "down": "25_2026-10-23_15_vendas_producao.down.sql",
+      "baseline": "25_2026-10-23_15_vendas_producao.baseline.sql"
+    },
+    {
+      "ordem": 26,
+      "arquivo": "2026-10-24_16_compras_terceiros.sql",
+      "descricao": "Compras (solicitação, cotação, pedido com alçada, recebimento/NF-e), terceirização, ABC/XYZ e sugestão de compra",
+      "dependenciasDeclaradas": [
+        "2026-10-23_15_vendas_producao.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "018d647f9f6f47a6a8fbc21d0aaeb4507a7474cf578209a79d83c8d5dae09b75",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "baixo",
+      "objetos": [
+        "cmp_fornecedores",
+        "cmp_alcadas",
+        "cmp_solicitacoes",
+        "cmp_solicitacao_itens",
+        "cmp_cotacao_propostas",
+        "cmp_pedidos",
+        "cmp_pedido_itens",
+        "cmp_recebimentos",
+        "cmp_recebimento_itens",
+        "cmp_terceiros_movs",
+        "cmp_saldo_terceiros"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "est_produtos",
+          "coluna": "estoque_seguranca"
+        },
+        {
+          "tabela": "est_produtos",
+          "coluna": "lead_time_dias"
+        },
+        {
+          "tabela": "est_produtos",
+          "coluna": "lote_compra"
+        }
+      ],
+      "up": "26_2026-10-24_16_compras_terceiros.up.sql",
+      "verificacao": "26_2026-10-24_16_compras_terceiros.verify.sql",
+      "down": "26_2026-10-24_16_compras_terceiros.down.sql",
+      "baseline": "26_2026-10-24_16_compras_terceiros.baseline.sql"
+    },
+    {
+      "ordem": 27,
+      "arquivo": "2026-10-25_17_qualidade_inspecao.sql",
+      "descricao": "Planos de inspeção, instrumentos/calibração, medições com tolerância, quarentena, NC/CAPA e PPM",
+      "dependenciasDeclaradas": [
+        "2026-10-24_16_compras_terceiros.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "8df2d4bb2fd6597978d471ad31a52501731f6e8cb7e9243793ae1ec9685fb99e",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "qld_instrumentos",
+        "qld_planos",
+        "qld_plano_caracteristicas",
+        "qld_lotes_inspecao",
+        "qld_medicoes",
+        "qld_nao_conformidades",
+        "qld_acoes"
+      ],
+      "colunasAdicionadas": [],
+      "up": "27_2026-10-25_17_qualidade_inspecao.up.sql",
+      "verificacao": "27_2026-10-25_17_qualidade_inspecao.verify.sql",
+      "down": "27_2026-10-25_17_qualidade_inspecao.down.sql",
+      "baseline": "27_2026-10-25_17_qualidade_inspecao.baseline.sql"
+    },
+    {
+      "ordem": 28,
+      "arquivo": "2026-10-26_18_mrp_aps.sql",
+      "descricao": "MRP líquido, operações abertas (carga), agenda fixa de OF e geração de OF pela sugestão",
+      "dependenciasDeclaradas": [
+        "2026-10-25_17_qualidade_inspecao.sql",
+        "2026-10-22_09_historico_seguro.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "ed352cf0db7557a3c9c5d36e6288e57c852f80abfb8019c55f1553944b435c48",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "erp_of_agenda",
+        "erp_v_ops_abertas"
+      ],
+      "colunasAdicionadas": [],
+      "up": "28_2026-10-26_18_mrp_aps.up.sql",
+      "verificacao": "28_2026-10-26_18_mrp_aps.verify.sql",
+      "down": "28_2026-10-26_18_mrp_aps.down.sql",
+      "baseline": "28_2026-10-26_18_mrp_aps.baseline.sql"
+    },
+    {
+      "ordem": 29,
+      "arquivo": "2026-10-27_19_expedicao_logistica.sql",
+      "descricao": "Expedição: ATP, reserva, leitura de pallet, fechamento de carga, devolução com estorno de comissão, portal do cliente",
+      "dependenciasDeclaradas": [
+        "2026-10-26_18_mrp_aps.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "10402fdcf6d29430b5f42be1687da9971c2e85093de243fb356d1a0f5a2c200b",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "exp_transportadoras",
+        "exp_remessas",
+        "exp_remessa_itens",
+        "exp_remessa_pallets",
+        "exp_ocorrencias",
+        "exp_devolucoes",
+        "exp_eventos_faturamento",
+        "exp_portal_tokens"
+      ],
+      "colunasAdicionadas": [],
+      "up": "29_2026-10-27_19_expedicao_logistica.up.sql",
+      "verificacao": "29_2026-10-27_19_expedicao_logistica.verify.sql",
+      "down": "29_2026-10-27_19_expedicao_logistica.down.sql",
+      "baseline": "29_2026-10-27_19_expedicao_logistica.baseline.sql"
+    },
+    {
+      "ordem": 30,
+      "arquivo": "2026-10-28_20_custos_industriais.sql",
+      "descricao": "Custos: padrão da BOM e roteiro, padrão × real por OF com variações, valorização de estoque e margem real",
+      "dependenciasDeclaradas": [
+        "2026-10-27_19_expedicao_logistica.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "0dc76fdda50306b11bf89f1875239295283c6ceeab09b75b0eee875462554cca",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "cst_taxas",
+        "cst_precos_padrao",
+        "cst_padrao",
+        "cst_horas_of",
+        "cst_of_resultados",
+        "cst_v_valorizacao",
+        "cst_v_margem_pedidos"
+      ],
+      "colunasAdicionadas": [],
+      "up": "30_2026-10-28_20_custos_industriais.up.sql",
+      "verificacao": "30_2026-10-28_20_custos_industriais.verify.sql",
+      "down": "30_2026-10-28_20_custos_industriais.down.sql",
+      "baseline": "30_2026-10-28_20_custos_industriais.baseline.sql"
+    },
+    {
+      "ordem": 31,
+      "arquivo": "2026-10-29_21_fiscal.sql",
+      "descricao": "Fiscal: cadastros, regras com vigência, montagem de NF-e por adaptador, estados do documento, apuração simplificada e IBS/CBS parametrizado",
+      "dependenciasDeclaradas": [
+        "2026-10-28_20_custos_industriais.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "43f7e55f3c24e8c37302d124f4f774f90981c3f88ebb38844a263e22944b2a10",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "fis_emitente",
+        "fis_cfop",
+        "fis_produto_fiscal",
+        "fis_parametros",
+        "fis_regras",
+        "fis_provedores",
+        "fis_documentos",
+        "fis_creditos"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "crm_clientes",
+          "coluna": "uf"
+        },
+        {
+          "tabela": "crm_clientes",
+          "coluna": "ie"
+        },
+        {
+          "tabela": "crm_clientes",
+          "coluna": "regime_tributario"
+        },
+        {
+          "tabela": "crm_clientes",
+          "coluna": "contribuinte_icms"
+        }
+      ],
+      "up": "31_2026-10-29_21_fiscal.up.sql",
+      "verificacao": "31_2026-10-29_21_fiscal.verify.sql",
+      "down": "31_2026-10-29_21_fiscal.down.sql",
+      "baseline": "31_2026-10-29_21_fiscal.baseline.sql"
+    },
+    {
+      "ordem": 32,
+      "arquivo": "2026-10-30_22_financeiro_contabil.sql",
+      "descricao": "Financeiro e contabilidade: títulos automáticos, baixa, conciliação, plano de contas, lançamentos, razão, balancete, DRE, fluxo e orçado x realizado",
+      "dependenciasDeclaradas": [
+        "2026-10-29_21_fiscal.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "964a57b1e24b4003bd35dffc897bd60735156bf2c359e1594dfb3452a164f896",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "fin_contas_bancarias",
+        "fin_centros_custo",
+        "ctb_contas",
+        "ctb_regras_lancamento",
+        "ctb_lancamentos",
+        "ctb_partidas",
+        "ctb_pendencias",
+        "fin_titulos",
+        "fin_extratos",
+        "fin_baixas",
+        "fin_orcamento"
+      ],
+      "colunasAdicionadas": [],
+      "up": "32_2026-10-30_22_financeiro_contabil.up.sql",
+      "verificacao": "32_2026-10-30_22_financeiro_contabil.verify.sql",
+      "down": "32_2026-10-30_22_financeiro_contabil.down.sql",
+      "baseline": "32_2026-10-30_22_financeiro_contabil.baseline.sql"
+    },
+    {
+      "ordem": 33,
+      "arquivo": "2026-10-31_23_manutencao_documentos.sql",
+      "descricao": "Manutenção (ativos, preventivas, corretivas por Andon, peças, MTBF/MTTR), documentos controlados com versão e aprovação, instruções na operação e qualificação por posto",
+      "dependenciasDeclaradas": [
+        "2026-10-30_22_financeiro_contabil.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "89c1af7ff48562b99ada6ee34925df0583f5688abc8273773291cdef89b6c5a8",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "mnt_ativos",
+        "mnt_planos",
+        "mnt_ordens",
+        "mnt_paradas",
+        "mnt_pecas",
+        "doc_documentos",
+        "doc_versoes",
+        "doc_vinculos",
+        "doc_leituras",
+        "qlf_config",
+        "qlf_requisitos",
+        "qlf_qualificacoes"
+      ],
+      "colunasAdicionadas": [],
+      "up": "33_2026-10-31_23_manutencao_documentos.up.sql",
+      "verificacao": "33_2026-10-31_23_manutencao_documentos.verify.sql",
+      "down": "33_2026-10-31_23_manutencao_documentos.down.sql",
+      "baseline": "33_2026-10-31_23_manutencao_documentos.baseline.sql"
+    },
+    {
+      "ordem": 34,
+      "arquivo": "2026-11-01_24_indicadores_integracoes.sql",
+      "descricao": "Indicadores (OTIF, lead time, giro, PPM, OEE parcial, comissões, carteira), alertas proativos, tokens de API e webhooks assinados",
+      "dependenciasDeclaradas": [
+        "2026-10-31_23_manutencao_documentos.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "4caf9e1bf5252376bbd28a35db20e00899a470aa5d7d21c7f8a79e97b09935a3",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "sys_alertas",
+        "sys_tokens_api",
+        "sys_webhooks",
+        "sys_webhook_fila"
+      ],
+      "colunasAdicionadas": [],
+      "up": "34_2026-11-01_24_indicadores_integracoes.up.sql",
+      "verificacao": "34_2026-11-01_24_indicadores_integracoes.verify.sql",
+      "down": "34_2026-11-01_24_indicadores_integracoes.down.sql",
+      "baseline": "34_2026-11-01_24_indicadores_integracoes.baseline.sql"
     }
   ]
 }
