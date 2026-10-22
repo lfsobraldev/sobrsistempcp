@@ -63,7 +63,7 @@ export default function AiAssistant() {
       if (!r.ok) throw new Error(j.error || `Falha na IA (${r.status}).`);
       setMsgs([...next, { role: "assistant", content: String(j.reply || "Pronto."), anexos: Array.isArray(j.attachments) ? j.attachments : [] }]);
     } catch (e: any) {
-      setMsgs([...next, { role: "assistant", content: `⚠ ${e.message}` }]);
+      setMsgs([...next, { role: "assistant", content: `Erro: ${e.message}` }]);
     } finally { setBusy(false); }
   }
 
@@ -79,7 +79,7 @@ export default function AiAssistant() {
   }
 
   if (path === "/sobral-ia") return null;
-  if (!open) return <button className="ai-fab" onClick={() => router.push("/sobral-ia")} aria-label="Abrir Sobral IA"><BrandLogo size={24} /> Sobral IA</button>;
+  if (!open) return <button className="ai-fab" onClick={() => router.push("/sobral-ia")} aria-label="Abrir assistente operacional"><MessageSquare size={18} /> Assistente</button>;
 
   return (
     <section className="ai-panel" aria-label="Assistente IA">

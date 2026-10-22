@@ -1,6 +1,6 @@
 "use client";
 import { Fragment, useEffect,useMemo,useRef,useState, type ReactNode } from "react";
-import { Activity, BarChart3, BrainCircuit, Check, Clock3, Database, FileSpreadsheet, Gauge, GraduationCap, Save, Send, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
+import { Activity, BarChart3,  Check, Clock3, Database, FileSpreadsheet, Gauge, GraduationCap, Save, Send, ShieldCheck,   Zap, Info } from "lucide-react";
 import { PageHeader,Badge } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
 import { baixarPlanilhaProducao } from "@/lib/planilha";
@@ -77,7 +77,7 @@ export default function SobralIAPage(){
    const raw=await r.text();let j:any={};try{j=raw?JSON.parse(raw):{}}catch{throw new Error("Resposta inválida da IA.")}
    if(!r.ok)throw new Error(j.error||"Falha na IA.");
    setMsgs([...next,{role:"assistant",content:String(j.reply||"Não foi possível concluir uma resposta fundamentada."),anexos:Array.isArray(j.attachments)?j.attachments:[]}]);
-  }catch(e:any){setMsgs([...next,{role:"assistant",content:`⚠ ${e.message}`}])}finally{setBusy(false)}
+  }catch(e:any){setMsgs([...next,{role:"assistant",content:`Erro: ${e.message}`}])}finally{setBusy(false)}
  }
 
  async function carregarAPS(){
@@ -166,7 +166,7 @@ export default function SobralIAPage(){
   </section>
 
   <div className="sobral-ai-tabs sobral-ai-tabs-v2">
-   <button className={tab==="usar"?"active":""} onClick={()=>setTab("usar")}><BrainCircuit/> Central da IA</button>
+   <button className={tab==="usar"?"active":""} onClick={()=>setTab("usar")}><Activity/> Central do assistente</button>
    <button className={tab==="centro"?"active":""} onClick={()=>{setTab("centro");if(!centro)void carregarCentro()}}><Gauge/> Centro operacional</button>
    <button className={tab==="treinar"?"active":""} onClick={()=>setTab("treinar")}><GraduationCap/> Base de conhecimento</button>
   </div>
@@ -180,7 +180,7 @@ export default function SobralIAPage(){
      <div className="ai-context-state"><span/> Dados do PCP disponíveis</div>
     </div>
     <div className="ai-context-card">
-     <div className="ai-context-title"><WandSparkles/><span>Ações rápidas</span></div>
+     <div className="ai-context-title"><Zap/><span>Ações rápidas</span></div>
      <div className="ai-command-grid">
       <button onClick={()=>void enviar("Quais pedidos estão em risco de atraso hoje?")}><Clock3/><span><b>Risco de atraso</b><small>Pedidos críticos e causas</small></span></button>
       <button onClick={()=>void enviar("Onde estão os gargalos da fábrica?")}><BarChart3/><span><b>Gargalos</b><small>Capacidade por processo</small></span></button>
@@ -188,7 +188,7 @@ export default function SobralIAPage(){
       <button onClick={()=>void enviar("Gere a planilha de usinagem.")}><FileSpreadsheet/><span><b>Planilha</b><small>Gerar usinagem em Excel</small></span></button>
      </div>
     </div>
-    <div className="ai-context-card ai-context-help"><div className="ai-context-title"><Sparkles/><span>Também posso</span></div><ul><li>analisar pedido específico</li><li>montar programação sugerida</li><li>identificar problemas futuros</li><li>gerar e revisar romaneios</li><li>consultar qualidade e Andons</li></ul></div>
+    <div className="ai-context-card ai-context-help"><div className="ai-context-title"><Info/><span>Também posso</span></div><ul><li>analisar pedido específico</li><li>montar programação sugerida</li><li>identificar problemas futuros</li><li>gerar e revisar romaneios</li><li>consultar qualidade e Andons</li></ul></div>
    </aside>
 
    <section className="sobral-ai-chat-large sobral-ai-chat-v2">
@@ -198,7 +198,7 @@ export default function SobralIAPage(){
     </header>
     <div className="sobral-ai-thread">
      {!msgs.length&&<div className="ai-welcome ai-welcome-v2">
-      <div className="ai-welcome-icon"><BrainCircuit/></div><span className="ai-welcome-tag">SOBRAL IA</span>
+      <div className="ai-welcome-icon"><Activity/></div><span className="ai-welcome-tag">ASSISTENTE OPERACIONAL</span>
       <h2>O que você quer analisar na fábrica?</h2>
       <p>Pergunte em linguagem normal. Eu cruzo programação, pedidos, capacidade, usinagem, romaneios, qualidade e regras ensinadas pela equipe.</p>
       <div className="ai-welcome-suggestions">{ATALHOS.slice(0,4).map(a=><button key={a} onClick={()=>void enviar(a)}>{a}</button>)}</div>

@@ -95,7 +95,7 @@ export default function FiscalPage() {
         </Panel>
         <Panel title="Produto fiscal (NCM/CEST)">
           <div className="formGrid">
-            <Field label="Produto *"><select value={pf.produtoId} onChange={(e) => { const p = d?.produtos.find((x: Row) => x.id === e.target.value); setPf({ ...pf, produtoId: e.target.value, ncm: p?.ncm ?? "", cest: p?.cest ?? "" }); }}><option value="">Selecione</option>{(d?.produtos ?? []).map((p: Row) => <option key={p.id} value={p.id}>{p.ncm ? "" : "⚠ "}{p.codigo} · {p.descricao}</option>)}</select></Field>
+            <Field label="Produto *"><select value={pf.produtoId} onChange={(e) => { const p = d?.produtos.find((x: Row) => x.id === e.target.value); setPf({ ...pf, produtoId: e.target.value, ncm: p?.ncm ?? "", cest: p?.cest ?? "" }); }}><option value="">Selecione</option>{(d?.produtos ?? []).map((p: Row) => <option key={p.id} value={p.id}>{p.ncm ? "" : "Atenção: "}{p.codigo} · {p.descricao}</option>)}</select></Field>
             <Field label="NCM (8 dígitos) *"><input inputMode="numeric" value={pf.ncm} onChange={(e) => setPf({ ...pf, ncm: e.target.value })} /></Field>
             <Field label="CEST"><input inputMode="numeric" value={pf.cest} onChange={(e) => setPf({ ...pf, cest: e.target.value })} /></Field>
             <Field label="Origem (0-8)"><input inputMode="numeric" value={pf.origem} onChange={(e) => setPf({ ...pf, origem: e.target.value })} /></Field>
@@ -106,7 +106,7 @@ export default function FiscalPage() {
         </Panel>
         <Panel title="Cliente fiscal">
           <div className="formGrid">
-            <Field label="Cliente *"><select value={cf.clienteId} onChange={(e) => { const c = d?.clientes.find((x: Row) => x.id === e.target.value); setCf({ clienteId: e.target.value, uf: c?.uf ?? "", ie: c?.ie ?? "", regime: c?.regime_tributario ?? "REAL" }); }}><option value="">Selecione</option>{(d?.clientes ?? []).map((c: Row) => <option key={c.id} value={c.id}>{c.uf ? "" : "⚠ "}{c.razao_social}</option>)}</select></Field>
+            <Field label="Cliente *"><select value={cf.clienteId} onChange={(e) => { const c = d?.clientes.find((x: Row) => x.id === e.target.value); setCf({ clienteId: e.target.value, uf: c?.uf ?? "", ie: c?.ie ?? "", regime: c?.regime_tributario ?? "REAL" }); }}><option value="">Selecione</option>{(d?.clientes ?? []).map((c: Row) => <option key={c.id} value={c.id}>{c.uf ? "" : "Atenção: "}{c.razao_social}</option>)}</select></Field>
             <Field label="UF *"><input maxLength={2} value={cf.uf} onChange={(e) => setCf({ ...cf, uf: e.target.value.toUpperCase() })} /></Field>
             <Field label="IE"><input value={cf.ie} onChange={(e) => setCf({ ...cf, ie: e.target.value })} /></Field>
             <Field label="Regime"><select value={cf.regime} onChange={(e) => setCf({ ...cf, regime: e.target.value })}><option>SIMPLES</option><option>PRESUMIDO</option><option>REAL</option></select></Field>

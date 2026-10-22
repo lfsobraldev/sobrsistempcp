@@ -1,14 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, ArrowRight, Boxes, Gauge, ShieldCheck, UserRound } from "lucide-react";
+import { AlertCircle, ArrowRight, Eye, EyeOff, Lock, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { BrandLogo } from "@/components/brand-logo";
+import { DoorElevation, FactoryRoof } from "@/components/door-art";
 
 export default function Login() {
   const router = useRouter();
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
+  const [ver, setVer] = useState(false);
   const [erro, setErro] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -33,51 +35,38 @@ export default function Login() {
   }
 
   return (
-    <main className="login-page">
-      <header className="login-header">
-        <div className="login-system">
-          <BrandLogo size={40} />
-          <span><b>Sobral PCP</b><small>ERP Industrial</small></span>
+    <main className="lg">
+      <section className="lg-art" aria-hidden="true">
+        <div className="lg-art-top"><BrandLogo size={38} /><span><b>Sobral PCP</b><small>Gestão industrial</small></span></div>
+        <div className="lg-art-copy">
+          <h1>Do pedido à porta entregue.</h1>
+          <p>Programação, produção, qualidade, expedição e financeiro no mesmo sistema.</p>
         </div>
-        <span className="login-environment">ACESSO CORPORATIVO</span>
-      </header>
+        <DoorElevation className="lg-doors" />
+        <FactoryRoof className="lg-roof" />
+      </section>
 
-      <div className="login-content">
-        <section className="login-intro" aria-labelledby="login-welcome">
-          <span className="login-kicker">OPERAÇÃO INTEGRADA</span>
-          <h1 id="login-welcome">Gestão industrial, do pedido à expedição.</h1>
-          <p>Entre para acompanhar programação, produção, qualidade e entregas em um único ambiente.</p>
-          <ul>
-            <li><Gauge size={18} /><span><b>Visão operacional</b><small>Indicadores e filas da programação</small></span></li>
-            <li><Boxes size={18} /><span><b>Fluxo de produção</b><small>Pedidos, operações e expedição</small></span></li>
-            <li><ShieldCheck size={18} /><span><b>Rastreabilidade</b><small>Controle de qualidade e histórico</small></span></li>
-          </ul>
-        </section>
-
-        <section className="login-form" aria-labelledby="login-heading">
-          <div className="login-card">
-            <div className="login-card-heading">
-              <span>ACESSO AO SISTEMA</span>
-              <h2 id="login-heading">Entrar</h2>
-              <p>Use suas credenciais corporativas.</p>
-            </div>
-            {erro && <div className="login-error" role="alert"><AlertCircle size={17} />{erro}</div>}
-            <form onSubmit={entrar} aria-busy={busy}>
-              <label className="login-field" htmlFor="u">Usuário
-                <span className="login-input-wrap"><UserRound size={17} /><input id="u" value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="username" aria-invalid={!!erro} required /></span>
-              </label>
-              <label className="login-field" htmlFor="s">Senha
-                <span className="login-input-wrap"><ShieldCheck size={17} /><input id="s" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" aria-invalid={!!erro} required /></span>
-              </label>
-              <button className="primary login-submit" disabled={busy}>
-                {busy ? <><span className="login-spinner" aria-hidden="true" /> Verificando acesso...</> : <>Acessar sistema <ArrowRight size={17} /></>}
-              </button>
-            </form>
-            <p className="login-card-foot">Acesso restrito a usuários autorizados.</p>
-          </div>
-        </section>
-      </div>
-      <footer className="login-footer">Sobral PCP <span>·</span> Planejamento e controle industrial</footer>
+      <section className="lg-form-side" aria-labelledby="lg-title">
+        <div className="lg-card">
+          <div className="lg-brand-mobile"><BrandLogo size={34} /><b>Sobral PCP</b></div>
+          <h2 id="lg-title">Acesso ao sistema</h2>
+          <p className="lg-lead">Use suas credenciais corporativas.</p>
+          {erro && <div className="lg-error" role="alert"><AlertCircle size={16} />{erro}</div>}
+          <form onSubmit={entrar} aria-busy={busy}>
+            <label htmlFor="u">Usuário
+              <span className="lg-input"><UserRound size={16} /><input id="u" value={usuario} onChange={(e) => setUsuario(e.target.value)} autoComplete="username" autoFocus aria-invalid={!!erro} required /></span>
+            </label>
+            <label htmlFor="s">Senha
+              <span className="lg-input"><Lock size={16} /><input id="s" type={ver ? "text" : "password"} value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" aria-invalid={!!erro} required />
+                <button type="button" className="lg-eye" onClick={() => setVer((v) => !v)} aria-label={ver ? "Ocultar senha" : "Mostrar senha"}>{ver ? <EyeOff size={16} /> : <Eye size={16} />}</button></span>
+            </label>
+            <button className="lg-submit" disabled={busy}>
+              {busy ? <><span className="lg-spin" aria-hidden="true" />Verificando acesso</> : <>Entrar <ArrowRight size={16} /></>}
+            </button>
+          </form>
+          <p className="lg-foot">Acesso restrito a usuários autorizados.</p>
+        </div>
+      </section>
     </main>
   );
 }
