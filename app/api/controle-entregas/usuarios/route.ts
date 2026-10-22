@@ -12,7 +12,7 @@ async function setup(){
  await db`create table if not exists pcp_lider_etapa_acessos(usuario varchar(100) not null,etapa varchar(50) not null,primary key(usuario,etapa))`;
  await db`alter table pcp_lider_etapa_acessos add column if not exists turno varchar(1) not null default 'A'`;
  await db`alter table pcp_usuarios drop constraint if exists ck_pcp_usuarios_perfil`;
- await db`alter table pcp_usuarios add constraint ck_pcp_usuarios_perfil check(perfil in ('PCP','GERENTE','ENCARREGADO','LIDER','APONTADOR','QUALIDADE','COMERCIAL','LOGISTICA','LIDER_ENTREGAS'))`;
+ await db`alter table pcp_usuarios add constraint ck_pcp_usuarios_perfil check(perfil in ('PCP','GERENTE','ENCARREGADO','LIDER','APONTADOR','QUALIDADE','COMERCIAL','LOGISTICA','LIDER_ENTREGAS','SAC','SUPERVISOR','DIRETOR','ADMINISTRADOR'))`;
  return db;
 }
 function parse(body:any,creating:boolean){

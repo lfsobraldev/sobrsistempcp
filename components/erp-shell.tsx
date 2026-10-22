@@ -11,7 +11,7 @@ import {
   UploadCloud, UsersRound, Truck, ClipboardCheck, type LucideIcon,
   Megaphone, FileText, PackageCheck, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
   AlertOctagon, Siren, ScanSearch, BadgeCheck, Undo2, Receipt, Landmark, Calculator, Wrench, FolderOpen, LineChart, Headset,
-  TrendingUp, Gauge, Container, Building2, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
+  TrendingUp, Gauge, Container, Building2, ShieldAlert, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { OperationalProvider, useOps } from "@/components/operational-provider";
@@ -76,7 +76,7 @@ const menus: MenuGroup[] = [
       { path: "/sobral-ia", label: "Assistente Operacional", icon: Activity },
     ],
   },
-  { label: "Administração", items: [{ path: "/acessos", label: "Usuários e Unidades", icon: Users }, { path: "/configuracoes", label: "Configurações", icon: SlidersHorizontal }] },
+  { label: "Administração", items: [{ path: "/seguranca", label: "Segurança e Aprovações", icon: ShieldAlert }, { path: "/acessos", label: "Usuários e Unidades", icon: Users }, { path: "/configuracoes", label: "Configurações", icon: SlidersHorizontal }] },
 ];
 
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/comercial", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas", SAC: "/sac" };
@@ -160,7 +160,7 @@ function Inner({ children }: { children: React.ReactNode }) {
     if (found) { router.push(found.path+window.location.search); setQuery(""); }
   }
 
-  if (loading) return <div className="boot"><DoorLoader label="Sobral PCP" sub="Preparando ambiente" /></div>;
+  if (loading) return <div className="boot"><DoorLoader label="Famossul" sub="Preparando ambiente" /></div>;
   if (!me) return null;
 
   const live = realtimeStatus === "tempo_real";
@@ -198,7 +198,7 @@ function Inner({ children }: { children: React.ReactNode }) {
       {mobileNav && <button className="backdrop" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
 
       <header className="topbar2">
-        <Link href="/dashboard" className="shellbar-brand" aria-label="Sobral PCP, ir para o início"><BrandLogo size={30} /><span><b>Sobral PCP</b><small>Gestão industrial</small></span></Link>
+        <Link href="/dashboard" className="shellbar-brand" aria-label="Famossul, ir para o início"><BrandLogo size={30} /><span><b>Famossul</b><small>Sobral PCP · Gestão industrial</small></span></Link>
         <button className="ghost iconBtn menubtn" onClick={() => setMobileNav(true)} aria-label="Abrir menu"><Menu /></button>
         <button className="ghost iconBtn" onClick={() => setCollapsed((v) => !v)} aria-label="Recolher menu" style={{ display: undefined }}>
           {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}

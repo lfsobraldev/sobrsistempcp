@@ -2,13 +2,13 @@ import type { Perfil } from "@/types/pcp";
 
 const ALL_PCP = [
   "/marketing", "/engenharia", "/ordens-fabricacao", "/acessos", "/planejamento-mensal", "/consolidado", "/dashboard", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/custos", "/fiscal", "/financeiro", "/manutencao", "/documentos", "/indicadores", "/qualidade-inspecao", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/apontamento-entregas", "/integracao-consistem", "/programacao", "/programacao-gerente", "/prioridades", "/criticos", "/lideres",
-  "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/configuracoes", "/sac", "/carteira", "/pcp-painel", "/apontamento-operacoes", "/estoque", "/estoque-avancado", "/wms", "/corporativo",
+  "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/configuracoes", "/sac", "/carteira", "/pcp-painel", "/apontamento-operacoes", "/estoque", "/estoque-avancado", "/wms", "/corporativo", "/seguranca", "/seguranca",
 ];
 
 const BY_ROLE: Record<Perfil, string[]> = {
   PCP: ALL_PCP,
-  GERENTE: ["/marketing", "/engenharia", "/ordens-fabricacao", "/planejamento-mensal", "/consolidado", "/estoque", "/estoque-avancado", "/wms", "/corporativo", "/pcp-painel", "/apontamento-operacoes", "/carteira", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/custos", "/fiscal", "/financeiro", "/manutencao", "/documentos", "/indicadores", "/qualidade-inspecao", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia"],
-  ENCARREGADO: ["/engenharia", "/ordens-fabricacao", "/planejamento-mensal", "/consolidado", "/estoque", "/estoque-avancado", "/wms", "/corporativo", "/pcp-painel", "/apontamento-operacoes", "/carteira", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/qualidade-inspecao", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/sobral-ia"],
+  GERENTE: ["/marketing", "/engenharia", "/ordens-fabricacao", "/planejamento-mensal", "/consolidado", "/estoque", "/estoque-avancado", "/wms", "/corporativo", "/seguranca", "/pcp-painel", "/apontamento-operacoes", "/carteira", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/custos", "/fiscal", "/financeiro", "/manutencao", "/documentos", "/indicadores", "/qualidade-inspecao", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia"],
+  ENCARREGADO: ["/engenharia", "/ordens-fabricacao", "/planejamento-mensal", "/consolidado", "/estoque", "/estoque-avancado", "/wms", "/corporativo", "/seguranca", "/pcp-painel", "/apontamento-operacoes", "/carteira", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/qualidade-inspecao", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/sobral-ia"],
   LIDER: ["/apontamento-operacoes", "/lideres", "/excecoes", "/sobral-ia", "/manutencao", "/indicadores"],
   APONTADOR: ["/apontamento-operacoes", "/lideres"],
   QUALIDADE: ["/wms", "/corporativo", "/dashboard", "/medicoes", "/inspecao-pallets", "/qualidade-inspecao", "/documentos", "/indicadores"],
@@ -16,7 +16,13 @@ const BY_ROLE: Record<Perfil, string[]> = {
   LOGISTICA: ["/wms", "/expedicao", "/estoque", "/carteira", "/gestao-pedidos", "/sac"],
   LIDER_ENTREGAS: ["/apontamento-entregas"],
   SAC: ["/sac"],
+  SUPERVISOR: [],
+  DIRETOR: [],
+  ADMINISTRADOR: [],
 };
+BY_ROLE.SUPERVISOR = BY_ROLE.ENCARREGADO;
+BY_ROLE.DIRETOR = BY_ROLE.GERENTE;
+BY_ROLE.ADMINISTRADOR = ALL_PCP;
 
 export function allowedPath(role: string, path: string) {
   const unidade=/^\/(pcp|apontamento|estoque|programacao)\/(sul|nordeste|consolidado)$/.exec(path);

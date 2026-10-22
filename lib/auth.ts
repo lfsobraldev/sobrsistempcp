@@ -14,7 +14,19 @@ const validRoles = new Set([
   "LOGISTICA",
   "LIDER_ENTREGAS",
   "SAC",
+  "SUPERVISOR",
+  "DIRETOR",
+  "ADMINISTRADOR",
 ]);
+
+/** Cargos acima herdam todos os direitos do perfil-base; os extras (alçada, aprovação) usam `cargo`. */
+export const PERFIL_BASE: Partial<Record<string, Perfil>> = { SUPERVISOR: "ENCARREGADO", DIRETOR: "GERENTE", ADMINISTRADOR: "GERENTE" };
+
+/** Duração da sessão em horas (SESSAO_HORAS, 1 a 24; padrão 12). */
+export function sessaoHoras() {
+  const n = Number(process.env.SESSAO_HORAS);
+  return Number.isFinite(n) && n >= 1 && n <= 24 ? Math.floor(n) : 12;
+}
 
 export const users = () =>
   [
@@ -166,7 +178,7 @@ export function verifyToken(
     !Number.isFinite(age) ||
     age < 0 ||
     age >
-      12 *
+      sessaoHoras() *
         60 *
         60 *
         1000
@@ -335,6 +347,14 @@ export async function session():
   s.processos = [
     ...processos,
   ];
+
+  const base = PERFIL_BASE[s.perfil];
+  if (base) {
+    s.cargo = s.perfil;
+    s.perfil = base;
+  } else {
+    s.cargo = s.perfil;
+  }
 
   return s;
 }
