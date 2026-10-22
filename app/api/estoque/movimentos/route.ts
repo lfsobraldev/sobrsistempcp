@@ -1,3 +1,5 @@
+import {gravarTransferencia} from "@/lib/transferencias-unidades";
+import {exigirCiclo,escopoCiclo,recebimentoCiclo} from "@/lib/ciclo-industrial";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
@@ -25,12 +27,17 @@ async function unidadeGET(req: Request) {
         and ($4='' or m.criado_em>=($4::date)::timestamptz) and ($5='' or m.criado_em<(($5::date)+1)::timestamptz)
       order by m.id desc limit 300`, [tipo, pedido, q, de, ate]);
     return NextResponse.json({ movimentos: rows }, { headers: { "Cache-Control": "no-store" } });
-  } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha." }, { status: f ? 403 : 500 }); }
+  } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão." : e?.message || "Falha." }, { status: f ? 403 : /aguardando migração|does not exist/.test(e?.message||"")?503:409 }); }
 }
 
 async function unidadePOST(req: Request) {
   try {
     const b = await req.json();
+    if(['CICLO_TRANSFERIR','CICLO_RECEBER_TRANSFERENCIA'].includes(b.acao))return NextResponse.json({ok:true,resultado:await gravarTransferencia(b)});
+    if(b.acao==='CICLO_RECEBER'){
+      const s=await requireRoles(['PCP','GERENTE','ENCARREGADO']),db=sql();await exigirCiclo(db);const d=recebimentoCiclo.parse(b),esc=await escopoCiclo(db);
+      const rows=await db`select erp_ciclo_receber(${esc.empresa_id}::uuid,${esc.filial_id}::uuid,${d.produtoId}::uuid,${d.localId}::uuid,${d.quantidade},${d.custoUnitario},${d.lote},${d.serie},${d.validade}::date,${d.requestId}::uuid,${s.usuario}) id`;return NextResponse.json({ok:true,rows});
+    }
     const tipo = String(b.tipo || "") as TipoMov;
     if (!TIPOS_MOV.includes(tipo)) return NextResponse.json({ error: "Tipo de movimento inválido." }, { status: 400 });
     const s = await requireRoles(PERFIS_MOV[tipo]);
@@ -64,7 +71,7 @@ async function unidadePOST(req: Request) {
     });
     if (!r.ok) return NextResponse.json({ error: r.erro, codigo: r.codigo }, { status: r.http });
     return NextResponse.json({ ok: true, duplicado: r.duplicado === true, quantidadeBase: c.base }, { status: r.duplicado ? 200 : 201 });
-  } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão para este tipo de movimento." : e?.message || "Falha ao movimentar." }, { status: f ? 403 : 500 }); }
+  } catch (e: any) { const f = e?.message === "SEM_PERMISSAO"; return NextResponse.json({ error: f ? "Sem permissão para este tipo de movimento." : e?.message || "Falha ao movimentar." }, { status: f ? 403 : /aguardando migração|does not exist/.test(e?.message||"")?503:409 }); }
 }
 
 export const GET = unidadeHandler(unidadeGET);

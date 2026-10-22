@@ -2,7 +2,7 @@
 
 import { AlertTriangle, CheckCircle2, Hand, PlayCircle } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 import { LABELS } from "@/lib/metrics";
 import { Badge, Empty, Field, Modal, PageHeader, type Tone } from "@/components/ui";
 

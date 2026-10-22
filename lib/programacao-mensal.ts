@@ -7,6 +7,9 @@ export const mesSchema = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/).refine(v =>
 export const querySchema = z.object({
   unidade: z.enum(["SUL", "NORDESTE", "CONSOLIDADO"]),
   mes: z.union([mesSchema, z.literal("")]).default(""),
+  estado: z.enum(['ATIVO','PLANEJADO','ENCERRADO','TODOS']).default('ATIVO'),
+  clientes:z.string().max(4000).default(''), representantes:z.string().max(4000).default(''),
+  pedidos: z.string().max(4000).default(''),
   busca: z.string().max(160).default(""),
   filtros: z.string().max(2000).default(""),
   page: z.coerce.number().int().min(1).max(100000).default(1),

@@ -1,3 +1,4 @@
+import {idsProdutosRecorte} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { session } from "@/lib/auth";
@@ -6,13 +7,13 @@ import { analisarRiscos, capacidadeProcessos, localHoje, planejarFabrica } from 
 
 export const runtime = "nodejs";
 
-async function unidadeGET() {
+async function unidadeGET(req:Request) {
   try {
     const s = await session();
     if (!s) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
 
     const db = sql();
-    const [pg] = await db`
+    const [basePG] = await db`
       select id,filtro,data_programacao,turno
       from pcp_programacoes
       where status='ATIVA'
@@ -20,7 +21,10 @@ async function unidadeGET() {
       limit 1
     `;
 
-    if (!pg) {
+    const filtrada=new URL(req.url).searchParams.get("recorte")==="1";
+    const itens=filtrada?await idsProdutosRecorte(db,new URL(req.url).searchParams):null;
+    const pg={...basePG,produtoIds:itens?.map(p=>String(p.id)),ids:itens?[...new Set(itens.map(p=>String(p.programacao_id)))]:[basePG?.id]};
+    if (!basePG&&!itens?.length) {
       return NextResponse.json({ programacao: null, riscos: [], capacidade: [], acoes: [] }, {
         headers: { "Cache-Control": "no-store" },
       });

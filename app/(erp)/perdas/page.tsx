@@ -4,22 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 import { Plus, TimerReset } from "lucide-react";
 import { Card, Field, Modal, PageHeader, Progress, StatCard } from "@/components/ui";
 import { pareto } from "@/lib/domain/industrial";
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 
 const MOTIVOS = ["Falta material", "Setup", "Manutenção", "Aguardando OF", "Qualidade", "Falta operador", "Máquina parada", "Retrabalho", "Falta de ferramenta", "Outro"];
 
 export default function Perdas() {
-  const { pg, toast } = useOps();
+  const { pg, toast,recorteQuery } = useOps();
   const [rows, setRows] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [f, setF] = useState({ processo: "", maquina: "", turno: pg?.turno || "A", pedido: "", of: "", motivo: MOTIVOS[0], inicio: new Date().toISOString().slice(0, 16), fim: "", quantidadePerdida: "", responsavel: "", observacao: "" });
 
   async function load() {
-    const r = await fetch("/api/perdas?dias=7", { cache: "no-store" });
+    const r = await fetch("/api/perdas?recorte=1&"+recorteQuery, { cache: "no-store" });
     const j = await r.json();
     if (r.ok) setRows(j.itens || []);
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [recorteQuery]);
 
   const p = useMemo(() => pareto(rows.map((x) => ({ motivo: x.motivo, minutos: Number(x.minutos || 0) }))), [rows]);
   const total = rows.reduce((s, x) => s + Number(x.minutos || 0), 0);

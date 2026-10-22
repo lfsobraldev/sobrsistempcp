@@ -1,8 +1,12 @@
 import Link from "next/link";
+import {administradorCentral} from "@/lib/unidades/users";
+import {redirect} from "next/navigation";
 import { getMigrationCatalog } from "@/lib/migration-service";
 
 export default async function MigracoesAdminPage() {
-  const catalog = await getMigrationCatalog();
+  try { await administradorCentral(); } catch { redirect("/login"); }
+  const catalog = await getMigrationCatalog().catch(() => null);
+  if(!catalog)return <main><h1>Migrações do banco</h1><p role="status">Módulo aguardando migração ou conferência do registro. O estado de aplicação é desconhecido.</p></main>;
   const enabled = catalog.environment.allow;
   const count = catalog.migrations.length;
 
@@ -11,7 +15,7 @@ export default async function MigracoesAdminPage() {
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 24 }}>
         <div>
           <p style={{ margin: 0, textTransform: "uppercase", letterSpacing: 1.2 }}>Administração</p>
-          <h1 style={{ margin: "8px 0 0" }}>Migrações do banco</h1>
+          <h1 style={{ margin: "8px 0 0" }}>Migrações do banco</h1><p>Catálogo de conferência. Aplicação automática indisponível: utilize o pacote de implantação com o administrador.</p>
         </div>
         <Link href="/configuracoes" style={{ color: "#0f172a", textDecoration: "none", border: "1px solid #cbd5e1", borderRadius: 999, padding: "10px 16px", fontWeight: 600 }}>Voltar</Link>
       </header>
@@ -52,7 +56,7 @@ export default async function MigracoesAdminPage() {
               <tr key={migration.name} style={{ borderTop: "1px solid #e2e8f0" }}>
                 <td style={{ padding: 12, verticalAlign: "top" }}>{migration.name}</td>
                 <td style={{ padding: 12, verticalAlign: "top", fontFamily: "monospace" }}>{migration.checksum.slice(0, 12)}</td>
-                <td style={{ padding: 12, verticalAlign: "top" }}>{migration.reverse ? "Reversível" : "Pendente"}</td>
+                <td style={{ padding: 12, verticalAlign: "top" }}>{migration.status + (migration.reverse ? " · down disponível (revisar risco)" : " · sem down automático")}</td>
                 <td style={{ padding: 12, verticalAlign: "top", fontFamily: "monospace", whiteSpace: "pre-wrap" }}>{migration.up || migration.down || "Sem SQL"}</td>
               </tr>
             ))}

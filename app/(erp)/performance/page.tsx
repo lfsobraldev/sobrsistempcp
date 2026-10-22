@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { Activity, AlertOctagon, CheckCheck, Timer } from "lucide-react";
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 import { LABELS, resumoMaquinas } from "@/lib/metrics";
 import { Card, DataTable, PageHeader, StatCard } from "@/components/ui";
 import { calcOee } from "@/lib/domain/industrial";
 import { fmt, fmtPct } from "@/lib/format";
 
 export default function Performance() {
-  const { pg } = useOps();
+  const { pg,recorteQuery } = useOps();
   const p = pg?.produtos || [];
   const m = resumoMaquinas(p);
   const ops = p.flatMap((x) => x.operacoes);
@@ -17,11 +17,11 @@ export default function Performance() {
   const [losses, setLosses] = useState<any[]>([]);
 
   useEffect(() => {
-    Promise.all([fetch("/api/capacidades").then((r) => r.json()), fetch("/api/perdas?dias=1").then((r) => r.json())]).then(([a, b]) => {
+    Promise.all([fetch("/api/capacidades").then((r) => r.json()), fetch("/api/perdas?recorte=1&"+recorteQuery).then((r) => r.json())]).then(([a, b]) => {
       setCaps(a.capacidades || []);
       setLosses(b.itens || []);
     });
-  }, []);
+  }, [recorteQuery]);
 
   const ref = ops.reduce((s, o) => s + o.quantidadeRefugo, 0);
   const prod = ops.reduce((s, o) => s + o.quantidadeProduzida, 0);

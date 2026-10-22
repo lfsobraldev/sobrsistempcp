@@ -1,3 +1,4 @@
+import {enriquecerClientes} from '@/lib/clientes-operacionais';
 import { unidadeHandler } from "@/lib/unidades/handler";
 import {
   NextResponse,
@@ -522,6 +523,7 @@ async function unidadeGET(
         );
       }
 
+      Object.assign(item,(await enriquecerClientes(db,[item]))[0]);
       return NextResponse.json(
         {
           item,
@@ -674,7 +676,7 @@ async function unidadeGET(
     return NextResponse.json(
       {
         itens:
-          rows,
+          await enriquecerClientes(db,rows),
 
         resumo:
           resumoRows[0] ||

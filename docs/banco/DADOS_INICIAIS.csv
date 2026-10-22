@@ -1,0 +1,22 @@
+categoria,codigo,descricao,estado
+papel,PCP,PCP,existente
+papel,GERENTE,Gerente,existente
+papel,ENCARREGADO,Encarregado,existente
+papel,LIDER,Líder,existente
+papel,APONTADOR,Apontador,existente
+papel,QUALIDADE,Qualidade,existente
+papel,COMERCIAL,Comercial,existente
+papel,LOGISTICA,Logística,existente
+papel,LIDER_ENTREGAS,Líder de entregas,existente
+papel,SAC,SAC,existente
+item,INSUMO,Insumo,existente
+item,SEMIACABADO,Semiacabado,existente
+item,ACABADO,Acabado,existente
+item,NAO_CLASSIFICADO,Classificação pendente,existente
+parada,FALTA_MATERIAL,Falta de material,catálogo Andon existente
+parada,SETUP,Setup,catálogo Andon existente
+parada,MANUTENCAO,Manutenção,catálogo Andon existente
+parada,QUALIDADE,Qualidade,catálogo Andon existente
+refugo,REVISAR,Definir motivos com Qualidade,pendente de cadastro persistente
+pagamento,A_VISTA,À vista,proposta para módulo comercial pendente
+pagamento,TRINTA_DIAS,30 dias,proposta para módulo comercial pendente

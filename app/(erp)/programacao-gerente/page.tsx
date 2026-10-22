@@ -1,4 +1,5 @@
 "use client";
+import IdentidadePedido from '@/components/identidade-pedido';
 
 import {contagemKitsPedido} from "@/lib/industrial/kits";
 
@@ -18,7 +19,7 @@ import {
   CalendarClock,
   AlertTriangle,
 } from "lucide-react";
-import { useOps } from "@/components/operational-provider";
+import { useOpsVisao as useOps } from "@/components/operational-provider";
 import { Panel } from "@/components/ui";
 import type { Produto } from "@/types/pcp";
 import { LABELS, resumoMaquinas } from "@/lib/metrics";
@@ -171,7 +172,7 @@ function classStatus(value: string) {
 }
 
 export default function ProgramacaoGerentePage() {
-  const { pg, refresh, lastSync } = useOps();
+  const { pg, refresh, lastSync,recorteQuery } = useOps();
   const produtos = pg?.produtos || [];
 
   const [view, setView] = useState<ViewMode>("PEDIDOS");
@@ -190,7 +191,7 @@ export default function ProgramacaoGerentePage() {
 
   useEffect(() => {
     let ativo = true;
-    fetch("/api/gestao-producao", { cache: "no-store" })
+    fetch("/api/gestao-producao?recorte=1&"+recorteQuery, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : { controles: [], excecoes: [] }))
       .then((j) => {
         if (ativo) {
@@ -203,7 +204,7 @@ export default function ProgramacaoGerentePage() {
     return () => {
       ativo = false;
     };
-  }, [pg?.id, lastSync?.getTime()]);
+  }, [pg?.id, lastSync?.getTime(),recorteQuery]);
 
   const pedidos = useMemo(() => {
     const map = new Map<string, Produto[]>();
@@ -407,7 +408,7 @@ export default function ProgramacaoGerentePage() {
   async function salvarPrazo(pedido: string, dataEntrega: string) {
     setSavingPrazo(pedido);
     try {
-      const r = await fetch("/api/gestao-producao", {
+      const r = await fetch("/api/gestao-producao?recorte=1&"+recorteQuery, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ pedido, dataEntrega }),
@@ -568,7 +569,7 @@ export default function ProgramacaoGerentePage() {
           <p>Conferir antes de comprar: {fmt(consumoMaterial.semClassificacao)} peça(s) sem classificação STD/ULTRA/PINUS e {fmt(consumoMaterial.semComprimento)} peça(s) sem comprimento válido. Os dois grupos podem se sobrepor.</p>
           <details><summary>Ver exatamente quais peças estão pendentes ({consumoMaterial.pendencias.length} linhas)</summary>
             <div className="tableWrap"><table><thead><tr><th>PEDIDO</th><th>OF</th><th>CÓDIGO</th><th>FAMÍLIA</th><th>DESCRIÇÃO</th><th>MATERIAL ORIGINAL</th><th>MEDIDA ORIGINAL</th><th className="num">PEÇAS</th><th>MOTIVO</th></tr></thead>
-            <tbody>{consumoMaterial.pendencias.map((x, i) => <tr key={i}><td>{x.pedido}</td><td>{x.of}</td><td>{x.codigo}</td><td>{x.familia}</td><td>{x.descricao}</td><td>{x.material || "—"}</td><td>{x.medida || "—"}</td><td className="num">{fmt(x.quantidade)}</td><td>{x.motivo}</td></tr>)}</tbody></table></div>
+            <tbody>{consumoMaterial.pendencias.map((x, i) => <tr key={i}><td>{x.pedido}<IdentidadePedido pedido={x.pedido}/></td><td>{x.of}</td><td>{x.codigo}</td><td>{x.familia}</td><td>{x.descricao}</td><td>{x.material || "—"}</td><td>{x.medida || "—"}</td><td className="num">{fmt(x.quantidade)}</td><td>{x.motivo}</td></tr>)}</tbody></table></div>
           </details>
         </>}
       </Panel>
@@ -878,7 +879,7 @@ export default function ProgramacaoGerentePage() {
                   <tr key={o.id}>
                     <td><b>{LABELS[o.processo] || o.processo}</b></td>
                     <td><b>{o.ordemFila || "-"}</b></td>
-                    <td>{p.pedido}</td>
+                    <td>{p.pedido}<IdentidadePedido pedido={p.pedido}/></td>
                     <td>{p.of || "-"}</td>
                     <td>{familiaProduto(p)}</td>
                     <td>{p.descricao}</td>

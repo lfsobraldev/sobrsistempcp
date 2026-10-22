@@ -1,0 +1,3 @@
+'use client';
+import {useOpsVisao} from './operational-provider';
+export default function IdentidadePedido({pedido}:{pedido:string}){const {pg}=useOpsVisao();const linhas=pg?.produtos.filter(p=>p.pedido===pedido)||[];const pessoas=[...new Map(linhas.map(p=>[p.clienteId||p.clienteNome||'',p])).values()];if(!pessoas.length)return null;return <small>{pessoas.length===1?<>Cliente: {pessoas[0].clienteNome||'Cliente não informado'} · {pessoas[0].clienteCodigo||'sem código'} · {pessoas[0].representanteNome||'Representante não informado'}</>:<>Clientes: {pessoas.map(p=>p.clienteNome||'não informado').join(' / ')}</>}</small>;}

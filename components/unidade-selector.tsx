@@ -10,12 +10,14 @@ export default function UnidadeSelector({bloquear=false,children}:{bloquear?:boo
  setBusy(true);setErro('');try{
  const r=await fetch('/api/unidades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({unidade})});const b=await r.json();if(!r.ok)throw new Error(b.error||'Falha ao selecionar a unidade.');
  // Nova navegação elimina estado, IDs, filtros e requisições da unidade anterior.
- window.location.assign(window.location.pathname==='/consolidado'?'/dashboard':window.location.pathname+window.location.search);
+ const scoped=/^\/(pcp|apontamento|estoque|programacao)\/(sul|nordeste|consolidado)$/.exec(window.location.pathname);
+ const destino=scoped?'/'+scoped[1]+'/'+unidade.toLowerCase():window.location.pathname==='/consolidado'?'/dashboard':window.location.pathname;
+ window.location.assign(destino);
  }catch(e){setErro(e instanceof Error?e.message:'Falha na seleção.');setBusy(false);}
  }
  const seletor=<label style={{display:'flex',gap:8,alignItems:'center',fontSize:13}}>Unidade<select aria-label="Unidade de todo o ERP" disabled={busy} value={typeof window!=='undefined'&&window.location.pathname==='/consolidado'?'CONSOLIDADO':estado?.selecionada||''} onChange={e=>escolher(e.target.value)} style={{padding:'8px 12px',border:'1px solid #cad7e2',borderRadius:8}}><option value="" disabled>Selecionar unidade</option>{estado?.permitidas.map(u=><option key={u} value={u}>{u==='SUL'?'Sul':'Nordeste'}</option>)}{estado?.consolidado&&<option value="CONSOLIDADO">Consolidado</option>}</select>{erro&&<span role="alert">{erro}</span>}</label>;
  if(!estado){return bloquear?<>{erro?<p role="alert">{erro}</p>:<p>Verificando acesso às unidades…</p>}</>:null;}
  if(!estado.ativo)return bloquear?<>{children}</>:null;
- if(bloquear){if(!estado.selecionada&&!(typeof window!=='undefined'&&['/consolidado','/acessos'].includes(window.location.pathname)))return <section style={{padding:32,maxWidth:650,margin:'40px auto'}}><h1>Escolha sua unidade</h1><p>Produtos, pedidos, estoque e operação serão carregados somente da unidade selecionada.</p>{seletor}{!estado.permitidas.length&&<p role="alert">Seu login ainda não possui unidade autorizada. Solicite o vínculo ao administrador.</p>}</section>;return <>{children}</>;}
+ if(bloquear){if(!estado.selecionada&&!(typeof window!=='undefined'&&(['/consolidado','/acessos'].includes(window.location.pathname)||window.location.pathname.endsWith('/consolidado'))))return <section style={{padding:32,maxWidth:650,margin:'40px auto'}}><h1>Escolha sua unidade</h1><p>Produtos, pedidos, estoque e operação serão carregados somente da unidade selecionada.</p>{seletor}{!estado.permitidas.length&&<p role="alert">Seu login ainda não possui unidade autorizada. Solicite o vínculo ao administrador.</p>}</section>;return <>{children}</>;}
  return seletor;
 }

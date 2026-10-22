@@ -28,7 +28,7 @@ export async function capacidadeProcessos(
       coalesce(sum(greatest(o.quantidade_planejada-o.quantidade_produzida,0)),0)::float saldo
     from pcp_operacoes o
     join pcp_produtos p on p.id=o.produto_id
-    where p.programacao_id=${pg.id}
+    where (${!Array.isArray(pg.produtoIds)} and p.programacao_id=${pg.id||null}::uuid or p.id=any(${pg.produtoIds||[]}::uuid[]))
       and o.status<>'CONCLUIDA'
     group by o.processo
     order by o.processo
@@ -89,14 +89,14 @@ export async function analisarRiscos(
         select count(*)::int
         from pcp_operacoes o2
         join pcp_produtos p2 on p2.id=o2.produto_id
-        where p2.programacao_id=${pg.id}
+        where (${!Array.isArray(pg.produtoIds)} and p2.programacao_id=${pg.id||null}::uuid or p2.id=any(${pg.produtoIds||[]}::uuid[]))
           and p2.pedido=p.pedido
           and o2.status in ('BLOQUEADA','DIVERGENCIA')
       ) operacoes_criticas,
       (
         select count(*)::int
         from pcp_excecoes_peca e
-        where e.programacao_id=${pg.id}
+        where e.programacao_id=any(${pg.ids||[pg.id]}::uuid[])
           and e.pedido=p.pedido
           and upper(e.status) not in ('RESOLVIDA','RESOLVIDO','FECHADA','CONCLUIDA')
       ) excecoes,
@@ -105,7 +105,7 @@ export async function analisarRiscos(
         from pcp_andon a
         join pcp_operacoes ao on ao.id=a.operacao_id
         join pcp_produtos ap on ap.id=ao.produto_id
-        where ap.programacao_id=${pg.id}
+        where a(${!Array.isArray(pg.produtoIds)} and p.programacao_id=${pg.id||null}::uuid or p.id=any(${pg.produtoIds||[]}::uuid[]))
           and ap.pedido=p.pedido
           and upper(a.status)<>'RESOLVIDO'
       ) andons,
@@ -122,7 +122,7 @@ export async function analisarRiscos(
     from pcp_produtos p
     left join pcp_pedido_controle pc
       on pc.programacao_id=p.programacao_id and pc.pedido=p.pedido
-    where p.programacao_id=${pg.id}
+    where (${!Array.isArray(pg.produtoIds)} and p.programacao_id=${pg.id||null}::uuid or p.id=any(${pg.produtoIds||[]}::uuid[]))
     group by p.pedido,pc.cliente,pc.data_entrega,pc.status_entrega
   `;
 
@@ -140,7 +140,7 @@ export async function analisarRiscos(
       coalesce(sum(greatest(o.quantidade_planejada-o.quantidade_produzida,0)),0)::float saldo
     from pcp_produtos p
     join pcp_operacoes o on o.produto_id=p.id
-    where p.programacao_id=${pg.id}
+    where (${!Array.isArray(pg.produtoIds)} and p.programacao_id=${pg.id||null}::uuid or p.id=any(${pg.produtoIds||[]}::uuid[]))
       and o.status<>'CONCLUIDA'
     group by p.pedido,o.processo
   `;
@@ -268,7 +268,7 @@ export async function planejarFabrica(
     join pcp_operacoes o on o.produto_id=p.id
     left join pcp_pedido_controle pc
       on pc.programacao_id=p.programacao_id and pc.pedido=p.pedido
-    where p.programacao_id=${pg.id}
+    where (${!Array.isArray(pg.produtoIds)} and p.programacao_id=${pg.id||null}::uuid or p.id=any(${pg.produtoIds||[]}::uuid[]))
       and o.status<>'CONCLUIDA'
       and greatest(o.quantidade_planejada-o.quantidade_produzida,0)>0
     group by o.processo,p.pedido,pc.data_entrega
