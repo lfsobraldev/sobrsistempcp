@@ -11,8 +11,8 @@ import {MRP_QUERY} from '@/lib/mrp-query';
 export const runtime='nodejs';
 function falha(e:unknown){const m=e instanceof Error?e.message:'';return NextResponse.json({error:m==='SEM_PERMISSAO'?'Sem permissão.':/does not exist|aguardando migração/.test(m)?'Módulo aguardando migração':m||'Falha na OF.'},{status:m==='SEM_PERMISSAO'?403:/does not exist|aguardando migração/.test(m)?503:409});}
 export const GET=unidadeHandler(async(req:Request)=>{try{
- await requireRoles(new URL(req.url).searchParams.get('visao')==='ciclo'?['PCP','GERENTE','ENCARREGADO','LIDER','APONTADOR']:['PCP','GERENTE','ENCARREGADO']);const db=sql();const q=new URL(req.url).searchParams;const page=Number(q.get('page')||1);if(!Number.isInteger(page)||page<1||page>100000)return NextResponse.json({error:'Página inválida.'},{status:400});
- if(q.get('visao')==='ciclo')return NextResponse.json(await consultarOFCiclo(db,q.get('id')||'',page,q.get('pendentes')==='1',q),{headers:{'Cache-Control':'no-store'}});
+ const sessao=await requireRoles(new URL(req.url).searchParams.get('visao')==='ciclo'?['PCP','GERENTE','ENCARREGADO','LIDER','APONTADOR']:['PCP','GERENTE','ENCARREGADO']);const db=sql();const q=new URL(req.url).searchParams;const page=Number(q.get('page')||1);if(!Number.isInteger(page)||page<1||page>100000)return NextResponse.json({error:'Página inválida.'},{status:400});
+ if(q.get('visao')==='ciclo')return NextResponse.json(await consultarOFCiclo(db,q.get('id')||'',page,q.get('pendentes')==='1',q,['LIDER','APONTADOR'].includes(sessao.perfil)?sessao.processos:undefined),{headers:{'Cache-Control':'no-store'}});
  const ids=q.get('recorte')==='1'?(await idsProdutosRecorte(db,q)).map(p=>String(p.id)):null;
  if(q.get('visao')==='mrp'){
  const rows=await db.query(MRP_QUERY.replace("where o.status='LIBERADA'", "where o.status='LIBERADA' and ($2::uuid[] is null or coalesce((to_jsonb(o)->>'origem_raiz_id')::uuid,o.origem_produto_id)=any($2::uuid[]))"),[(page-1)*50,ids]);

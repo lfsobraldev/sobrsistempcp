@@ -87,3 +87,9 @@
 - Sem CRM instalado, leitura preserva nome da programação; filtros comerciais novos dependem da projeção da migração 12 e não podem produzir totais falsos. A opção não é preenchida enquanto o schema não estiver disponível.
 - Nome de cliente não é número de pedido do cliente. O campo de referência de compra permanece separado.
 - Auditoria geral é inspeção do código de todas as entradas e testes locais dos caminhos corrigidos. Campos vazios/latência em produção não foram medidos nem inferidos; homologação com dados reais permanece necessária.
+
+## Rodada B
+
+- Bloqueio é herdado da OF pai; remover o bloqueio de uma filha não remove o do pai. Motivo obrigatório. Reversão: desbloquear explicitamente a OF responsável pelo impedimento.
+- Cancelar árvore exige ausência de execução vigente e filhas concluídas; apontamentos devem ser estornados antes. Não cancela parcialmente árvore com produção.
+- Instrução textual e revisão congeladas no roteiro bastam para o primeiro acesso do operador. Arquivos/aprovação documental independente continuam pendentes na H; nova revisão de roteiro não altera OF liberada.

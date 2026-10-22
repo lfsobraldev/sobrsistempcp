@@ -17,3 +17,13 @@ Como validar: vincular um pedido a cliente/representante no cadastro existente; 
 Riscos/pendências: códigos históricos não preenchidos não são inventados; associação ambígua entre períodos exige saneamento do pedido/vínculo; cadastro completo e representante restrito à carteira pertencem à C; navegação, desempenho e concorrência real exigem homologação. Itens amplos B–H não foram declarados entregues nesta A.
 
 Branch: `erp-rodada-a-auditoria`, baseada em `erp-etapa-b-ciclo`. Link para abrir PR após envio: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-rodada-a-auditoria . Sem PR criado, merge ou deploy automático.
+
+## B — incremento de controle da execução (parcial)
+
+Reaproveitado: ciclo 10/11, ledger, OF pai/filhas, revisões e PWA. Melhorado: bloqueio/cancelamento, leitura por setor, instrução no snapshot e acesso do operador. Migração **13 — controle de OF**, operacional, depende da 10; idempotente, up/down conservador; apenas gerada. Nenhuma variável nova.
+
+Testes: ciclo real em PGlite ampliado para bloqueio herdado, tentativa de cancelamento com execução, cancelamento confirmado com liberação de reserva, repetição idempotente e RBAC do detalhe. 144 testes locais passaram; TypeScript e build aprovados antes do envio. SQL somente em PGlite isolado.
+
+Validar: bloquear OF pai e tentar apontar filha; desbloquear com motivo; confirmar OF sem execução, cancelar e conferir reservas zeradas/árvore cancelada. OF com produção deve recusar cancelamento. Cadastre instrução/revisão no roteiro, aprove, gere OF e confira texto na operação; nova revisão não altera a OF antiga. Sem a 13, controles informam aguardando migração.
+
+Pendências para fechar B: substitutos operacionais/onde-é-usado, retrabalho e paradas no custo, homologação de dispositivo/concurrency real. Instrução textual não equivale a módulo documental completo. C–H permanecem pendentes. Link para abrir PR: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-rodada-b-producao .

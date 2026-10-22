@@ -11,7 +11,7 @@ async function banco(){const db=new PGlite();
  const base=(await readFile('database/schema.sql','utf8')).replace(/create extension if not exists pgcrypto;/gi,'');await db.exec(base);
  await db.exec(`create table if not exists pcp_capacidades_maquina(id uuid primary key default gen_random_uuid(),processo text,maquina text,turno text);`);
  await db.exec((await readFile('database/migrations/2026-10-21_fundacao_multiempresa.sql','utf8')).replace('create extension if not exists pgcrypto;',''));
- for(const f of ['2026-10-21_06_engenharia_of.sql','2026-10-22_10_ciclo_industrial.sql']){const up=(await readFile('database/migrations/'+f,'utf8')).split('-- migrate:down')[0];await db.exec(up);if(f.includes('_10_'))await db.exec(up);}
+ for(const f of ['2026-10-21_06_engenharia_of.sql','2026-10-22_10_ciclo_industrial.sql','2026-10-22_13_controle_of.sql']){const up=(await readFile('database/migrations/'+f,'utf8')).split('-- migrate:down')[0];await db.exec(up);if(f.includes('_10_')||f.includes('_13_'))await db.exec(up);}
 return db;}
 test('ciclo industrial SQL: engenharia, filha, reservas, parcial, ledger, pendência, estorno e rastreio',async()=>{
  const db=await banco();try{
@@ -24,7 +24,7 @@ test('ciclo industrial SQL: engenharia, filha, reservas, parcial, ledger, pendê
  const raw=await prod('RAW','INSUMO'),semi=await prod('SEMI','SEMIACABADO'),final=await prod('FINAL','ACABADO');
  const version=async(p:unknown,component:unknown,mult:number)=>{
   const {id:bom}=await one('select erp_criar_estrutura($1,$2,$3,\'teste\') id',[p,JSON.stringify([{componente_id:component,quantidade:mult,perda_percentual:0}]),crypto.randomUUID()]);await one('select erp_aprovar_estrutura($1,\'teste\')',[bom]);
-  const ops=[{sequencia:1,processo:'CORTE',centro_id:centro,chave:'INTERNA',setup:0,ciclo:1,parcial:true,entrada:true,componentes:[{produto_id:component,consumo:'AUTOMATICO'}]}];
+  const ops=[{sequencia:1,processo:'CORTE',centro_id:centro,chave:'INTERNA',setup:0,ciclo:1,parcial:true,entrada:true,instrucao:'Conferir desenho aprovado',revisaoInstrucao:'A',componentes:[{produto_id:component,consumo:'AUTOMATICO'}]}];
   const {id:route}=await one('select erp_ciclo_roteiro($1,$2,$3,$4,$5,\'teste\') id',[emp,fil,p,JSON.stringify(ops),crypto.randomUUID()]);await one('select erp_ciclo_aprovar_roteiro($1,\'teste\')',[route]);
   await one("select erp_ciclo_versao($1,$2,$3,$4,'2026-01-01',null,0,null,'teste')",[emp,fil,bom,route]);return {bom,route};
  };
@@ -36,9 +36,16 @@ test('ciclo industrial SQL: engenharia, filha, reservas, parcial, ledger, pendê
  const child=await one('select * from erp_ordens_fabricacao where of_pai_id=$1',[of]);const cons=consultaModulo('apontamento',new URLSearchParams('mes=TODOS'),true);assert.equal((await db.query(cons.sql,cons.values)).rows.length,2);assert.equal(Number(child.quantidade),20);assert.equal(child.origem_produto_id,null);
  await assert.rejects(one("select erp_ciclo_confirmar($1,'teste')",[of]),/SALDO_INSUFICIENTE/);
  await db.query('insert into est_saldos(produto_id,local_id,fisico) values($1,$2,60)',[raw,local]);
+ await one("select erp_ciclo_controlar($1,'BLOQUEAR','Falta de desenho','teste')",[of]);
+ await assert.rejects(one("select erp_ciclo_confirmar($1,'teste')",[of]),/bloqueada/);
+ await one("select erp_ciclo_controlar($1,'DESBLOQUEAR','Desenho conferido','teste')",[of]);
  await one("select erp_ciclo_confirmar($1,'teste')",[of]);assert.equal(Number((await one('select reservado from est_saldos where produto_id=$1',[raw])).reservado),60);
  const cop=await one('select id from pcp_operacoes where of_id=$1',[child.id]);const pop=await one('select id from pcp_operacoes where of_id=$1',[of]);
+ assert.equal((await one('select roteiro_snapshot from pcp_operacoes where id=$1',[cop.id])).roteiro_snapshot && ((await one('select roteiro_snapshot from pcp_operacoes where id=$1',[cop.id])).roteiro_snapshot as Record<string,unknown>).instrucao,'Conferir desenho aprovado');
  const payload={boa:5,refugo:0,consumirRefugo:true,consumos:[]};const key=crypto.randomUUID();
+ await one("select erp_ciclo_controlar($1,'BLOQUEAR','Revisar lote','teste')",[of]);
+ await assert.rejects(one("select erp_ciclo_apontar($1,$2,$3,'teste')",[cop.id,JSON.stringify(payload),crypto.randomUUID()]),/bloqueada/);
+ await one("select erp_ciclo_controlar($1,'DESBLOQUEAR','Lote conferido','teste')",[of]);
  const {id:ap}=await one("select erp_ciclo_apontar($1,$2,$3,'teste') id",[cop.id,JSON.stringify(payload),key]);
  assert.equal((await one("select erp_ciclo_apontar($1,$2,$3,'teste') id",[cop.id,JSON.stringify(payload),key])).id,ap);
  assert.equal(Number((await one('select fisico from est_saldos where produto_id=$1',[raw])).fisico),45);
@@ -46,6 +53,7 @@ test('ciclo industrial SQL: engenharia, filha, reservas, parcial, ledger, pendê
  const {id:parentAp}=await one("select erp_ciclo_apontar($1,$2,$3,'teste') id",[pop.id,JSON.stringify({...payload,boa:2}),crypto.randomUUID()]);
  assert.equal(Number((await one('select fisico from est_saldos where produto_id=$1',[semi])).fisico),1);
  assert.equal(Number((await one('select fisico from est_saldos where produto_id=$1',[final])).fisico),2);
+ await assert.rejects(one("select erp_ciclo_controlar($1,'CANCELAR','Cancelamento com produção','teste')",[of]),/execução/);
  assert.equal((await db.query('select * from est_movimentos where apontamento_id=$1 and lote_id is not null',[parentAp])).rows.length,2);
  await assert.rejects(one("select erp_ciclo_estornar($1,$2,'teste')",[ap,crypto.randomUUID()]),/SALDO_INSUFICIENTE/);
  await one("select erp_ciclo_estornar($1,$2,'teste')",[parentAp,crypto.randomUUID()]);await one("select erp_ciclo_estornar($1,$2,'teste')",[ap,crypto.randomUUID()]);
@@ -75,6 +83,14 @@ test('ciclo industrial SQL: engenharia, filha, reservas, parcial, ledger, pendê
  await one("select erp_ciclo_finalizar($1,'teste')",[pop.id]);
  assert.equal((await one('select status from erp_ordens_fabricacao where id=$1',[of])).status,'CONCLUIDA');
  assert.equal(Number((await one('select reservado from est_saldos where produto_id=$1',[semi])).reservado),0);
+ const orig2=crypto.randomUUID();await db.query("insert into pcp_produtos(id,programacao_id,produto,pedido,of,descricao,quantidade) values($1,$2,'FINAL','P2','2','Final',1)",[orig2,pg]);
+ const {id:of2}=await one("select erp_ciclo_gerar($1,$2,$3,1,'2026-10-31',$4,'BLOQUEAR',false,$5,$5,null,'teste') id",[emp,fil,final,local,orig2]);
+ await one("select erp_ciclo_confirmar($1,'teste')",[of2]);
+ await one("select erp_ciclo_controlar($1,'CANCELAR','Pedido cancelado','teste')",[of2]);
+ await one("select erp_ciclo_controlar($1,'CANCELAR','Pedido cancelado','teste')",[of2]);
+ assert.equal((await one('select status from erp_ordens_fabricacao where id=$1',[of2])).status,'CANCELADA');
+ assert.equal((await one('select status from erp_ordens_fabricacao where of_pai_id=$1',[of2])).status,'CANCELADA');
+ assert.equal(Number((await one('select reservado from est_saldos where produto_id=$1',[raw])).reservado),0);
  assert.ok((await db.query('select * from pcp_auditoria_global')).rows.length>10);
  }finally{await db.close();}
 });
@@ -109,10 +125,14 @@ test('duas operações: consumo só da operação, PEPS, concorrência idempoten
  const {id:ap2}=await one("select erp_ciclo_apontar($1,$2,$3,'teste') id",[op[1].id,JSON.stringify({...payload,boa:2,consumos:[{produtoId:b,quantidade:4}]}),crypto.randomUUID()]);
  assert.equal(Number((await one('select fisico from est_saldos where produto_id=$1',[b])).fisico),16);
  assert.equal(Number((await one('select fisico from est_saldos where produto_id=$1',[final])).fisico),2);
+ await assert.rejects(one("select erp_ciclo_controlar($1,'CANCELAR','Cancelamento com produção','teste')",[of]),/execução/);
  await db.exec("create table erp_identidade_banco(singleton boolean,unidade text);insert into erp_identidade_banco values(true,'SUL')");
  const antigaFlag=process.env.ERP_CICLO_INDUSTRIAL;process.env.ERP_CICLO_INDUSTRIAL='enabled';try{
  const port=adapter(db),engenharia=await consultarEngenhariaCiclo(port,1);assert.equal(engenharia.roteiros.length,1);
  const detalhe=await consultarOFCiclo(port,String(of),1);assert.equal(detalhe.operacoes?.length||0,2);
+ await assert.rejects(consultarOFCiclo(port,String(of),1,false,undefined,[]),/SEM_PERMISSAO/);
+ await assert.rejects(consultarOFCiclo(port,String(of),1,false,undefined,['PINTURA']),/SEM_PERMISSAO/);
+ const restrito=await consultarOFCiclo(port,String(of),1,false,undefined,['CORTE']);assert.equal(restrito.operacoes?.length,2);
  const lotes=await consultarLotesCiclo(port,new URLSearchParams(),1);assert.ok((lotes.lotes?.length||0)>=3);
  const {id:finalLot}=await one("select lote_id id from est_movimentos where apontamento_id=$1 and tipo='ENTRADA'",[ap2]);
  const frente=await consultarLotesCiclo(port,new URLSearchParams({loteId:String(finalLot),direcao:'TRAS'}),1);assert.ok((frente.rastreio?.length||0)>1);

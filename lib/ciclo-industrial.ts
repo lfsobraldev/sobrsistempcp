@@ -3,7 +3,7 @@ import type {Db} from './db';
 import {unidadeAtual} from './unidades/context';
 const uuid=z.string().uuid(),q=z.number().finite().nonnegative().max(1000000).refine(v=>Math.abs(v*1000-Math.round(v*1000))<0.000001,'Use até três casas decimais.');
 const data=z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v=>{const d=new Date(v+'T12:00:00Z');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===v;},'Data inválida.');
-export const operacaoRoteiro=z.object({sequencia:z.number().int().min(1).max(1000),processo:z.string().trim().min(1).max(80),centro_id:uuid,chave:z.enum(['INTERNA','EXTERNA']),setup:q,ciclo:q.refine(v=>v>0),parcial:z.boolean(),entrada:z.boolean(),componentes:z.array(z.object({produto_id:uuid,consumo:z.enum(['AUTOMATICO','MANUAL'])}).strict()).max(200)}).strict();
+export const operacaoRoteiro=z.object({sequencia:z.number().int().min(1).max(1000),processo:z.string().trim().min(1).max(80),centro_id:uuid,chave:z.enum(['INTERNA','EXTERNA']),setup:q,ciclo:q.refine(v=>v>0),parcial:z.boolean(),entrada:z.boolean(),instrucao:z.string().trim().max(12000).optional(),revisaoInstrucao:z.string().trim().max(60).optional(),componentes:z.array(z.object({produto_id:uuid,consumo:z.enum(['AUTOMATICO','MANUAL'])}).strict()).max(200)}).strict();
 export const engenhariaCiclo=z.discriminatedUnion('acao',[
  z.object({acao:z.literal('CICLO_CENTRO'),processo:z.string().trim().min(1).max(80),maquina:z.string().trim().min(1).max(120),turno:z.string().trim().min(1).max(20),minutos:q.refine(v=>v>0&&v<=1440),dias:z.array(z.number().int().min(1).max(7)).min(1).max(7)}).strict(),
  z.object({acao:z.literal('CICLO_ROTEIRO'),produtoId:uuid,operacoes:z.array(operacaoRoteiro).min(1).max(100),requestId:uuid}).strict(),
@@ -13,6 +13,7 @@ export const engenhariaCiclo=z.discriminatedUnion('acao',[
 export const ofCiclo=z.discriminatedUnion('acao',[
  z.object({acao:z.literal('CICLO_GERAR'),origemId:uuid,prazo:data,localId:uuid,faltaSaldo:z.enum(['BLOQUEAR','PENDENTE']),usarSaldo:z.boolean()}).strict(),
  z.object({acao:z.literal('CICLO_CONFIRMAR'),id:uuid}).strict(),
+ z.object({acao:z.literal('CICLO_CONTROLAR'),id:uuid,comando:z.enum(['BLOQUEAR','DESBLOQUEAR','CANCELAR']),motivo:z.string().trim().min(3).max(500)}).strict(),
 ]);
 export const apontamentoPayload=z.object({boa:q,refugo:q,motivo:z.string().trim().max(200).default(''),setupMin:q.default(0),maquinaMin:q.default(0),turno:z.string().max(20).default(''),consumirRefugo:z.boolean().default(true),lote:z.string().trim().max(80).default(''),serie:z.string().trim().max(80).default(''),consumos:z.array(z.object({produtoId:uuid,localId:uuid.optional(),loteId:uuid.optional(),quantidade:q.optional()}).strict()).max(200).default([])}).strict().refine(v=>v.boa+v.refugo>0,'Informe quantidade boa ou refugo.').refine(v=>v.refugo===0||v.motivo.length>0,'Informe o motivo do refugo.').refine(v=>new Set(v.consumos.map(c=>c.produtoId)).size===v.consumos.length,'Componente repetido.');
 export const operacaoCiclo=z.discriminatedUnion('action',[
@@ -45,6 +46,10 @@ export async function gravarEngenhariaCiclo(db:Db,entrada:unknown,ator:string){
 }
 export async function gravarOFCiclo(db:Db,entrada:unknown,ator:string){
  await exigirCiclo(db);const b=ofCiclo.parse(entrada),s=await escopoCiclo(db);
+ if(b.acao==='CICLO_CONTROLAR'){
+ const [schema]=await db`select to_regprocedure('erp_ciclo_controlar(uuid,text,text,text)') is not null instalado`;if(!schema?.instalado)throw new Error('Módulo aguardando migração');
+ const [o]=await db`select id from erp_ordens_fabricacao where id=${b.id}::uuid and empresa_id=${s.empresa_id}::uuid and filial_id=${s.filial_id}::uuid`;if(!o)throw new Error('OF não encontrada.');return db`select erp_ciclo_controlar(${b.id}::uuid,${b.comando},${b.motivo},${ator}) id`;
+ }
  if(b.acao==='CICLO_CONFIRMAR'){
  const [o]=await db`select id from erp_ordens_fabricacao where id=${b.id}::uuid and empresa_id=${s.empresa_id}::uuid and filial_id=${s.filial_id}::uuid`;if(!o)throw new Error('OF não encontrada.');return db`select erp_ciclo_confirmar(${b.id}::uuid,${ator}) id`;
  }

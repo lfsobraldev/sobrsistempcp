@@ -75,3 +75,11 @@ Link pendente de abertura após envio da B: https://github.com/lfsobraldev/sobrs
 A instrução nova substitui o encerramento anterior após B. Base: `erp-etapa-b-ciclo` / `5a940ba074d49d6b2e45afde162a5baad804c68c`. Executar A → H, uma branch por etapa, sem merge/deploy ou migração real, com pesquisa por módulo.
 
 A em `erp-rodada-a-auditoria`: resolução única de cliente/representante pelo CRM e fallback, novos filtros no contrato URL/SQL, restrição de setores vazios, matriz de auditoria de 44 páginas/73 APIs, migração 12 apenas gerada. Validação local: 144 testes passaram, TypeScript e `npm run build` concluídos com código zero. Testes SQL apenas em PGlite; nenhum acesso ao banco real. Envio autenticado pelo conector GitHub, pois o terminal não tem credenciais de push. Link pendente de abertura: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-rodada-a-auditoria . Backlog e limites em AUDITORIA_GERAL / RELATORIO_RODADA. Etapas B–H desta rodada ainda não iniciadas.
+
+A enviada: commit `5af130dee582825767e80a8d3d734cfd1e86dc06`, árvore verificada idêntica à local. Link para abrir PR: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-rodada-a-auditoria . Sem PR aberto/merge/deploy.
+
+## Rodada B — incremento de controle de execução
+
+Branch `erp-rodada-b-producao`, dependente da A: bloqueio herdado, cancelamento seguro de árvore/reservas, instruções congeladas por revisão e restrição de leitura da OF por setor. Migração 13 somente gerada; flag existente preservada. Validação: 144 testes locais passaram; TypeScript e build aprovados. Nenhum acesso ao banco real. Link pendente: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-rodada-b-producao .
+
+A etapa B ampla ainda tem pendências: substitutos com seleção operacional, onde-é-usado em árvore, retrabalho/tempos de parada integrados ao custo, gestão documental completa e homologação da câmera/concorrência real. Não declarar B completa nem iniciar C antes de fechar essas pendências funcionais. C–H não implementadas nesta rodada.

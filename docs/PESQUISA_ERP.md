@@ -12,4 +12,12 @@ Fontes consultadas:
 - TOTVS: [SIGAFAT — nota sobre pré-cadastro de cliente](https://centraldeatendimento.totvs.com/hc/pt-br/articles/4414131689239-Cross-Segmento-TOTVS-Backoffice-Linha-Protheus-SIGAFAT-Nota-sobre-pr%C3%A9-cadastro-de-cliente) — cadastro comum, identificação e complementação. Consulta 22/10/2026.
 - Odoo: [Contacts — documentação 19](https://www.odoo.com/documentation/19.0/applications/essentials/contacts.html) — referência localizada na pesquisa; abertura integral indisponível nesta consulta. Não foram inferidos detalhes não verificados.
 
-Etapas B–H: pesquisa específica ainda pendente; nenhuma regra fiscal foi pesquisada ou implementada nesta etapa A. Na G, consultar Portal NF-e, Receita Federal, CGIBS e Sefaz e registrar versão/data e necessidade de homologação fiscal.
+## B — produção, consulta 22/10/2026
+
+| Módulo | Funcionalidades de mercado | O sistema já tem | Falta identificada | Decisão |
+| --- | --- | --- | --- | --- |
+| Engenharia / execução | Business Central certifica roteiros/versiona por data, liga componente a operação e distingue preparação de tempo unitário. Estados limitam ações; histórico da OF mantém origem | Versões aprovadas, componentes por operação, setup/ciclo, snapshot, filhas, reservas, ledger e PWA | Bloqueio herdado e cancelamento seguro da árvore; instrução na revisão; leitura de detalhe precisava restringir setor | Expandir as mesmas OFs, proteger escritas no banco, liberar reservas pelo ledger no cancelamento sem execução; instrução textual congelada no roteiro e snapshot, sem criar cadastro paralelo de documentos |
+
+Fontes oficiais abertas: [Create routings](https://learn.microsoft.com/en-gb/dynamics365/business-central/production-how-to-create-routings) e [About production orders](https://learn.microsoft.com/en-gb/dynamics365/business-central/production-about-production-orders). Odoo BOM localizado na busca, mas abertura integral indisponível; não usado como evidência detalhada. Consulta 22/10/2026.
+
+Etapas C–H: pesquisa específica ainda pendente; nenhuma regra fiscal foi pesquisada ou implementada nesta etapa A. Na G, consultar Portal NF-e, Receita Federal, CGIBS e Sefaz e registrar versão/data e necessidade de homologação fiscal.

@@ -86,3 +86,12 @@ As páginas mensais originais eram demonstrações estáticas. Foram substituíd
 | Permissão por processo | corrigido | regra central em `lib/apontamento.ts`, APIs de leitura/histórico/escrita | Setor vazio de líder/apontador não é acesso total |
 | Histórico e importação em passos | já existia | migrações 09, componente mensal | Preservados; não recriados. Filtros comerciais adicionados a URL e preferências |
 | Auditoria de todas as entradas | criado (relatório) | `docs/AUDITORIA_GERAL.md` | 44 páginas e 73 APIs inspecionadas estaticamente; homologação navegada com dados reais ainda pendente |
+
+## Rodada B — controle de execução e instruções
+
+| Item | Estado | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Bloqueio/cancelamento de OF | Melhorado | migração 13, ciclo-industrial, of-ciclo | Bloqueio herdado pelos filhos; cancelamento da árvore sem execução libera reservas no ledger e audita; nenhuma OF removida |
+| Instrução do operador | Melhorado | engenharia-ciclo, of-ciclo, operacaoRoteiro | Texto/revisão fazem parte do roteiro aprovado e snapshot existente; não substitui gestão documental completa da H |
+| Leitura por setor da OF | Melhorado | ciclo-consultas, API ordens-fabricacao | Sem setores não vê detalhe; componentes, movimentos, apontamentos e operações limitados ao setor autorizado |
+| Ciclo com semiacabado | Já existia / ampliado | tests/ciclo-industrial.test.ts | Regressão completa inclui bloqueio herdado, cancelamento com reserva e tentativa com execução |

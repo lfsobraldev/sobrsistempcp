@@ -36,3 +36,9 @@ Validação manual do filtro/datas: no cabeçalho, escolha mês, dois filtros e 
 - **Cliente/representante fora do filtro central:** contrato URL/SQL e visões existentes ampliados; tabelas, totais e consultas recebem a mesma seleção. Migração ausente normalizada como aguardando migração.
 - **Preferência mensal perdia novos filtros:** salvar/restaurar/limpar passa a incluir clientes e representantes e reinicia a página na troca.
 - Auditoria e backlog por prioridade em AUDITORIA_GERAL; itens não confirmados por navegação real não foram declarados corrigidos.
+
+## Rodada B — controle da OF
+
+- Faltava impedimento de OF no ciclo integrado. Migração 13 adiciona bloqueio herdado e proteção em operação/apontamento/movimento sob o mesmo lock do ledger. Desbloqueio exige motivo e auditoria.
+- Cancelamento legado não trata filhas/reservas do ciclo. Ação própria no serviço existente recusa execução não estornada, libera reservas pelo ledger e cancela toda árvore, sem apagar dados.
+- Detalhe de OF para líder/apontador podia incluir outros setores. API passa permissões à consulta, restringindo operações, componentes, movimentos e apontamentos; vazio/diferente recusados.
