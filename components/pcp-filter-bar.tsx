@@ -1,7 +1,16 @@
 'use client';
 import type {FiltrosPCP} from '@/lib/pcp-filters';
+import MultiSelect from './multi-select';
 export type OpcoesPCP={filtros:string[];meses:string[];pedidos:string[];clientes?:{id:string;codigo:string;nome:string}[];representantes?:{id:string;codigo:string;nome:string}[]};
 export default function PCPFilterBar({filtros,opcoes,onChange,onClear}:{filtros:FiltrosPCP;opcoes:OpcoesPCP;onChange:(v:Partial<FiltrosPCP>)=>void;onClear:()=>void}){
- const valores=(select:HTMLSelectElement)=>Array.from(select.selectedOptions).map(o=>o.value).filter(Boolean);
- return <section className="cart-filters" aria-label="Filtros do PCP"><label>Mês<select value={filtros.mes} onChange={e=>onChange({mes:e.target.value})}><option value="SELECAO">Programação do cabeçalho</option><option value="ATIVO">Ativo</option><option value="TODOS">Todos os meses</option>{opcoes.meses.map(m=><option key={m}>{m}</option>)}</select></label><label>Filtros (seleção múltipla)<select multiple size={4} value={filtros.filtros.length?filtros.filtros:['']} onChange={e=>onChange({filtros:valores(e.target)})}><option value="">Todos</option>{opcoes.filtros.map(f=><option key={f}>{f}</option>)}</select></label><label>Pedidos (seleção múltipla)<select multiple size={4} value={filtros.pedidos.length?filtros.pedidos:['']} onChange={e=>onChange({pedidos:valores(e.target)})}><option value="">Todos</option>{opcoes.pedidos.map(p=><option key={p}>{p}</option>)}</select></label>{(['clientes','representantes'] as const).map(campo=><label key={campo}>{campo==='clientes'?'Clientes':'Representantes'}<select multiple size={4} value={filtros[campo].length?filtros[campo]:['']} onChange={e=>onChange({[campo]:valores(e.target)})}><option value="">Todos</option>{(opcoes[campo]||[]).map(c=><option key={c.id} value={c.id}>{c.nome} · {c.codigo||'sem código'}</option>)}</select></label>)}<button className="cart-btn" type="button" onClick={onClear}>Limpar filtros</button></section>;
+ const cs=(campo:'clientes'|'representantes')=>(opcoes[campo]||[]).map(c=>({value:c.id,label:`${c.nome} · ${c.codigo||'sem código'}`}));
+ const ativos=filtros.filtros.length+filtros.pedidos.length+filtros.clientes.length+filtros.representantes.length;
+ return <section className="cart-filters" aria-label="Filtros do PCP">
+  <label className="fb-field">Mês<select value={filtros.mes} onChange={e=>onChange({mes:e.target.value})}><option value="SELECAO">Programação do cabeçalho</option><option value="ATIVO">Ativo</option><option value="TODOS">Todos os meses</option>{opcoes.meses.map(m=><option key={m}>{m}</option>)}</select></label>
+  <MultiSelect label="Filtros" opcoes={opcoes.filtros.map(f=>({value:f,label:f}))} valores={filtros.filtros} onChange={v=>onChange({filtros:v})}/>
+  <MultiSelect label="Pedidos" opcoes={opcoes.pedidos.map(p=>({value:p,label:p}))} valores={filtros.pedidos} onChange={v=>onChange({pedidos:v})}/>
+  <MultiSelect label="Clientes" opcoes={cs('clientes')} valores={filtros.clientes} onChange={v=>onChange({clientes:v})}/>
+  <MultiSelect label="Representantes" opcoes={cs('representantes')} valores={filtros.representantes} onChange={v=>onChange({representantes:v})}/>
+  <button className="cart-btn fb-clear" type="button" onClick={onClear} disabled={!ativos}>Limpar{ativos?` (${ativos})`:''}</button>
+ </section>;
 }

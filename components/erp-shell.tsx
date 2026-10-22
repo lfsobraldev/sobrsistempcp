@@ -89,6 +89,13 @@ function Inner({ children }: { children: React.ReactNode }) {
   const [mobileNav, setMobileNav] = useState(false);
   const [query, setQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [gruposAbertos, setGruposAbertos] = useState<string[]>([]);
+  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("erp:nav") || "[]"); if (Array.isArray(v)) setGruposAbertos(v.filter((x) => typeof x === "string")); } catch { /* sem armazenamento */ } }, []);
+  const alternarGrupo = (rotulo: string) => setGruposAbertos((a) => {
+    const n = a.includes(rotulo) ? a.filter((x) => x !== rotulo) : [...a, rotulo];
+    try { localStorage.setItem("erp:nav", JSON.stringify(n)); } catch { /* ignora */ }
+    return n;
+  });
   const [programacoesGlobais, setProgramacoesGlobais] = useState<Array<{id:string;filtro:string;data:string;turno:string;status:string}>>([]);
 
   const visible = useMemo(
@@ -160,16 +167,17 @@ function Inner({ children }: { children: React.ReactNode }) {
     <div className={`shell ${collapsed ? "collapsed" : ""} ${mobileNav ? "mobileOpen" : ""}`}>
       <ResponsiveTables />
       <aside className="sidenav">
-        <div className="brand"><BrandLogo size={34} /><span className="brand-copy"><b>Sobral PCP</b><small>PCP Industrial</small></span></div>
         <div className="mobile-module-search search" role="search">
           <Search />
           <input aria-label="Buscar módulo" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") searchModule(); }} placeholder="Buscar módulo..." />
         </div>
         <nav aria-label="Navegação principal">
           {visible.map((g) => (
-            <section key={g.label} className="navgroup">
-              <label>{g.label}</label>
-              {g.items.map((item) => {
+            <section key={g.label} className={`navgroup ${(collapsed || gruposAbertos.includes(g.label) || g.items.some((i) => i.path === path)) ? "open" : ""}`}>
+              <button type="button" className="navgroup-head" aria-expanded={gruposAbertos.includes(g.label) || g.items.some((i) => i.path === path)} onClick={() => alternarGrupo(g.label)}>
+                <span>{g.label}</span><ChevronDown size={14} />
+              </button>
+              {(collapsed || gruposAbertos.includes(g.label) || g.items.some((i) => i.path === path)) && g.items.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link key={item.path} href={item.path+"?"+recorteQuery} className={`navlink ${path === item.path ? "active" : ""}`} title={collapsed ? item.label : undefined} aria-current={path === item.path ? "page" : undefined}>
@@ -190,6 +198,7 @@ function Inner({ children }: { children: React.ReactNode }) {
       {mobileNav && <button className="backdrop" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
 
       <header className="topbar2">
+        <Link href="/dashboard" className="shellbar-brand" aria-label="Sobral PCP, ir para o início"><BrandLogo size={30} /><span><b>Sobral PCP</b><small>Gestão industrial</small></span></Link>
         <button className="ghost iconBtn menubtn" onClick={() => setMobileNav(true)} aria-label="Abrir menu"><Menu /></button>
         <button className="ghost iconBtn" onClick={() => setCollapsed((v) => !v)} aria-label="Recolher menu" style={{ display: undefined }}>
           {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
