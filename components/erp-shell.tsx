@@ -51,6 +51,7 @@ const menus: MenuGroup[] = [
   {
     label: "Expedição e Entregas",
     items: [
+      { path: "/expedicao", label: "Remessas e Devoluções", icon: Truck },
       { path: "/romaneios", label: "Romaneios", icon: Boxes },
       { path: "/apontamento-entregas", label: "Apontamento de Entregas", icon: Truck },
     ],
