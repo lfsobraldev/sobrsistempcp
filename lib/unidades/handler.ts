@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { multiAtiva } from './core';
+import { multiAtiva,validarUnidadeConsulta } from './core';
 import { contextoUnidade } from './context';
 import { estadoUnidades,verificarBanco } from './access';
 export function unidadeHandler<A extends unknown[]>(handler:(req:Request,...args:A)=>Promise<Response>){
@@ -8,6 +8,7 @@ export function unidadeHandler<A extends unknown[]>(handler:(req:Request,...args
   try{
    const estado=await estadoUnidades();
    if(!estado.selecionada)return NextResponse.json({error:'Selecione uma unidade autorizada para continuar.',codigo:'UNIDADE_OBRIGATORIA'},{status:409});
+   validarUnidadeConsulta(estado.selecionada,new URL(req.url).searchParams);
    await verificarBanco(estado.selecionada);
    return await contextoUnidade.run({unidade:estado.selecionada,usuario:estado.sessao.usuario},()=>handler(req,...args));
   }catch(e){

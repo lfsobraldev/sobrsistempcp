@@ -36,3 +36,17 @@ O histórico acima está preservado; as entregas posteriores implementaram unida
 - Próximo grupo: Blocos 2/3 em outra branch, mantendo os componentes e APIs existentes; status mensal e navegação por unidade ainda precisam ser evoluídos.
 
 - Validação do incremento B1: 133 testes passaram; TypeScript e build aprovados. Branch enviada pelo conector GitHub após falha de autenticação do git push; o link acima é para abrir PR, não um PR já criado. Auto-deploy desativado em vercel.json para ambas as branches Master.
+
+
+### Grupo 2/3 — incremento de unidades e competências
+
+- Branch `erp-master-b23-unidades-meses`, baseada na branch B1 (`erp-master-b1-filtros`), sem merge/deploy. Revisar B1 antes; o segundo link inclui as mudanças do primeiro enquanto ele não for integrado.
+- PR pendente de abertura: https://github.com/lfsobraldev/sobrsistempcp/pull/new/erp-master-b23-unidades-meses
+- Novas entradas `/pcp/{sul,nordeste,consolidado}`, `/apontamento/{sul,nordeste,consolidado}` e `/estoque/{sul,nordeste,consolidado}` reaproveitam telas e autorização. Consolidado ainda é o resumo geral de gestão existente, sem nova tabela detalhada por módulo; esta parte do Bloco 2 permanece pendente.
+- URL de consulta com unidade diferente da selecionada é recusada no servidor. Troca de unidade descarta a query antiga para não reaproveitar IDs/filtros da outra fonte.
+- Migração 08 somente gerada: competências ATIVO/PLANEJADO/ENCERRADO, vínculo empresa/filial, ativo único por filial, ativação/encerramento auditados e lotes protegidos em mês encerrado. Lotes futuros nascem planejados. Schema e dados reais não foram consultados nem alterados.
+- Flag nova `ERP_PROGRAMACAO_STATUS=enabled`, desligada por padrão; ativar somente depois de o administrador aplicar a 08 em cada banco operacional. Sem flag, o fluxo mensal anterior continua. Flag ligada sem schema mostra Módulo aguardando migração.
+- Programação mensal: filtro por pedidos, separação explícita de status em lista/cartões/gráfico/exportação, ações de ativar/encerrar, filtros salvos com estado e pedidos. Assistente de importação e reversão existentes preservados; navegação de assistente em passos e URL unificada da tela mensal ainda pendentes.
+- Validação do grupo: 135 testes locais passaram; TypeScript e build aprovados. Envio pelo conector GitHub porque o terminal não tem credenciais de push.
+- O primeiro envio de B1 acionou um preview automático (`dpl_FYK5rdbEC6CbK56CQT2VbRicMz5C`), cancelado antes da conclusão. `vercel.json` agora bloqueia auto-deploy das duas branches. Nenhum deploy de produção neste trabalho.
+- Próximos incrementos: terminar adoção do recorte nas demais telas do Bloco 1; consolidado detalhado e assistente/URL mensal do grupo 2/3; depois engenharia/roteiros/OF e consumo por operação (Blocos 4–6) em nova branch. Não anunciar esses blocos concluídos.

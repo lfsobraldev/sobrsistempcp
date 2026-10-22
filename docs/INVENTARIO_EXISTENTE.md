@@ -44,3 +44,11 @@ As páginas mensais originais eram demonstrações estáticas. Foram substituíd
 | Visão geral por data | melhorado | `app/api/pcp/painel/route.ts`, `app/(erp)/pcp-painel/page.tsx` | Produtos e operações do mesmo recorte, sem limitar à última programação |
 | Data civil e precisão do apontamento | melhorado | `lib/carteira.ts`, `lib/apontamento.ts`, `tests/pcp-filtros-master.test.ts` | Fuso explícito e até três casas decimais |
 | Concorrência da seleção e OF congelada | melhorado | `components/operational-provider.tsx`, `app/api/programacoes/ativa/route.ts` | Descarte de resposta obsoleta; preservação de roteiros em programações com OF |
+
+
+| Item | Situação | Arquivos | Observação |
+| --- | --- | --- | --- |
+| Entradas de módulo por unidade | melhorado | `app/(erp)/pcp/[unidade]`, `apontamento/[unidade]`, `estoque/[unidade]`, páginas mensais Sul/Nordeste existentes, `lib/unidades/module-page.tsx` | Reutiliza páginas existentes; valida perfil/grants no servidor antes de selecionar a unidade. Consolidado detalhado ainda pendente |
+| Validação de unidade em consulta | melhorado | `lib/unidades/core.ts`, `handler.ts`, seletor | URL não muda fonte; troca elimina query antiga |
+| Situação da competência mensal | criado | migração 08, `lib/programacao-mensal-service.ts`, API e componente mensal existentes | Conceito não existia: lotes tinham status próprio, distinto de mês ativo/planejado/encerrado. Sem tabela de programação paralela |
+| Filtros mensais por pedido e status | melhorado | `lib/programacao-mensal.ts`, service e componente mensal | Mesmos filtros alcançam lista, totais, gráfico e exportação |

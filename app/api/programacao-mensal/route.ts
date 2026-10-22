@@ -9,8 +9,8 @@ export const maxDuration = 60;
 function erro(e: unknown) {
   console.error('[PROGRAMACAO_MENSAL]',e);
   const msg = e instanceof Error ? e.message : "Falha na programação mensal";
-  const status = msg==='SEM_PERMISSAO'?403:e instanceof z.ZodError?400:/relation .* does not exist/.test(msg)?503:400;
-  return NextResponse.json({error:status===403?'Sem permissão para esta unidade.':status===503?'Programação mensal ainda não instalada. Aplique a fundação e a migração 03 no ambiente correto. Nenhum dado foi alterado.':msg},{status,headers:{'Cache-Control':'no-store'}});
+  const status = msg==='SEM_PERMISSAO'?403:e instanceof z.ZodError?400:/relation .* does not exist|function .* does not exist|MIGRACAO_COMPETENCIAS_PENDENTE/.test(msg)?503:400;
+  return NextResponse.json({error:status===403?'Sem permissão para esta unidade.':status===503?'Módulo aguardando migração':msg},{status,headers:{'Cache-Control':'no-store'}});
 }
 async function unidadeGET(req: Request) {
  try {
@@ -18,10 +18,10 @@ async function unidadeGET(req: Request) {
    const {filiais}=await acessoMensal();
    return NextResponse.json({filiais},{headers:{"Cache-Control":"no-store"}});
   }
-  const {q,rows,resumo,mensal,opcoes,lotes,pagina,porPagina,podeImportar,sessao,db} = await consultarMensal(req);
+  const {q,rows,resumo,mensal,opcoes,lotes,competencias,opcoesPedidos,estadosHabilitados,pagina,porPagina,podeImportar,sessao,db} = await consultarMensal(req);
   if(q.formato) {
    if(rows.length>10000) return NextResponse.json({error:'Exportação limitada a 10.000 linhas. Refine os filtros.'},{status:422});
-   await db`insert into pcp_auditoria_global(ator,acao,entidade,depois) values(${sessao.usuario},'EXPORTAR','PROGRAMACAO_MENSAL',${JSON.stringify({unidade:q.unidade,mes:q.mes,linhas:rows.length,formato:q.formato})}::jsonb)`;
+   await db`insert into pcp_auditoria_global(ator,acao,entidade,depois) values(${sessao.usuario},'EXPORTAR','PROGRAMACAO_MENSAL',${JSON.stringify({unidade:q.unidade,mes:q.mes,estado:q.estado,pedidos:q.pedidos,linhas:rows.length,formato:q.formato})}::jsonb)`;
    const dados = rows.map(r=>({Unidade:r.unidade,Competencia:String(r.competencia).slice(0,7),Filtro:r.filtro,Pedido:r.pedido,Item:r.item,Produto:r.produto,Descricao:r.descricao,Quantidade:Number(r.quantidade),Data:r.data,Origem:r.origem}));
    if(q.formato==='csv') {
     const csv='\uFEFF'+[Object.keys(dados[0]??{Unidade:''}).map(csvSeguro).join(';'),...dados.map(r=>Object.values(r).map(csvSeguro).join(';'))].join('\r\n');
@@ -30,7 +30,7 @@ async function unidadeGET(req: Request) {
    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(dados),'Programacao');
    return new Response(new Uint8Array(XLSX.write(wb,{type:'buffer',bookType:'xlsx'})),{headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','Content-Disposition':'attachment; filename="programacao.xlsx"','Cache-Control':'no-store'}});
   }
-  return NextResponse.json({rows,resumo,mensal,opcoes,lotes,pagina,porPagina,podeImportar},{headers:{'Cache-Control':'no-store'}});
+  return NextResponse.json({rows,resumo,mensal,opcoes,lotes,competencias,opcoesPedidos,estadosHabilitados,pagina,porPagina,podeImportar},{headers:{'Cache-Control':'no-store'}});
  }catch(e){return erro(e);}
 }
 async function unidadePOST(req: Request) {
@@ -43,7 +43,13 @@ async function unidadePOST(req: Request) {
   const ids=selecionarFiliais(filiais,unidade);
   const filialId=z.string().uuid().parse(fd.get('filialId'));
   if(!ids.includes(filialId)) throw new Error('SEM_PERMISSAO');
-  const acao=z.enum(['PREVIA','CONFIRMAR','DESFAZER']).parse(fd.get('acao'));
+  const acao=z.enum(['PREVIA','CONFIRMAR','DESFAZER','ATIVAR_MES','ENCERRAR_MES']).parse(fd.get('acao'));
+  if(acao==='ATIVAR_MES'||acao==='ENCERRAR_MES'){
+   if(process.env.ERP_PROGRAMACAO_STATUS!=='enabled')return NextResponse.json({error:'Controle de competências desabilitado.'},{status:409});
+   const mes=mesSchema.parse(fd.get('mes'));
+   const [r]=await db`select pcp_transicionar_competencia(${filialId}::uuid,${mes+'-01'}::date,${acao==='ATIVAR_MES'?'ATIVO':'ENCERRADO'},${sessao.usuario}) resultado`;
+   return NextResponse.json(r.resultado);
+  }
   if(acao==='DESFAZER') {
    const id=z.string().uuid().parse(fd.get('id'));
    const [l]=await db`select filial_id from pcp_programacao_lotes where id=${id}::uuid`;

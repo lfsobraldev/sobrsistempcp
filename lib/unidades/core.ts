@@ -26,3 +26,8 @@ export function verificarUnidade(token:string|undefined,usuario:string,secret:st
  return j.usuario===usuario&&j.expira>agora&&j.expira<=agora+12*60*60*1000?j.unidade:null;
  }catch{return null;}
 }
+
+export function validarUnidadeConsulta(selecionada:Unidade,params:URLSearchParams){
+ const solicitada=params.get('unidade');
+ if(solicitada&&solicitada!==selecionada)throw new Error('SEM_PERMISSAO');
+}

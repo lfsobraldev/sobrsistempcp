@@ -44,3 +44,14 @@
 | Metas e capacidade continuam globais por setor | O cadastro não atribui meta a pedido ou filtro | Evoluir cadastro e versionar política antes de distribuir metas proporcionalmente |
 | Perdas sem operação não entram no recorte de pedidos | Não há vínculo confiável para rateio | Corrigir vínculo na origem ou exibir painel separado de perdas sem atribuição |
 | Não reparar automaticamente roteiro de programação que já possui OF formal | Proteger snapshot, status e quantidades contra escrita durante consulta | Implementar migração explícita de roteiros com validação/auditoria; não reativar reparo automático em OF congelada |
+
+
+## Prompt Master — competências e unidades
+
+| Suposição | Motivo | Como reverter |
+| --- | --- | --- |
+| Um mês ativo por filial; ativar próximo encerra anterior | Padrão simples para separar demanda ativa e planejada | Evoluir política em migração futura antes de aceitar mais de um ativo |
+| Competência do legado ativo segue a data real da programação ATIVA; outros meses existentes começam planejados | Preservar dados sem inventar encerramento de históricos; nenhuma atribuição nova de unidade | Administrador revisa e ativa/encerra os meses depois da aplicação; não renomear competência |
+| Importação nova cria competência PLANEJADA; encerrado bloqueia alteração de lotes | Evitar misturar futuro em totais ativos e preservar documentos fechados | Fluxo de reabertura específico, autorizado e auditado, a implementar; não editar status diretamente |
+| Entradas por unidade selecionam a fonte autorizada e reaproveitam os mesmos componentes | Evitar módulos/tabelas Sul e Nordeste duplicados | Acessar a rota geral do módulo com seletor global; grants do servidor continuam obrigatórios |
+| Consolidado por módulo começa pelo resumo de gestão existente | Não misturar saldos de produtos/unidades de medida diferentes nem inventar correspondência entre cadastros | Implementar tabela detalhada com identificação de origem e regras de agregação explícitas em incremento próprio |
