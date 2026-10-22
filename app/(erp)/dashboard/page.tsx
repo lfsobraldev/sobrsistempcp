@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   AlertTriangle,
-  BrainCircuit,
+  Activity,
   Boxes,
   CalendarClock,
   CheckCircle2,
@@ -271,13 +271,13 @@ export default function Dashboard() {
       </Card>
 
       <Card
-        subtitle="Inteligência operacional"
+        subtitle="Sinais da operação"
         title="O que merece atenção agora"
         className="smart-brief"
         actions={<Badge tone={inteligencia.acoes.some((a) => a.nivel === "critico") ? "danger" : inteligencia.acoes.some((a) => a.nivel === "atencao") ? "warning" : "success"}>{inteligencia.acoes.length} sinal(is)</Badge>}
       >
         <div className="smart-brief-grid">
-          <div className="smart-brief-icon"><BrainCircuit /></div>
+          <div className="smart-brief-icon"><Activity /></div>
           <div className="smart-brief-list">
             {inteligencia.acoes.length ? inteligencia.acoes.slice(0, 6).map((a, i) => (
               <div className={`smart-signal smart-${a.nivel}`} key={`${a.titulo}-${i}`}>

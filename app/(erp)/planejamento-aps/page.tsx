@@ -129,7 +129,7 @@ export default function PlanejamentoApsPage() {
                   return (
                     <div key={o.id} style={{ display: "flex", alignItems: "center", height: 36, borderTop: "1px solid var(--border)" }}>
                       <div style={{ width: 180, flex: "0 0 180px", padding: "0 8px", fontSize: 12, position: "sticky", left: 0, background: "var(--surface)", zIndex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        <b>OF {o.numero}</b> {o.produto} {o.fixa && <span title="Data fixa">📌</span>}
+                        <b>OF {o.numero}</b> {o.produto} {o.fixa && <span title="Data fixa" className="pin-fixa">fixa</span>}
                       </div>
                       <div style={{ position: "relative", height: 36, width: dias * COLW }}>
                         <div title={`Prazo ${dataPt(o.prazo)}`} style={{ position: "absolute", left: prazo * COLW + COLW / 2, top: 4, bottom: 4, width: 2, background: "var(--text-3)" }} />
