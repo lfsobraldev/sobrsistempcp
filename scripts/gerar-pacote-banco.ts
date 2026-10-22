@@ -24,7 +24,8 @@ const descricoes:Record<string,string>={
  '10_ciclo_industrial':'Roteiros/versões, OF filhas/snapshot/reservas, apontamentos, ledger, lotes e custos',
  '11_transferencias_unidades':'Documento central de transferência em trânsito entre bancos',
  '12_identidades_operacionais':'Códigos mestres e resolução unificada de cliente/representante nos documentos',
- '13_controle_of':'Bloqueio herdado e cancelamento da árvore com liberação de reservas'
+ '13_controle_of':'Bloqueio herdado e cancelamento da árvore com liberação de reservas',
+ '14_vendas_comissoes':'Pedidos de venda, aprovação/crédito, regras e ledger imutável de comissões'
 };
 const literal=(s:string)=>"'"+s.replaceAll("'","''")+"'";
 function objetos(m:MigrationSource){return [...new Set([...m.up.matchAll(/create\s+(?:or\s+replace\s+)?(?:table\s+(?:if\s+not\s+exists\s+)?|view\s+)([a-z_][a-z0-9_]*)/gi)].map(x=>x[1]))];}

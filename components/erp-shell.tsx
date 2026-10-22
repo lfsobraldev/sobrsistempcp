@@ -24,6 +24,7 @@ const menus: MenuGroup[] = [
   { label: "Comercial", items: [
     { path: "/marketing", label: "Marketing", icon: Briefcase },
     { path: "/comercial", label: "CRM Comercial", icon: Briefcase },
+    { path: "/vendas", label: "Pedidos de Venda", icon: ClipboardList },
     { path: "/gestao-pedidos", label: "Pedidos e Entregas", icon: Truck },
   ] },
   { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: ClipboardList }, { path: "/medicoes", label: "Medições e Aprovação", icon: ClipboardCheck }] },

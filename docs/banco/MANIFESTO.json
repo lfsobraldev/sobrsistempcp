@@ -749,6 +749,40 @@
       "verificacao": "23_2026-10-22_13_controle_of.verify.sql",
       "down": "23_2026-10-22_13_controle_of.down.sql",
       "baseline": "23_2026-10-22_13_controle_of.baseline.sql"
+    },
+    {
+      "ordem": 24,
+      "arquivo": "2026-10-23_14_vendas_comissoes.sql",
+      "descricao": "Pedidos de venda, aprovação/crédito, regras e ledger imutável de comissões",
+      "dependenciasDeclaradas": [
+        "2026-10-22_12_identidades_operacionais.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "7996495c3b74be52764727a172da79bc2779328b38b5cd04d73833d00bf44565",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "crm_pedidos_venda",
+        "crm_pedido_venda_itens",
+        "crm_pedido_venda_historico",
+        "crm_comissao_regras",
+        "crm_comissoes"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "crm_clientes",
+          "coluna": "limite_credito"
+        },
+        {
+          "tabela": "crm_clientes",
+          "coluna": "condicao_pagamento"
+        }
+      ],
+      "up": "24_2026-10-23_14_vendas_comissoes.up.sql",
+      "verificacao": "24_2026-10-23_14_vendas_comissoes.verify.sql",
+      "down": "24_2026-10-23_14_vendas_comissoes.down.sql",
+      "baseline": "24_2026-10-23_14_vendas_comissoes.baseline.sql"
     }
   ]
 }
