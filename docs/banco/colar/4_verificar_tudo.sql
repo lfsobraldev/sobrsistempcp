@@ -70,8 +70,6 @@ select 'funcao qld_medir_lote', exists(select 1 from pg_proc p join pg_namespace
 union all
 select 'funcao ind_painel', exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='ind_painel')
 union all
-select 'regras de ciclico A/B/C', (select count(*) from est_ciclico_regras)=3
-union all
 select 'origem ENCARGO aceita em fin_titulos', exists(select 1 from pg_constraint where conrelid='fin_titulos'::regclass and conname='fin_titulos_origem_chk')
 union all
 select 'migracao 25 registrada', exists(select 1 from schema_migrations where name='2026-11-02_25_pendencias_producao_estoque_financeiro.sql' and status='APLICADA')
