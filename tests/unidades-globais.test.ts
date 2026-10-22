@@ -49,7 +49,7 @@ test('QR novo vincula unidade e rejeita troca de unidade sem invalidar QR legado
  assert.equal(verificarTokenRastreioUnidade(antigo,'segredo'),null);
 });
 test('todas as APIs operacionais possuem barreira de unidade e exceções são explícitas',async()=>{
- const exceptions=new Set(['me/route.ts','auth/login/route.ts','auth/logout/route.ts','unidades/route.ts','unidades/consolidado/route.ts','pallets/public-tracking/route.ts','expedicao/portal/route.ts','v1/[recurso]/route.ts','ia/whatsapp/route.ts','admin/migracoes/route.ts','admin/usuarios/route.ts']);
+ const exceptions=new Set(['me/route.ts','auth/login/route.ts','auth/logout/route.ts','unidades/route.ts','unidades/consolidado/route.ts','pallets/public-tracking/route.ts','expedicao/portal/route.ts','v1/[recurso]/route.ts','compras/portal/route.ts','cron/rotinas/route.ts','ia/whatsapp/route.ts','admin/migracoes/route.ts','admin/usuarios/route.ts']);
  async function files(dir:string):Promise<string[]>{const rows=await readdir(dir,{withFileTypes:true});return(await Promise.all(rows.map(r=>r.isDirectory()?files(path.join(dir,r.name)):Promise.resolve([path.join(dir,r.name)])))).flat();}
  for(const file of await files('app/api')){if(!file.endsWith('/route.ts'))continue;const relative=file.slice('app/api/'.length);if(exceptions.has(relative))continue;
  const source=await readFile(file,'utf8');assert.match(source,/unidadeHandler/,'API sem isolamento: '+relative);

@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { unidadeAtual } from "@/lib/unidades/context";
+import { gerarTokenPortal } from "@/lib/integracoes";
 import { agruparPorFornecedor, conferirNfe, lerNfeXml, melhorProposta, perfilExigido, podeAprovar, totalPC, type Alcada } from "@/lib/compras";
 
 export const runtime = "nodejs";
@@ -158,6 +160,15 @@ async function unidadePOST(req: Request) {
       const emitenteConfere = !forn?.documento || digitos(forn.documento) === digitos(nfe.emitenteDocumento);
       const [dup] = await q(`select 1 x from cmp_recebimentos where chave_nfe=$1`, [nfe.chave]);
       return NextResponse.json({ nfe, emitenteConfere, jaRecebida: !!dup, conferencia: conferirNfe(nfe, itens.map((i) => ({ linha: i.linha, codigo: i.codigo, pendente: Number(i.pendente), precoUnitario: Number(i.preco_unitario) }))) });
+    }
+    if (acao === "PORTAL_LINK") {
+      const pedidoId = need(clean(b.pedidoId, 40), "Pedido inválido.");
+      const [pc] = await q("select status from cmp_pedidos where id=$1::uuid", [pedidoId]);
+      if (!pc || !["APROVADO", "PARCIAL"].includes(pc.status)) throw new Error("O link só é gerado para pedido aprovado.");
+      const t = gerarTokenPortal(unidadeAtual() ?? "SUL");
+      await q("update cmp_portal_tokens set revogado_em=now() where pedido_id=$1::uuid and revogado_em is null", [pedidoId]);
+      await q("insert into cmp_portal_tokens(pedido_id,token_hash,expira_em,criado_por) values($1::uuid,$2,now()+interval '30 days',$3)", [pedidoId, t.hash, user.usuario]);
+      return NextResponse.json({ ok: true, caminho: `/portal-fornecedor?t=${t.token}`, aviso: "Envie este link ao fornecedor. Vale por 30 dias e o link anterior deixa de funcionar." });
     }
     if (acao === "RECEBER") {
       const itens = (Array.isArray(b.itens) ? b.itens : []).map((i: any) => ({ linha: Number(i.linha), quantidade: Number(i.quantidade), precoNf: i.precoNf == null || i.precoNf === "" ? null : Number(i.precoNf) }));

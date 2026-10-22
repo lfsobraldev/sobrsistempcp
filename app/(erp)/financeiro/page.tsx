@@ -82,7 +82,7 @@ export default function FinanceiroPage() {
               <tr key={t.id}><td data-label="Nº">{t.numero}</td><td data-label="Tipo"><Badge tone={t.tipo === "RECEBER" ? "success" : "warning"}>{t.tipo}</Badge></td><td data-label="Parceiro">{t.parceiro}</td><td data-label="Descrição">{t.descricao}</td>
                 <td data-label="Venc.">{dataPt(t.vencimento)}{["ABERTO", "PARCIAL"].includes(t.status) && t.vencimento < hojeIso() && <Badge tone="danger">vencido</Badge>}</td><td data-label="Valor">{brl(t.valor)}</td><td data-label="Saldo">{brl(Number(t.valor) - Number(t.valor_baixado))}</td><td data-label="Status"><Badge tone={tom[t.status] ?? "neutral"}>{t.status}</Badge></td>
                 <td className="actions">
-                  {["ABERTO", "PARCIAL"].includes(t.status) && <button className="primary" onClick={() => setBaixa({ t, contaId: d!.contas[0]?.id ?? "", valor: String(Number(t.valor) - Number(t.valor_baixado)), data: hojeIso() })}>Baixar</button>}
+                  {["ABERTO", "PARCIAL"].includes(t.status) && <button className="primary" onClick={() => setBaixa({ t, contaId: d!.contas[0]?.id ?? "", valor: String(Number(t.valor) - Number(t.valor_baixado)), data: hojeIso(), juros: "0", multa: "0", desconto: "0" })}>Baixar</button>}
                   {t.tipo === "RECEBER" && ["ABERTO", "PARCIAL"].includes(t.status) && d!.contas[0] && <button className="crm-secondary" onClick={() => api(`/api/financeiro?pix=${t.id}&conta=${d!.contas[0].id}`).then((j) => setPix(j.copiaECola)).catch((e) => setErro(e.message))}>PIX</button>}
                   {t.status === "ABERTO" && <button className="crm-secondary" disabled={busy} onClick={() => run(() => post({ acao: "CANCELAR", tituloId: t.id }), "Título cancelado.")}>Cancelar</button>}</td></tr>
             ))}
@@ -220,11 +220,16 @@ export default function FinanceiroPage() {
         </Panel>
       </>)}
 
-      <Modal open={!!baixa} onClose={() => setBaixa(null)} title={baixa ? `Baixar título ${baixa.t.numero}` : ""} footer={<button className="primary" disabled={busy} onClick={() => run(async () => { await post({ acao: "BAIXAR", tituloId: baixa!.t.id, contaId: baixa!.contaId, valor: baixa!.valor, data: baixa!.data }); setBaixa(null); }, "Baixa registrada.")}>Confirmar baixa</button>}>
+      <Modal open={!!baixa} onClose={() => setBaixa(null)} title={baixa ? `Baixar título ${baixa.t.numero}` : ""} footer={<button className="primary" disabled={busy} onClick={() => run(async () => { await post({ acao: "BAIXAR_COMPLETO", tituloId: baixa!.t.id, contaId: baixa!.contaId, valor: baixa!.valor, juros: baixa!.juros, multa: baixa!.multa, desconto: baixa!.desconto, data: baixa!.data }); setBaixa(null); }, "Baixa registrada.")}>Confirmar baixa</button>}>
         {baixa && (<div className="formGrid">
           <Field label="Conta"><select value={baixa.contaId} onChange={(e) => setBaixa({ ...baixa, contaId: e.target.value })}>{(d?.contas ?? []).map((c: Row) => <option key={c.id} value={c.id}>{c.nome}</option>)}</select></Field>
           <Field label="Valor"><input inputMode="decimal" value={baixa.valor} onChange={(e) => setBaixa({ ...baixa, valor: e.target.value })} /></Field>
           <Field label="Data"><input type="date" value={baixa.data} onChange={(e) => setBaixa({ ...baixa, data: e.target.value })} /></Field>
+          <Field label="Juros"><input inputMode="decimal" value={baixa.juros} onChange={(e) => setBaixa({ ...baixa, juros: e.target.value })} /></Field>
+          <Field label="Multa"><input inputMode="decimal" value={baixa.multa} onChange={(e) => setBaixa({ ...baixa, multa: e.target.value })} /></Field>
+          <Field label="Desconto" hint="reduz o valor do título"><input inputMode="decimal" value={baixa.desconto} onChange={(e) => setBaixa({ ...baixa, desconto: e.target.value })} /></Field>
+          <button className="crm-secondary" type="button" disabled={busy} onClick={() => run(async () => { const j = await post({ acao: "ENCARGOS", tituloId: baixa!.t.id, data: baixa!.data }); const sg = j.sugestao; setBaixa({ ...baixa!, juros: String(sg.juros), multa: String(sg.multa) }); setOk(sg.dias_atraso > 0 ? `${sg.dias_atraso} dia(s) de atraso: multa 2% + juros 1% ao mês sugeridos.` : "Título em dia: sem encargos."); }, "")}>Sugerir encargos</button>
+          <div className="muted">Total em caixa: <b>{brl(["valor", "juros", "multa"].reduce((a, k) => a + (Number(String(baixa[k]).replace(",", ".")) || 0), 0))}</b></div>
         </div>)}
       </Modal>
       <Modal open={!!novo} onClose={() => setNovo(null)} title="Novo título manual" footer={<button className="primary" disabled={busy} onClick={() => run(async () => { await post({ acao: "TITULO", ...novo }); setNovo(null); }, "Título criado.")}>Criar</button>}>

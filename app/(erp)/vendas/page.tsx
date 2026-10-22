@@ -153,6 +153,17 @@ export default function VendasPage() {
             <div>Total: <b>{brl(p.total)}</b> · Faturado: <b>{brl(p.faturado_valor)}</b> · Recebido: <b>{brl(p.recebido_valor)}</b> · Devolvido: <b>{brl(p.devolvido_valor)}</b></div>
             {nec && nec.length > 0 && (
               <div><b>Necessidade de produção</b>
+                {["PCP", "GERENTE", "ENCARREGADO"].includes(me?.perfil || "") && ["APROVADO", "EM_PRODUCAO", "PARCIAL"].includes(st || "") && nec.some((n) => n.situacao === "PRODUZIR") && (
+                  <button className="primary" disabled={busy} onClick={async () => {
+                    setBusy(true); setErro(""); setOk("");
+                    try {
+                      const j = await api("/api/vendas/pedidos", { acao: "GERAR_OFS", id: p!.id });
+                      const g = (j.resultado as Row[]).filter((r) => r.resultado === "GERADA").length, e = (j.resultado as Row[]).filter((r) => String(r.resultado).startsWith("ERRO"));
+                      setOk(`${g} OF gerada(s).`); if (e.length) setErro(e.map((r) => `Linha ${r.linha}: ${r.resultado}`).join(" · "));
+                      await carregar(); await abrir(p!.id as string);
+                    } catch (er) { setErro(er instanceof Error ? er.message : "Falha ao gerar as OFs."); } finally { setBusy(false); }
+                  }}>Gerar OFs do pedido</button>
+                )}
                 <DataTable head={["#", "Item", "Pedido", "Em OF", "Saldo livre", "Produzir", "Situação"]}>
                   {nec.map((n) => <tr key={n.linha}><td data-label="#">{n.linha}</td><td data-label="Item">{n.item_codigo || n.descricao}</td><td data-label="Pedido">{Number(n.quantidade)}</td><td data-label="Em OF">{Number(n.em_of)}</td><td data-label="Saldo livre">{Number(n.saldo_livre)}</td><td data-label="Produzir">{Number(n.falta_producao)}</td><td data-label="Situação"><Badge tone={n.situacao === "COBERTO" ? "success" : n.situacao === "PRODUZIR" ? "warning" : "neutral"}>{n.situacao === "COBERTO" ? "Coberto" : n.situacao === "PRODUZIR" ? "Programar" : "Sem produto no estoque"}</Badge></td></tr>)}
                 </DataTable>

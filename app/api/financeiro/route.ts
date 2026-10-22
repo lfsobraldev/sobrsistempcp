@@ -101,6 +101,12 @@ async function unidadePOST(req: Request) {
       return NextResponse.json({ ok: true, id: r.id });
     } else if (acao === "BAIXAR") {
       await q(`select fin_baixar($1::uuid,$2::uuid,$3::date,$4::numeric,null,$5)`, [need(clean(b.tituloId, 40), "Título inválido."), need(clean(b.contaId, 40), "Selecione a conta."), clean(b.data, 10) ? data(b.data, "Data inválida.") : hoje(), money(b.valor, "Valor inválido."), ator]);
+    } else if (acao === "ENCARGOS") {
+      const [r] = await q(`select * from fin_encargos_sugeridos($1::uuid,$2::date,$3::numeric,$4::numeric)`, [need(clean(b.tituloId, 40), "Título inválido."), clean(b.data, 10) ? data(b.data, "Data inválida.") : hoje(), Math.min(10, Math.max(0, Number(b.multaPct ?? 2) || 0)), Math.min(10, Math.max(0, Number(b.jurosMesPct ?? 1) || 0))]);
+      return NextResponse.json({ ok: true, sugestao: r });
+    } else if (acao === "BAIXAR_COMPLETO") {
+      const nn = (v: unknown) => { const n = Number(String(v ?? 0).replace(",", ".")); if (!Number.isFinite(n) || n < 0) throw new Error("Valor inválido."); return Math.round(n * 100) / 100; };
+      await q(`select fin_baixar_completo($1::uuid,$2::uuid,$3::date,$4::numeric,$5::numeric,$6::numeric,$7::numeric,null,$8)`, [need(clean(b.tituloId, 40), "Título inválido."), need(clean(b.contaId, 40), "Selecione a conta."), clean(b.data, 10) ? data(b.data, "Data inválida.") : hoje(), nn(b.valor), nn(b.juros), nn(b.multa), nn(b.desconto), ator]);
     } else if (acao === "ESTORNAR_BAIXA") {
       await q(`select fin_estornar_baixa($1::uuid,$2)`, [need(clean(b.baixaId, 40), "Baixa inválida."), ator]);
     } else if (acao === "CANCELAR") {
