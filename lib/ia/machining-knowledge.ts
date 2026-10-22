@@ -50,7 +50,7 @@ MANUAL DE USINAGEM E PROCESSOS DA FÁBRICA
 - Para pernas de batente, ausência de uma dessas operações é divergência de rota.
 - Para travessas, presença automática de DOBRADIÇAS/CONTRATESTA é suspeita.
 - No romaneio, quando houver dados de mão, a ordem operacional de referência é:
-  Dobradiça Direita -> Contratesta Direita -> Dobradiça Esquerda -> Contratesta Esquerda.
+  Dobradiça Direita -> Dobradiça Esquerda -> Contratesta Direita -> Contratesta Esquerda -> Travessas.
 - Nunca criar quantidade de mão direita/esquerda por divisão matemática ou suposição.
 
 7. RECOBRIDORAS

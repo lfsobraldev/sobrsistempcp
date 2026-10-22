@@ -28,7 +28,7 @@ async function unidadeGET(req: Request) {
     const recorte = recortePCP(filtros);
     const base = `from pcp_produtos p join pcp_programacoes g on g.id=p.programacao_id where ${recorte.sql}`;
     const opcoesRows = await db.query(OPCOES_PCP_SQL);
-    const opcoes = await opcoesPCP(db);
+    const opcoes = await opcoesPCP(db,filtros.mes);
     const [tCtl, tPed, tPerdas, tMetas, , tAndon] = await Promise.all(["pcp_controle_entregas", "pcp_pedido_controle", "pcp_perdas_producao", "pcp_metas_maquina", "pcp_producao_diaria_maquina", "pcp_andon"].map((t) => existe(db, t)));
     const [ops, produtos, caps] = await Promise.all([
       db.query(`select o.id,o.produto_id,p.pedido,p.of,o.processo,o.sequencia,o.status,o.quantidade_planejada::float planejada,o.quantidade_produzida::float produzida,o.quantidade_refugo::float refugo,o.percentual::float percentual from pcp_operacoes o join pcp_produtos p on p.id=o.produto_id join pcp_programacoes g on g.id=p.programacao_id where ${recorte.sql}`, recorte.values),

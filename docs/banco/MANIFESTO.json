@@ -1140,6 +1140,336 @@
       "verificacao": "36_2026-11-03_26_sac_qualidade_oee.verify.sql",
       "down": "36_2026-11-03_26_sac_qualidade_oee.down.sql",
       "baseline": "36_2026-11-03_26_sac_qualidade_oee.baseline.sql"
+    },
+    {
+      "ordem": 37,
+      "arquivo": "2026-11-04_27_wms_revisoes_sobras.sql",
+      "descricao": "WMS: setores do armazém, localização de pallets, revisões de pedido que somam e subtraem, sobras, separação com conferência, recebimento e etiquetas",
+      "dependenciasDeclaradas": [
+        "2026-11-03_26_sac_qualidade_oee.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "7a68606915a4426f256b0f1f9a1413e179234743a826169b0fed9525709042e6",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "alto",
+      "objetos": [
+        "wms_setores",
+        "wms_pallet_posicoes",
+        "wms_pallet_movs",
+        "pcp_pedido_revisoes",
+        "pcp_pedido_revisao_itens",
+        "wms_sobras",
+        "wms_etiquetas",
+        "wms_picking_listas",
+        "wms_picking_itens",
+        "wms_recebimentos",
+        "wms_recebimento_itens",
+        "wms_v_revisoes_paradas",
+        "wms_v_mapa"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "est_enderecos",
+          "coluna": "setor_id"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "rua"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "modulo"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "nivel"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "tipo_posicao"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "capacidade_pallets"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "bloqueado"
+        },
+        {
+          "tabela": "est_enderecos",
+          "coluna": "motivo_bloqueio"
+        }
+      ],
+      "up": "37_2026-11-04_27_wms_revisoes_sobras.up.sql",
+      "verificacao": "37_2026-11-04_27_wms_revisoes_sobras.verify.sql",
+      "down": "37_2026-11-04_27_wms_revisoes_sobras.down.sql",
+      "baseline": "37_2026-11-04_27_wms_revisoes_sobras.baseline.sql"
+    },
+    {
+      "ordem": 38,
+      "arquivo": "2026-11-05_28_rh_ehs_projetos.sql",
+      "descricao": "RH (cargos, colaboradores, ponto, folha gerencial), EHS (ocorrências, EPI, treinamentos) e Projetos (tarefas, custos, orçamento)",
+      "dependenciasDeclaradas": [
+        "2026-11-04_27_wms_revisoes_sobras.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "1ea072a4844c5b994ac4b52ee50c3c8d15e97470707d498b691450128bef8af1",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "rh_cargos",
+        "rh_colaboradores",
+        "rh_ausencias",
+        "rh_ponto",
+        "rh_folha",
+        "ehs_ocorrencias",
+        "ehs_epis",
+        "ehs_epi_entregas",
+        "ehs_treinamentos",
+        "ehs_treinamento_registros",
+        "ehs_v_vencimentos",
+        "ps_projetos",
+        "ps_tarefas",
+        "ps_custos"
+      ],
+      "colunasAdicionadas": [],
+      "up": "38_2026-11-05_28_rh_ehs_projetos.up.sql",
+      "verificacao": "38_2026-11-05_28_rh_ehs_projetos.verify.sql",
+      "down": "38_2026-11-05_28_rh_ehs_projetos.down.sql",
+      "baseline": "38_2026-11-05_28_rh_ehs_projetos.baseline.sql"
+    },
+    {
+      "ordem": 39,
+      "arquivo": "2026-11-06_29_cargos_identidade.sql",
+      "descricao": "Cargos Diretor, Supervisor e Administrador no banco central de identidade (aplicar APENAS no banco central)",
+      "dependenciasDeclaradas": [
+        "2026-11-05_28_rh_ehs_projetos.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "87a2de360e15c88d1b1cb129aa6e1d61b07d4ef9ea32275ff0ee380dc4d43c48",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [],
+      "colunasAdicionadas": [],
+      "up": "39_2026-11-06_29_cargos_identidade.up.sql",
+      "verificacao": "39_2026-11-06_29_cargos_identidade.verify.sql",
+      "down": "39_2026-11-06_29_cargos_identidade.down.sql",
+      "baseline": "39_2026-11-06_29_cargos_identidade.baseline.sql"
+    },
+    {
+      "ordem": 40,
+      "arquivo": "2026-11-07_30_seguranca_aprovacoes_auditoria.sql",
+      "descricao": "Matriz de permissões e alçadas por cargo, fluxo de aprovação multinível com delegação, auditoria imutável e configurações (Famossul)",
+      "dependenciasDeclaradas": [
+        "2026-11-06_29_cargos_identidade.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "5943c3c806d7fa3b41f36924fec2f388bda55b94f06edc8f1f1762e79f24a444",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "baixo",
+      "objetos": [
+        "erp_cargos_nivel",
+        "erp_autorizacoes",
+        "erp_aprovacao_regras",
+        "erp_aprovacoes",
+        "erp_aprovacao_etapas",
+        "erp_delegacoes",
+        "erp_v_aprovacoes_pendentes",
+        "erp_auditoria",
+        "erp_config"
+      ],
+      "colunasAdicionadas": [],
+      "up": "40_2026-11-07_30_seguranca_aprovacoes_auditoria.up.sql",
+      "verificacao": "40_2026-11-07_30_seguranca_aprovacoes_auditoria.verify.sql",
+      "down": "40_2026-11-07_30_seguranca_aprovacoes_auditoria.down.sql",
+      "baseline": "40_2026-11-07_30_seguranca_aprovacoes_auditoria.baseline.sql"
+    },
+    {
+      "ordem": 41,
+      "arquivo": "2026-11-08_31_embalagem_mrp_horizonte.sql",
+      "descricao": "Plano de embalagem com lista por pallet e conferência, MRP líquido por horizonte (mês atual/próximo mês)",
+      "dependenciasDeclaradas": [
+        "2026-11-07_30_seguranca_aprovacoes_auditoria.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "1ac3c0601d83c38150f9c7f27cfe53888bbbe15358ab75d9becb191758aa5498",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "emb_planos",
+        "emb_pallets",
+        "emb_itens",
+        "emb_v_resumo"
+      ],
+      "colunasAdicionadas": [],
+      "up": "41_2026-11-08_31_embalagem_mrp_horizonte.up.sql",
+      "verificacao": "41_2026-11-08_31_embalagem_mrp_horizonte.verify.sql",
+      "down": "41_2026-11-08_31_embalagem_mrp_horizonte.down.sql",
+      "baseline": "41_2026-11-08_31_embalagem_mrp_horizonte.baseline.sql"
+    },
+    {
+      "ordem": 42,
+      "arquivo": "2026-11-09_32_compras_qualidade_comercial.sql",
+      "descricao": "Cotação comparativa com justificativa, avaliação de fornecedores, CAPA com verificação de eficácia e vínculo orçamento→pedido→revisão",
+      "dependenciasDeclaradas": [
+        "2026-11-08_31_embalagem_mrp_horizonte.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "582fa4138cbb66838170a6d1dedbe91fba6c02e4d37b0bfcb2a07fc95b84ff36",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "médio",
+      "objetos": [
+        "cmp_v_cotacao_comparativa",
+        "cmp_fornecedor_avaliacoes",
+        "cmp_v_fornecedor_score",
+        "qld_v_capa_eficacia",
+        "vnd_v_pedido_revisoes",
+        "vnd_v_funil"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "cmp_cotacao_propostas",
+          "coluna": "frete"
+        },
+        {
+          "tabela": "cmp_cotacao_propostas",
+          "coluna": "condicao_pagamento"
+        },
+        {
+          "tabela": "cmp_cotacao_propostas",
+          "coluna": "validade"
+        },
+        {
+          "tabela": "cmp_cotacao_propostas",
+          "coluna": "motivo_escolha"
+        },
+        {
+          "tabela": "qld_nao_conformidades",
+          "coluna": "fornecedor_id"
+        },
+        {
+          "tabela": "qld_nao_conformidades",
+          "coluna": "eficacia_prazo"
+        },
+        {
+          "tabela": "qld_nao_conformidades",
+          "coluna": "eficacia_ok"
+        },
+        {
+          "tabela": "qld_nao_conformidades",
+          "coluna": "eficacia_obs"
+        },
+        {
+          "tabela": "qld_nao_conformidades",
+          "coluna": "eficacia_por"
+        },
+        {
+          "tabela": "qld_nao_conformidades",
+          "coluna": "eficacia_em"
+        },
+        {
+          "tabela": "qld_nao_conformidades",
+          "coluna": "reincidencia_de"
+        }
+      ],
+      "up": "42_2026-11-09_32_compras_qualidade_comercial.up.sql",
+      "verificacao": "42_2026-11-09_32_compras_qualidade_comercial.verify.sql",
+      "down": "42_2026-11-09_32_compras_qualidade_comercial.down.sql",
+      "baseline": "42_2026-11-09_32_compras_qualidade_comercial.baseline.sql"
+    },
+    {
+      "ordem": 43,
+      "arquivo": "2026-11-10_33_financeiro_fechamento_rateio_margem.sql",
+      "descricao": "Fechamento de período com bloqueio, rateio entre centros de custo, margem por pedido/cliente, conciliação sugerida e prontidão fiscal",
+      "dependenciasDeclaradas": [
+        "2026-11-09_32_compras_qualidade_comercial.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "e57d3ec9357f43e29a1fec73ed7f010a34a71980f76a9990b3250d38ddc8f08c",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "fin_periodos",
+        "fin_periodo_historico",
+        "fin_rateio_regras",
+        "fin_rateio_apuracoes",
+        "fin_v_margem_pedido",
+        "fin_v_margem_pedido_calc",
+        "fin_v_margem_cliente"
+      ],
+      "colunasAdicionadas": [],
+      "up": "43_2026-11-10_33_financeiro_fechamento_rateio_margem.up.sql",
+      "verificacao": "43_2026-11-10_33_financeiro_fechamento_rateio_margem.verify.sql",
+      "down": "43_2026-11-10_33_financeiro_fechamento_rateio_margem.down.sql",
+      "baseline": "43_2026-11-10_33_financeiro_fechamento_rateio_margem.baseline.sql"
+    },
+    {
+      "ordem": 44,
+      "arquivo": "2026-11-11_34_plataforma_eventos_campos_notificacoes.sql",
+      "descricao": "Escopos da API v1, eventos (outbox) e webhooks, campos customizados, central de notificações e painel por função",
+      "dependenciasDeclaradas": [
+        "2026-11-10_33_financeiro_fechamento_rateio_margem.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "c44674b0e625ab3f9b53f8efff59ab2bfe6b44fa464e1ba5d771221a6ee65594",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "alto",
+      "objetos": [
+        "erp_eventos",
+        "erp_campos_def",
+        "erp_campos_valores",
+        "erp_notificacoes",
+        "erp_notificacoes_leituras"
+      ],
+      "colunasAdicionadas": [],
+      "up": "44_2026-11-11_34_plataforma_eventos_campos_notificacoes.up.sql",
+      "verificacao": "44_2026-11-11_34_plataforma_eventos_campos_notificacoes.verify.sql",
+      "down": "44_2026-11-11_34_plataforma_eventos_campos_notificacoes.down.sql",
+      "baseline": "44_2026-11-11_34_plataforma_eventos_campos_notificacoes.baseline.sql"
+    },
+    {
+      "ordem": 45,
+      "arquivo": "2026-11-12_35_pessoas_ehs_projetos.sql",
+      "descricao": "Banco de horas, férias, custo hora-homem, inspeções EHS e CAT, dependências e caminho crítico em projetos",
+      "dependenciasDeclaradas": [
+        "2026-11-11_34_plataforma_eventos_campos_notificacoes.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "13a3c41c03e796d0230aeb148b847b82a3d155552a6cc20e7f47c27e8517d8b6",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "alto",
+      "objetos": [
+        "rh_banco_horas_lanc",
+        "rh_v_banco_horas",
+        "rh_v_ferias_saldo",
+        "rh_v_colaborador_custo",
+        "ehs_inspecoes",
+        "ps_tarefa_dependencias"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "ehs_ocorrencias",
+          "coluna": "cat_numero"
+        },
+        {
+          "tabela": "ehs_ocorrencias",
+          "coluna": "cat_data"
+        }
+      ],
+      "up": "45_2026-11-12_35_pessoas_ehs_projetos.up.sql",
+      "verificacao": "45_2026-11-12_35_pessoas_ehs_projetos.verify.sql",
+      "down": "45_2026-11-12_35_pessoas_ehs_projetos.down.sql",
+      "baseline": "45_2026-11-12_35_pessoas_ehs_projetos.baseline.sql"
     }
   ]
 }

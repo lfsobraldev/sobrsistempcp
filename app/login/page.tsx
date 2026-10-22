@@ -37,7 +37,7 @@ export default function Login() {
   return (
     <main className="lg">
       <section className="lg-art" aria-hidden="true">
-        <div className="lg-art-top"><BrandLogo size={38} /><span><b>Sobral PCP</b><small>Gestão industrial</small></span></div>
+        <div className="lg-art-top"><BrandLogo size={38} /><span><b>Famossul</b><small>Sobral PCP · Gestão industrial</small></span></div>
         <div className="lg-art-copy">
           <h1>Do pedido à porta entregue.</h1>
           <p>Programação, produção, qualidade, expedição e financeiro no mesmo sistema.</p>
@@ -48,7 +48,7 @@ export default function Login() {
 
       <section className="lg-form-side" aria-labelledby="lg-title">
         <div className="lg-card">
-          <div className="lg-brand-mobile"><BrandLogo size={34} /><b>Sobral PCP</b></div>
+          <div className="lg-brand-mobile"><BrandLogo size={34} /><b>Famossul</b></div>
           <h2 id="lg-title">Acesso ao sistema</h2>
           <p className="lg-lead">Use suas credenciais corporativas.</p>
           {erro && <div className="lg-error" role="alert"><AlertCircle size={16} />{erro}</div>}

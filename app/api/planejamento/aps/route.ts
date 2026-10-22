@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { mesesReferencia } from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
@@ -38,15 +39,25 @@ async function ofsAbertas(): Promise<OfEntrada[]> {
   return [...m.values()];
 }
 
-async function unidadeGET() {
+async function unidadeGET(req: Request) {
   try {
     await requireRoles([...READ]);
     const hoje = hojeBR();
-    const [cs, ofs, mrp] = await Promise.all([centros(), ofsAbertas(), database().query(`select * from erp_mrp_liquido()`)]);
+    // Horizonte do MRP: TODOS (padrão), ATUAL, PROXIMO, ATE30, ATE60 ou um mês AAAA-MM.
+    const hz = new URL(req.url).searchParams.get("horizonte") || "TODOS";
+    const ref = mesesReferencia();
+    const fimDoMes = (m: string) => { const [a, mm] = m.split("-").map(Number); return new Date(Date.UTC(a, mm, 0)).toISOString().slice(0, 10); };
+    let ini: string | null = null, fim: string | null = null;
+    if (hz === "ATUAL") { ini = `${ref.atual}-01`; fim = fimDoMes(ref.atual); }
+    else if (hz === "PROXIMO") { ini = `${ref.proximo}-01`; fim = fimDoMes(ref.proximo); }
+    else if (hz === "ATE30" || hz === "ATE60") { ini = hoje; fim = new Date(Date.parse(hoje + "T12:00:00Z") + (hz === "ATE30" ? 30 : 60) * 86400000).toISOString().slice(0, 10); }
+    else if (/^\d{4}-(0[1-9]|1[0-2])$/.test(hz)) { ini = `${hz}-01`; fim = fimDoMes(hz); }
+    const mrpSql = ini ? database().query(`select * from erp_mrp_liquido_periodo($1::date,$2::date)`, [ini, fim]) : database().query(`select * from erp_mrp_liquido()`);
+    const [cs, ofs, mrp] = await Promise.all([centros(), ofsAbertas(), mrpSql]);
     const agenda = programar(ofs, cs, hoje);
     const demanda: Record<string, number> = {};
     for (const o of ofs) demanda[o.prazo.slice(0, 7)] = (demanda[o.prazo.slice(0, 7)] ?? 0) + o.operacoes.reduce((s, x) => s + x.minutos, 0);
-    return NextResponse.json({ hoje, centros: cs, agenda, mrp, sop: sop(demanda, cs, proximosMeses(hoje, 6)) }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ hoje, horizonte: hz, meses: ref, centros: cs, agenda, mrp, sop: sop(demanda, cs, proximosMeses(hoje, 6)) }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) {
     const m = e instanceof Error ? e.message : "";
     const forbidden = m === "SEM_PERMISSAO";

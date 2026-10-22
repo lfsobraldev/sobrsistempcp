@@ -1,0 +1,30 @@
+-- ATENÇÃO: revisar fonte, dependentes e backup antes de qualquer reversão.
+-- Down conservador pode não desfazer estrutura. Não tratar como recuperação de dados.
+BEGIN;
+select pg_advisory_xact_lock(hashtextextended('sobral:migracoes',0));
+drop function if exists ps_caminho_critico(uuid);
+drop function if exists ps_reprogramar(uuid,date,text);
+drop trigger if exists ps_dep_t on ps_tarefa_dependencias;
+drop function if exists ps_trg_dep();
+drop table if exists ps_tarefa_dependencias;
+drop function if exists ehs_inspecao_registrar(text,text,date,jsonb,text);
+drop table if exists ehs_inspecoes;
+drop trigger if exists ehs_encerrar_t on ehs_ocorrencias;
+drop function if exists ehs_trg_encerrar();
+alter table ehs_ocorrencias drop column if exists cat_data;
+alter table ehs_ocorrencias drop column if exists cat_numero;
+drop function if exists ps_apontar_horas(uuid,uuid,numeric,date,text);
+drop view if exists rh_v_colaborador_custo;
+drop function if exists rh_custo_hora(uuid);
+drop index if exists ux_rh_colab_login;
+drop view if exists rh_v_ferias_saldo;
+drop trigger if exists rh_ferias_t on rh_ausencias;
+drop function if exists rh_trg_ferias();
+drop function if exists rh_ciclo_ferias(date,date);
+drop function if exists rh_banco_lancar(uuid,date,numeric,text,text,text);
+drop function if exists rh_banco_saldo(uuid);
+drop view if exists rh_v_banco_horas;
+drop table if exists rh_banco_horas_lanc;
+drop function if exists rh_cfg(text,numeric);
+delete from erp_config where chave in('rh.jornada_horas','rh.encargos_pct','rh.horas_mes');
+COMMIT;

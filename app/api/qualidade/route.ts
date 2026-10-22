@@ -140,6 +140,16 @@ async function unidadePOST(req: Request) {
       await q(`update qld_acoes set concluida_em=now() where nc_id=$1 and linha=$2 and concluida_em is null`, [need(clean(b.id, 40), "NC inválida."), Number(b.linha)]);
       return NextResponse.json({ ok: true });
     }
+    if (acao === "NC_EFICACIA_PRAZO") {
+      const d = clean(b.prazo, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) throw new Error("Prazo inválido.");
+      await q(`select qld_eficacia_definir_prazo($1::uuid,$2::date,$3)`, [need(clean(b.id, 40), "NC inválida."), d, uname]);
+      return NextResponse.json({ ok: true });
+    }
+    if (acao === "NC_EFICACIA") {
+      await q(`select qld_eficacia_verificar($1::uuid,$2::boolean,$3,$4)`, [need(clean(b.id, 40), "NC inválida."), b.eficaz === true, clean(b.obs, 1000), uname]);
+      return NextResponse.json({ ok: true });
+    }
     if (acao === "NC_ENCERRAR") {
       await q(`select qld_encerrar_nc($1::uuid,$2)`, [need(clean(b.id, 40), "NC inválida."), uname]);
       return NextResponse.json({ ok: true });

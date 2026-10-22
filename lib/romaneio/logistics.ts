@@ -30,7 +30,7 @@ function cloneRow(r:PackageRow):PackageRow{return {...r,sourceItems:r.sourceItem
 function handRank(r:PackageRow){return r.hand==="DIREITA"?0:r.hand==="ESQUERDA"?1:2}
 function appRank(v?:string){const t=norm(v);if(t.includes("WC"))return 0;if(t.includes("EXTERNA"))return 1;if(t.includes("ELETR"))return 2;if(t.includes("INTERNA"))return 3;return 4}
 function doorSort(a:PackageRow,b:PackageRow){return Number(b.lengthMm||0)-Number(a.lengthMm||0)||Number(b.widthMm||0)-Number(a.widthMm||0)||Number(b.thicknessMm||0)-Number(a.thicknessMm||0)||handRank(a)-handRank(b)||appRank(a.application)-appRank(b.application)||norm(a.product).localeCompare(norm(b.product))}
-function frameRank(r:PackageRow){switch(rowRole(r)){case"MARCO_DOBRADICA_DIREITA":return 0;case"MARCO_CONTRATESTA_DIREITA":return 1;case"MARCO_DOBRADICA_ESQUERDA":return 2;case"MARCO_CONTRATESTA_ESQUERDA":return 3;case"MARCO_PERNA_SEM_MAO":return 4;case"MARCO_TRAVESSA":return 5;default:return 6}}
+function frameRank(r:PackageRow){switch(rowRole(r)){case"MARCO_DOBRADICA_DIREITA":return 0;case"MARCO_DOBRADICA_ESQUERDA":return 1;case"MARCO_CONTRATESTA_DIREITA":return 2;case"MARCO_CONTRATESTA_ESQUERDA":return 3;case"MARCO_PERNA_SEM_MAO":return 4;case"MARCO_TRAVESSA":return 5;default:return 6}}
 function electronicRank(r:PackageRow){return /ELETR/i.test(`${r.product} ${r.application||""}`)?1:0}
 function frameLegSort(a:PackageRow,b:PackageRow){return frameRank(a)-frameRank(b)||Number(b.widthMm||0)-Number(a.widthMm||0)||electronicRank(a)-electronicRank(b)||Number(b.lengthMm||0)-Number(a.lengthMm||0)}
 function frameTravSort(a:PackageRow,b:PackageRow){return Number(b.lengthMm||0)-Number(a.lengthMm||0)||Number(b.widthMm||0)-Number(a.widthMm||0)}
@@ -153,8 +153,8 @@ export function applyLogistics(input:ProcessingResult,mountType:MountType,rawCon
   const frameHasExplicitGames=frameLegs.some(row=>Number(row.games||0)>0);
   const framePkgs=frameLegs.length
     ? (frameHasExplicitGames
-      ? packGameGroups(frameLegs,frameLimit,maxM3,`${MOUNT_LABELS[mountType]} | pernas de batente na sequência DD, CD, DE, CE`,"MARCO")
-      : packRowsByM3(frameLegs,maxM3,`${MOUNT_LABELS[mountType]} | pernas de batente na sequência DD, CD, DE, CE`,"MARCO"))
+      ? packGameGroups(frameLegs,frameLimit,maxM3,`${MOUNT_LABELS[mountType]} | pernas de batente na sequência DD, DE, CD, CE`,"MARCO")
+      : packRowsByM3(frameLegs,maxM3,`${MOUNT_LABELS[mountType]} | pernas de batente na sequência DD, DE, CD, CE`,"MARCO"))
     : [];
   const leftTrav=appendTravessas(framePkgs,trav,maxM3);
   out.push(...framePkgs);

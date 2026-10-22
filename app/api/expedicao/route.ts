@@ -15,7 +15,7 @@ const need = (v: string, msg: string) => { if (!isUuid(v)) throw new Error(msg);
 type Row = Record<string, any>;
 const db = () => sql() as unknown as { query: (t: string, p?: unknown[]) => Promise<Row[]>; transaction: (q: unknown[]) => Promise<Row[][]> };
 const q = (t: string, p: unknown[] = []) => db().query(t, p);
-export const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
+const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
 
 async function unidadeGET(req: Request) {
   try {

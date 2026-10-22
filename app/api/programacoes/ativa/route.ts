@@ -69,7 +69,7 @@ async function migrarProcessosLegados(
     select
       o.produto_id,
       'USINAGEM-DOBRADICAS',
-      7,
+      5,
       o.percentual,
       o.status,
       o.ordem_fila,
@@ -91,6 +91,17 @@ async function migrarProcessosLegados(
         where x.produto_id = o.produto_id
           and x.processo = 'USINAGEM-DOBRADICAS'
       )
+  `;
+
+  /* Regra de ordem da perna de batente: Dobradiça antes de Contratesta (5 < 6). Corrige programações já geradas com 7. */
+  await db`
+    update pcp_operacoes o
+    set sequencia = 5, atualizado_em = now()
+    from pcp_produtos p
+    where p.id = o.produto_id
+      and p.programacao_id = ${programacaoId}
+      and o.processo = 'USINAGEM-DOBRADICAS'
+      and o.sequencia = 7
   `;
 
   await db`
@@ -737,7 +748,7 @@ async function unidadeGET(req: Request) {
 
     if (!ativa.length) {
       return NextResponse.json(
-        { programacao: null,opcoes:recortada?await opcoesPCP(db):undefined },
+        { programacao: null,opcoes:recortada?await opcoesPCP(db,paramsURL.get('mes')||undefined):undefined },
         { headers: { "Cache-Control": "no-store" } }
       );
     }
@@ -862,7 +873,7 @@ async function unidadeGET(req: Request) {
     const produtosCompletados = await enriquecerClientes(db,enriquecidos.produtos.map(p => completarPorRegras(p).produto),'id');
     return NextResponse.json(
       {
-        opcoes:recortada?await opcoesPCP(db):undefined,
+        opcoes:recortada?await opcoesPCP(db,paramsURL.get('mes')||undefined):undefined,
         programacao: {
           ids:programacaoIds,
           somenteLeitura:recortada,

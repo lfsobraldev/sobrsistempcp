@@ -1,7 +1,7 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-export const ESCOPOS = ["leitura", "indicadores", "alertas"] as const;
-export const EVENTOS = ["alerta.criado", "pedido.status", "remessa.entregue"] as const;
+export const ESCOPOS = ["leitura", "indicadores", "alertas", "pedidos", "ordens", "estoque", "qualidade"] as const;
+export const EVENTOS = ["alerta.criado", "pedido.status", "remessa.entregue", "ordem.concluida", "nc.aberta", "aprovacao.decidida", "periodo.fechado"] as const;
 export const RECURSOS_V1: Record<string, string> = { indicadores: "indicadores", alertas: "alertas" };
 
 export const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");

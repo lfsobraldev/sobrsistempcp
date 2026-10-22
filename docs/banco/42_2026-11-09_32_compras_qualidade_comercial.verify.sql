@@ -1,0 +1,20 @@
+-- Somente leitura; executar após up ou antes de baseline.
+BEGIN TRANSACTION READ ONLY;
+select 'cmp_v_cotacao_comparativa' objeto,to_regclass('public.cmp_v_cotacao_comparativa') is not null existe;
+select 'cmp_fornecedor_avaliacoes' objeto,to_regclass('public.cmp_fornecedor_avaliacoes') is not null existe;
+select 'cmp_v_fornecedor_score' objeto,to_regclass('public.cmp_v_fornecedor_score') is not null existe;
+select 'qld_v_capa_eficacia' objeto,to_regclass('public.qld_v_capa_eficacia') is not null existe;
+select 'vnd_v_pedido_revisoes' objeto,to_regclass('public.vnd_v_pedido_revisoes') is not null existe;
+select 'vnd_v_funil' objeto,to_regclass('public.vnd_v_funil') is not null existe;
+select 'cmp_cotacao_propostas.frete' coluna,to_regclass('public.cmp_cotacao_propostas') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='cmp_cotacao_propostas' and column_name='frete') existe;
+select 'cmp_cotacao_propostas.condicao_pagamento' coluna,to_regclass('public.cmp_cotacao_propostas') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='cmp_cotacao_propostas' and column_name='condicao_pagamento') existe;
+select 'cmp_cotacao_propostas.validade' coluna,to_regclass('public.cmp_cotacao_propostas') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='cmp_cotacao_propostas' and column_name='validade') existe;
+select 'cmp_cotacao_propostas.motivo_escolha' coluna,to_regclass('public.cmp_cotacao_propostas') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='cmp_cotacao_propostas' and column_name='motivo_escolha') existe;
+select 'qld_nao_conformidades.fornecedor_id' coluna,to_regclass('public.qld_nao_conformidades') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='qld_nao_conformidades' and column_name='fornecedor_id') existe;
+select 'qld_nao_conformidades.eficacia_prazo' coluna,to_regclass('public.qld_nao_conformidades') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='qld_nao_conformidades' and column_name='eficacia_prazo') existe;
+select 'qld_nao_conformidades.eficacia_ok' coluna,to_regclass('public.qld_nao_conformidades') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='qld_nao_conformidades' and column_name='eficacia_ok') existe;
+select 'qld_nao_conformidades.eficacia_obs' coluna,to_regclass('public.qld_nao_conformidades') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='qld_nao_conformidades' and column_name='eficacia_obs') existe;
+select 'qld_nao_conformidades.eficacia_por' coluna,to_regclass('public.qld_nao_conformidades') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='qld_nao_conformidades' and column_name='eficacia_por') existe;
+select 'qld_nao_conformidades.eficacia_em' coluna,to_regclass('public.qld_nao_conformidades') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='qld_nao_conformidades' and column_name='eficacia_em') existe;
+select 'qld_nao_conformidades.reincidencia_de' coluna,to_regclass('public.qld_nao_conformidades') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='qld_nao_conformidades' and column_name='reincidencia_de') existe;
+COMMIT;

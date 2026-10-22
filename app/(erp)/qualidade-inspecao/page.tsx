@@ -76,11 +76,14 @@ export default function QualidadeInspecaoPage() {
             <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}><b>NC {n.numero} · {n.origem}</b><Badge tone={TONE[n.status]}>{n.status.replace("_", " ")}</Badge></div>
             <p>{n.descricao}</p>
             {n.causa_raiz && <small>Causa raiz: {n.causa_raiz}</small>}
+            {n.eficacia_prazo && <small style={{ display: "block" }}>Eficácia até {String(n.eficacia_prazo).slice(0, 10)}: {n.eficacia_ok == null ? "aguardando verificação" : n.eficacia_ok ? "eficaz" : "INEFICAZ"}</small>}
             {(n.porques || []).map((p: string, i: number) => <small key={i} style={{ display: "block" }}>{i + 1}º porquê: {p}</small>)}
             {(n.acoes || []).map((a: Row) => <div key={a.linha}>{a.tipo}: {a.descricao} {a.concluida_em ? <Badge tone="success">Concluída</Badge> : pode && n.status !== "ENCERRADA" && <button className="crm-secondary" onClick={() => post({ acao: "NC_ACAO_CONCLUIR", id: n.id, linha: a.linha }, "Ação concluída.")}>Concluir</button>}</div>)}
             {pode && n.status !== "ENCERRADA" && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
               <button className="crm-secondary" onClick={() => setModal({ tipo: "NC_ANALISE", v: { id: n.id, causaRaiz: n.causa_raiz, porques: [...(n.porques || []), "", "", "", "", ""].slice(0, 5) } })}>Análise (5 porquês)</button>
               <button className="crm-secondary" onClick={() => setModal({ tipo: "NC_ACAO", v: { id: n.id, tipo: "CORRETIVA", descricao: "", responsavel: "", prazo: "" } })}>Nova ação</button>
+              <button className="crm-secondary" onClick={() => { const v = window.prompt("Prazo para verificar a eficácia (AAAA-MM-DD):"); if (v) void post({ acao: "NC_EFICACIA_PRAZO", id: n.id, prazo: v }, "Prazo de eficácia definido."); }}>Prazo de eficácia</button>
+              {n.eficacia_prazo && n.eficacia_ok == null && <button className="crm-secondary" onClick={() => { const o = window.prompt("Evidência da verificação de eficácia:"); if (!o) return; const ok = window.confirm("A ação foi eficaz? OK = sim, Cancelar = não"); void post({ acao: "NC_EFICACIA", id: n.id, eficaz: ok, obs: o }, "Eficácia registrada."); }}>Verificar eficácia</button>}
               <button className="primary" disabled={busy} onClick={() => post({ acao: "NC_ENCERRAR", id: n.id }, "NC encerrada.")}>Encerrar</button>
             </div>}
           </div>

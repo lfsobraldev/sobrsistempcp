@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createToken, users } from "@/lib/auth";
+import { createToken, sessaoHoras, users } from "@/lib/auth";
 import { identitySql } from "@/lib/db";
 import crypto from "crypto";
 import type { Perfil } from "@/types/pcp";
@@ -116,7 +116,7 @@ export async function POST(
           sameSite: "lax",
           path: "/",
           maxAge:
-            12 *
+            sessaoHoras() *
             60 *
             60,
         }
@@ -213,7 +213,7 @@ export async function POST(
         sameSite: "lax",
         path: "/",
         maxAge:
-          12 *
+          sessaoHoras() *
           60 *
           60,
       }

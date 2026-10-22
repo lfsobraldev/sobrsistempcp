@@ -226,10 +226,9 @@ export default function Dashboard() {
         description="Prioridades, prazo, faltas, gargalos e execução da programação ativa em uma única tela."
         actions={
           <>
-            <div className="muted" style={{ textAlign: "right" }}>
-              <small>Filtro ativo</small>
-              <div><b style={{ color: "var(--text)" }}>{pg?.filtro || "-"}</b> <small>{pg ? `· Turno ${pg.turno}` : "Sem programação"}</small></div>
-            </div>
+            <span className="ctx-chip" title="Programação em exibição">
+              {pg?.id ? `Turno ${pg.turno} · ${pg.data ? new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR") : "-"}` : pg?.filtro || "Recorte"}
+            </span>
             <button onClick={atualizar} disabled={busy}>
               <RefreshCw className={busy ? "spin" : ""} /> {busy ? "Atualizando" : "Atualizar"}
             </button>
@@ -257,16 +256,17 @@ export default function Dashboard() {
 
       <Card title="Gestão de gargalos e oportunidades" subtitle="Análise operacional inspirada nas práticas de PCP, MES e melhoria contínua. Fonte: filtro ativo, não telemetria em tempo real.">
         <p className="muted">Saldo por operação: {fmt(oportunidades.saldoOperacoes)} · Bloqueios/divergências: {fmt(oportunidades.pecasBloqueadasOuDivergentes)} · Setores com saldo: {oportunidades.setoresComPendencias}</p>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%"}}>
-            <thead><tr><th>Setor</th><th>Saldo</th><th>Bloqueadas / divergentes</th><th>Urgências</th><th>Ação sugerida</th></tr></thead>
-            <tbody>{diagnosticoSetores.slice(0,12).map(setor=><tr key={setor.processo}>
-              <td>{LABELS[setor.processo]||setor.processo}</td>
-              <td>{fmt(setor.saldo)}</td><td>{fmt(setor.bloqueado+setor.divergencia)}</td>
-              <td>{setor.prioridades}</td><td>{setor.recomendacao}</td>
-            </tr>)}</tbody>
-          </table>
-        </div>
+        <DataTable head={["Setor", "Saldo", "Bloqueadas / divergentes", "Urgências", "Ação sugerida"]}>
+          {diagnosticoSetores.slice(0, 12).map((setor) => (
+            <tr key={setor.processo}>
+              <td><b>{LABELS[setor.processo] || setor.processo}</b></td>
+              <td>{fmt(setor.saldo)}</td>
+              <td>{setor.bloqueado + setor.divergencia ? <Badge tone="warning">{fmt(setor.bloqueado + setor.divergencia)}</Badge> : <span className="muted">-</span>}</td>
+              <td>{setor.prioridades ? <Badge tone="danger">{setor.prioridades}</Badge> : <span className="muted">-</span>}</td>
+              <td>{setor.recomendacao}</td>
+            </tr>
+          ))}
+        </DataTable>
         <p className="muted">{oportunidades.ressalva}</p>
       </Card>
 

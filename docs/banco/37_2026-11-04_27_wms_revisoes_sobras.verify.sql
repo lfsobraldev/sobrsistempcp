@@ -1,0 +1,24 @@
+-- Somente leitura; executar após up ou antes de baseline.
+BEGIN TRANSACTION READ ONLY;
+select 'wms_setores' objeto,to_regclass('public.wms_setores') is not null existe;
+select 'wms_pallet_posicoes' objeto,to_regclass('public.wms_pallet_posicoes') is not null existe;
+select 'wms_pallet_movs' objeto,to_regclass('public.wms_pallet_movs') is not null existe;
+select 'pcp_pedido_revisoes' objeto,to_regclass('public.pcp_pedido_revisoes') is not null existe;
+select 'pcp_pedido_revisao_itens' objeto,to_regclass('public.pcp_pedido_revisao_itens') is not null existe;
+select 'wms_sobras' objeto,to_regclass('public.wms_sobras') is not null existe;
+select 'wms_etiquetas' objeto,to_regclass('public.wms_etiquetas') is not null existe;
+select 'wms_picking_listas' objeto,to_regclass('public.wms_picking_listas') is not null existe;
+select 'wms_picking_itens' objeto,to_regclass('public.wms_picking_itens') is not null existe;
+select 'wms_recebimentos' objeto,to_regclass('public.wms_recebimentos') is not null existe;
+select 'wms_recebimento_itens' objeto,to_regclass('public.wms_recebimento_itens') is not null existe;
+select 'wms_v_revisoes_paradas' objeto,to_regclass('public.wms_v_revisoes_paradas') is not null existe;
+select 'wms_v_mapa' objeto,to_regclass('public.wms_v_mapa') is not null existe;
+select 'est_enderecos.setor_id' coluna,to_regclass('public.est_enderecos') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='est_enderecos' and column_name='setor_id') existe;
+select 'est_enderecos.rua' coluna,to_regclass('public.est_enderecos') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='est_enderecos' and column_name='rua') existe;
+select 'est_enderecos.modulo' coluna,to_regclass('public.est_enderecos') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='est_enderecos' and column_name='modulo') existe;
+select 'est_enderecos.nivel' coluna,to_regclass('public.est_enderecos') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='est_enderecos' and column_name='nivel') existe;
+select 'est_enderecos.tipo_posicao' coluna,to_regclass('public.est_enderecos') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='est_enderecos' and column_name='tipo_posicao') existe;
+select 'est_enderecos.capacidade_pallets' coluna,to_regclass('public.est_enderecos') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='est_enderecos' and column_name='capacidade_pallets') existe;
+select 'est_enderecos.bloqueado' coluna,to_regclass('public.est_enderecos') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='est_enderecos' and column_name='bloqueado') existe;
+select 'est_enderecos.motivo_bloqueio' coluna,to_regclass('public.est_enderecos') is not null aplicavel,exists(select 1 from information_schema.columns where table_schema='public' and table_name='est_enderecos' and column_name='motivo_bloqueio') existe;
+COMMIT;

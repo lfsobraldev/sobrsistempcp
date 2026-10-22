@@ -9,9 +9,9 @@ import {
   Bell, Boxes, Briefcase, ChevronDown, Flag, History, LayoutDashboard, LogOut, Menu, ClipboardList,
   PackageSearch, PanelLeftClose, PanelLeftOpen, RefreshCw, Route, Search, Settings, ShieldCheck,
   UploadCloud, UsersRound, Truck, ClipboardCheck, type LucideIcon,
-  Megaphone, FileText, PackageCheck, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
+  Megaphone, FileText, PackageCheck, Scissors, Scale, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
   AlertOctagon, Siren, ScanSearch, BadgeCheck, Undo2, Receipt, Landmark, Calculator, Wrench, FolderOpen, LineChart, Headset,
-  TrendingUp, Gauge, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
+  TrendingUp, Gauge, Container, Building2, ShieldAlert, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { OperationalProvider, useOps } from "@/components/operational-provider";
@@ -34,7 +34,7 @@ const menus: MenuGroup[] = [
   ] },
   { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: Layers }, { path: "/medicoes", label: "Medições e Aprovação", icon: Ruler }, { path: "/producao-consultas", label: "Rastreio e Onde é Usado", icon: Target }] },
   { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: FolderOpen }] },
-  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Receipt }, { path: "/estoque", label: "Estoque", icon: Warehouse }, { path: "/estoque-avancado", label: "Endereços, Cíclico e PEPS", icon: Layers }] },
+  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Receipt }, { path: "/cotacoes", label: "Cotações e Fornecedores", icon: Scale }, { path: "/estoque", label: "Estoque", icon: Warehouse }, { path: "/estoque-avancado", label: "Endereços, Cíclico e PEPS", icon: Layers }, { path: "/wms", label: "WMS: Setores, Pallets e Revisões", icon: Container }] },
   {
     label: "PCP e Produção",
     items: [
@@ -57,11 +57,14 @@ const menus: MenuGroup[] = [
     items: [
       { path: "/expedicao", label: "Remessas e Devoluções", icon: Undo2 },
       { path: "/romaneios", label: "Romaneios", icon: FileText },
+      { path: "/embalagem", label: "Plano de Embalagem", icon: PackageCheck },
+      { path: "/plano-corte", label: "Plano de Corte", icon: Scissors },
       { path: "/apontamento-entregas", label: "Apontamento de Entregas", icon: PackageCheck },
     ],
   },
-  { label: "Custos, Fiscal e Financeiro", items: [{ path: "/custos", label: "Custos Industriais", icon: Calculator }, { path: "/fiscal", label: "Fiscal e NF-e", icon: Landmark }, { path: "/financeiro", label: "Financeiro e Contábil", icon: TrendingUp }] },
+  { label: "Custos, Fiscal e Financeiro", items: [{ path: "/custos", label: "Custos Industriais", icon: Calculator }, { path: "/fiscal", label: "Fiscal e NF-e", icon: Landmark }, { path: "/financeiro", label: "Financeiro e Contábil", icon: TrendingUp }, { path: "/controladoria", label: "Controladoria", icon: Scale }] },
   { label: "Manutenção e Documentos", items: [{ path: "/indicadores", label: "Indicadores e Integrações", icon: Gauge }, { path: "/manutencao", label: "Manutenção", icon: Wrench }, { path: "/documentos", label: "Documentos e Qualificação", icon: BookOpen }] },
+  { label: "Pessoas, Segurança e Projetos", items: [{ path: "/corporativo", label: "RH, EHS e Projetos", icon: Building2 }] },
   { label: "SAC", items: [{ path: "/sac", label: "Atendimento", icon: Headset }] },
   {
     label: "Relatórios",
@@ -75,7 +78,7 @@ const menus: MenuGroup[] = [
       { path: "/sobral-ia", label: "Assistente Operacional", icon: Activity },
     ],
   },
-  { label: "Administração", items: [{ path: "/acessos", label: "Usuários e Unidades", icon: Users }, { path: "/configuracoes", label: "Configurações", icon: SlidersHorizontal }] },
+  { label: "Administração", items: [{ path: "/seguranca", label: "Segurança e Aprovações", icon: ShieldAlert }, { path: "/plataforma", label: "Painel, Notificações e Campos", icon: Bell }, { path: "/pessoas", label: "Pessoas, EHS e Cronograma", icon: Users }, { path: "/acessos", label: "Usuários e Unidades", icon: Users }, { path: "/configuracoes", label: "Configurações", icon: SlidersHorizontal }] },
 ];
 
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/comercial", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas", SAC: "/sac" };
@@ -87,6 +90,14 @@ function Inner({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [workspaceTabs, setWorkspaceTabs] = useState<{path:string;label:string}[]>([]);
   const [mobileNav, setMobileNav] = useState(false);
+  const [naoLidas, setNaoLidas] = useState(0);
+  useEffect(() => {
+    let vivo = true;
+    const carregar = () => fetch("/api/plataforma?visao=contador", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (vivo && j) setNaoLidas(Number(j.naoLidas) || 0); }).catch(() => {});
+    void carregar();
+    const t = setInterval(carregar, 120000);
+    return () => { vivo = false; clearInterval(t); };
+  }, [path]);
   const [query, setQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [gruposAbertos, setGruposAbertos] = useState<string[]>([]);
@@ -159,7 +170,7 @@ function Inner({ children }: { children: React.ReactNode }) {
     if (found) { router.push(found.path+window.location.search); setQuery(""); }
   }
 
-  if (loading) return <div className="boot"><DoorLoader label="Sobral PCP" sub="Preparando ambiente" /></div>;
+  if (loading) return <div className="boot"><DoorLoader label="Famossul" sub="Preparando ambiente" /></div>;
   if (!me) return null;
 
   const live = realtimeStatus === "tempo_real";
@@ -190,7 +201,6 @@ function Inner({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="sidefoot">
           Programação ativa
-          <b>{pg?.filtro || "Sem filtro"}</b>
           {pg ? `Turno ${pg.turno} · ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}` : "Aguardando programação"}
         </div>
       </aside>
@@ -198,7 +208,7 @@ function Inner({ children }: { children: React.ReactNode }) {
       {mobileNav && <button className="backdrop" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
 
       <header className="topbar2">
-        <Link href="/dashboard" className="shellbar-brand" aria-label="Sobral PCP, ir para o início"><BrandLogo size={30} /><span><b>Sobral PCP</b><small>Gestão industrial</small></span></Link>
+        <Link href="/dashboard" className="shellbar-brand" aria-label="Famossul, ir para o início"><BrandLogo size={30} /><span><b>Famossul</b><small>Sobral PCP · Gestão industrial</small></span></Link>
         <button className="ghost iconBtn menubtn" onClick={() => setMobileNav(true)} aria-label="Abrir menu"><Menu /></button>
         <button className="ghost iconBtn" onClick={() => setCollapsed((v) => !v)} aria-label="Recolher menu" style={{ display: undefined }}>
           {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
@@ -210,32 +220,14 @@ function Inner({ children }: { children: React.ReactNode }) {
           <input aria-label="Buscar módulo" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") searchModule(); }} placeholder="Ir para módulo…" />
         </div>
         <div className="spacer" />
-        <div className="ctxmeta ctxmeta-global">
-          <label className="ctxfilter-select">
-            <span>Filtro / programação</span>
-            <select
-              aria-label="Selecionar filtro e programação para todo o sistema"
-              value={selectedProgramacaoId || pg?.id || ""}
-              onChange={async (e) => {
-                try { await selectProgramacao(e.target.value); }
-                catch (error) { toast("error", error instanceof Error ? error.message : "Não foi possível trocar a programação global."); }
-              }}
-              disabled={!programacoesGlobais.length}
-            >
-              {!programacoesGlobais.length && <option value="">Sem programações</option>}
-              {programacoesGlobais.map((x) => (
-                <option key={x.id} value={x.id}>
-                  {`Filtro ${x.filtro || "-"} · ${x.data || "sem data"} · Turno ${x.turno || "-"}${x.status === "ATIVA" ? " · Atual" : ""}`}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span>Turno<b>{pg?.turno || "-"}</b></span>
-          <span>Data<b>{pg?.data ? new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR") : "-"}</b></span>
+        <div className="ctxmeta ctxmeta-global" aria-label="Programação em exibição">
+          <span className="ctx-chip" title="Programação ativa">
+            {pg ? `Turno ${pg.turno || "-"} · ${pg.data ? new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR") : "sem data"}` : "Sem programação"}
+          </span>
         </div>
         <span className={`livedot ${live ? "on" : ""}`} title={live ? "Tempo real ativo" : "Sincronizando"} />
         <button className="ghost iconBtn" onClick={() => void refresh()} aria-label="Atualizar" title="Atualizar"><RefreshCw /></button>
-        <button className="ghost iconBtn" aria-label="Notificações" title="Notificações"><Bell /></button>
+        <Link className="ghost iconBtn" aria-label={`Notificações${naoLidas ? ` (${naoLidas} não lidas)` : ""}`} title="Notificações" href="/plataforma" style={{ position: "relative" }}><Bell />{naoLidas > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#c0392b", color: "#fff", borderRadius: 9, fontSize: 10, padding: "0 5px", lineHeight: "16px" }}>{naoLidas > 99 ? "99+" : naoLidas}</span>}</Link>
         <div style={{ position: "relative" }}>
           <button className="userchip" onClick={() => setProfileOpen((v) => !v)} aria-expanded={profileOpen}>
             <span className="avatar">{me.usuario.slice(0, 2).toUpperCase()}</span>

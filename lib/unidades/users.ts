@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { scryptSync,randomBytes } from 'node:crypto';
 import { requireRoles } from '../auth';
-export const PERFIS=['PCP','GERENTE','ENCARREGADO','LIDER','APONTADOR','QUALIDADE','COMERCIAL','LOGISTICA','LIDER_ENTREGAS','SAC'] as const;
+export const PERFIS=['PCP','GERENTE','ENCARREGADO','LIDER','APONTADOR','QUALIDADE','COMERCIAL','LOGISTICA','LIDER_ENTREGAS','SAC','SUPERVISOR','DIRETOR','ADMINISTRADOR'] as const;
 export const ETAPAS=['PREPARACAO','COLAGEM_PORTAS','ESQUADRIAS_BORDAS','RECOBRIDORA_PERFIL','USINAGEM_2','LUSTRACAO','CNC','USINAGEM','PLASTIFICADORA','PLASTIFICADORA_PORTAS','EMBALAGEM','EXPEDICAO'] as const;
 export const salvarUsuarioSchema=z.object({
  id:z.string().uuid().nullable().default(null),versao:z.string().datetime().nullable().default(null),
