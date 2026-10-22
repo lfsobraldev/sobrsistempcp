@@ -1,0 +1,148 @@
+/* Camada visual ERP industrial — fábrica de portas. Branco e verde, plano, denso, sem efeitos decorativos. */
+:root{
+  --radius-sm:3px;--radius:4px;--radius-lg:6px;--radius-xl:8px;
+  --shadow-sm:none;--shadow:0 1px 2px rgba(20,40,28,.06);--shadow-lg:0 6px 20px rgba(20,40,28,.10);
+  --bg:#f3f6f4;--border:#d7e0d9;--sidebar-bg:#1d3527;--sidebar-hover:#28442f;--sidebar-active:#2f5e45;
+  --header-h:52px;
+}
+body{background:var(--bg);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased}
+
+/* Marca */
+.sobral-logo{background:transparent!important;color:var(--primary)!important;border-radius:6px!important;box-shadow:none!important;border:0!important;display:block;flex:none}
+.sidenav .sobral-logo{color:#4f9470!important}
+
+/* ===== Carregamento (folha da porta abrindo) ===== */
+.boot,.page-loading{display:grid;place-content:center;justify-items:center;background:#fff}
+.boot{min-height:100vh}.page-loading{min-height:56vh;background:transparent}
+.dl-wrap{display:grid;justify-items:center;gap:10px;text-align:center}
+.dl-door{position:relative;width:84px;height:132px;border:4px solid #2f5e45;border-bottom-width:5px;background:#e6efe8;perspective:420px;border-radius:2px}
+.dl-light{position:absolute;inset:0;background:linear-gradient(90deg,#f6fbf7,#cfe3d5);opacity:.9}
+.dl-leaf{position:absolute;inset:0;background:#fff;border-right:2px solid #2f5e45;transform-origin:left center;animation:dlOpen 2.4s cubic-bezier(.55,.05,.35,1) infinite;display:grid;align-content:center;gap:10px;padding:10px 12px}
+.dl-leaf span{display:block;border:2px solid #9db8a6;background:#eef4f0;border-radius:1px}
+.dl-p1{height:34px}.dl-p2{height:44px}
+.dl-knob{position:absolute;right:7px;top:62px;width:8px;height:8px;border-radius:50%;background:#2f5e45}
+@keyframes dlOpen{0%,12%{transform:rotateY(0)}48%,62%{transform:rotateY(-72deg)}100%{transform:rotateY(0)}}
+.dl-title{font-size:16px;color:var(--text);margin-top:8px;letter-spacing:.01em}
+.dl-sub{font-size:13px;color:var(--text-3)}
+.dl-bar{width:168px;height:3px;background:#dbe6de;border-radius:2px;overflow:hidden;margin-top:4px}
+.dl-bar i{display:block;height:100%;width:38%;background:var(--primary);animation:dlBar 1.3s ease-in-out infinite}
+@keyframes dlBar{0%{transform:translateX(-110%)}100%{transform:translateX(290%)}}
+@media(prefers-reduced-motion:reduce){.dl-leaf{animation:none;transform:rotateY(-50deg)}.dl-bar i{animation:none;width:100%}}
+
+/* ===== Login ===== */
+.lg{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);background:#fff;color:var(--text)}
+.lg-art{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:24px;padding:32px clamp(28px,5vw,72px) 0;background:#eef4f0;border-right:1px solid var(--border);overflow:hidden}
+.lg-art-top{display:flex;align-items:center;gap:12px;color:var(--primary)}
+.lg-art-top span{display:flex;flex-direction:column;line-height:1.15}.lg-art-top b{color:var(--text);font-size:17px}.lg-art-top small{color:var(--text-3);font-size:12px}
+.lg-art-copy h1{font-size:clamp(26px,3.2vw,40px);line-height:1.12;max-width:15em;color:#1d3527;letter-spacing:-.01em}
+.lg-art-copy p{margin-top:12px;color:var(--text-2);font-size:16px;max-width:30em}
+.lg-doors{width:min(100%,520px);height:auto;align-self:center;margin-top:0;margin-bottom:-6px}
+.lg-roof{display:block;align-self:stretch;width:auto;margin:0 calc(-1*clamp(28px,5vw,72px));height:84px;color:#d3e2d8}
+.lg-form-side{display:grid;place-items:center;padding:32px 24px;background:#fff}
+.lg-card{width:min(400px,100%);display:grid;gap:14px}
+.lg-brand-mobile{display:none;align-items:center;gap:10px;color:var(--primary);margin-bottom:6px}.lg-brand-mobile b{color:var(--text);font-size:17px}
+.lg-card h2{font-size:24px;color:#1d3527}
+.lg-lead{color:var(--text-3);margin-top:-8px}
+.lg-card form{display:grid;gap:16px;margin-top:4px}
+.lg-card label{display:grid;gap:6px;font-size:13px;font-weight:600;color:var(--text-2)}
+.lg-input{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border:1px solid var(--border-strong);border-radius:var(--radius);background:#fff;color:var(--text-3);transition:border-color .15s,box-shadow .15s}
+.lg-input:focus-within{border-color:var(--primary);box-shadow:var(--focus-ring);color:var(--primary)}
+.lg-card .lg-input input,.lg-card .lg-input input:focus{box-shadow:none!important;border:0!important}
+.lg-input input{flex:1;min-width:0;border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;height:100%;padding:0!important;font-size:15px;color:var(--text)}
+.lg-eye{border:0!important;background:transparent!important;padding:4px!important;min-height:0!important;color:var(--text-3);cursor:pointer;display:grid;place-items:center}
+.lg-submit{height:46px;border:0;border-radius:var(--radius);background:var(--primary);color:#fff;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:background .15s}
+.lg-submit:hover:not(:disabled){background:var(--primary-hover)}.lg-submit:disabled{opacity:.75;cursor:wait}
+.lg-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite}
+.lg-error{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid #f1b8b8;background:var(--danger-soft);color:var(--danger);border-radius:var(--radius);font-size:13px}
+.lg-foot{font-size:12px;color:var(--text-3);text-align:center;margin-top:4px}
+@media(max-width:900px){.lg{grid-template-columns:1fr}.lg-art{display:none}.lg-brand-mobile{display:flex}.lg-form-side{min-height:100vh;align-items:start;padding-top:12vh}}
+
+/* ===== Estrutura do ERP ===== */
+.shell .sidenav{border-right:0}
+.shell .sidenav .brand{border-bottom:1px solid rgba(255,255,255,.08)}
+.shell .navgroup>label{font-size:11px;letter-spacing:.08em;color:#8fb09b;padding-top:10px}
+.shell .navlink{height:34px;border-radius:3px;font-size:13.5px;position:relative}
+.shell .navlink svg{width:17px;height:17px;opacity:.9}
+.shell .navlink.active{background:var(--sidebar-active);box-shadow:inset 3px 0 0 #7fc79d}
+.shell .topbar2{background:#fff!important;border-bottom:1px solid var(--border);box-shadow:none!important;height:var(--header-h)}
+.shell .topbar2 h2{font-size:15px;font-weight:600;color:var(--text)}
+.shell .main{padding:20px 24px!important}
+.shell .page{max-width:1680px;margin:0 auto}
+.livedot.on{box-shadow:none}
+.erp-workspace-tabs{gap:0;border-bottom:1px solid var(--border);margin:-4px 0 14px}
+.erp-workspace-tab{border-radius:3px 3px 0 0}
+
+/* Cabeçalho de página */
+.ph{padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:16px!important;align-items:center!important}
+.ph h1{font-size:20px!important;font-weight:600;color:#1d3527}
+.ph-eyebrow{font-size:11px!important;letter-spacing:.1em!important;color:var(--text-3)!important}
+.ph p{font-size:13px;color:var(--text-3)}
+
+/* Cartões, indicadores e painéis: planos, bordas finas */
+.card,.panel,.stat,.kpi,.tile,.tableScroll,.modal,.login-card,.ai-panel{border-radius:var(--radius-lg)!important;box-shadow:none!important;border:1px solid var(--border)}
+.panel>header,.card-head{background:#f7faf8;border-bottom:1px solid var(--border);padding:10px 14px!important}
+.card-head{padding-bottom:10px!important}
+.card-body{padding:14px!important}
+.panel>header h3,.card-head h2{font-size:14px!important;font-weight:600;color:#1d3527}
+.card-eyebrow{font-size:11px!important;letter-spacing:.08em!important}
+.stat{border-left:3px solid var(--primary)!important;padding:12px 14px!important}
+.stat-icon{width:34px!important;height:34px!important;border-radius:var(--radius)!important}
+.stat-icon svg{width:17px!important;height:17px!important}
+.stat-value{font-size:22px!important}
+.stat-label{font-size:11px!important;letter-spacing:.06em!important}
+.stat-danger{border-left-color:var(--danger)!important}.stat-warning{border-left-color:var(--warning)!important}
+.kpi{border-left:3px solid var(--primary)!important}.kpi.danger{border-left-color:var(--danger)!important}.kpi.warn{border-left-color:var(--warning)!important}
+.tile{border-left:3px solid var(--primary)!important}.tile:hover{background:#f7faf8;border-color:var(--primary)!important}
+.tileIcon{border-radius:var(--radius)!important;background:var(--primary-100)!important;color:var(--primary-700)!important}
+.smart-brief-icon{border-radius:var(--radius)!important;background:var(--primary-100)!important;color:var(--primary-700)!important;box-shadow:none!important}
+
+/* Tabelas */
+table{font-size:13px}
+thead th{background:#eef3ef;color:var(--text-2);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border-strong)!important;padding:8px 12px!important;white-space:nowrap}
+tbody td{padding:8px 12px!important;border-bottom:1px solid #e8eee9}
+tbody tr:hover td{background:#f6faf7}
+
+/* Botões e campos */
+button,.btn{border-radius:var(--radius)!important;font-weight:600;font-size:13px;box-shadow:none!important}
+button.primary,.primary{background:var(--primary)!important;border-color:var(--primary)!important;color:#fff!important}
+button.primary:hover:not(:disabled){background:var(--primary-hover)!important}
+input,select,textarea{border-radius:var(--radius)!important}
+input:focus,select:focus,textarea:focus{border-color:var(--primary)!important;box-shadow:var(--focus-ring)!important;outline:0}
+.badge,.status{border-radius:3px!important;font-weight:600;font-size:11.5px}
+.alert{border-radius:var(--radius)}
+.pin-fixa{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--primary-700);border:1px solid var(--primary-200);border-radius:3px;padding:0 4px}
+
+/* Assistente: botão discreto, sem brilho */
+.ai-fab{border-radius:var(--radius-lg)!important;background:var(--primary)!important;box-shadow:var(--shadow-lg)!important;gap:8px;padding:0 14px!important;height:40px}
+.ai-welcome-icon{border-radius:var(--radius)!important;background:var(--primary-100)!important;color:var(--primary-700)!important}
+
+/* Foco visível e movimento reduzido */
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+/* Ajustes após revisão visual */
+.stat::after{display:none!important}
+.launchpad{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:12px!important}
+.stats{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:12px!important}
+@media(max-width:1280px){.launchpad{grid-template-columns:repeat(3,minmax(0,1fr))!important}.stats{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media(max-width:720px){.launchpad,.stats{grid-template-columns:1fr 1fr!important}}
+.tile{padding:10px 12px!important}.tile b{font-size:20px!important}.tile span{font-size:11.5px!important}
+.card-eyebrow{text-transform:none!important;letter-spacing:0!important;font-weight:500!important;font-size:12px!important;color:var(--text-3)!important}
+
+/* Filtros globais do PCP: barra compacta */
+.shell .cart-filters{display:flex!important;flex-wrap:wrap;align-items:flex-end;gap:10px!important;padding:10px 12px!important;margin-bottom:14px!important;background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg)}
+.shell .cart-filters label{display:grid;gap:4px;font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;flex:1 1 170px;min-width:150px}
+.shell .cart-filters select{height:34px!important;min-height:0!important;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text)}
+.shell .cart-filters select[multiple]{height:34px!important;overflow:hidden}
+.shell .cart-filters select[multiple]:focus{height:96px!important;position:relative;z-index:5;background:#fff}
+.shell .cart-filters button{height:34px;flex:0 0 auto;align-self:flex-end}
+
+/* Barra superior: seletor de programação alinhado */
+.shell .topbar2{gap:10px}
+.shell .ctxmeta-global{display:flex;align-items:center;gap:12px}
+.shell .ctxmeta-global .ctxfilter-select{flex-direction:column;justify-content:center;min-width:200px;max-width:280px}
+.shell .ctxmeta-global .ctxfilter-select>span{font-size:10px;text-transform:uppercase;letter-spacing:.06em;line-height:1;margin:0 0 2px}
+.shell .ctxmeta-global .ctxfilter-select select{height:30px;border-radius:var(--radius)}
+.shell .ctxmeta-global>span{font-size:10px;text-transform:uppercase;letter-spacing:.06em}
+.shell .ctxmeta-global>span b{text-transform:none;letter-spacing:0;font-size:13px}
+.shell .ctxmeta-global .ctxfilter-select>span{display:none}
+.shell .ctxmeta-global .ctxfilter-select select{height:32px}

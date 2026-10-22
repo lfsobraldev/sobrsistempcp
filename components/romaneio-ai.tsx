@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, FileSpreadsheet, Sparkles, Trash2, Plus } from "lucide-react";
+import { Download, FileSpreadsheet, Trash2, Plus } from "lucide-react";
 import { Modal } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
 import type { Alerta, RomaneioIA } from "@/lib/ia/romaneio";
@@ -85,7 +85,7 @@ export default function RomaneioAIModal() {
     <Modal
       open={open}
       onClose={() => setOpen(false)}
-      title={<span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><Sparkles size={18} /> Gerar romaneio com IA</span>}
+      title={<span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}><FileSpreadsheet size={18} /> Gerar romaneio com IA</span>}
       footer={r ? (
         <>
           <button onClick={() => { setR(null); setErro(""); }}>Novo</button>
@@ -95,7 +95,7 @@ export default function RomaneioAIModal() {
       ) : (
         <>
           <button onClick={() => setOpen(false)}>Cancelar</button>
-          <button className="primary" disabled={!!busy || (!texto.trim() && !arquivo)} onClick={processar}><Sparkles /> {busy === "ia" ? "Processando..." : "Processar com IA"}</button>
+          <button className="primary" disabled={!!busy || (!texto.trim() && !arquivo)} onClick={processar}><FileSpreadsheet /> {busy === "ia" ? "Processando..." : "Processar com IA"}</button>
         </>
       )}
     >
@@ -143,5 +143,5 @@ export default function RomaneioAIModal() {
 }
 
 export function GerarComIABotao() {
-  return <button className="primary" onClick={() => abrirRomaneioIA()}><Sparkles /> Gerar com IA</button>;
+  return <button className="primary" onClick={() => abrirRomaneioIA()}><FileSpreadsheet /> Gerar romaneio</button>;
 }
