@@ -954,6 +954,51 @@
       "verificacao": "30_2026-10-28_20_custos_industriais.verify.sql",
       "down": "30_2026-10-28_20_custos_industriais.down.sql",
       "baseline": "30_2026-10-28_20_custos_industriais.baseline.sql"
+    },
+    {
+      "ordem": 31,
+      "arquivo": "2026-10-29_21_fiscal.sql",
+      "descricao": "Fiscal: cadastros, regras com vigência, montagem de NF-e por adaptador, estados do documento, apuração simplificada e IBS/CBS parametrizado",
+      "dependenciasDeclaradas": [
+        "2026-10-28_20_custos_industriais.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "43f7e55f3c24e8c37302d124f4f774f90981c3f88ebb38844a263e22944b2a10",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "fis_emitente",
+        "fis_cfop",
+        "fis_produto_fiscal",
+        "fis_parametros",
+        "fis_regras",
+        "fis_provedores",
+        "fis_documentos",
+        "fis_creditos"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "crm_clientes",
+          "coluna": "uf"
+        },
+        {
+          "tabela": "crm_clientes",
+          "coluna": "ie"
+        },
+        {
+          "tabela": "crm_clientes",
+          "coluna": "regime_tributario"
+        },
+        {
+          "tabela": "crm_clientes",
+          "coluna": "contribuinte_icms"
+        }
+      ],
+      "up": "31_2026-10-29_21_fiscal.up.sql",
+      "verificacao": "31_2026-10-29_21_fiscal.verify.sql",
+      "down": "31_2026-10-29_21_fiscal.down.sql",
+      "baseline": "31_2026-10-29_21_fiscal.baseline.sql"
     }
   ]
 }

@@ -56,7 +56,7 @@ const menus: MenuGroup[] = [
       { path: "/apontamento-entregas", label: "Apontamento de Entregas", icon: Truck },
     ],
   },
-  { label: "Custos", items: [{ path: "/custos", label: "Custos Industriais", icon: Boxes }] },
+  { label: "Custos", items: [{ path: "/custos", label: "Custos Industriais", icon: Boxes }, { path: "/fiscal", label: "Fiscal e NF-e", icon: ClipboardList }] },
   { label: "SAC", items: [{ path: "/sac", label: "Atendimento", icon: ClipboardList }] },
   {
     label: "Relatórios",
