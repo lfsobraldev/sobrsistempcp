@@ -343,7 +343,7 @@ export function tipoPeca(
     textoItem(item);
 
   if (
-    /\b(TRAVESSA|TRAV|TR AL|TR ALI|TRA ALI|T A|M T)\b/.test(
+    /\b(TRAVESSA|TRAV|TR AL|TR ALI|TRA ALI|T A|M T|TR BAT|TRA BAT)\b/.test(
       text
     )
   ) {
@@ -351,7 +351,7 @@ export function tipoPeca(
   }
 
   if (
-    /\b(PERNA|PE AL|PER ALI|P A|M P)\b/.test(
+    /\b(PERNA|PE AL|PER ALI|P A|M P|PE BAT|PER BAT|P BAT)\b/.test(
       text
     )
   ) {

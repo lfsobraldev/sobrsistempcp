@@ -66,6 +66,8 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
   const copy={...p, descricao:narrativa};
   // O código é a chave: dados técnicos da narrativa do catálogo têm prioridade
   // sobre classificações abreviadas ou incorretas da programação do Consistem.
+  // Material escolhido no pedido: palavra inteira STD, ULTRA ou PINUS no campo material/tipo. Prevalece sobre o catálogo.
+  const materialDoPedido=(()=>{const t=[p.material,p.tipo].map(v=>String(v??"")).join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();const achados=new Set<string>();if(/\bPINUS\b/.test(t))achados.add("PINUS");if(/\bULTRA\b/.test(t))achados.add("MDF ULTRA");if(/\b(?:STD|STANDARD)\b/.test(t))achados.add("MDF STD");return achados.size===1?[...achados][0]:"";})();
   const campos=("tipo material cor acabamento rebaixo canal").split(" ") as Array<keyof Produto>;
   for (const campo of campos) {
     if(String(preenchido[campo]??"").trim()) (copy as any)[campo]=preenchido[campo];
@@ -86,6 +88,8 @@ export function enriquecerProdutoPeloRegistro(p: Produto, ref: RegistroCatalogo)
     const nome=(revestimento[2]||"").trim();
     copy.cor=[revestimento[1],nome].filter(Boolean).join(" ");
   }
+  // O material informado no pedido nunca é trocado pelo do catálogo (ex.: pedido STD não vira ULTRA).
+  if(materialDoPedido){copy.material=materialDoPedido;copy.tipo=materialDoPedido;}
   // PET/TXT/BP são revestimentos, não material estrutural.
   if(/^(?:PET|TXT|BP)(?:\s|$)/.test(String(copy.material||"").trim().toUpperCase())){
     copy.material="";

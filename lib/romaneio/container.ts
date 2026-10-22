@@ -24,8 +24,8 @@ function roleRank(row: PackageRow) {
   switch (rowRole(row)) {
     case "PORTA": return 10;
     case "MARCO_DOBRADICA_DIREITA": return 20;
-    case "MARCO_CONTRATESTA_DIREITA": return 21;
-    case "MARCO_DOBRADICA_ESQUERDA": return 22;
+    case "MARCO_DOBRADICA_ESQUERDA": return 21;
+    case "MARCO_CONTRATESTA_DIREITA": return 22;
     case "MARCO_CONTRATESTA_ESQUERDA": return 23;
     case "MARCO_PERNA_SEM_MAO": return 24;
     case "MARCO_TRAVESSA": return 30;

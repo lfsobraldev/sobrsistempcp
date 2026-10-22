@@ -138,7 +138,7 @@ ROMANEIO — CONHECIMENTO COMPLETO PARA A IA
 - Dentro de famílias dimensionais, usar maior -> menor quando aplicável.
 - Portas: separar/preservar mão somente quando conhecida. Ordenar maiores antes das menores.
 - Batentes: pernas e travessas são peças diferentes. Não transformar uma travessa em perna ou vice-versa.
-- Quando a mão estiver disponível, a sequência operacional de referência para ferragens/usinagem de batente é Dobradiça Direita -> Contratesta Direita -> Dobradiça Esquerda -> Contratesta Esquerda.
+- Quando a mão estiver disponível, a sequência operacional de referência para ferragens/usinagem de batente é Dobradiça Direita -> Dobradiça Esquerda -> Contratesta Direita -> Contratesta Esquerda -> Travessas.
 - Alizares: pernas L maior -> pernas L menor -> travessas de alizar. Depois baguetes e kits conforme configuração.
 - Ferragens pertencentes ao pedido entram no romaneio mesmo que não participem das filas produtivas do PCP.
 - Pedidos REVENDA e ENGENHARIA seguem suas regras próprias de embalagem/montagem e não devem ser misturados automaticamente à lógica normal.
