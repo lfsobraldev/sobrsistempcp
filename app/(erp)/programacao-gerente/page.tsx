@@ -3,7 +3,7 @@ import IdentidadePedido from '@/components/identidade-pedido';
 
 import {contagemKitsPedido} from "@/lib/industrial/kits";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   Boxes,
   ChevronDown,
@@ -170,6 +170,8 @@ function classStatus(value: string) {
   if (v.includes("aten")) return "alert";
   return "planned";
 }
+
+const LOCAIS_MONTAGEM = ["HS", "Timadel", "Estância", "Revenda", "Complemento"];
 
 export default function ProgramacaoGerentePage() {
   const { pg, refresh, lastSync,recorteQuery } = useOps();
@@ -606,7 +608,7 @@ export default function ProgramacaoGerentePage() {
           subtitle="Uma linha por pedido. Clique para abrir a rota completa das peças."
         >
           <datalist id="locaisMontagem">
-            {["HS", "Timadel", "Estância", "Revenda", "Complemento"].map((x) => <option key={x} value={x} />)}
+            {LOCAIS_MONTAGEM.map((x) => <option key={x} value={x} />)}
           </datalist>
           <div className="tableWrap managerOrdersTable">
             <table>
@@ -634,9 +636,8 @@ export default function ProgramacaoGerentePage() {
               </thead>
               <tbody>
                 {pedidosFiltrados.map((pedido) => (
-                  <>
+                  <Fragment key={pedido.pedido}>
                     <tr
-                      key={pedido.pedido}
                       className={pedidoAberto === pedido.pedido ? "managerOrderSelected" : ""}
                     >
                       <td><b>{pedido.pedido}</b></td>
@@ -657,6 +658,7 @@ export default function ProgramacaoGerentePage() {
                           placeholder="—"
                           maxLength={60}
                           disabled={savingLocal === pedido.pedido}
+                          onChange={(e) => { if (LOCAIS_MONTAGEM.includes(e.target.value)) void salvarLocal(pedido.pedido, e.target.value, pedido.localMontagem); }}
                           onBlur={(e) => salvarLocal(pedido.pedido, e.target.value, pedido.localMontagem)}
                           onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                         />
@@ -793,7 +795,7 @@ export default function ProgramacaoGerentePage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
