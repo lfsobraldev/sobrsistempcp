@@ -17,11 +17,18 @@ export default function ApontamentoEntregas(){
   setLoading(true);setErro("");
   try{const query="?recorte=1&"+recorteQuery;const [a,b]=await Promise.all([fetch("/api/controle-entregas"+query,{cache:"no-store"}),fetch("/api/controle-entregas/etapas"+query,{cache:"no-store"})]);const [x,y]=await Promise.all([a.json(),b.json()]);
   if(!a.ok||!b.ok)throw new Error(x.error||y.error||"Falha ao carregar");
-  setPedidos(x.pedidos||[]);setEtapas((y.etapas||[]).filter((v:Etapa)=>v.area==="PRODUCAO"));setPermitidas(y.permitidas||[]);
+  setPedidos(x.pedidos||[]);setEtapas((y.etapas||[]).filter((v:Etapa)=>v.area==="PRODUCAO"));setPermitidas(y.permitidas||[]);setAtualizadoEm(new Date().toLocaleTimeString("pt-BR"));
   }catch(e){setErro(e instanceof Error?e.message:"Falha ao carregar")}finally{setLoading(false)}
  }
  useEffect(()=>{void carregar();},[recorteQuery]);
- const mapa=useMemo(()=>new Map(etapas.map(e=>[e.pedido+"|"+e.etapa,e])),[etapas]);
+ const [atualizadoEm,setAtualizadoEm]=useState("");
+ useEffect(()=>{
+  const t=setInterval(()=>{if(document.visibilityState==="visible"&&!editando)void carregar()},30000);
+  const v=()=>{if(document.visibilityState==="visible"&&!editando)void carregar()};
+  document.addEventListener("visibilitychange",v);
+  return()=>{clearInterval(t);document.removeEventListener("visibilitychange",v)};
+ },[recorteQuery,editando]);
+ const mapa=useMemo(()=>{const m=new Map<string,Etapa>();for(const e of [...etapas].sort((a:any,b:any)=>String(a.atualizado_em||"").localeCompare(String(b.atualizado_em||""))))m.set(e.pedido+"|"+e.etapa,e);return m},[etapas]);
  const setoresVisiveis=SETORES.filter(([id])=>setor==="TODOS"||id===setor);
  const visiveis=pedidos.filter(p=>(!busca||[p.pedido,p.entrega?.cliente].join(" ").toLowerCase().includes(busca.toLowerCase())));
  const abertura=(p:Pedido,etapa:string)=>{
@@ -29,8 +36,8 @@ export default function ApontamentoEntregas(){
   setEditando({pedido:p.pedido,etapa});setInicio(row?.data_inicio||"");setFim(row?.data_conclusao||"");setObs(row?.observacao||"");setMsg("");setErro("");
  };
  async function salvar(){
-  if(!editando)return;if(!programacaoId){setErro("Selecione uma única programação no cabeçalho para editar datas.");return;}setSalvando(true);setErro("");setMsg("");
-  try{const r=await fetch("/api/controle-entregas/etapas",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({programacaoId,pedido:editando.pedido,area:"PRODUCAO",etapa:editando.etapa,dataInicio:inicio,dataConclusao:fim,observacao:obs,status:fim?"CONCLUIDA":inicio?"EM_ANDAMENTO":"PENDENTE"})});const j=await r.json();if(!r.ok)throw new Error(j.error||"Não foi possível salvar");
+  if(!editando)return;if(fim&&inicio&&fim<inicio){setErro("A data de conclusão não pode ser anterior à de início.");return;}setSalvando(true);setErro("");setMsg("");
+  try{const r=await fetch("/api/controle-entregas/etapas",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({programacaoId:programacaoId||undefined,pedido:editando.pedido,area:"PRODUCAO",etapa:editando.etapa,dataInicio:inicio,dataConclusao:fim,observacao:obs,status:fim?"CONCLUIDA":inicio?"EM_ANDAMENTO":"PENDENTE"})});const j=await r.json();if(!r.ok)throw new Error(j.error||"Não foi possível salvar");
   setMsg("Datas do setor atualizadas.");setEditando(null);await carregar();
   }catch(e){setErro(e instanceof Error?e.message:"Erro ao salvar")}finally{setSalvando(false)}
  }
@@ -39,16 +46,16 @@ export default function ApontamentoEntregas(){
  <div className="apontamento-actions">{me?.perfil==="PCP"&&<a className="access-config-link" href="/configuracoes">Configurar acessos</a>}<button onClick={()=>{setOcultarMenu(v=>!v);document.documentElement.classList.toggle("apontamento-focus",!ocultarMenu)}}>{ocultarMenu?<PanelLeftOpen/>:<PanelLeftClose/>}{ocultarMenu?"Mostrar menu":"Ampliar área"}</button><button onClick={()=>void carregar()}><RefreshCw/>Atualizar</button></div></header>
  <div className="apontamento-toolbar"><input value={busca} onChange={e=>setBusca(e.target.value)} placeholder="Pesquisar pedido ou cliente"/><select value={setor} onChange={e=>setSetor(e.target.value)}><option value="TODOS">Todos os setores</option>{SETORES.map(([id,n])=><option key={id} value={id}>{n}</option>)}</select><span>{visiveis.length} pedidos</span><span>{me?.perfil==="LIDER_ENTREGAS"?"Edição restrita ao seu setor":"Visão gerencial"}</span></div>
  {erro&&<p className="apontamento-error" role="alert">{erro}</p>}{msg&&<p role="status">{msg}</p>}
- <p className="apontamento-scroll-hint">Pedidos do recorte selecionado no cabeçalho. Para editar datas, selecione uma única programação.</p><div className="apontamento-table-wrap" role="region" aria-label="Tabela de apontamento de produção por pedido e setor" tabIndex={0}><table className="apontamento-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>OFs</th><th>Peças</th><th>Avanço PCP</th>{setoresVisiveis.map(([id,n])=><th key={id}>{n}<small>Início · Fim</small></th>)}</tr></thead><tbody>
+ <p className="apontamento-scroll-hint">Pedidos do recorte selecionado no cabeçalho. Edição liberada para os setores do seu login, mesmo com várias programações. {atualizadoEm&&`Atualizado às ${atualizadoEm} (automático a cada 30 s).`}{me?.perfil==="LIDER_ENTREGAS"&&!permitidas.length&&" Nenhum setor liberado para o seu login: peça ao PCP em Configurar acessos."}</p><div className="apontamento-table-wrap" role="region" aria-label="Tabela de apontamento de produção por pedido e setor" tabIndex={0}><table className="apontamento-table"><thead><tr><th>Pedido</th><th>Cliente</th><th>OFs</th><th>Peças</th><th>Avanço PCP</th>{setoresVisiveis.map(([id,n])=><th key={id}>{n}<small>Início · Fim</small></th>)}</tr></thead><tbody>
  {visiveis.map(p=><tr key={p.pedido}><td><strong>{p.pedido}</strong></td><td>{p.entrega?.cliente||"—"}</td><td>{p.ofs}</td><td>{p.pecas.toLocaleString("pt-BR")}</td><td>{p.percentual.toFixed(0)}%</td>
- {setoresVisiveis.map(([id])=>{const row=mapa.get(p.pedido+"|"+id);const pode=Boolean(programacaoId)&&permitidas.includes(id);return <td key={id}><div className="apontamento-dates"><span><b>Início:</b> {row?.data_inicio||"—"}</span><span><b>Fim:</b> {row?.data_conclusao||"—"}</span>{pode&&<button onClick={()=>abertura(p,id)} type="button">Editar datas</button>}</div></td>})}
+ {setoresVisiveis.map(([id])=>{const row=mapa.get(p.pedido+"|"+id);const pode=permitidas.includes(id);return <td key={id} className={row?.data_conclusao?"ap-ok":row?.data_inicio?"ap-andamento":"ap-vazio"}><div className="apontamento-dates"><span><b>Início:</b> {row?.data_inicio||"—"}</span><span><b>Fim:</b> {row?.data_conclusao||"—"}</span>{pode&&<button onClick={()=>abertura(p,id)} type="button">Editar datas</button>}</div></td>})}
  </tr>)}{!visiveis.length&&<tr><td colSpan={5+setoresVisiveis.length}>{loading?"Carregando…":"Nenhum pedido encontrado."}</td></tr>}</tbody></table></div>
  <section className="apontamento-mobile-cards" aria-label="Apontamentos por pedido no celular">
  {visiveis.map(p=><article className="apontamento-mobile-card" key={p.pedido}>
   <header><div><small>PEDIDO</small><strong>{p.pedido}</strong></div><span className="apontamento-mobile-progress">{p.percentual.toFixed(0)}% PCP</span></header>
   <div className="apontamento-mobile-client"><small>CLIENTE</small><strong>{p.entrega?.cliente?.trim()||"Cliente não cadastrado"}</strong></div>
   <div className="apontamento-mobile-stats"><div><small>OFs</small><strong>{p.ofs}</strong></div><div><small>Peças</small><strong>{p.pecas.toLocaleString("pt-BR")}</strong></div><div><small>Avanço</small><strong>{p.percentual.toFixed(0)}%</strong></div></div>
-  <div className="apontamento-mobile-sectors">{setoresVisiveis.map(([id,n])=>{const row=mapa.get(p.pedido+"|"+id);const pode=Boolean(programacaoId)&&permitidas.includes(id);return <section key={id}><b>{n}</b><div><span><small>Início</small>{row?.data_inicio||"—"}</span><span><small>Conclusão</small>{row?.data_conclusao||"—"}</span></div>{pode&&<button onClick={()=>abertura(p,id)} type="button">Editar datas</button>}</section>})}</div>
+  <div className="apontamento-mobile-sectors">{setoresVisiveis.map(([id,n])=>{const row=mapa.get(p.pedido+"|"+id);const pode=permitidas.includes(id);return <section key={id}><b>{n}</b><div><span><small>Início</small>{row?.data_inicio||"—"}</span><span><small>Conclusão</small>{row?.data_conclusao||"—"}</span></div>{pode&&<button onClick={()=>abertura(p,id)} type="button">Editar datas</button>}</section>})}</div>
  </article>)}
  {!visiveis.length&&<p className="apontamento-mobile-empty">{loading?"Carregando pedidos…":"Nenhum pedido neste filtro."}</p>}
  </section>

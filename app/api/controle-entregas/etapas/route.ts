@@ -86,7 +86,7 @@ async function unidadePOST(req:Request){
    const pedido=String(item?.pedido||"").trim(),etapa=String(item?.etapa||"").toUpperCase();
    const date=(v:any)=>{if(!v)return null;const t=String(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(t))return undefined;const d=new Date(t+"T12:00:00Z");return Number.isNaN(d.getTime())||d.toISOString().slice(0,10)!==t?undefined:t};
    const inicio=date(item?.dataInicio),fim=date(item?.dataConclusao);
-   if(!/^\d{4,10}$/.test(pedido)||!AREAS.PRODUCAO.includes(etapa)||!allowedSet.has(etapa)||inicio===undefined||fim===undefined||(inicio&&fim&&fim<inicio)||(!inicio&&!fim)){ignorados++;continue;}
+   if(!/^[A-Za-z0-9._\/-]{1,40}$/.test(pedido)||!AREAS.PRODUCAO.includes(etapa)||!allowedSet.has(etapa)||inicio===undefined||fim===undefined||(inicio&&fim&&fim<inicio)||(!inicio&&!fim)){ignorados++;continue;}
    const origem=await db`select pedido from pcp_produtos where pedido=${pedido} and programacao_id=${programacaoId} limit 1`;
    if(!origem.length){ignorados++;continue;}
    const existeEntrega=await db`select pedido from pcp_controle_entregas where pedido=${pedido} limit 1`;
@@ -120,13 +120,15 @@ async function unidadePUT(req:Request){
  const requestedProgramacaoId=String(b.programacaoId||"").trim();
  const date=(v:any)=>{if(!v)return null;const t=String(v);if(!/^\d{4}-\d{2}-\d{2}$/.test(t))return undefined;const d=new Date(t+"T12:00:00Z");return Number.isNaN(d.getTime())||d.toISOString().slice(0,10)!==t?undefined:t};
  const inicio=date(b.dataInicio),fim=date(b.dataConclusao),status=String(b.status||"PENDENTE").toUpperCase(),observacao=String(b.observacao||"").slice(0,2000);
- if(!/^\d{4,10}$/.test(pedido)||!AREAS[area]?.includes(etapa)||!["PENDENTE","EM_ANDAMENTO","CONCLUIDA","BLOQUEADA","NAO_APLICAVEL"].includes(status)||inicio===undefined||fim===undefined||(inicio&&fim&&fim<inicio))
- return NextResponse.json({error:"Dados inválidos. Verifique pedido, etapa, situação e datas."},{status:400});
+ if(!/^[A-Za-z0-9._\/-]{1,40}$/.test(pedido)||!AREAS[area]?.includes(etapa)||!["PENDENTE","EM_ANDAMENTO","CONCLUIDA","BLOQUEADA","NAO_APLICAVEL"].includes(status))
+ return NextResponse.json({error:"Dados inválidos. Verifique pedido, etapa e situação."},{status:400});
+ if(inicio===undefined||fim===undefined)return NextResponse.json({error:"Data inválida. Use o formato AAAA-MM-DD."},{status:400});
+ if(inicio&&fim&&fim<inicio)return NextResponse.json({error:"A data de conclusão não pode ser anterior à data de início."},{status:400});
  const db=await ensure();
  if(u.perfil==="LIDER_ENTREGAS"){
   const allowed=await permitidas(db,u.usuario);
   if(area!=="PRODUCAO"||!allowed.includes(etapa))
-   return NextResponse.json({error:"Você pode alterar somente as datas do seu setor."},{status:403});
+   return NextResponse.json({error:allowed.length?"Você pode alterar somente as datas do seu setor.":"Nenhum setor foi liberado para o seu login. Peça ao PCP em Configurar acessos."},{status:403});
  }
  let programacaoId=requestedProgramacaoId;
  if(!programacaoId){
@@ -134,8 +136,13 @@ async function unidadePUT(req:Request){
   programacaoId=String(origem[0]?.programacao_id||"");
  }
  if(!programacaoId)return NextResponse.json({error:"Pedido não encontrado em uma programação do PCP."},{status:404});
- const origem=await db`select pedido from pcp_produtos where pedido=${pedido} and programacao_id=${programacaoId} limit 1`;
- if(!origem.length)return NextResponse.json({error:"Este pedido não pertence ao filtro selecionado."},{status:404});
+ let origem=await db`select pedido from pcp_produtos where pedido=${pedido} and programacao_id=${programacaoId} limit 1`;
+ if(!origem.length){
+  // O pedido não está na programação informada: usa a programação mais recente em que ele existe, em vez de bloquear a edição.
+  const outra=await db`select p.programacao_id from pcp_produtos p join pcp_programacoes pg on pg.id=p.programacao_id where p.pedido=${pedido} order by pg.criado_em desc,pg.id desc limit 1`;
+  if(!outra.length)return NextResponse.json({error:"Pedido não encontrado em nenhuma programação do PCP."},{status:404});
+  programacaoId=String(outra[0].programacao_id);
+ }
  const existe=await db`select pedido from pcp_controle_entregas where pedido=${pedido} limit 1`;
  if(!existe.length)await db`insert into pcp_controle_entregas(pedido) values(${pedido}) on conflict do nothing`;
  const [prev]=await db`select * from pcp_controle_entregas_etapas where pedido=${pedido} and programacao_id=${programacaoId} and area=${area} and etapa=${etapa}`;
