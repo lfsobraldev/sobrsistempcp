@@ -1,0 +1,32 @@
+name: Aplicar banco (manual)
+# Roda só quando você clicar em "Run workflow". Precisa dos secrets DATABASE_URL_SUL, DATABASE_URL_NORDESTE e DATABASE_URL_CENTRAL.
+on:
+  workflow_dispatch:
+    inputs:
+      alvo:
+        description: "Qual banco aplicar"
+        required: true
+        type: choice
+        options: [SUL, NORDESTE, CENTRAL]
+      confirmar:
+        description: "Digite APLICAR para confirmar"
+        required: true
+        type: string
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    if: ${{ inputs.confirmar == 'APLICAR' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aplicar migrações
+        env:
+          URL_SUL: ${{ secrets.DATABASE_URL_SUL }}
+          URL_NORDESTE: ${{ secrets.DATABASE_URL_NORDESTE }}
+          URL_CENTRAL: ${{ secrets.DATABASE_URL_CENTRAL }}
+          ALVO: ${{ inputs.alvo }}
+        run: |
+          case "$ALVO" in
+            SUL) scripts/aplicar-banco.sh "$URL_SUL" ;;
+            NORDESTE) scripts/aplicar-banco.sh "$URL_NORDESTE" ;;
+            CENTRAL) scripts/aplicar-banco.sh "$URL_CENTRAL" central ;;
+          esac
