@@ -1971,3 +1971,13 @@ input, select, textarea { min-width:0; max-width:100%; }
 .lp-tile svg{color:var(--primary);flex:none}
 .lp-tile.active{border-color:var(--primary);background:var(--primary-50)}
 button.lp-tile{width:100%;text-align:left;justify-content:space-between;cursor:pointer}
+
+/* Gráfico de conjuntos (barras simples, sem biblioteca) */
+.cj-bars{display:grid;gap:8px}
+.cj-row{display:grid;grid-template-columns:90px 1fr auto;gap:10px;align-items:center;font-size:var(--fs-sm)}
+.cj-row>span{color:var(--text-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cj-track{display:flex;height:16px;background:var(--surface-3);border-radius:4px;overflow:hidden}
+.cj-track i{display:block;height:100%}
+.cj-track i.ok{background:var(--primary)}
+.cj-track i.falta{background:#d9a441}
+.cj-row b{font-variant-numeric:tabular-nums;min-width:64px;text-align:right}

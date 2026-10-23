@@ -331,6 +331,18 @@ export default function ProgramacaoGerentePage() {
   const kits = pedidos.reduce((s, p) => s + p.kits, 0);
   const kitsDesmembrados = pedidos.reduce((s,p) => s + p.kitsDesmembrados,0);
   const conjuntosCompletosEstimados = pedidos.reduce((sum,p) => sum + p.conjuntosCompletosEstimados,0);
+  const linhasConjuntos = useMemo(() => pedidos.map((p) => {
+    const c = p.componentesConjunto;
+    const linha: Record<string, string | number> = {
+      Pedido: p.pedido, "Portas (conjuntos previstos)": p.kits, "Conjuntos completos (estimados)": p.conjuntosCompletosEstimados, "Portas sem conjunto completo": p.kitsDesmembrados,
+    };
+    for (const nome of COMPONENTES_CONJUNTO) {
+      linha[`${nome} (peças)`] = c.estoque[nome];
+      linha[`${nome} comporta (conjuntos)`] = Math.floor(c.estoque[nome] / COMPOSICAO[nome]);
+    }
+    linha["Limitante(s)"] = c.faltas.join(", ");
+    return linha;
+  }), [pedidos]);
   const volume = pedidos.reduce((s, p) => s + p.m3, 0);
   const metrosLineares = pedidos.reduce((s, p) => s + p.ml, 0);
   const consumoMaterial = useMemo(() => {
@@ -380,7 +392,7 @@ export default function ProgramacaoGerentePage() {
     try {
       await baixarPlanilhaProducao(
         produtos.map((p) => (locais[p.pedido] !== undefined ? { ...p, localMontagem: locais[p.pedido] } : p)),
-        { arquivo: "Controle_Producao", somenteControle: true }
+        { arquivo: "Controle_Producao", somenteControle: true, conjuntos: linhasConjuntos }
       );
     } finally {
       setBusy(false);
@@ -553,6 +565,35 @@ export default function ProgramacaoGerentePage() {
           <small>m³ estimados</small>
         </article>
       </section>}
+
+      {view === "PEDIDOS" && pedidos.length > 0 && (() => {
+        const topo = [...pedidos].sort((a, b) => b.kits - a.kits).slice(0, 12);
+        const maxK = Math.max(1, ...topo.map((p) => p.kits));
+        const totais = COMPONENTES_CONJUNTO.map((nome) => ({ nome, pecas: pedidos.reduce((s, p) => s + p.componentesConjunto.estoque[nome], 0), cabem: Math.floor(pedidos.reduce((s, p) => s + p.componentesConjunto.estoque[nome], 0) / COMPOSICAO[nome]) }));
+        const maxC = Math.max(1, ...totais.map((t) => t.cabem));
+        return (
+          <div className="grid2">
+            <Panel title="Conjuntos por pedido" subtitle="Verde: conjunto completo (porta + batente + alizar). Âmbar: portas ainda sem conjunto completo.">
+              <div className="cj-bars">{topo.map((p) => (
+                <div key={p.pedido} className="cj-row" title={`${p.pedido}: ${p.conjuntosCompletosEstimados} completos, ${p.kitsDesmembrados} sem conjunto completo`}>
+                  <span>{p.pedido}</span>
+                  <div className="cj-track"><i className="ok" style={{ width: `${(p.conjuntosCompletosEstimados / maxK) * 100}%` }} /><i className="falta" style={{ width: `${(p.kitsDesmembrados / maxK) * 100}%` }} /></div>
+                  <b>{fmt(p.conjuntosCompletosEstimados)}/{fmt(p.kits)}</b>
+                </div>))}
+              </div>
+            </Panel>
+            <Panel title="Peças de conjunto: quantos conjuntos cada componente comporta" subtitle="O menor valor limita o total de conjuntos completos da programação.">
+              <div className="cj-bars">{totais.map((t) => (
+                <div key={t.nome} className="cj-row" style={{ gridTemplateColumns: "180px 1fr auto" }}>
+                  <span>{t.nome.toLowerCase()}</span>
+                  <div className="cj-track"><i className={t.cabem === Math.min(...totais.map((x) => x.cabem)) ? "falta" : "ok"} style={{ width: `${(t.cabem / maxC) * 100}%` }} /></div>
+                  <b>{fmt(t.cabem)}</b>
+                </div>))}
+              </div>
+            </Panel>
+          </div>
+        );
+      })()}
 
       {view === "MATERIA" && (
       <Panel title="Necessidade de matéria-prima" subtitle="Consumo previsto separado por família da peça e material. Metros lineares = comprimento em metros × quantidade de peças. Não multiplica por operações.">
