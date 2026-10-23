@@ -1,3 +1,4 @@
+import { qrFichaPng } from "./qr-image";
 import ExcelJS from "exceljs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -230,6 +231,11 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
   set(ws, "I9", data.orderOptions?.placa || "");
   // No modelo oficial G11:J11 é o rótulo mesclado de Nota Fiscal; o valor fica em K11.
   set(ws, "K11", data.orderOptions?.notaFiscal || "");
+
+  if (data.orderNumber) {
+    const qid = workbook.addImage({ buffer: (await qrFichaPng(String(data.orderNumber))) as any, extension: "png" });
+    ws.addImage(qid, { tl: { col: 9.02, row: 0.1 }, ext: { width: 62, height: 62 } } as any);
+  }
 
   let cursor = START_ROW;
   const written: WrittenRow[] = [];

@@ -91,13 +91,15 @@ function Inner({ children }: { children: React.ReactNode }) {
   const [workspaceTabs, setWorkspaceTabs] = useState<{path:string;label:string}[]>([]);
   const [mobileNav, setMobileNav] = useState(false);
   const [naoLidas, setNaoLidas] = useState(0);
+  const veNotificacoes = !!me && allowedPath(me.perfil, "/plataforma");
   useEffect(() => {
+    if (!veNotificacoes) return;
     let vivo = true;
     const carregar = () => fetch("/api/plataforma?visao=contador", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).then((j) => { if (vivo && j) setNaoLidas(Number(j.naoLidas) || 0); }).catch(() => {});
     void carregar();
     const t = setInterval(carregar, 120000);
     return () => { vivo = false; clearInterval(t); };
-  }, [path]);
+  }, [path, veNotificacoes]);
   const [query, setQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [gruposAbertos, setGruposAbertos] = useState<string[]>([]);
@@ -227,7 +229,7 @@ function Inner({ children }: { children: React.ReactNode }) {
         </div>
         <span className={`livedot ${live ? "on" : ""}`} title={live ? "Tempo real ativo" : "Sincronizando"} />
         <button className="ghost iconBtn" onClick={() => void refresh()} aria-label="Atualizar" title="Atualizar"><RefreshCw /></button>
-        <Link className="ghost iconBtn" aria-label={`Notificações${naoLidas ? ` (${naoLidas} não lidas)` : ""}`} title="Notificações" href="/plataforma" style={{ position: "relative" }}><Bell />{naoLidas > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#c0392b", color: "#fff", borderRadius: 9, fontSize: 10, padding: "0 5px", lineHeight: "16px" }}>{naoLidas > 99 ? "99+" : naoLidas}</span>}</Link>
+        {veNotificacoes && <Link className="ghost iconBtn" aria-label={`Notificações${naoLidas ? ` (${naoLidas} não lidas)` : ""}`} title="Notificações" href="/plataforma" style={{ position: "relative" }}><Bell />{naoLidas > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#c0392b", color: "#fff", borderRadius: 9, fontSize: 10, padding: "0 5px", lineHeight: "16px" }}>{naoLidas > 99 ? "99+" : naoLidas}</span>}</Link>}
         <div style={{ position: "relative" }}>
           <button className="userchip" onClick={() => setProfileOpen((v) => !v)} aria-expanded={profileOpen}>
             <span className="avatar">{me.usuario.slice(0, 2).toUpperCase()}</span>

@@ -173,6 +173,7 @@ export function AbaMovimentar() {
   const processar = useCallback(async (bruto: string) => {
     const q = lerQr(bruto); setErro("");
     if (!q) { setErro("QR não reconhecido. Leia uma etiqueta da fábrica."); return; }
+    if (q.tipo === "FICHA") { window.location.href = `/ficha?pedido=${encodeURIComponent(q.pedido)}`; return; }
     if (q.tipo !== "ENDERECO") { setPend(q); return; }
     if (!pend) { setErro("Leia primeiro a etiqueta da peça, sobra ou pallet."); return; }
     setBusy(true);
