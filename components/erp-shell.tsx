@@ -24,7 +24,7 @@ import { DoorLoader } from "@/components/door-art";
 type MenuItem = { path: string; label: string; icon: LucideIcon };
 type MenuGroup = { label: string; items: MenuItem[] };
 
-const menus: MenuGroup[] = [
+const menusBase: MenuGroup[] = [
   { label: "Visão Geral", items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }] },
   { label: "Comercial", items: [
     { path: "/marketing", label: "Marketing", icon: Megaphone },
@@ -80,6 +80,28 @@ const menus: MenuGroup[] = [
   },
   { label: "Administração", items: [{ path: "/seguranca", label: "Segurança e Aprovações", icon: ShieldAlert }, { path: "/plataforma", label: "Painel, Notificações e Campos", icon: Bell }, { path: "/pessoas", label: "Pessoas, EHS e Cronograma", icon: Users }, { path: "/acessos", label: "Usuários e Unidades", icon: Users }, { path: "/configuracoes", label: "Configurações", icon: SlidersHorizontal }] },
 ];
+
+// Organização por módulo, no padrão de mercado (SAP): cada grupo reúne o que pertence à mesma função.
+const itemPorPath = new Map(menusBase.flatMap((g) => g.items).map((i) => [i.path, i] as const));
+const modulo = (label: string, paths: string[]): MenuGroup => ({ label, items: paths.map((p) => itemPorPath.get(p)).filter((i): i is MenuItem => !!i) });
+const menus: MenuGroup[] = [
+  modulo("Visão Geral", ["/dashboard", "/pcp-painel"]),
+  modulo("SD · Vendas e Distribuição", ["/marketing", "/comercial", "/vendas", "/carteira", "/gestao-pedidos", "/expedicao", "/romaneios", "/apontamento-entregas"]),
+  modulo("PP · Planejamento e Produção", ["/programacao", "/planejamento-mensal", "/planejamento-aps", "/programacao-gerente", "/ordens-fabricacao", "/plano-corte", "/embalagem", "/apontamento-operacoes", "/lideres", "/excecoes", "/andon", "/integracao-consistem"]),
+  modulo("PLM · Engenharia e Medição", ["/engenharia", "/medicoes", "/documentos"]),
+  modulo("MM · Materiais e Compras", ["/compras", "/cotacoes", "/estoque"]),
+  modulo("WM · Depósito e Rastro", ["/estoque-avancado", "/wms", "/mapa-fabrica", "/producao-consultas"]),
+  modulo("QM · Qualidade", ["/inspecao-pallets", "/qualidade-inspecao"]),
+  modulo("PM · Manutenção", ["/manutencao"]),
+  modulo("FI · Contabilidade Financeira", ["/financeiro", "/fiscal"]),
+  modulo("CO · Controladoria e Custos", ["/custos", "/controladoria"]),
+  modulo("HR · Pessoas e Projetos", ["/corporativo", "/pessoas"]),
+  modulo("CS · Atendimento", ["/sac"]),
+  modulo("BW · Relatórios e BI", ["/indicadores", "/prioridades", "/criticos", "/fluxo", "/performance", "/perdas", "/historico", "/sobral-ia"]),
+  modulo("BASIS · Administração", ["/seguranca", "/plataforma", "/acessos", "/configuracoes"]),
+];
+const naoMapeados = menusBase.flatMap((g) => g.items).filter((i) => !menus.some((g) => g.items.includes(i)));
+if (naoMapeados.length) menus.push({ label: "Outros", items: naoMapeados });
 
 const HOME: Record<string, string> = { LIDER: "/lideres", APONTADOR: "/lideres", QUALIDADE: "/inspecao-pallets", COMERCIAL: "/comercial", LOGISTICA: "/gestao-pedidos", LIDER_ENTREGAS: "/apontamento-entregas", SAC: "/sac" };
 
