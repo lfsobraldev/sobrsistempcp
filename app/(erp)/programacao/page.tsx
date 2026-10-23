@@ -37,23 +37,12 @@ export default function Programacao() {
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [turno, setTurno] = useState("A");
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [agendadas, setAgendadas] = useState<Array<{ id: string; filtro: string; data: string; turno: string; pedidos: number; pecas: number }>>([]);
   const hoje = new Date();
   const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const inicioProx = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
   const fimProx = new Date(hoje.getFullYear(), hoje.getMonth() + 2, 0);
   const proximoMes = data >= iso(inicioProx);
   const nomeMesProx = inicioProx.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  async function carregarAgendadas() {
-    try { const r = await fetch("/api/programacoes/agendadas", { cache: "no-store" }); if (r.ok) setAgendadas((await r.json()).rows || []); } catch { /* sem agendadas */ }
-  }
-  useEffect(() => { void carregarAgendadas(); }, []);
-  async function cancelarAgendada(id: string) {
-    const r = await fetch(`/api/programacoes/agendadas?id=${id}`, { method: "DELETE" });
-    if (!r.ok) { toast("error", (await r.json().catch(() => ({}))).error || "Falha ao cancelar."); return; }
-    toast("success", "Agendamento cancelado.");
-    await carregarAgendadas();
-  }
   const [descricaoExpandida, setDescricaoExpandida] = useState(true);
 
   async function cadastrarCatalogo() {
@@ -195,7 +184,6 @@ export default function Programacao() {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       const preparados = Number(j.romaneios?.preparados || 0);
-      if (j.agendada) { toast("success", `Filtro agendado para ${nomeMesProx}. Só aparece para a fábrica quando o mês chegar.`); setDraft(null); await carregarAgendadas(); return; }
       toast("success", preparados > 0 ? `Programação liberada. ${preparados} romaneio(s) pré-pronto(s) gerado(s).` : "Programação liberada para a fábrica.");
       setDraft(null);
       await refresh();
@@ -293,7 +281,7 @@ export default function Programacao() {
                   {busy ? (analiseIA || "Processando…") : <>Processar <ChevronRight /></>}
                 </button>
               </div>
-              {proximoMes && <div className="agenda-aviso"><CalendarClock size={16} /> <span><b>Filtro do próximo mês.</b> Fica agendado e só aparece para a fábrica a partir de {inicioProx.toLocaleDateString("pt-BR")}; a programação atual não muda.</span></div>}
+              {proximoMes && <div className="agenda-aviso"><CalendarClock size={16} /> <span><b>Competência {nomeMesProx}.</b> O filtro é liberado agora para a fábrica e fica contabilizado no próximo mês.</span></div>}
             </div>
           </Card>
 
@@ -309,19 +297,6 @@ export default function Programacao() {
         </div>
       ) : (
         <Review d={draft} busy={busy} back={() => setDraft(null)} release={release} setTipoPedido={definirTipoPedido} correcoes={correcoesIA} descricaoExpandida={descricaoExpandida} setDescricaoExpandida={setDescricaoExpandida} />
-      )}
-      {agendadas.length > 0 && (
-        <Card title="Agendadas para o próximo mês" subtitle="Entram em vigor automaticamente quando o mês chegar" className="mb">
-          <div className="agenda-lista">
-            {agendadas.map((a) => (
-              <div key={a.id} className="agenda-item">
-                <CalendarClock size={18} />
-                <span><b>Filtro {a.filtro || "—"}</b><small>{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")} · turno {a.turno} · {Number(a.pedidos || 0)} pedidos · {Number(a.pecas || 0).toLocaleString("pt-BR")} peças</small></span>
-                <button type="button" className="ghost" onClick={() => void cancelarAgendada(a.id)}><Trash2 size={14} /> Cancelar</button>
-              </div>
-            ))}
-          </div>
-        </Card>
       )}
       <Card title="Catálogo Mestre de Produtos" subtitle="Base permanente no Neon — atualização apenas quando o cadastro da empresa mudar" className="mb">
         <div className="file-upload-layout">
