@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { PackageData, PackageRow, ProcessingResult } from "./types";
 import { rowVolume } from "./logistics";
+import { qrFichaPng } from "./qr-image";
 
 /**
  * Etiqueta de pallet no modelo oficial (Pedido.xlsx): uma aba "Pacote NN" por pacote,
@@ -57,7 +58,7 @@ export async function createEtiquetaModeloWorkbook(data: ProcessingResult) {
   const idImagens = imagens.map((im) => out.addImage({ buffer: im.buffer as any, extension: "png" }));
   const totalPacotes = pacotes.length;
 
-  pacotes.forEach((pkg, idx) => {
+  for (const [idx, pkg] of pacotes.entries()) {
     const rows = (pkg.label?.rows?.length ? pkg.label.rows : pkg.rows).filter((r) => r.product || r.quantity);
     const n = rows.length;
     const last = FIRST_DATA + n - 1; const total = last + 1;
@@ -126,11 +127,17 @@ export async function createEtiquetaModeloWorkbook(data: ProcessingResult) {
     ws.getCell(`H${total}`).value = { formula: `ROUNDUP(((G${total}*420)/1000),1)&" - toneladas"`, result: `${String(Math.ceil(((somaM3 * 420) / 1000) * 10) / 10).replace(".", ",")} - toneladas` } as any;
     ws.mergeCells(`H${total}:J${total}`);
 
+    // QR da ficha do pedido (coluna K, fora da tabela)
+    if (pedido) {
+      ws.getColumn(11).width = 12;
+      const qid = out.addImage({ buffer: (await qrFichaPng(pedido)) as any, extension: "png" });
+      ws.addImage(qid, { tl: { col: 10.1, row: 0.1 }, ext: { width: 80, height: 80 } } as any);
+    }
     // Imagens (logo e bandeira) e impressão
     imagens.forEach((im, k) => ws.addImage(idImagens[k], copiarRange(im.range) as any));
     ws.pageSetup = { paperSize: 9, orientation: n >= 11 ? "portrait" : "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 1, horizontalCentered: true,
-      margins: { left: 0.5118, right: 0.5118, top: 0.5118, bottom: 0.5118, header: 0.3, footer: 0.3 }, printArea: `A1:J${total}` } as any;
+      margins: { left: 0.5118, right: 0.5118, top: 0.5118, bottom: 0.5118, header: 0.3, footer: 0.3 }, printArea: `A1:K${total}` } as any;
     void idx;
-  });
+  }
   return Buffer.from(await out.xlsx.writeBuffer());
 }
