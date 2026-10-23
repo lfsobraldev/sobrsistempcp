@@ -288,3 +288,31 @@ test("Postgres: mapa da fábrica, localizador e rastro por setor", async () => {
     assert.equal((await all("select * from pcp_v_rastro_paradas")).length, 1);
   } finally { await db.close(); }
 });
+
+test("Postgres: planta, movimentação por QR e posição de peças", async () => {
+  const { db, one, all } = await bancoCompleto();
+  try {
+    const loc = (await one("insert into est_locais(codigo,descricao) values('FAB','Fábrica') returning id")).id;
+    const emb = (await one("select id from wms_setores where codigo='EMB'")).id;
+    const so = (await one("select id from wms_setores where codigo='SOBRAS'")).id;
+    await one("insert into est_enderecos(local_id,codigo,criado_por,setor_id,rua) values($1,'EMB-T1','t',$2,'T1')", [loc, emb]);
+    await one("insert into est_enderecos(local_id,codigo,criado_por,setor_id,rua) values($1,'SOB-T3','t',$2,'T3')", [loc, so]);
+    await assert.rejects(one("select wms_mover('PECA','P1','NAO','t','100')"), /não encontrado/);
+    await assert.rejects(one("select wms_mover('PECA','P1','EMB-T1','t','')"), /exige pedido/);
+    await one("select wms_mover('PECA','P1','SOB-T3','t','100')");
+    await one("select wms_mover('PECA','P1','EMB-T1','t','100')");
+    await assert.rejects(one("select wms_mover('PECA','P1','EMB-T1','t','100')"), /já está/);
+    assert.equal((await one("select endereco from wms_v_localizador_end where tipo='PECA' and codigo='P1'")).endereco, "EMB-T1");
+    assert.equal((await all("select * from wms_movimentacoes where ref='100|P1'")).length, 2);
+    assert.equal((await one("select setor from pcp_v_rastro_atual where pedido='100' and peca='P1'")).setor, "EMB");
+    const sid = (await one("insert into wms_sobras(descricao,quantidade,criado_por) values('Alizar',1,'t') returning numero")).numero;
+    await one("select wms_mover('SOBRA',$1,'SOB-T3','t')", ["S" + sid]);
+    assert.equal((await one("select endereco from wms_v_localizador_end where tipo='SOBRA'")).endereco, "SOB-T3");
+    // planta
+    assert.equal((await one("select wms_layout_salvar('FABRICA', $1::jsonb, 't') n", [JSON.stringify([{ tipo: "SETOR", nome: "Embalagem", setor_id: emb, etapa: "EMBALAGEM", x: 2, y: 3, w: 20, h: 10, cor: "#dbeafe" }, { tipo: "TEXTO", nome: "Entrada", x: 0, y: 0, w: 5, h: 2, cor: "zzz" }])])).n, 2);
+    assert.equal((await all("select * from wms_layout_blocos where etapa='EMBALAGEM'")).length, 1);
+    await one("select wms_layout_salvar('FABRICA','[]'::jsonb,'t')");
+    assert.equal((await all("select * from wms_layout_blocos")).length, 0);
+    await assert.rejects(one("select wms_layout_salvar('XX','[]'::jsonb,'t')"), /Planta inexistente/);
+  } finally { await db.close(); }
+});
