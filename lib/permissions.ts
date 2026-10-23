@@ -24,6 +24,8 @@ const BY_ROLE: Record<Perfil, string[]> = {
 BY_ROLE.SUPERVISOR = BY_ROLE.ENCARREGADO;
 BY_ROLE.DIRETOR = BY_ROLE.GERENTE;
 BY_ROLE.ADMINISTRADOR = ALL_PCP;
+// Launchpad: todos, menos os perfis que só apontam
+for (const r of Object.keys(BY_ROLE)) if (!["LIDER", "APONTADOR", "LIDER_ENTREGAS"].includes(r) && BY_ROLE[r as Perfil].length && !BY_ROLE[r as Perfil].includes("/inicio")) BY_ROLE[r as Perfil] = [...BY_ROLE[r as Perfil], "/inicio"];
 
 export function allowedPath(role: string, path: string) {
   const unidade=/^\/(pcp|apontamento|estoque|programacao)\/(sul|nordeste|consolidado)$/.exec(path);

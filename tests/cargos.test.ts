@@ -16,6 +16,7 @@ test("cargos acima herdam o perfil-base e a sessão é configurável", () => {
     for (const rota of ["/configuracoes", "/acessos", "/plataforma", "/mapa-fabrica", "/seguranca", "/dashboard"]) assert.equal(allowedPath(perfil, rota), false, `${perfil} ${rota}`);
   assert.equal(allowedPath("LIDER", "/apontamento-operacoes"), true);
   assert.equal(allowedPath("LIDER_ENTREGAS", "/apontamento-entregas"), true);
+  assert.equal(allowedPath("PCP", "/inicio"), true); assert.equal(allowedPath("LIDER", "/inicio"), false);
   const antes = process.env.SESSAO_HORAS;
   try {
     delete process.env.SESSAO_HORAS; assert.equal(sessaoHoras(), 12);

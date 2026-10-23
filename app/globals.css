@@ -1958,3 +1958,14 @@ input, select, textarea { min-width:0; max-width:100%; }
 .mf-chk{display:flex;align-items:center;gap:6px;font-size:13px}
 .qr-video{width:100%;max-width:420px;border-radius:12px;margin-top:10px;background:#000}
 .mf-linha .grow{flex:1;min-width:220px}
+
+/* Launchpad: módulos como blocos, com a sigla do módulo como marca */
+.lp{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--sp-4)}
+.lp-mod{background:var(--surface);border:1px solid var(--border);border-top:3px solid var(--primary);border-radius:var(--radius);padding:var(--sp-4)}
+.lp-mod header{display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3)}
+.lp-mod h2{margin:0;font-size:var(--fs-sm);font-weight:var(--fw-semibold);color:var(--text);letter-spacing:.01em}
+.lp-cod{display:inline-grid;place-items:center;min-width:44px;height:28px;padding:0 8px;border-radius:6px;background:var(--sidebar-bg);color:#fff;font-family:var(--font-mono);font-size:var(--fs-xs);font-weight:var(--fw-semibold);letter-spacing:.06em}
+.lp-tiles{display:grid;gap:6px}
+.lp-tile{display:flex;align-items:center;gap:var(--sp-3);padding:10px 12px;border:1px solid var(--border);border-radius:8px;color:var(--text);background:var(--surface-2);font-size:var(--fs-sm);text-decoration:none;min-height:44px}
+.lp-tile:hover{border-color:var(--primary);background:var(--primary-50)}
+.lp-tile svg{color:var(--primary);flex:none}
