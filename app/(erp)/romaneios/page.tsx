@@ -454,12 +454,13 @@ export default function RomaneiosPage() {
       <Card subtitle="Passo 2" title="Configuração do romaneio" className="mb">
         <div className="mount-options">
           {MONTAGENS.map((item) => (
-            <button key={item.value} type="button" className={mountType === item.value ? "active" : ""} onClick={() => setMountType(item.value)}>
+            <button key={item.value} type="button" className={mountType === item.value ? "active" : ""} aria-pressed={mountType === item.value} onClick={() => { if (item.value === mountType) return; setMountType(item.value); if (pedidoFiltro) setResultado(null); }}>
               <Boxes />
               <span><b>{item.label}</b><small>{item.detalhe}</small></span>
             </button>
           ))}
         </div>
+        <p className="muted" style={{ marginTop: "var(--sp-2)" }}>Regra escolhida: <b>{MONTAGENS.find((m) => m.value === mountType)?.label}</b>. {pedidoFiltro ? "Processe o pedido de novo para aplicar a regra." : "Vale para o próximo romaneio gerado."}</p>
         <div className="form-grid" style={{ marginTop: "var(--sp-4)" }}>
           <Field label="Filtro"><input value={filtro} onChange={(e) => setFiltro(e.target.value)} /></Field>
           <Field label="Cliente (etiquetas)"><input value={cliente} onChange={(e) => setCliente(e.target.value)} placeholder="Nome do cliente" /></Field>
