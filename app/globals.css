@@ -1969,3 +1969,5 @@ input, select, textarea { min-width:0; max-width:100%; }
 .lp-tile{display:flex;align-items:center;gap:var(--sp-3);padding:10px 12px;border:1px solid var(--border);border-radius:8px;color:var(--text);background:var(--surface-2);font-size:var(--fs-sm);text-decoration:none;min-height:44px}
 .lp-tile:hover{border-color:var(--primary);background:var(--primary-50)}
 .lp-tile svg{color:var(--primary);flex:none}
+.lp-tile.active{border-color:var(--primary);background:var(--primary-50)}
+button.lp-tile{width:100%;text-align:left;justify-content:space-between;cursor:pointer}

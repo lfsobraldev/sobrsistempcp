@@ -1612,6 +1612,25 @@
       "verificacao": "50_2026-11-17_40_perdas_pecas_reposicao.verify.sql",
       "down": "50_2026-11-17_40_perdas_pecas_reposicao.down.sql",
       "baseline": "50_2026-11-17_40_perdas_pecas_reposicao.baseline.sql"
+    },
+    {
+      "ordem": 51,
+      "arquivo": "2026-11-18_41_unidade_madeiras.sql",
+      "descricao": "2026-11-18_41_unidade_madeiras.sql",
+      "dependenciasDeclaradas": [
+        "2026-11-17_40_perdas_pecas_reposicao.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "255e031aae62d7081808681ad16d38254a52858058e96f77e4daaebacc1db63b",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "baixo",
+      "objetos": [],
+      "colunasAdicionadas": [],
+      "up": "51_2026-11-18_41_unidade_madeiras.up.sql",
+      "verificacao": "51_2026-11-18_41_unidade_madeiras.verify.sql",
+      "down": "51_2026-11-18_41_unidade_madeiras.down.sql",
+      "baseline": "51_2026-11-18_41_unidade_madeiras.baseline.sql"
     }
   ]
 }

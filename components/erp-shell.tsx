@@ -211,7 +211,7 @@ function Inner({ children }: { children: React.ReactNode }) {
           {visible.map((g) => (
             <section key={g.label} className={`navgroup ${(collapsed || gruposAbertos.includes(g.label) || g.items.some((i) => i.path === path)) ? "open" : ""}`}>
               <button type="button" className="navgroup-head" aria-expanded={gruposAbertos.includes(g.label) || g.items.some((i) => i.path === path)} onClick={() => alternarGrupo(g.label)}>
-                <span>{g.label}</span><ChevronDown size={14} />
+                {g.label.includes(" · ") ? <><i className="nav-cod">{g.label.split(" · ")[0]}</i><span>{g.label.split(" · ").slice(1).join(" · ")}</span></> : <span>{g.label}</span>}<ChevronDown size={14} />
               </button>
               {(collapsed || gruposAbertos.includes(g.label) || g.items.some((i) => i.path === path)) && g.items.map((item) => {
                 const Icon = item.icon;
@@ -225,8 +225,8 @@ function Inner({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="sidefoot">
-          Programação ativa
-          {pg ? `Turno ${pg.turno} · ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}` : "Aguardando programação"}
+          <small>Programação ativa</small>
+          <b>{pg ? `Turno ${pg.turno} · ${new Date(`${pg.data}T12:00:00`).toLocaleDateString("pt-BR")}` : "Aguardando programação"}</b>
         </div>
       </aside>
 
@@ -263,6 +263,7 @@ function Inner({ children }: { children: React.ReactNode }) {
             <div className="menu">
               <div><b>{me.usuario}</b><br /><small>{me.perfil}</small></div>
               <div><small>Última sincronização: {lastSync ? lastSync.toLocaleTimeString("pt-BR") : "--:--:--"}</small></div>
+              <Link href="/perfil" onClick={() => setProfileOpen(false)}><SlidersHorizontal size={16} /> Perfil e filial</Link>
               <button onClick={logout}><LogOut /> Sair</button>
             </div>
           )}

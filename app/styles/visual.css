@@ -259,3 +259,16 @@ tbody td{font-size:13px}
   .shell .topbar2 .ctxmeta-global>span{background:rgba(255,255,255,.1)!important;border-radius:var(--radius);padding:4px 8px!important}
   .shell .topbar2 .ctxmeta-global .ctxfilter-select select{height:36px}
 }
+
+/* Navegação lateral: sigla do módulo + nome em uma linha, sem quebrar */
+.shell .navgroup-head{gap:10px;min-height:40px;height:auto!important}
+.shell .navgroup-head span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell .navgroup-head .nav-cod{flex:none;min-width:34px;padding:2px 6px;border-radius:5px;background:var(--sidebar-bg);color:#fff;font:600 11px/1.4 var(--font-mono);letter-spacing:.05em;text-align:center;font-style:normal}
+.shell .navlink{min-width:0}
+.shell .navlink span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.shell .sidefoot{display:grid;gap:2px;padding:10px 16px!important}
+.shell .sidefoot small{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3)}
+.shell .sidefoot b{font-size:13px;font-weight:600;color:var(--text)!important}
+.shell.collapsed .navgroup-head .nav-cod{display:none}
+.menu a{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border-radius:8px;color:var(--text);font-size:14px;text-decoration:none}
+.menu a:hover{background:var(--primary-50)}
