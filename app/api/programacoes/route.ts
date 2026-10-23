@@ -6,7 +6,7 @@ import { prepareAllRomaneios } from "@/lib/romaneio/prepared";
 import { auditarCoberturaRomaneio } from "@/lib/romaneio/source-audit";
 import { completarFiltro } from "@/lib/ia/completar-filtro";
 import type { Produto } from "@/types/pcp";
-import { mesesAdiante, promoverAgendadas } from "@/lib/programacao-agendada";
+import { mesesAdiante } from "@/lib/programacao-agendada";
 
 async function unidadePOST(req: Request) {
   try {
@@ -62,12 +62,10 @@ async function unidadePOST(req: Request) {
       })
       .map((a: any) => ({ id: a.id, campo: a.campo, valor: a.valor, evidencia: a.evidencia, metodo: a.metodo }));
     const db = sql();
-    await promoverAgendadas(db);
-    // Filtro do mês atual publica agora; do PRÓXIMO mês fica AGENDADO e só vale quando o mês chega.
+    // Mês atual ou próximo: ambos são liberados na hora; a data só define a competência.
     const adiante = await mesesAdiante(db, String(b.data || ""));
     if (adiante < 0) return NextResponse.json({ error: "A data da programação está em um mês que já passou." }, { status: 400 });
     if (adiante > 1) return NextResponse.json({ error: "Só é possível programar o mês atual ou o próximo mês." }, { status: 400 });
-    const agendar = adiante === 1;
     // Identificador único por tentativa de liberação; protege contra cliques repetidos
     // e reenvios de rede sem depender de dados de outros pedidos.
     const requisicaoId = String(entrada.requisicaoId || "");
@@ -410,12 +408,7 @@ async function unidadePOST(req: Request) {
     // Publicar só depois de salvar todas as linhas e preparar os romaneios.
     // Uma importação interrompida fica PREPARANDO e não substitui a ativa.
     // Troca publicada em uma única instrução SQL (atômica).
-    const ativadas = agendar ? await db`
-      update pcp_programacoes
-      set status = 'AGENDADA'
-      where id = ${pg.id} and status = 'PREPARANDO'
-      returning id
-    ` : await db`
+    const ativadas = await db`
       with encerradas as (
         update pcp_programacoes
         set status = 'ENCERRADA', encerrado_em = now()
@@ -438,7 +431,6 @@ async function unidadePOST(req: Request) {
     return NextResponse.json({
       ok: true,
       id: pg.id,
-      agendada: agendar,
       romaneios,
       complementoIA: { ativo: habilitado, corrigidosNaImportacao: auditoria.length, corrigidos: complemento.alteracoes.length, pendencias: complemento.pendencias.length, corrigidosRomaneio: romaneio?.alteracoes.length ?? 0, pendenciasRomaneio: romaneio?.pendencias.length ?? 0 },
       diagnostico: {
