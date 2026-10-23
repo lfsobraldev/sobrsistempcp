@@ -23,6 +23,7 @@ const allowedMounts = new Set<MountType>([
   "MONTADO_TIMADEL",
   "REVENDA",
   "MONTADO_ESTANCIA",
+  "MONTADO_SUL",
 ]);
 
 async function unidadePOST(req: Request) {

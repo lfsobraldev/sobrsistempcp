@@ -34,3 +34,22 @@ test("Romaneio sai igual ao modelo oficial: larguras, FIM, fórmulas, totais e i
   assert.equal(ws.getCell("A12").value, "N º pacote");
   assert.equal(ws.getCell("B10").value, "27014");
 });
+
+test("Obs mescla até o próximo rótulo (inclusive entre pallets) e o FIM fica oculto; Montado Sul tem a regra do Timadel", async () => {
+  const { DEFAULT_LOGISTICS_CONFIG } = await import("../lib/romaneio/settings");
+  assert.deepEqual(DEFAULT_LOGISTICS_CONFIG.MONTADO_SUL, DEFAULT_LOGISTICS_CONFIG.MONTADO_TIMADEL);
+  const data: any = {
+    orderNumber: "1", client: "C", destination: "D", hasMachining: false, mountType: "MONTADO_SUL", warnings: [], orderOptions: {},
+    packages: [
+      { number: 1, rows: [R(2, 2100, 900, 35, "A", { sourceItems: ["4.1"] }), R(9, 2100, 800, 35, "B", { sourceItems: ["3.1"] }), R(13, 2100, 800, 35, "C"), R(10, 2100, 700, 35, "D", { sourceItems: ["2.1"] })] },
+      { number: 2, rows: [R(9, 2100, 700, 35, "E"), R(6, 2100, 600, 35, "F", { sourceItems: ["1.1"] })] },
+    ],
+  };
+  const wb = new ExcelJS.Workbook();
+  await wb.xlsx.load((await createRomaneioWorkbook(data)) as any);
+  const ws = wb.getWorksheet("Romaneio")!;
+  const merges: string[] = (ws.model as any).merges;
+  assert.ok(merges.includes("K14:K15"), "Item 3.1 cobre a linha sem rótulo");
+  assert.ok(merges.includes("K16:K17"), "Item 2.1 atravessa o pallet");
+  assert.equal(ws.getRow(19).hidden, true, "FIM oculto");
+});

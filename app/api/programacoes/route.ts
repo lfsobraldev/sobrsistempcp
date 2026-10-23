@@ -273,7 +273,7 @@ async function unidadePOST(req: Request) {
           ${String(p.medida || "")},
           ${String(p.prioridade || "NORMAL")},
           ${["REVENDA","ENGENHARIA"].includes(String(p.tipoPedido || "").toUpperCase()) ? String(p.tipoPedido).toUpperCase() : "NORMAL"},
-          ${["MONTADO_HS","MONTADO_TIMADEL","MONTADO_ESTANCIA"].includes(String(p.montagemEngenharia || "").toUpperCase()) ? String(p.montagemEngenharia).toUpperCase() : "MONTADO_HS"}
+          ${["MONTADO_HS","MONTADO_TIMADEL","MONTADO_ESTANCIA","MONTADO_SUL"].includes(String(p.montagemEngenharia || "").toUpperCase()) ? String(p.montagemEngenharia).toUpperCase() : "MONTADO_HS"}
         )
         returning id
       `;
@@ -335,7 +335,7 @@ async function unidadePOST(req: Request) {
           ${String(p.outrasCaracteristicas || "")},
           ${String(p.pedidoCliente || "")},
           ${["REVENDA","ENGENHARIA"].includes(String(p.tipoPedido || "").toUpperCase()) ? String(p.tipoPedido).toUpperCase() : "NORMAL"},
-          ${["MONTADO_HS","MONTADO_TIMADEL","MONTADO_ESTANCIA"].includes(String(p.montagemEngenharia || "").toUpperCase()) ? String(p.montagemEngenharia).toUpperCase() : "MONTADO_HS"}
+          ${["MONTADO_HS","MONTADO_TIMADEL","MONTADO_ESTANCIA","MONTADO_SUL"].includes(String(p.montagemEngenharia || "").toUpperCase()) ? String(p.montagemEngenharia).toUpperCase() : "MONTADO_HS"}
         )
       `;
     }

@@ -1563,7 +1563,7 @@ input, select, textarea { min-width:0; max-width:100%; }
 /* ERP workspace: navegação compacta, contexto claro e superfícies de trabalho. */
 .shell{grid-template-rows:var(--header-h) minmax(0,1fr);background:var(--erp-canvas)}
 .shell.collapsed{grid-template-columns:var(--sidebar-w-collapsed) minmax(0,1fr)}
-.shell .sidenav{background:#21382b!important;border-right:1px solid rgba(255,255,255,.08);box-shadow:none}
+.shell .sidenav{background:#1d3527!important;border-right:1px solid rgba(255,255,255,.08);box-shadow:none}
 .shell .sidenav .brand{height:var(--header-h);padding:0 14px;gap:10px;border-bottom:1px solid rgba(255,255,255,.1);background:transparent}
 .shell .sidenav nav{display:block;padding:8px;overscroll-behavior:contain}
 .shell .navgroup{margin:0 0 7px}

@@ -5,6 +5,7 @@ export const MOUNT_LABELS: Record<MountType, string> = {
   MONTADO_TIMADEL: "MONTADO TIMADEL",
   REVENDA: "REVENDA",
   MONTADO_ESTANCIA: "MONTADO ESTÂNCIA",
+  MONTADO_SUL: "MONTADO SUL",
 };
 
 export const DEFAULT_LOGISTICS_CONFIG: LogisticsConfig = {
@@ -12,6 +13,8 @@ export const DEFAULT_LOGISTICS_CONFIG: LogisticsConfig = {
   MONTADO_TIMADEL: { maxDoors: 34, maxM3: 2.0, maxTrimGames: 250, maxFrameGames: 250 },
   REVENDA: { maxDoors: 34, maxDoorsCardboard: 28, maxDoorsThickness41: 28, maxM3: 1.8, maxTrimGames: 100, maxFrameGames: 100 },
   MONTADO_ESTANCIA: { maxDoors: 34, maxM3: 2.0, maxTrimGames: 250, maxFrameGames: 250 },
+  // Montado Sul usa a mesma regra do Montado Timadel.
+  MONTADO_SUL: { maxDoors: 34, maxM3: 2.0, maxTrimGames: 250, maxFrameGames: 250 },
   mixedMaxM3: 1.4,
   additionalItems: [],
   romaneioNote: "",
@@ -115,6 +118,7 @@ export function sanitizeConfig(input?: Partial<LogisticsConfig>): LogisticsConfi
     MONTADO_HS: rule("MONTADO_HS"),
     MONTADO_TIMADEL: rule("MONTADO_TIMADEL"),
     MONTADO_ESTANCIA: rule("MONTADO_ESTANCIA"),
+    MONTADO_SUL: rule("MONTADO_SUL"),
     REVENDA: {
       maxDoors: positive(input.REVENDA?.maxDoors, d.REVENDA.maxDoors),
       maxDoorsCardboard: positive(input.REVENDA?.maxDoorsCardboard, d.REVENDA.maxDoorsCardboard),
