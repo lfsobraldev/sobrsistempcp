@@ -2,17 +2,17 @@ import type { Perfil } from "@/types/pcp";
 
 const ALL_PCP = [
   "/plataforma", "/pessoas",
-  "/marketing", "/engenharia", "/ordens-fabricacao", "/acessos", "/planejamento-mensal", "/consolidado", "/dashboard", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/custos", "/fiscal", "/financeiro", "/manutencao", "/documentos", "/indicadores", "/qualidade-inspecao", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/apontamento-entregas", "/integracao-consistem", "/programacao", "/programacao-gerente", "/prioridades", "/criticos", "/lideres",
+  "/marketing", "/engenharia", "/ordens-fabricacao", "/acessos", "/planejamento-mensal", "/consolidado", "/dashboard", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/custos", "/fiscal", "/financeiro", "/manutencao", "/documentos", "/indicadores", "/qualidade-inspecao", "/perdas-pecas", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/apontamento-entregas", "/integracao-consistem", "/programacao", "/programacao-gerente", "/prioridades", "/criticos", "/lideres",
   "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/configuracoes", "/sac", "/carteira", "/pcp-painel", "/apontamento-operacoes", "/estoque", "/estoque-avancado", "/wms", "/mapa-fabrica", "/ficha", "/corporativo", "/seguranca", "/embalagem", "/plano-corte", "/cotacoes", "/controladoria", "/seguranca",
 ];
 
 const BY_ROLE: Record<Perfil, string[]> = {
   PCP: ALL_PCP,
-  GERENTE: ["/pessoas", "/marketing", "/engenharia", "/ordens-fabricacao", "/planejamento-mensal", "/consolidado", "/estoque", "/estoque-avancado", "/wms", "/mapa-fabrica", "/ficha", "/controladoria", "/corporativo", "/seguranca", "/embalagem", "/plano-corte", "/cotacoes", "/pcp-painel", "/apontamento-operacoes", "/carteira", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/custos", "/fiscal", "/financeiro", "/manutencao", "/documentos", "/indicadores", "/qualidade-inspecao", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/plataforma"],
-  ENCARREGADO: ["/pessoas", "/engenharia", "/ordens-fabricacao", "/planejamento-mensal", "/consolidado", "/estoque", "/estoque-avancado", "/wms", "/mapa-fabrica", "/ficha", "/corporativo", "/seguranca", "/embalagem", "/plano-corte", "/cotacoes", "/pcp-painel", "/apontamento-operacoes", "/carteira", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/qualidade-inspecao", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/sobral-ia", "/plataforma"],
+  GERENTE: ["/pessoas", "/marketing", "/engenharia", "/ordens-fabricacao", "/planejamento-mensal", "/consolidado", "/estoque", "/estoque-avancado", "/wms", "/mapa-fabrica", "/ficha", "/controladoria", "/corporativo", "/seguranca", "/embalagem", "/plano-corte", "/cotacoes", "/pcp-painel", "/apontamento-operacoes", "/carteira", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/custos", "/fiscal", "/financeiro", "/manutencao", "/documentos", "/indicadores", "/qualidade-inspecao", "/perdas-pecas", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/historico", "/sobral-ia", "/plataforma"],
+  ENCARREGADO: ["/pessoas", "/engenharia", "/ordens-fabricacao", "/planejamento-mensal", "/consolidado", "/estoque", "/estoque-avancado", "/wms", "/mapa-fabrica", "/ficha", "/corporativo", "/seguranca", "/embalagem", "/plano-corte", "/cotacoes", "/pcp-painel", "/apontamento-operacoes", "/carteira", "/comercial", "/vendas", "/planejamento-aps", "/expedicao", "/qualidade-inspecao", "/perdas-pecas", "/compras", "/producao-consultas", "/medicoes", "/gestao-pedidos", "/integracao-consistem", "/dashboard", "/programacao-gerente", "/prioridades", "/lideres", "/excecoes", "/inspecao-pallets", "/romaneios", "/sobral-ia", "/plataforma"],
   LIDER: ["/apontamento-operacoes", "/lideres"],
   APONTADOR: ["/apontamento-operacoes", "/lideres"],
-  QUALIDADE: ["/pessoas", "/wms", "/mapa-fabrica", "/ficha", "/embalagem", "/plano-corte", "/cotacoes", "/corporativo", "/dashboard", "/medicoes", "/inspecao-pallets", "/qualidade-inspecao", "/documentos", "/indicadores", "/plataforma"],
+  QUALIDADE: ["/pessoas", "/wms", "/mapa-fabrica", "/ficha", "/embalagem", "/plano-corte", "/cotacoes", "/corporativo", "/dashboard", "/medicoes", "/inspecao-pallets", "/qualidade-inspecao", "/perdas-pecas", "/documentos", "/indicadores", "/plataforma"],
   COMERCIAL: ["/wms", "/mapa-fabrica", "/ficha", "/marketing", "/estoque", "/carteira", "/comercial", "/vendas", "/medicoes", "/gestao-pedidos", "/sac", "/plataforma"],
   LOGISTICA: ["/wms", "/mapa-fabrica", "/ficha", "/embalagem", "/plano-corte", "/cotacoes", "/expedicao", "/estoque", "/carteira", "/gestao-pedidos", "/sac", "/plataforma"],
   LIDER_ENTREGAS: ["/apontamento-entregas"],
@@ -24,6 +24,8 @@ const BY_ROLE: Record<Perfil, string[]> = {
 BY_ROLE.SUPERVISOR = BY_ROLE.ENCARREGADO;
 BY_ROLE.DIRETOR = BY_ROLE.GERENTE;
 BY_ROLE.ADMINISTRADOR = ALL_PCP;
+// Launchpad: todos, menos os perfis que só apontam
+for (const r of Object.keys(BY_ROLE)) if (!["LIDER", "APONTADOR", "LIDER_ENTREGAS"].includes(r) && BY_ROLE[r as Perfil].length && !BY_ROLE[r as Perfil].includes("/inicio")) BY_ROLE[r as Perfil] = [...BY_ROLE[r as Perfil], "/inicio"];
 
 export function allowedPath(role: string, path: string) {
   const unidade=/^\/(pcp|apontamento|estoque|programacao)\/(sul|nordeste|consolidado)$/.exec(path);

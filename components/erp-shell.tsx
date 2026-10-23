@@ -25,6 +25,7 @@ type MenuItem = { path: string; label: string; icon: LucideIcon };
 type MenuGroup = { label: string; items: MenuItem[] };
 
 const menusBase: MenuGroup[] = [
+  { label: "Início", items: [{ path: "/inicio", label: "Início", icon: LayoutDashboard }] },
   { label: "Visão Geral", items: [{ path: "/dashboard", label: "Central de Produção", icon: LayoutDashboard }] },
   { label: "Comercial", items: [
     { path: "/marketing", label: "Marketing", icon: Megaphone },
@@ -51,7 +52,7 @@ const menusBase: MenuGroup[] = [
       { path: "/andon", label: "Andon", icon: Siren },
     ],
   },
-  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: BadgeCheck }, { path: "/qualidade-inspecao", label: "Inspeção e CAPA", icon: ScanSearch }] },
+  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: BadgeCheck }, { path: "/qualidade-inspecao", label: "Inspeção e CAPA", icon: ScanSearch }, { path: "/perdas-pecas", label: "Perdas, Reposição e Extravio", icon: PackageSearch }] },
   {
     label: "Expedição e Entregas",
     items: [
@@ -84,14 +85,14 @@ const menusBase: MenuGroup[] = [
 // Organização por módulo, no padrão de mercado (SAP): cada grupo reúne o que pertence à mesma função.
 const itemPorPath = new Map(menusBase.flatMap((g) => g.items).map((i) => [i.path, i] as const));
 const modulo = (label: string, paths: string[]): MenuGroup => ({ label, items: paths.map((p) => itemPorPath.get(p)).filter((i): i is MenuItem => !!i) });
-const menus: MenuGroup[] = [
-  modulo("Visão Geral", ["/dashboard", "/pcp-painel"]),
+export const menus: MenuGroup[] = [
+  modulo("Visão Geral", ["/inicio", "/dashboard", "/pcp-painel"]),
   modulo("SD · Vendas e Distribuição", ["/marketing", "/comercial", "/vendas", "/carteira", "/gestao-pedidos", "/expedicao", "/romaneios", "/apontamento-entregas"]),
   modulo("PP · Planejamento e Produção", ["/programacao", "/planejamento-mensal", "/planejamento-aps", "/programacao-gerente", "/ordens-fabricacao", "/plano-corte", "/embalagem", "/apontamento-operacoes", "/lideres", "/excecoes", "/andon", "/integracao-consistem"]),
   modulo("PLM · Engenharia e Medição", ["/engenharia", "/medicoes", "/documentos"]),
   modulo("MM · Materiais e Compras", ["/compras", "/cotacoes", "/estoque"]),
   modulo("WM · Depósito e Rastro", ["/estoque-avancado", "/wms", "/mapa-fabrica", "/producao-consultas"]),
-  modulo("QM · Qualidade", ["/inspecao-pallets", "/qualidade-inspecao"]),
+  modulo("QM · Qualidade", ["/inspecao-pallets", "/qualidade-inspecao", "/perdas-pecas"]),
   modulo("PM · Manutenção", ["/manutencao"]),
   modulo("FI · Contabilidade Financeira", ["/financeiro", "/fiscal"]),
   modulo("CO · Controladoria e Custos", ["/custos", "/controladoria"]),
@@ -179,7 +180,7 @@ function Inner({ children }: { children: React.ReactNode }) {
     if (loading) return;
     if (!me) { router.replace("/login"); return; }
     if (allowedPath(me.perfil, path)) return;
-    router.replace(HOME[me.perfil] || "/dashboard");
+    router.replace(HOME[me.perfil] || "/inicio");
   }, [me, path, router, loading]);
 
   useEffect(() => { setMobileNav(false); setProfileOpen(false); }, [path]);
@@ -232,7 +233,7 @@ function Inner({ children }: { children: React.ReactNode }) {
       {mobileNav && <button className="backdrop" onClick={() => setMobileNav(false)} aria-label="Fechar menu" />}
 
       <header className="topbar2">
-        <Link href="/dashboard" className="shellbar-brand" aria-label="Famossul, ir para o início"><BrandLogo size={30} /><span><b>Famossul</b><small>Sobral PCP · Gestão industrial</small></span></Link>
+        <Link href="/inicio" className="shellbar-brand" aria-label="Famossul, ir para o início"><BrandLogo size={30} /><span><b>Famossul</b><small>Sobral PCP · Gestão industrial</small></span></Link>
         <button className="ghost iconBtn menubtn" onClick={() => setMobileNav(true)} aria-label="Abrir menu"><Menu /></button>
         <button className="ghost iconBtn" onClick={() => setCollapsed((v) => !v)} aria-label="Recolher menu" style={{ display: undefined }}>
           {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
