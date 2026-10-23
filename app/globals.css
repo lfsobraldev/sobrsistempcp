@@ -1904,3 +1904,16 @@ input, select, textarea { min-width:0; max-width:100%; }
   .folha th,.folha td{border:1px solid #000;padding:2mm;text-align:left}
   .folha .retirar td{background:#fde2e2}.folha .produzir td{background:#e3f6e3}
 }
+
+/* Apontamento: situação das datas por cor */
+.apontamento-table td.ap-ok{background:#eaf6ec}
+.apontamento-table td.ap-andamento{background:#fff6dd}
+.apontamento-resumo-tabela td.ap-ok{background:#d9f0de;color:#14532d;font-weight:600}
+.apontamento-resumo-tabela td.ap-andamento{background:#fff1c2;color:#7a4b00;font-weight:600}
+.apontamento-resumo-tabela td.ap-prog{background:#e1ecfb;color:#1e3a8a}
+.apontamento-resumo-tabela td.ap-vazio{color:#94a3b8}
+.apontamento-resumo-lote b{display:block}
+.apontamento-resumo-lote small{display:block;color:#64748b;font-size:11px}
+.ap-legenda{display:inline-flex;gap:10px;align-items:center;font-size:12px;margin-left:auto;flex-wrap:wrap}
+.ap-legenda i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;border:1px solid #cbd5e1}
+.ap-legenda i.ap-ok{background:#d9f0de}.ap-legenda i.ap-andamento{background:#fff1c2}.ap-legenda i.ap-prog{background:#e1ecfb}.ap-legenda i.ap-vazio{background:#fff}
