@@ -14,6 +14,17 @@ async function unidadeGET(req: Request) {
     const db = sql();
     const pedido = (new URL(req.url).searchParams.get("pedido") || "").trim().slice(0, 80);
     const fluxo = [...FLUXO];
+    if (new URL(req.url).searchParams.get("visao") === "bi") {
+      const dias = Math.min(180, Math.max(7, Number(new URL(req.url).searchParams.get("dias")) || 30));
+      const base = await db`select distinct on (e.pedido,e.etapa) e.pedido,e.etapa,e.data_inicio::text data_inicio,e.data_conclusao::text data_conclusao,
+          (coalesce(e.data_conclusao,current_date) - e.data_inicio)::int dias, c.cliente, c.previsao_saida::text previsao_saida
+        from pcp_controle_entregas_etapas e left join pcp_controle_entregas c on c.pedido=e.pedido
+        where e.area='PRODUCAO' and ((e.data_inicio is not null and e.data_conclusao is null) or e.data_conclusao>=current_date-${dias}::int)
+        order by e.pedido,e.etapa,e.atualizado_em desc limit 6000`;
+      const serie = await db`select d::date::text dia, coalesce(x.n,0)::int n from generate_series(current_date-${dias}::int,current_date,interval '1 day') d
+        left join (select data_conclusao dc,count(*) n from (select distinct on (pedido,etapa) pedido,etapa,data_conclusao from pcp_controle_entregas_etapas where area='PRODUCAO' order by pedido,etapa,atualizado_em desc) z where data_conclusao is not null group by 1) x on x.dc=d::date order by d`;
+      return NextResponse.json({ fluxo, dias, linhas: base, serie }, { headers: H });
+    }
     if (pedido) {
       const etapas = await db`select distinct on (e.etapa) e.etapa,e.area,e.data_inicio::text data_inicio,e.data_conclusao::text data_conclusao,e.usuario,e.atualizado_em
         from pcp_controle_entregas_etapas e where e.pedido=${pedido} and e.area='PRODUCAO' order by e.etapa,e.atualizado_em desc`;

@@ -1945,3 +1945,10 @@ input, select, textarea { min-width:0; max-width:100%; }
 .mf-est:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 @media (max-width:900px){.mf-fluxo{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px}.mf-est:not(:nth-child(4n))::after{content:none}.mf-est:nth-child(odd)::after{content:"›"}}
 .linkBtn{background:none;border:0;padding:0;color:#2563eb;font:inherit;text-decoration:underline;cursor:pointer}
+.bi-linha{display:grid;grid-template-columns:minmax(110px,190px) 1fr 44px;gap:10px;align-items:center;width:100%;padding:6px 4px;border:0;border-radius:8px;background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.bi-linha.static{cursor:default}.bi-linha:not(.static):hover{background:#f1f5f9}
+.bi-nome{font-size:13px}.bi-val{font-size:13px;font-weight:700;text-align:right}
+.bi-barra{display:flex;height:16px;background:#f1f5f9;border-radius:6px;overflow:hidden}.bi-barra i{display:block;height:100%}
+.bi-leg{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:#475569;margin-bottom:8px}.bi-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+.bi-svg{width:100%;height:auto;max-height:200px}
+@media (max-width:640px){.bi-linha{grid-template-columns:96px 1fr 34px}}
