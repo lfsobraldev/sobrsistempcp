@@ -50,7 +50,7 @@ export default function MapaFabricaPage() {
     } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao carregar."); }
   }, [aba, busca, pedido, pedPl, fBi.dias]);
   useEffect(() => { const t = setTimeout(carregar, aba === "LOCALIZADOR" || aba === "PLANTA" ? 250 : 0); return () => clearTimeout(t); }, [carregar, aba]);
-  useEffect(() => { if (aba !== "PLANTA") return; const i = setInterval(carregar, 60000); return () => clearInterval(i); }, [aba, carregar]);
+  useEffect(() => { if (aba !== "PLANTA") return; const i = setInterval(carregar, 15000); return () => clearInterval(i); }, [aba, carregar]);
 
   const itensPorEnd = useMemo(() => {
     const m = new Map<string, Row[]>();

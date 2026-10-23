@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { unidadeHandler } from "@/lib/unidades/handler";
 import { requireRoles } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { distribuirSetores, type EtapaLinha } from "@/lib/fluxo-setores";
 
 export const runtime = "nodejs";
 const H = { "Cache-Control": "no-store" };
@@ -31,21 +32,17 @@ async function unidadeGET(req: Request) {
       const [cab] = await db`select pedido,cliente,previsao_saida::text previsao_saida,status from pcp_controle_entregas where pedido=${pedido}`;
       return NextResponse.json({ fluxo, pedido: cab ?? { pedido }, etapas }, { headers: H });
     }
+    // Todas as etapas dos pedidos com movimento recente: andamento (iniciou e não concluiu) e FILA
+    // (a etapa anterior da rota do pedido foi concluída e a próxima ainda não começou).
     const rows = await db`select distinct on (e.pedido,e.etapa) e.pedido,e.etapa,e.data_inicio::text data_inicio,e.data_conclusao::text data_conclusao,
         (current_date - e.data_inicio)::int dias, c.cliente, c.previsao_saida::text previsao_saida
       from pcp_controle_entregas_etapas e left join pcp_controle_entregas c on c.pedido=e.pedido
-      where e.area='PRODUCAO' and ((e.data_inicio is not null and e.data_conclusao is null) or e.data_conclusao>=current_date-7)
-      order by e.pedido,e.etapa,e.atualizado_em desc limit 4000`;
-    const porSetor: Record<string, { andamento: Record<string, unknown>[]; concluidas: number }> = {};
-    for (const s of fluxo) porSetor[s] = { andamento: [], concluidas: 0 };
-    for (const r of rows as Record<string, any>[]) {
-      const s = porSetor[String(r.etapa)];
-      if (!s) continue;
-      if (r.data_conclusao) s.concluidas++;
-      else s.andamento.push({ pedido: r.pedido, cliente: r.cliente || "", inicio: r.data_inicio, dias: Number(r.dias ?? 0), previsaoSaida: r.previsao_saida });
-    }
-    for (const s of fluxo) porSetor[s].andamento.sort((a, b) => Number(b.dias) - Number(a.dias));
-    return NextResponse.json({ fluxo, setores: porSetor }, { headers: H });
+      where e.area='PRODUCAO' and e.pedido in (
+        select pedido from pcp_controle_entregas_etapas
+         where area='PRODUCAO' and ((data_inicio is not null and data_conclusao is null) or data_conclusao>=current_date-7))
+      order by e.pedido,e.etapa,e.atualizado_em desc limit 8000`;
+    const porSetor = distribuirSetores(rows as unknown as EtapaLinha[], fluxo);
+    return NextResponse.json({ fluxo, setores: porSetor, geradoEm: new Date().toISOString() }, { headers: H });
   } catch (e) {
     const m = e instanceof Error ? e.message : "";
     return NextResponse.json({ error: m === "SEM_PERMISSAO" ? "Sem permissão." : /does not exist/.test(m) ? "Módulo aguardando migração" : m || "Falha no mapa." }, { status: m === "SEM_PERMISSAO" ? 403 : 400 });

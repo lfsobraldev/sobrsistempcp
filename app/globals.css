@@ -1981,3 +1981,9 @@ button.lp-tile{width:100%;text-align:left;justify-content:space-between;cursor:p
 .cj-track i.ok{background:var(--primary)}
 .cj-track i.falta{background:#d9a441}
 .cj-row b{font-variant-numeric:tabular-nums;min-width:64px;text-align:right}
+.pl-pulse{animation:plpulse 1.2s ease-in-out infinite}
+@keyframes plpulse{0%,100%{opacity:.2}50%{opacity:1}}
+.pl-live{display:inline-block;width:9px;height:9px;border-radius:50%;background:#16a34a;animation:plpulse 1.6s infinite}
+.pl-feed{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:var(--fs-sm)}
+.pl-feed time{color:var(--text-3);font-variant-numeric:tabular-nums;margin-right:6px}
+@media (prefers-reduced-motion:reduce){.pl-pulse,.pl-live{animation:none}}
