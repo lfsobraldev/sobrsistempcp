@@ -16,7 +16,7 @@ else
          5_migracao_27_wms_revisoes_sobras.sql 6_migracao_28_rh_ehs_projetos.sql 7_migracao_29_CENTRAL_cargos_identidade.sql
          8_migracao_30_seguranca_aprovacoes_auditoria.sql 9_migracao_31_embalagem_mrp_horizonte.sql 10_migracao_32_compras_qualidade_comercial.sql
          11_migracao_33_financeiro_fechamento_rateio_margem.sql 12_migracao_34_plataforma_eventos_campos_notificacoes.sql 13_migracao_35_pessoas_ehs_projetos.sql
-         14_migracao_36.sql 15_migracao_37.sql 16_migracao_38.sql 17_migracao_39.sql 18_migracao_40.sql)
+         14_migracao_36.sql 15_migracao_37.sql 16_migracao_38.sql 17_migracao_39.sql 18_migracao_40.sql 19_migracao_41.sql)
 fi
 
 for f in "${ORDEM[@]}"; do

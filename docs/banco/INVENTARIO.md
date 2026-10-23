@@ -54,5 +54,6 @@ Ordem topológica do catálogo. Pré-requisito: schema-base e controle 00_regist
 | 48 | 2026-11-15_38_mapa_fabrica_rastro.sql | 2026-11-15_38_mapa_fabrica_rastro.sql | 2026-11-14_37_certificados_cadeia_custodia.sql | down disponível; revisar alcance e destrutividade | Estrutura/funções; conferir fonte | baixo |
 | 49 | 2026-11-16_39_planta_layout_movimentacao.sql | 2026-11-16_39_planta_layout_movimentacao.sql | 2026-11-15_38_mapa_fabrica_rastro.sql | down disponível; revisar alcance e destrutividade | Sim/avaliar fonte | baixo |
 | 50 | 2026-11-17_40_perdas_pecas_reposicao.sql | 2026-11-17_40_perdas_pecas_reposicao.sql | 2026-11-16_39_planta_layout_movimentacao.sql | down disponível; revisar alcance e destrutividade | Sim/avaliar fonte | baixo |
+| 51 | 2026-11-18_41_unidade_madeiras.sql | 2026-11-18_41_unidade_madeiras.sql | 2026-11-17_40_perdas_pecas_reposicao.sql | down disponível; revisar alcance e destrutividade | Sim/avaliar fonte | baixo |
 
 Dependências implícitas: qualidade_v2 depende de pallets/MSAC; medições depende do CRM; 10 usa capacidades (operational_excellence), pallets e estoque. Fundação depende de usuários. A 11 fica no banco central, mas depende funcionalmente da 10 em ambas as unidades — não copiar ledger operacional para satisfazer o catálogo. Não aplicar a 03 isolada da 04: a projeção temporária anterior assume Sul.

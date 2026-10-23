@@ -339,3 +339,20 @@ test("Postgres: ciclo de perda de peça, reposição e peça extraviada", async 
     assert.equal((await one("select status from pcp_v_perdas_pecas where numero=$1", [e])).status, "FECHADA");
   } finally { await db.close(); }
 });
+
+test("Postgres: unidade MADEIRAS aceita nas listas de unidades (idempotente, com down)", async () => {
+  const { PGlite } = await import("@electric-sql/pglite");
+  const { readFile } = await import("node:fs/promises");
+  const db = new PGlite();
+  try {
+    await db.exec("create table erp_identidade_banco(singleton boolean primary key default true, unidade varchar(20) check(unidade in ('SUL','NORDESTE')));");
+    await db.exec("create table pcp_lider_unidade_etapas(unidade text not null check(unidade in ('SUL','NORDESTE')));");
+    const [up, down] = (await readFile("database/migrations/2026-11-18_41_unidade_madeiras.sql", "utf8")).split("-- migrate:up")[1].split("-- migrate:down");
+    await db.exec(up); await db.exec(up);
+    await db.exec("insert into erp_identidade_banco(unidade) values('MADEIRAS')");
+    await assert.rejects(db.exec("insert into pcp_lider_unidade_etapas(unidade) values('XX')"));
+    await db.exec("delete from erp_identidade_banco");
+    await db.exec(down);
+    await assert.rejects(db.exec("insert into erp_identidade_banco(unidade) values('MADEIRAS')"));
+  } finally { await db.close(); }
+});

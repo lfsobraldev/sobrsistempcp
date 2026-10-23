@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createHmac, timingSafeEqual } from "node:crypto";
-export const unidadeSchema=z.enum(['SUL','NORDESTE']);
+export const unidadeSchema=z.enum(['SUL','NORDESTE','MADEIRAS']);
 export type Unidade=z.infer<typeof unidadeSchema>;
 export const multiAtiva=()=>process.env.ERP_MULTIUNIDADE==='enabled';
 export function identificarBanco(url:string){const u=new URL(url);return `${u.hostname.replace(/-pooler(?=\.)/,'')}:${u.port||'5432'}${u.pathname}`;}
@@ -8,7 +8,13 @@ export function urlDaUnidade(unidade:Unidade,env:Record<string,string|undefined>
  const sul=env.DATABASE_URL_SUL,ne=env.DATABASE_URL_NORDESTE;
  if(!sul||!ne)throw new Error('As conexões das duas unidades precisam estar configuradas.');
  if(identificarBanco(sul)===identificarBanco(ne))throw new Error('Sul e Nordeste não podem apontar para o mesmo banco.');
- const url=unidade==='SUL'?sul:ne;
+ let url=unidade==='SUL'?sul:ne;
+ if(unidade==='MADEIRAS'){
+  const mad=env.DATABASE_URL_MADEIRAS;
+  if(!mad)throw new Error('A conexão da unidade Madeiras (DATABASE_URL_MADEIRAS) não está configurada.');
+  if([sul,ne].some(o=>identificarBanco(o)===identificarBanco(mad)))throw new Error('Madeiras não pode apontar para o mesmo banco de outra unidade.');
+  url=mad;
+ }
  if(env.DATABASE_URL&&identificarBanco(url)===identificarBanco(env.DATABASE_URL)&&env.ERP_LEGACY_UNIT!==unidade)throw new Error('A unidade dos dados legados ainda não foi confirmada.');
  return url;
 }

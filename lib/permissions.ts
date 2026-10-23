@@ -30,6 +30,7 @@ for (const r of Object.keys(BY_ROLE)) if (!["LIDER", "APONTADOR", "LIDER_ENTREGA
 export function allowedPath(role: string, path: string) {
   const unidade=/^\/(pcp|apontamento|estoque|programacao)\/(sul|nordeste|consolidado)$/.exec(path);
   if(unidade)path=({pcp:'/pcp-painel',apontamento:'/apontamento-operacoes',estoque:'/estoque',programacao:'/planejamento-mensal'} as Record<string,string>)[unidade[1]];
+  if (path === "/perfil") return role in BY_ROLE;
   return (BY_ROLE as Record<string, string[]>)[role]?.includes(path) ?? false;
 }
 export function pathsFor(role: string) {

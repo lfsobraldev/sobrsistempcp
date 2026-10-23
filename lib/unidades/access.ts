@@ -8,7 +8,7 @@ export async function unidadesPermitidas(s:Sessao):Promise<Unidade[]>{
  const rows=await db`select distinct f.codigo from pcp_filiais f join pcp_empresas e on e.id=f.empresa_id and e.ativo
  join pcp_usuario_empresas ue on ue.empresa_id=e.id and ue.ativo
  join pcp_usuarios u on u.id=ue.usuario_id and u.ativo
- where u.usuario=${s.usuario} and u.perfil=${s.perfil} and f.ativo and f.codigo in ('SUL','NORDESTE')
+ where u.usuario=${s.usuario} and u.perfil=${s.perfil} and f.ativo and f.codigo in ('SUL','NORDESTE','MADEIRAS')
  and (ue.escopo_filiais='TODAS' or exists(select 1 from pcp_usuario_filiais uf where uf.usuario_empresa_id=ue.id and uf.filial_id=f.id))`;
  // Bootstrap administrativo por login de ambiente, com grants de unidade explícitos.
  const admin=s.perfil==='PCP'&&[process.env.ADMIN_USER,process.env.PCP_USER].filter(Boolean).includes(s.usuario);

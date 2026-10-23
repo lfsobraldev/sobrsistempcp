@@ -7,7 +7,7 @@ export const salvarUsuarioSchema=z.object({
  id:z.string().uuid().nullable().default(null),versao:z.string().datetime().nullable().default(null),
  usuario:z.string().regex(/^[a-z0-9._-]{3,80}$/),nome:z.string().trim().min(2).max(150),
  perfil:z.enum(PERFIS),ativo:z.boolean(),senha:z.string().min(12).max(128).optional(),
- acessos:z.array(z.object({unidade:z.enum(['SUL','NORDESTE']),etapas:z.array(z.enum(ETAPAS)).max(ETAPAS.length).refine(a=>new Set(a).size===a.length,"Setor repetido."),turno:z.enum(['A','B'])}).strict()).max(2),
+ acessos:z.array(z.object({unidade:z.enum(['SUL','NORDESTE','MADEIRAS']),etapas:z.array(z.enum(ETAPAS)).max(ETAPAS.length).refine(a=>new Set(a).size===a.length,"Setor repetido."),turno:z.enum(['A','B'])}).strict()).max(3),
 }).strict().superRefine((v,ctx)=>{
  if(!v.id&&!v.senha)ctx.addIssue({code:'custom',message:'Defina uma senha de pelo menos 12 caracteres.'});
  if(v.id&&!v.versao)ctx.addIssue({code:'custom',message:'Atualize a listagem antes de editar.'});
