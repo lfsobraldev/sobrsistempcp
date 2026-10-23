@@ -15,7 +15,7 @@ const BY_ROLE: Record<Perfil, string[]> = {
   QUALIDADE: ["/pessoas", "/wms", "/mapa-fabrica", "/embalagem", "/plano-corte", "/cotacoes", "/corporativo", "/dashboard", "/medicoes", "/inspecao-pallets", "/qualidade-inspecao", "/documentos", "/indicadores", "/plataforma"],
   COMERCIAL: ["/wms", "/mapa-fabrica", "/marketing", "/estoque", "/carteira", "/comercial", "/vendas", "/medicoes", "/gestao-pedidos", "/sac", "/plataforma"],
   LOGISTICA: ["/wms", "/mapa-fabrica", "/embalagem", "/plano-corte", "/cotacoes", "/expedicao", "/estoque", "/carteira", "/gestao-pedidos", "/sac", "/plataforma"],
-  LIDER_ENTREGAS: ["/apontamento-entregas", "/plataforma"],
+  LIDER_ENTREGAS: ["/apontamento-entregas", "/mapa-fabrica", "/plataforma"],
   SAC: ["/sac", "/plataforma"],
   SUPERVISOR: [],
   DIRETOR: [],

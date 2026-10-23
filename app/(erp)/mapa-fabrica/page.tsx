@@ -5,7 +5,10 @@ import { Badge, DataTable, Drawer, Empty, Field, Kpi, PageHeader, Panel, Segment
 import { useOps } from "@/components/operational-provider";
 
 type Row = Record<string, any>;
-type Aba = "MAPA" | "LOCALIZADOR" | "RASTRO";
+type Aba = "PLANTA" | "MAPA" | "LOCALIZADOR" | "RASTRO";
+const NOME: Record<string, string> = { PREPARACAO: "Preparação", COLAGEM_PORTAS: "Colagem de portas", ESQUADRIAS_BORDAS: "Esquadrias e bordas", RECOBRIDORA_PERFIL: "Recobridora de perfil", USINAGEM: "Usinagem", USINAGEM_2: "Usinagem 2", CNC: "CNC", LUSTRACAO: "Lustração", PLASTIFICADORA: "Plastificadora", PLASTIFICADORA_PORTAS: "Plastificadora de portas", EMBALAGEM: "Embalagem", EXPEDICAO: "Expedição" };
+const ATRASO_DIAS = 5;
+const dia = (v: unknown) => (v ? new Date(String(v).slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR") : "—");
 const dt = (v: unknown) => (v ? new Date(String(v)).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—");
 const tomTipo: Record<string, Tone> = { PALLET: "info", SOBRA: "warning", ESTOQUE: "success" };
 
@@ -19,24 +22,32 @@ async function api(url: string, body?: unknown) {
 export default function MapaFabricaPage() {
   const { me } = useOps();
   const pode = ["PCP", "GERENTE", "ENCARREGADO", "LOGISTICA"].includes(me?.perfil || "");
-  const [aba, setAba] = useState<Aba>("MAPA");
+  const [aba, setAba] = useState<Aba>("PLANTA");
   const [erro, setErro] = useState(""); const [ok, setOk] = useState(""); const [busy, setBusy] = useState(false);
   const [fab, setFab] = useState<Row | null>(null);
   const [sel, setSel] = useState<Row | null>(null);
   const [setorSel, setSetorSel] = useState("TODOS");
   const [busca, setBusca] = useState(""); const [achados, setAchados] = useState<Row[]>([]);
   const [pedido, setPedido] = useState(""); const [rastro, setRastro] = useState<Row | null>(null);
+  const [planta, setPlanta] = useState<Row | null>(null); const [setorPl, setSetorPl] = useState<string | null>(null);
+  const [pedPl, setPedPl] = useState(""); const [rota, setRota] = useState<Row | null>(null); const [agora, setAgora] = useState<Date | null>(null);
   const [leit, setLeit] = useState({ pedido: "", peca: "", setor: "", evento: "ENTRADA", quantidade: "1", obs: "" });
 
   const carregar = useCallback(async () => {
     try {
+      if (aba === "PLANTA") {
+        setPlanta(await api("/api/mapa-fabrica"));
+        setRota(pedPl.trim() ? await api("/api/mapa-fabrica?pedido=" + encodeURIComponent(pedPl.trim())) : null);
+        setAgora(new Date());
+      }
       if (aba === "MAPA") setFab(await api("/api/wms?visao=fabrica"));
       if (aba === "LOCALIZADOR") setAchados((await api("/api/wms?visao=localizador&busca=" + encodeURIComponent(busca))).itens);
       if (aba === "RASTRO") setRastro(await api("/api/wms?visao=rastro&pedido=" + encodeURIComponent(pedido)));
       setErro("");
     } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao carregar."); }
-  }, [aba, busca, pedido]);
-  useEffect(() => { const t = setTimeout(carregar, aba === "LOCALIZADOR" ? 250 : 0); return () => clearTimeout(t); }, [carregar, aba]);
+  }, [aba, busca, pedido, pedPl]);
+  useEffect(() => { const t = setTimeout(carregar, aba === "LOCALIZADOR" || aba === "PLANTA" ? 250 : 0); return () => clearTimeout(t); }, [carregar, aba]);
+  useEffect(() => { if (aba !== "PLANTA") return; const i = setInterval(carregar, 60000); return () => clearInterval(i); }, [aba, carregar]);
 
   const itensPorEnd = useMemo(() => {
     const m = new Map<string, Row[]>();
@@ -65,9 +76,52 @@ export default function MapaFabricaPage() {
   return (
     <div className="page">
       <PageHeader eyebrow="Chão de fábrica" title="Mapa da fábrica" description="Onde está cada pallet, sobra e item de estoque, e por onde cada peça passou." />
-      <Segmented value={aba} onChange={setAba} options={[{ value: "MAPA", label: "Mapa" }, { value: "LOCALIZADOR", label: "Localizador" }, { value: "RASTRO", label: "Rastro por pedido" }]} />
+      <Segmented value={aba} onChange={setAba} options={[{ value: "PLANTA", label: "Planta (fluxo)" }, { value: "MAPA", label: "Endereços" }, { value: "LOCALIZADOR", label: "Localizador" }, { value: "RASTRO", label: "Rastro por pedido" }]} />
       {erro && <p className="error" role="alert">{erro}</p>}
       {ok && <p className="success" role="status">{ok}</p>}
+
+      {aba === "PLANTA" && planta && (() => {
+        const rotaPor: Record<string, Row> = Object.fromEntries((rota?.etapas ?? []).map((e: Row) => [e.etapa, e]));
+        const emAnd = planta.fluxo.reduce((a: number, s: string) => a + planta.setores[s].andamento.length, 0);
+        const atras = planta.fluxo.reduce((a: number, s: string) => a + planta.setores[s].andamento.filter((p: Row) => p.dias > ATRASO_DIAS).length, 0);
+        const estado = (s: string) => { const e = rotaPor[s]; if (!rota) return ""; if (!e || (!e.data_inicio && !e.data_conclusao)) return "todo"; return e.data_conclusao ? "done" : "now"; };
+        return (<>
+          <div className="kpis">
+            <Kpi label="Pedidos em andamento nos setores" value={emAnd} />
+            <Kpi label={`Parados há mais de ${ATRASO_DIAS} dias`} value={atras} tone={atras ? "danger" : "success"} sub="no mesmo setor, sem conclusão" />
+            <Kpi label="Atualizado" value={agora ? agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "—"} sub="a cada 1 minuto, com as datas dos líderes" />
+          </div>
+          <Panel title="Por onde o pedido está passando" subtitle="Digite o número do pedido para ver o caminho pelos setores, com as datas de início e fim lançadas pelos líderes.">
+            <Field label="Pedido"><input value={pedPl} onChange={(e) => setPedPl(e.target.value)} placeholder="ex.: 26847" /></Field>
+            {rota && <p className="mf-leg"><b>{rota.pedido?.pedido}</b>{rota.pedido?.cliente ? ` · ${rota.pedido.cliente}` : ""}{rota.pedido?.previsao_saida ? ` · saída prevista ${dia(rota.pedido.previsao_saida)}` : ""}</p>}
+          </Panel>
+          <div className="mf-leg"><span><i style={{ background: "#dcfce7" }} />concluído</span><span><i style={{ background: "#dbeafe" }} />em andamento</span><span><i style={{ background: "#f1f5f9" }} />ainda não iniciou</span><span><i style={{ background: "#fee2e2" }} />parado &gt; {ATRASO_DIAS} dias</span></div>
+          <div className="mf-fluxo">
+            {planta.fluxo.map((s: string, i: number) => {
+              const d = planta.setores[s]; const and: Row[] = d.andamento; const atr = and.filter((p) => p.dias > ATRASO_DIAS).length;
+              const e = rotaPor[s]; const est = estado(s);
+              const carga = !rota ? (atr ? "atraso" : and.length ? "carga" : "") : est;
+              return (
+                <button key={s} type="button" className={`mf-est ${carga}`} onClick={() => setSetorPl(s)} aria-label={`${NOME[s]}: ${and.length} pedido(s) em andamento`}>
+                  <span className="mf-n">{i + 1}</span>
+                  <b>{NOME[s] ?? s}</b>
+                  {rota ? (<small>{e?.data_inicio ? `início ${dia(e.data_inicio)}` : "—"}<br />{e?.data_conclusao ? `fim ${dia(e.data_conclusao)}` : e?.data_inicio ? "em andamento" : "não iniciou"}</small>)
+                    : (<><strong>{and.length}</strong><small>pedido(s) agora{atr ? ` · ${atr} parado(s)` : ""}<br />{d.concluidas} concluído(s) em 7 dias</small></>)}
+                </button>
+              );
+            })}
+          </div>
+          <Drawer open={!!setorPl} title={setorPl ? NOME[setorPl] ?? setorPl : ""} onClose={() => setSetorPl(null)}>
+            {setorPl && (
+              <DataTable head={["Pedido", "Cliente", "Início", "Dias", "Saída prevista"]} empty={<Empty title="Nenhum pedido neste setor agora" />}>
+                {planta.setores[setorPl].andamento.map((p: Row) => (
+                  <tr key={p.pedido}><td><button type="button" className="linkBtn" onClick={() => { setPedPl(p.pedido); setSetorPl(null); }}>{p.pedido}</button></td><td>{p.cliente || "—"}</td><td>{dia(p.inicio)}</td><td>{p.dias > ATRASO_DIAS ? <Badge tone="danger">{p.dias}</Badge> : p.dias}</td><td>{dia(p.previsaoSaida)}</td></tr>
+                ))}
+              </DataTable>
+            )}
+          </Drawer>
+        </>);
+      })()}
 
       {aba === "MAPA" && fab && (<>
         <div className="kpis">

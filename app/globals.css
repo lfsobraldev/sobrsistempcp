@@ -1933,3 +1933,15 @@ input, select, textarea { min-width:0; max-width:100%; }
 .mf-leg i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:4px;vertical-align:-1px;border:1px solid #cbd5e1}
 .mf-linha{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 @media (max-width:640px){.mf-tile{min-width:calc(50% - 4px)}}
+.mf-fluxo{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 28px;margin:8px 0 16px}
+.mf-est{position:relative;display:flex;flex-direction:column;gap:3px;padding:12px 12px 10px;border:1px solid #cbd5e1;border-radius:12px;background:#f1f5f9;color:#0f172a;text-align:left;cursor:pointer;font:inherit;min-height:112px}
+.mf-est strong{font-size:28px;line-height:1}.mf-est small{font-size:11px;color:#475569}.mf-est b{font-size:13px;padding-right:22px}
+.mf-est .mf-n{position:absolute;top:8px;right:10px;font-size:11px;font-weight:700;color:#64748b}
+.mf-est.carga,.mf-est.now{background:#dbeafe;border-color:#93c5fd}
+.mf-est.atraso{background:#fee2e2;border-color:#fca5a5}
+.mf-est.done{background:#dcfce7;border-color:#86efac}
+.mf-est.todo{background:#f1f5f9;opacity:.75}
+.mf-est:not(:nth-child(4n))::after{content:"›";position:absolute;right:-20px;top:50%;transform:translateY(-50%);font-size:22px;color:#94a3b8}
+.mf-est:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+@media (max-width:900px){.mf-fluxo{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 22px}.mf-est:not(:nth-child(4n))::after{content:none}.mf-est:nth-child(odd)::after{content:"›"}}
+.linkBtn{background:none;border:0;padding:0;color:#2563eb;font:inherit;text-decoration:underline;cursor:pointer}
