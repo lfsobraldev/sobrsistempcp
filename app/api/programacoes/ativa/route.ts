@@ -1,6 +1,7 @@
 import {enriquecerClientes} from '@/lib/clientes-operacionais';
 import {idsProdutosRecorte,OPCOES_PCP_SQL,opcoesPCP} from "@/lib/pcp-filters";
 import { unidadeHandler } from "@/lib/unidades/handler";
+import { promoverAgendadas } from "@/lib/programacao-agendada";
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { session } from "@/lib/auth";
@@ -725,6 +726,7 @@ async function unidadeGET(req: Request) {
     }
 
     const db = sql();
+    await promoverAgendadas(db);
 
     const requestedId = new URL(req.url).searchParams.get("id")?.trim() || "";
     if (requestedId && !["PCP", "GERENTE", "ENCARREGADO", "LIDER"].includes(sessaoAtual.perfil)) {
