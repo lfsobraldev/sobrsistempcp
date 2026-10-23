@@ -97,8 +97,8 @@ function applyReferenceRomaneioStyle(
   data: ProcessingResult,
   lastData: number
 ) {
-  // Medidas e tipografia copiadas do romaneio de referência 26750.
-  const widths = [9.7, 8.85, 8.85, 8.7, 10.56, 10.71, 10.71, 10.71, 10.71, 191.99, 27.42];
+  // Medidas e tipografia copiadas do modelo oficial (romaneio 27014): larguras, fontes e alturas idênticas.
+  const widths = [9.71, 8.86, 8.86, 8.71, 10.57, 10.71, 10.71, 10.71, 10.71, 129.29, 16.29];
   widths.forEach((width, index) => {
     ws.getColumn(index + 1).width = width;
   });
@@ -130,13 +130,13 @@ function applyReferenceRomaneioStyle(
   });
 
   for (let row = START_ROW; row <= lastData; row++) {
-    ws.getRow(row).height = 20.1;
+    ws.getRow(row).height = 21.95;
     for (let col = 1; col <= 11; col++) {
       const cell = ws.getCell(row, col);
       cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFFFFF" } };
       cell.font = {
         name: "Arial",
-        size: col === 11 ? 10 : 14,
+        size: col === 11 ? 10 : col === 1 ? 14 : 15,
         bold: col === 11,
         italic: col === 10,
         color: { argb: "FF000000" },
@@ -159,7 +159,7 @@ function applyReferenceRomaneioStyle(
 
   for (const row of [7, 8, 9, 10, 11]) {
     ws.getCell(row, 1).font = { name: "Arial", size: 10, bold: true };
-    ws.getCell(row, 2).font = { name: "Arial", size: 12 };
+    ws.getCell(row, 2).font = { name: "Arial", size: row === 7 ? 10 : 13 };
   }
   for (const address of ["H7", "H8", "H9", "G11"]) {
     ws.getCell(address).font = { name: "Arial", size: 10, bold: true };
@@ -223,6 +223,7 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
   applyReferenceRomaneioStyle(ws, data, positions.lastData);
 
   set(ws, "B7", new Date()); ws.getCell("B7").numFmt = "dd/mm/yyyy";
+  ws.getCell("B10").alignment = { horizontal: "center", vertical: "middle" };
   set(ws, "B8", data.client); set(ws, "B9", data.destination); set(ws, "B10", data.orderNumber); set(ws, "B11", data.delivery || "");
   set(ws, "I7", data.orderOptions?.motorista || "");
   set(ws, "I8", data.orderOptions?.transportadora || "");
@@ -333,6 +334,13 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
     };
   }
 
+  // Marcador de fim do modelo oficial: "FIM" na primeira linha livre; o restante fica oculto.
+  if (cursor <= positions.lastData) {
+    set(ws, `${COL.pkg}${cursor}`, "FIM");
+    ws.getCell(`${COL.m3}${cursor}`).value = { formula:`G${cursor}*F${cursor}*E${cursor}*D${cursor}/1000000000`, result:0 } as any;
+    ws.getCell(`${COL.m3}${cursor}`).numFmt = "0.000";
+    cursor++;
+  }
   for (let row = cursor; row <= positions.lastData; row++) ws.getRow(row).hidden = true;
 
   ws.getCell(`C${positions.total}`).value = { formula:`SUM(C${START_ROW}:C${positions.lastData})` } as any;
@@ -361,6 +369,10 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
   const footer = [MOUNT_SHORT[data.mountType], (data.complementoObra || data.orderOptions?.complementoObra) ? "Complemento de Obra" : "", data.sourceMode === "CONTAINER" && data.orderOptions?.containerCode ? `Container: ${data.orderOptions.containerCode}` : "", data.config?.romaneioNote, data.orderOptions?.romaneioExtraText, ...additions, data.orderOptions?.conferente ? `Conferente: ${data.orderOptions.conferente}` : "", data.orderOptions?.separador ? `Separado por: ${data.orderOptions.separador}` : ""].filter(Boolean).join(" | ");
   set(ws, `B${positions.obs}`, footer);
   ws.getCell(`B${positions.obs}`).alignment = { ...(ws.getCell(`B${positions.obs}`).alignment || {}), wrapText:true, vertical:"middle" };
+  // Modelo oficial: valor do Filtro em negrito 13 e Obs em negrito 13 com destaque amarelo.
+  ws.getCell(`B${positions.filter}`).font = { name:"Arial", size:13, bold:true };
+  ws.getCell(`B${positions.obs}`).font = { name:"Arial", size:13, bold:true };
+  ws.getCell(`B${positions.obs}`).fill = { type:"pattern", pattern:"solid", fgColor:{ argb:"FFFFFF00" } };
 
   let endRow = positions.obs;
   for (const instruction of data.specialInstructions || []) {
@@ -372,6 +384,9 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
   }
 
   ws.pageSetup.printArea = `A1:K${endRow}`;
+  // Impressão do modelo oficial: A4 retrato, largura ajustada a 1 página, margens e centralização do modelo.
+  ws.pageSetup = { ...ws.pageSetup, paperSize: 9, orientation: "portrait", fitToPage: true, fitToWidth: 1, fitToHeight: 0, horizontalCentered: true,
+    margins: { left: 0.3153, right: 0.3153, top: 0.5514, bottom: 0.5514, header: 0.3, footer: 0.3 } } as any;
 
   // Planilha técnica oculta para rastreabilidade. Não interfere na impressão do romaneio,
   // mas permite auditar de onde cada linha veio quando houver divergência no cliente/expedição.
