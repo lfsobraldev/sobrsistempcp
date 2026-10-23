@@ -10,6 +10,7 @@
     "test": "node --import tsx --test tests/*.test.ts",
     "db:validate:local": "tsx scripts/validar-banco-local.ts",
     "db:package": "tsx scripts/gerar-pacote-banco.ts",
+    "db:aplicar": "tsx scripts/aplicar-banco.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
