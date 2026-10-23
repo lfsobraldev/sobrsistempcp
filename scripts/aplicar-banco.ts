@@ -18,7 +18,9 @@ const OPERACIONAL = [
 /** Base de um banco novo/vazio: schema inicial, fundação multiempresa e as migrações anteriores à 08 (idempotentes). */
 export function arquivosBase(): { nome: string; sql: string }[] {
   const mig = path.join(process.cwd(), "database", "migrations");
-  const up = (f: string) => require("node:fs").readFileSync(path.join(mig, f), "utf8").split("-- migrate:down")[0];
+  // Em banco com usuários já cadastrados, a constraint antiga de perfis não pode invalidar linhas existentes: NOT VALID.
+  const up = (f: string) => (require("node:fs").readFileSync(path.join(mig, f), "utf8") as string).split("-- migrate:down")[0]
+    .replace(/(add constraint ck_pcp_usuarios_perfil\s+check\s*\([^;]*?\))(\s*;)/gi, "$1 not valid$2");
   const antes = readdirSync(mig).filter((f) => f < "2026-10-21_08" && f !== "2026-10-21_fundacao_multiempresa.sql" && f !== "2026-10-21_05_acessos_centrais.sql").sort();
   const schema = require("node:fs").readFileSync(path.join(process.cwd(), "database", "schema.sql"), "utf8");
   const extra = "create table if not exists pcp_capacidades_maquina(id uuid primary key default gen_random_uuid(),processo text,maquina text,turno text);";
