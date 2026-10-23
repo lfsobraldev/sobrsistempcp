@@ -2,6 +2,7 @@ import { unidadeHandler } from "@/lib/unidades/handler";
 import { NextResponse } from "next/server";
 import { requireRoles } from "@/lib/auth";
 import { createLabelsWorkbook } from "@/lib/romaneio/labels";
+import { createEtiquetaModeloWorkbook } from "@/lib/romaneio/etiqueta-modelo";
 import { canGenerate } from "@/lib/romaneio/validation";
 import type { ProcessingResult } from "@/lib/romaneio/types";
 
@@ -27,7 +28,9 @@ async function unidadePOST(req: Request) {
       return NextResponse.json({ error: "Cliente e destino são obrigatórios para emitir etiquetas." }, { status: 409 });
     }
 
-    const buffer = await createLabelsWorkbook(data);
+    // Padrão: etiqueta no modelo oficial (Pedido.xlsx). ?modelo=antigo mantém o formato anterior.
+    const antigo = new URL(req.url).searchParams.get("modelo") === "antigo";
+    const buffer = antigo ? await createLabelsWorkbook(data) : await createEtiquetaModeloWorkbook(data);
     const pedido = String(data.orderNumber || "Pedido")
       .replace(/[^A-Za-z0-9_-]+/g, "_");
 
