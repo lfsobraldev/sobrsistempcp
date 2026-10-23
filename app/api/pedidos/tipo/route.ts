@@ -8,6 +8,7 @@ const MONTAGENS_ENGENHARIA = new Set([
   "MONTADO_HS",
   "MONTADO_TIMADEL",
   "MONTADO_ESTANCIA",
+  "MONTADO_SUL",
 ]);
 
 async function unidadePATCH(req: Request) {

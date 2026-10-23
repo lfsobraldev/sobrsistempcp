@@ -1,7 +1,7 @@
 export type Perfil = "PCP" | "GERENTE" | "ENCARREGADO" | "LIDER" | "APONTADOR" | "QUALIDADE" | "COMERCIAL" | "LOGISTICA" | "LIDER_ENTREGAS" | "SAC" | "SUPERVISOR" | "DIRETOR" | "ADMINISTRADOR";
 export type Prioridade = "NORMAL" | "ALTA" | "URGENTE";
 export type TipoPedido = "NORMAL" | "REVENDA" | "ENGENHARIA";
-export type MontagemEngenharia = "MONTADO_HS" | "MONTADO_TIMADEL" | "MONTADO_ESTANCIA";
+export type MontagemEngenharia = "MONTADO_HS" | "MONTADO_TIMADEL" | "MONTADO_ESTANCIA" | "MONTADO_SUL";
 export type StatusOperacao = "PENDENTE" | "LIBERADA" | "EM_ANDAMENTO" | "CONCLUIDA" | "BLOQUEADA" | "DIVERGENCIA";
 
 export type Operacao = {

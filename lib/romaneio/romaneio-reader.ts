@@ -4,7 +4,7 @@ import { DEFAULT_LOGISTICS_CONFIG } from "./settings";
 import { packageVolume } from "./logistics";
 import { classifyProduct, clean, norm, toNumber } from "./domain";
 
-function inferMount(text:string):MountType{const t=norm(text);if(t.includes("TIMADEL"))return"MONTADO_TIMADEL";if(t.includes("REVENDA"))return"REVENDA";if(t.includes("ESTANCIA"))return"MONTADO_ESTANCIA";return"MONTADO_HS"}
+function inferMount(text:string):MountType{const t=norm(text);if(t.includes("TIMADEL"))return"MONTADO_TIMADEL";if(/MONT(ADO|\.)?\s*SUL/.test(t))return"MONTADO_SUL";if(t.includes("REVENDA"))return"REVENDA";if(t.includes("ESTANCIA"))return"MONTADO_ESTANCIA";return"MONTADO_HS"}
 function parseSourceItems(obs:string){const m=clean(obs).match(/Itens?\s+(.+)/i);if(!m)return undefined;const ids=[...m[1].matchAll(/\b\d+\.\d+\b/g)].map(x=>x[0]);return ids.length?[...new Set(ids)]:undefined}
 
 export function readReadyRomaneio(buffer:Buffer,fileName="Romaneio.xlsx"):ProcessingResult{

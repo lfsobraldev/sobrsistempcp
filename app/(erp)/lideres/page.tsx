@@ -16,6 +16,7 @@ const MONTAGENS_ENGENHARIA: Array<{value:MontagemEngenharia;label:string}> = [
   { value: "MONTADO_HS", label: "Montado HS" },
   { value: "MONTADO_TIMADEL", label: "Montado Timadel" },
   { value: "MONTADO_ESTANCIA", label: "Montado Estância" },
+  { value: "MONTADO_SUL", label: "Montado Sul" },
 ];
 
 export default function Lideres() {

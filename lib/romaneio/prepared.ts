@@ -43,7 +43,7 @@ function mountFor(rows: any[]): MountType {
   if (tipo === "REVENDA") return "REVENDA";
   if (tipo === "ENGENHARIA") {
     const m = String(rows.find((x) => x.montagem_engenharia)?.montagem_engenharia || "MONTADO_HS").toUpperCase();
-    if (m === "MONTADO_TIMADEL" || m === "MONTADO_ESTANCIA") return m as MountType;
+    if (m === "MONTADO_TIMADEL" || m === "MONTADO_ESTANCIA" || m === "MONTADO_SUL") return m as MountType;
   }
   return "MONTADO_HS";
 }

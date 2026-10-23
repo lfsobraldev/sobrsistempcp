@@ -1,4 +1,4 @@
-export type MountType = "MONTADO_HS" | "MONTADO_TIMADEL" | "REVENDA" | "MONTADO_ESTANCIA";
+export type MountType = "MONTADO_HS" | "MONTADO_TIMADEL" | "REVENDA" | "MONTADO_ESTANCIA" | "MONTADO_SUL";
 export type PackageStatus = "VALIDO" | "ATENCAO" | "INVALIDO";
 export type ProductCategory = "PORTA" | "MARCO" | "ALIZAR" | "FERRAGEM" | "KIT" | "OUTRO";
 export type SourceMode = "PEDIDO" | "FILTRO_CONSISTEM" | "FILTRO_51" | "ROMANEIO_PRONTO" | "CONTAINER";
@@ -65,6 +65,7 @@ export type LogisticsConfig = {
   MONTADO_TIMADEL: LogisticsRule;
   REVENDA: LogisticsRule & { maxDoorsCardboard: number; maxDoorsThickness41: number };
   MONTADO_ESTANCIA: LogisticsRule;
+  MONTADO_SUL: LogisticsRule;
   mixedMaxM3: number;
   additionalItems: AdditionalItem[];
   romaneioNote?: string;

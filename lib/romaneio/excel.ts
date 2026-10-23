@@ -11,7 +11,7 @@ const FALLBACK_TOTAL_ROW = 109;
 const FALLBACK_FILTER_ROW = 110;
 const FALLBACK_OBS_ROW = 111;
 const COL = { pkg:"A", order:"B", games:"C", qty:"D", len:"E", wid:"F", thk:"G", m3:"H", palletM3:"I", product:"J", obs:"K" } as const;
-const MOUNT_SHORT = { MONTADO_HS:"Mont. HS", MONTADO_TIMADEL:"Mont. Timadel", REVENDA:"Revenda", MONTADO_ESTANCIA:"Mont. Estância" } as const;
+const MOUNT_SHORT = { MONTADO_HS:"Mont. HS", MONTADO_TIMADEL:"Mont. Timadel", REVENDA:"Revenda", MONTADO_ESTANCIA:"Mont. Estância", MONTADO_SUL:"Mont. Sul" } as const;
 
 type WrittenRow = { excelRow:number; row:PackageRow };
 
@@ -267,7 +267,7 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
     set(ws, `${COL.pkg}${packageStart}`, pkg.number);
     set(ws, `${COL.order}${packageStart}`, data.orderNumber);
     const packageM3 = pkg.rows.reduce((sum, row) => sum + rowVolume(row), 0);
-    set(ws, `${COL.palletM3}${packageStart}`, packageM3);
+    ws.getCell(`${COL.palletM3}${packageStart}`).value = { formula: `SUM(${COL.m3}${packageStart}:${COL.m3}${packageEnd})`, result: packageM3 } as any;
     ws.getCell(`${COL.palletM3}${packageStart}`).numFmt = "0.000";
     if (packageEnd > packageStart) {
       safeMerge(ws, `${COL.pkg}${packageStart}:${COL.pkg}${packageEnd}`);
@@ -303,6 +303,7 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
    */
   const seenSourceItems = new Set<string>();
   const seenCustomObs = new Set<string>();
+  const rotulos: number[] = [];
 
   for (const entry of written) {
     const row = entry.row;
@@ -338,13 +339,21 @@ export async function createRomaneioWorkbook(data: ProcessingResult) {
       horizontal: "center",
       wrapText: false,
     };
+    rotulos.push(entry.excelRow);
   }
+  // Como no modelo: o rótulo vale até a linha anterior ao próximo rótulo (inclusive entre pallets).
+  const ultimaLinha = written.length ? written[written.length - 1].excelRow : 0;
+  rotulos.forEach((linha, i) => {
+    const fim = (i + 1 < rotulos.length ? rotulos[i + 1] - 1 : ultimaLinha);
+    if (fim > linha) safeMerge(ws, `${COL.obs}${linha}:${COL.obs}${fim}`);
+  });
 
   // Marcador de fim do modelo oficial: "FIM" na primeira linha livre; o restante fica oculto.
   if (cursor <= positions.lastData) {
     set(ws, `${COL.pkg}${cursor}`, "FIM");
     ws.getCell(`${COL.m3}${cursor}`).value = { formula:`G${cursor}*F${cursor}*E${cursor}*D${cursor}/1000000000`, result:0 } as any;
     ws.getCell(`${COL.m3}${cursor}`).numFmt = "0.000";
+    ws.getRow(cursor).hidden = true; // como no modelo: o marcador FIM fica oculto
     cursor++;
   }
   for (let row = cursor; row <= positions.lastData; row++) ws.getRow(row).hidden = true;

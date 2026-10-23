@@ -54,6 +54,11 @@ const MONTAGENS: Array<{
     label: "Montado Estância",
     detalhe: "Regra de montagem Estância",
   },
+  {
+    value: "MONTADO_SUL",
+    label: "Montado Sul",
+    detalhe: "Mesma regra do Montado Timadel",
+  },
 ];
 
 export default function RomaneiosPage() {

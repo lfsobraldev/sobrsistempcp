@@ -30,8 +30,10 @@ export function alturaLinha(n: number) {
   if (n <= 10) return Math.max(30, Math.round((171.8 / n) * 100) / 100);
   return Math.min(48, Math.max(30, Math.round((504 / n) * 100) / 100));
 }
-export function fonteCliente(len: number) { return len <= 18 ? 60 : len <= 26 ? 52 : len <= 34 ? 46 : len <= 44 ? 42 : len <= 56 ? 34 : 28; }
-export function fonteDestino(len: number) { return len <= 14 ? 54 : len <= 20 ? 44 : len <= 28 ? 34 : 26; }
+// Tamanho do modelo, limitado pelo que cabe na largura (negrito itálico ≈ 0,52 do corpo por caractere).
+const cabe = (len: number, larguraPt: number) => Math.max(14, Math.floor(larguraPt / (Math.max(1, len) * 0.52)));
+export function fonteCliente(len: number) { const modelo = len <= 18 ? 60 : len <= 26 ? 52 : len <= 34 ? 46 : len <= 44 ? 42 : len <= 56 ? 34 : 28; return len <= 41 ? modelo : Math.min(modelo, cabe(len, 690)); }
+export function fonteDestino(len: number) { return Math.min(len <= 14 ? 54 : len <= 20 ? 44 : len <= 28 ? 34 : 26, cabe(len, 330)); }
 
 async function carregarModelo() {
   const wb = new ExcelJS.Workbook();
@@ -77,9 +79,9 @@ export async function createEtiquetaModeloWorkbook(data: ProcessingResult) {
     const cliente = (pkg.label?.client || data.client || "").trim();
     const destino = (pkg.label?.destination || data.destination || "").trim();
     const pedido = (pkg.label?.orderNumber || data.orderNumber || "").trim();
-    ws.getCell("A6").value = cliente; ws.getCell("A6").font = { ...(ws.getCell("A6").font || {}), size: fonteCliente(cliente.length) };
+    ws.getCell("A6").value = cliente; ws.getCell("A6").font = { ...(ws.getCell("A6").font || {}), size: fonteCliente(cliente.length) }; ws.getCell("A6").alignment = { ...(ws.getCell("A6").alignment || {}), shrinkToFit: true, wrapText: false };
     ws.getCell("B7").value = /^\d+$/.test(pedido) ? Number(pedido) : pedido;
-    ws.getCell("H7").value = destino; ws.getCell("H7").font = { ...(ws.getCell("H7").font || {}), size: fonteDestino(destino.length) };
+    ws.getCell("H7").value = destino; ws.getCell("H7").font = { ...(ws.getCell("H7").font || {}), size: fonteDestino(destino.length) }; ws.getCell("H7").alignment = { ...(ws.getCell("H7").alignment || {}), shrinkToFit: true };
     const numPallet = Number(pkg.label?.packageNumber) || pkg.number;
     ws.getCell("B9").value = numPallet;
     ws.getCell("F9").value = Number(pkg.label?.totalPackages) || totalPacotes;
