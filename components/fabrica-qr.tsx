@@ -32,19 +32,44 @@ export function AbaPlanta({ pode }: { pode: boolean }) {
   const [editar, setEditar] = useState(false); const [sujo, setSujo] = useState(false);
   const [erro, setErro] = useState(""); const [ok, setOk] = useState(""); const [busy, setBusy] = useState(false);
   const [aberto, setAberto] = useState<Row | null>(null);
+  const [feed, setFeed] = useState<{ quando: Date; texto: string }[]>([]); const [mudou, setMudou] = useState<string[]>([]); const [atualizado, setAtualizado] = useState<Date | null>(null);
+  const antes = useRef<Map<string, string> | null>(null);
   const drag = useRef<{ id: string; modo: "mover" | "redim"; sx: number; sy: number; ox: number; oy: number; ow: number; oh: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const carregar = useCallback(async () => {
     try {
       const [l, f, p] = await Promise.all([api("/api/wms?visao=layout"), api("/api/wms?visao=fabrica"), api("/api/mapa-fabrica")]);
-      setLay(l); setFab(f); setFluxo(p);
+      setLay(l); setFab(f); setFluxo(p); setAtualizado(new Date());
+      // Compara com a leitura anterior: quem avançou de setor aparece no "ao vivo" e o bloco pisca.
+      const atual = new Map<string, string>();
+      for (const [et, st] of Object.entries((p?.setores ?? {}) as Record<string, Row>)) {
+        for (const x of st.andamento ?? []) atual.set(String(x.pedido), `${et}|AND`);
+        for (const x of st.fila ?? []) if (!atual.has(String(x.pedido))) atual.set(String(x.pedido), `${et}|FILA`);
+      }
+      if (antes.current) {
+        const novos: { quando: Date; texto: string }[] = []; const tocados = new Set<string>();
+        for (const [ped, cod] of atual) {
+          const ant = antes.current.get(ped); if (ant === cod) continue;
+          const [et, st] = cod.split("|"); tocados.add(et); if (ant) tocados.add(ant.split("|")[0]);
+          novos.push({ quando: new Date(), texto: st === "AND" ? `Pedido ${ped} iniciou em ${NOME_ETAPA[et] ?? et}` : `Pedido ${ped} concluiu ${ant ? NOME_ETAPA[ant.split("|")[0]] ?? "" : "a etapa anterior"} e passa para ${NOME_ETAPA[et] ?? et}` });
+        }
+        for (const [ped, cod] of antes.current) if (!atual.has(ped)) { tocados.add(cod.split("|")[0]); novos.push({ quando: new Date(), texto: `Pedido ${ped} concluiu ${NOME_ETAPA[cod.split("|")[0]] ?? cod.split("|")[0]}` }); }
+        if (novos.length) { setFeed((f) => [...novos, ...f].slice(0, 20)); setMudou([...tocados]); setTimeout(() => setMudou([]), 8000); }
+      }
+      antes.current = atual;
       if (!sujo) setBlocos(l.blocos.map((b: Row) => ({ ...b })));
       setErro("");
     } catch (e) { setErro(e instanceof Error ? e.message : "Falha ao carregar."); }
   }, [sujo]);
   useEffect(() => { carregar(); }, [carregar]);
-  useEffect(() => { if (editar) return; const i = setInterval(carregar, 60000); return () => clearInterval(i); }, [editar, carregar]);
+  useEffect(() => {
+    if (editar) return;
+    const i = setInterval(() => { if (document.visibilityState === "visible") void carregar(); }, 15000);
+    const vis = () => { if (document.visibilityState === "visible") void carregar(); };
+    document.addEventListener("visibilitychange", vis);
+    return () => { clearInterval(i); document.removeEventListener("visibilitychange", vis); };
+  }, [editar, carregar]);
 
   const W = (lay?.planta?.largura ?? 100) * S, H = (lay?.planta?.altura ?? 60) * S;
   const setorCod = useMemo(() => Object.fromEntries((lay?.setores ?? []).map((s: Row) => [s.id, s.codigo])), [lay]);
@@ -53,8 +78,9 @@ export function AbaPlanta({ pode }: { pode: boolean }) {
   const info = (b: Row) => {
     const itens: Row[] = (fab?.itens ?? []).filter((i: Row) => (b.endereco_id && i.endereco_id === b.endereco_id) || (!b.endereco_id && b.setor_id && endSetor[i.endereco_id] === setorCod[b.setor_id]));
     const and: Row[] = b.etapa ? fluxo?.setores?.[b.etapa]?.andamento ?? [] : [];
+    const fila: Row[] = b.etapa ? fluxo?.setores?.[b.etapa]?.fila ?? [] : [];
     const atr = and.filter((p) => p.dias > ATRASO_DIAS).length;
-    return { itens, and, atr };
+    return { itens, and, atr, fila };
   };
 
   const alterar = (id: string, patch: Row) => { setBlocos((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b))); setSujo(true); };
@@ -113,14 +139,15 @@ export function AbaPlanta({ pode }: { pode: boolean }) {
           <defs><pattern id="grade" width={S * 2} height={S * 2} patternUnits="userSpaceOnUse"><path d={`M ${S * 2} 0 L 0 0 0 ${S * 2}`} fill="none" stroke="#e2e8f0" strokeWidth="1" /></pattern></defs>
           <rect width={W} height={H} fill="#fff" /><rect width={W} height={H} fill="url(#grade)" />
           {blocos.map((bl) => {
-            const { itens, and, atr } = info(bl);
+            const { itens, and, atr, fila } = info(bl);
             const vivo = !editar && bl.tipo === "SETOR";
-            const fill = vivo && atr ? "#fecaca" : vivo && (and.length || itens.length) ? "#bfdbfe" : bl.cor;
+            const fill = vivo && atr ? "#fecaca" : vivo && (and.length || itens.length) ? "#bfdbfe" : vivo && fila.length ? "#fde68a" : bl.cor;
             const x = bl.x * S, y = bl.y * S, w = bl.w * S, h = bl.h * S; const max = Math.max(4, Math.floor(w / 7));
             const nome = String(bl.nome ?? ""); const linhas = [] as string[];
-            if (bl.tipo === "TEXTO") linhas.push(nome); else { linhas.push(nome.length > max ? nome.slice(0, max - 1) + "…" : nome); if (bl.etapa) linhas.push(`${and.length} pedido(s)${atr ? ` · ${atr} parado(s)` : ""}`); if (itens.length) linhas.push(`${itens.length} item(ns) no local`); }
+            if (bl.tipo === "TEXTO") linhas.push(nome); else { linhas.push(nome.length > max ? nome.slice(0, max - 1) + "…" : nome); if (bl.etapa) linhas.push(`${and.length} em andamento${fila.length ? ` · ${fila.length} na fila` : ""}${atr ? ` · ${atr} parado(s)` : ""}`); if (itens.length) linhas.push(`${itens.length} item(ns) no local`); }
             return (
               <g key={bl.id} onPointerDown={(e) => iniciar(e, bl, "mover")} onClick={(e) => { e.stopPropagation(); if (editar) setSel(bl.id); else if (bl.tipo === "SETOR" || bl.tipo === "TRILHO") setAberto(bl); }} style={{ cursor: editar ? "move" : bl.tipo === "SETOR" || bl.tipo === "TRILHO" ? "pointer" : "default" }} tabIndex={0} aria-label={`${nome}: ${and.length} pedidos, ${itens.length} itens`}>
+                {!editar && bl.etapa && mudou.includes(bl.etapa) && <rect className="pl-pulse" x={x - 3} y={y - 3} width={w + 6} height={h + 6} rx={10} fill="none" stroke="#16a34a" strokeWidth={4} />}
                 {bl.tipo !== "TEXTO" && <rect x={x} y={y} width={w} height={h} rx={bl.tipo === "CORREDOR" ? 2 : 8} fill={fill} stroke={sel === bl.id ? "#2563eb" : "#94a3b8"} strokeWidth={sel === bl.id ? 3 : 1.2} strokeDasharray={bl.tipo === "CORREDOR" ? "6 4" : undefined} />}
                 {linhas.map((t, i) => <text key={i} x={x + 8} y={y + 18 + i * 15} fontSize={i === 0 ? 13 : 11} fontWeight={i === 0 ? 700 : 400} fill="#0f172a">{t}</text>)}
                 {editar && sel === bl.id && bl.tipo !== "TEXTO" && <rect x={x + w - 9} y={y + h - 9} width={14} height={14} rx={3} fill="#2563eb" style={{ cursor: "nwse-resize" }} onPointerDown={(e) => iniciar(e, bl, "redim")} />}
@@ -143,14 +170,20 @@ export function AbaPlanta({ pode }: { pode: boolean }) {
           </Panel>
         )}
       </div>
-      <div className="mf-leg"><span><i style={{ background: "#bfdbfe" }} />com pedido ou peça agora</span><span><i style={{ background: "#fecaca" }} />pedido parado &gt; {ATRASO_DIAS} dias</span><span>atualiza a cada 1 minuto</span></div>
+      <div className="mf-leg"><span><i style={{ background: "#bfdbfe" }} />com pedido ou peça agora</span><span><i style={{ background: "#fecaca" }} />pedido parado &gt; {ATRASO_DIAS} dias</span><span><i style={{ background: "#fde68a" }} />na fila (etapa anterior concluída)</span><span><i className="pl-live" />ao vivo · atualiza a cada 15 s{atualizado ? ` · ${atualizado.toLocaleTimeString("pt-BR")}` : ""}</span></div>
+      <Panel title="Movimentações ao vivo" subtitle="Quando um setor conclui, o pedido passa para a fila do próximo setor e aparece aqui.">
+        {feed.length ? <ul className="pl-feed">{feed.map((f, i) => <li key={i}><time>{f.quando.toLocaleTimeString("pt-BR")}</time> {f.texto}</li>)}</ul> : <p className="muted">Nenhuma movimentação desde que você abriu a tela. As mudanças lançadas pelos líderes aparecem aqui sozinhas.</p>}
+      </Panel>
       <Drawer open={!!aberto} title={aberto?.nome ?? ""} onClose={() => setAberto(null)}>
         {aberto && (() => {
-          const { itens, and } = info(aberto);
+          const { itens, and, fila } = info(aberto);
           return (<>
             {aberto.etapa && (<DataTable head={["Pedido", "Cliente", "Início", "Dias"]} empty={<Empty title="Nenhum pedido neste setor agora" />}>
               {and.map((p) => <tr key={p.pedido}><td>{p.pedido}</td><td>{p.cliente || "—"}</td><td>{p.inicio ? new Date(String(p.inicio).slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</td><td>{p.dias > ATRASO_DIAS ? <Badge tone="danger">{p.dias}</Badge> : p.dias}</td></tr>)}
             </DataTable>)}
+            {aberto.etapa && fila.length > 0 && (<><h4>Na fila (etapa anterior concluída)</h4><DataTable head={["Pedido", "Cliente", "Liberado em"]}>
+              {fila.map((p) => <tr key={p.pedido}><td>{p.pedido}</td><td>{p.cliente || "—"}</td><td>{p.desde ? new Date(String(p.desde).slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR") : "—"}</td></tr>)}
+            </DataTable></>)}
             {(aberto.setor_id || aberto.endereco_id) && (<DataTable head={["Tipo", "Código", "Descrição", "Pedido", "Qtd", "Dias"]} empty={<Empty title="Nada endereçado aqui" />}>
               {itens.map((i) => <tr key={i.tipo + i.ref}><td>{i.tipo}</td><td>{i.codigo}</td><td>{i.descricao}</td><td>{i.pedido || "—"}</td><td>{i.quantidade}</td><td>{i.dias}</td></tr>)}
             </DataTable>)}

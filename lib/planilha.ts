@@ -554,6 +554,8 @@ export type OpcoesPlanilha = {
 
   data?: string;
   somenteControle?: boolean;
+  /** Linhas da aba CONJUNTOS (portas + batentes + alizares por pedido). */
+  conjuntos?: Array<Record<string, string | number>>;
 };
 
 function itensDoSetor(
@@ -4007,6 +4009,18 @@ export async function baixarPlanilhaProducao(
 
       opcoes
     );
+
+  if (opcoes.conjuntos?.length) {
+    const wsC = wb.addWorksheet("CONJUNTOS", { views: [{ state: "frozen", ySplit: 1 }] });
+    const cols = Object.keys(opcoes.conjuntos[0]);
+    wsC.addRow(cols);
+    wsC.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+    wsC.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1D3527" } };
+    wsC.getRow(1).alignment = { vertical: "middle", wrapText: true };
+    for (const linha of opcoes.conjuntos) wsC.addRow(cols.map((c) => linha[c]));
+    cols.forEach((c, i) => { wsC.getColumn(i + 1).width = Math.min(40, Math.max(12, c.length + 2)); });
+    wsC.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: cols.length } };
+  }
 
   const buffer =
     await wb.xlsx.writeBuffer();

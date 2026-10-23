@@ -11,13 +11,14 @@ import {
   UploadCloud, UsersRound, Truck, ClipboardCheck, type LucideIcon,
   Megaphone, FileText, PackageCheck, Scissors, Scale, Ruler, Target, ShoppingCart, Warehouse, CalendarRange, GanttChartSquare, Hammer, Network,
   AlertOctagon, Siren, ScanSearch, BadgeCheck, Undo2, Receipt, Landmark, Calculator, Wrench, FolderOpen, LineChart, Headset,
-  TrendingUp, Gauge, Container, Building2, ShieldAlert, TrendingDown, Activity, Users, SlidersHorizontal, ListOrdered, Layers, BookOpen,
+  TrendingUp, Gauge, Container, Building2, ShieldAlert, TrendingDown, Activity, Users, SlidersHorizontal, Download, ListOrdered, Layers, BookOpen,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { OperationalProvider, useOps } from "@/components/operational-provider";
 import AiAssistant from "@/components/ai-assistant";
 import RomaneioAIModal from "@/components/romaneio-ai";
 import { allowedPath } from "@/lib/permissions";
+import { exportarTabelasDaPagina } from "@/lib/exportar-tabelas";
 import { BrandLogo } from "@/components/brand-logo";
 import { DoorLoader } from "@/components/door-art";
 
@@ -195,6 +196,14 @@ function Inner({ children }: { children: React.ReactNode }) {
     if (found) { router.push(found.path+window.location.search); setQuery(""); }
   }
 
+  async function exportarTela() {
+    const nome = `${(current || "Famossul").replace(/[^\p{L}\p{N} _-]/gu, "").trim().replace(/\s+/g, "_") || "Famossul"}_${new Date().toISOString().slice(0, 10)}`;
+    try {
+      const n = await exportarTabelasDaPagina(nome);
+      toast(n ? "success" : "error", n ? `Excel gerado com ${n} tabela(s).` : "Não há tabela com dados nesta tela.");
+    } catch { toast("error", "Não foi possível gerar o Excel."); }
+  }
+
   if (loading) return <div className="boot"><DoorLoader label="Famossul" sub="Preparando ambiente" /></div>;
   if (!me) return null;
 
@@ -252,6 +261,7 @@ function Inner({ children }: { children: React.ReactNode }) {
         </div>
         <span className={`livedot ${live ? "on" : ""}`} title={live ? "Tempo real ativo" : "Sincronizando"} />
         <button className="ghost iconBtn" onClick={() => void refresh()} aria-label="Atualizar" title="Atualizar"><RefreshCw /></button>
+        <button className="ghost iconBtn" aria-label="Exportar tabelas da tela para Excel" title="Exportar tabelas da tela para Excel" onClick={() => void exportarTela()}><Download /></button>
         {veNotificacoes && <Link className="ghost iconBtn" aria-label={`Notificações${naoLidas ? ` (${naoLidas} não lidas)` : ""}`} title="Notificações" href="/plataforma" style={{ position: "relative" }}><Bell />{naoLidas > 0 && <span style={{ position: "absolute", top: -4, right: -4, background: "#c0392b", color: "#fff", borderRadius: 9, fontSize: 10, padding: "0 5px", lineHeight: "16px" }}>{naoLidas > 99 ? "99+" : naoLidas}</span>}</Link>}
         <div style={{ position: "relative" }}>
           <button className="userchip" onClick={() => setProfileOpen((v) => !v)} aria-expanded={profileOpen}>
