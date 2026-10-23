@@ -1470,6 +1470,98 @@
       "verificacao": "45_2026-11-12_35_pessoas_ehs_projetos.verify.sql",
       "down": "45_2026-11-12_35_pessoas_ehs_projetos.down.sql",
       "baseline": "45_2026-11-12_35_pessoas_ehs_projetos.baseline.sql"
+    },
+    {
+      "ordem": 46,
+      "arquivo": "2026-11-13_36_estoque_naturezas_conferencia.sql",
+      "descricao": "2026-11-13_36_estoque_naturezas_conferencia.sql",
+      "dependenciasDeclaradas": [
+        "2026-11-12_35_pessoas_ehs_projetos.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "f5c94ed9cb976efd8f202d5cdf78952230343af0bf266289e3075b1781b883ac",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "alto",
+      "objetos": [
+        "est_naturezas",
+        "est_v_saldo_natureza",
+        "est_v_consumo_of",
+        "est_consumo_conferencias",
+        "est_v_consumo_conferir",
+        "est_v_apontamentos_em_lote"
+      ],
+      "colunasAdicionadas": [
+        {
+          "tabela": "est_locais",
+          "coluna": "natureza"
+        },
+        {
+          "tabela": "est_locais",
+          "coluna": "tipo_local"
+        },
+        {
+          "tabela": "est_locais",
+          "coluna": "responsavel"
+        }
+      ],
+      "up": "46_2026-11-13_36_estoque_naturezas_conferencia.up.sql",
+      "verificacao": "46_2026-11-13_36_estoque_naturezas_conferencia.verify.sql",
+      "down": "46_2026-11-13_36_estoque_naturezas_conferencia.down.sql",
+      "baseline": "46_2026-11-13_36_estoque_naturezas_conferencia.baseline.sql"
+    },
+    {
+      "ordem": 47,
+      "arquivo": "2026-11-14_37_certificados_cadeia_custodia.sql",
+      "descricao": "2026-11-14_37_certificados_cadeia_custodia.sql",
+      "dependenciasDeclaradas": [
+        "2026-11-13_36_estoque_naturezas_conferencia.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "a9a19b30d9b8fc10c9b9d12695aa5ccbdbb30767194282da968fb087a35c94ff",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "cert_nfs",
+        "cert_nf_itens",
+        "cert_pedido_nfs",
+        "cert_consumos",
+        "cert_v_saldo_item",
+        "cert_v_saldo_produto"
+      ],
+      "colunasAdicionadas": [],
+      "up": "47_2026-11-14_37_certificados_cadeia_custodia.up.sql",
+      "verificacao": "47_2026-11-14_37_certificados_cadeia_custodia.verify.sql",
+      "down": "47_2026-11-14_37_certificados_cadeia_custodia.down.sql",
+      "baseline": "47_2026-11-14_37_certificados_cadeia_custodia.baseline.sql"
+    },
+    {
+      "ordem": 48,
+      "arquivo": "2026-11-15_38_mapa_fabrica_rastro.sql",
+      "descricao": "2026-11-15_38_mapa_fabrica_rastro.sql",
+      "dependenciasDeclaradas": [
+        "2026-11-14_37_certificados_cadeia_custodia.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "af919311508fde86da4d7b18038da4b32cf242eafa6fa3279e771265cbdadcdd",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": false,
+      "risco": "baixo",
+      "objetos": [
+        "wms_v_localizador",
+        "wms_v_localizador_end",
+        "wms_v_sem_endereco",
+        "pcp_rastro_leituras",
+        "pcp_v_rastro_atual",
+        "pcp_v_rastro_setor_datas",
+        "pcp_v_rastro_paradas"
+      ],
+      "colunasAdicionadas": [],
+      "up": "48_2026-11-15_38_mapa_fabrica_rastro.up.sql",
+      "verificacao": "48_2026-11-15_38_mapa_fabrica_rastro.verify.sql",
+      "down": "48_2026-11-15_38_mapa_fabrica_rastro.down.sql",
+      "baseline": "48_2026-11-15_38_mapa_fabrica_rastro.baseline.sql"
     }
   ]
 }

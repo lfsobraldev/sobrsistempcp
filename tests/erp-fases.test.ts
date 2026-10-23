@@ -262,3 +262,29 @@ test("Postgres: naturezas de estoque, conferência de consumo e certificados", a
     assert.equal(n((await one("select saldo::float s from cert_v_saldo_produto where pedido='26847' and codigo='3826129'")).s), 1330);
   } finally { await db.close(); }
 });
+
+test("Postgres: mapa da fábrica, localizador e rastro por setor", async () => {
+  const { db, one, all } = await bancoCompleto();
+  try {
+    const st = (await one("select id from wms_setores where codigo='SOBRAS'")).id;
+    const loc = (await one("insert into est_locais(codigo,descricao) values('FAB','Fábrica') returning id")).id;
+    const end = (await one("insert into est_enderecos(local_id,codigo,criado_por,setor_id,rua) values($1,'T03-P01','t',$2,'T03') returning id", [loc, st])).id;
+    await one("insert into wms_sobras(descricao,medida,material,quantidade,endereco_id,criado_por) values('Travessa','2100','MDF',2,$1,'t')", [end]);
+    await one("insert into wms_sobras(descricao,medida,quantidade,criado_por) values('Sem lugar','500',1,'t')");
+    const l = await all("select * from wms_v_localizador_end where endereco='T03-P01'");
+    assert.equal(l.length, 1); assert.equal(l[0].tipo, "SOBRA");
+    assert.equal((await all("select * from wms_v_sem_endereco where tipo='SOBRA'")).length, 1);
+    // rastro
+    await assert.rejects(one("select pcp_rastro_ler('1','P1','NAO','ENTRADA',1,'','t')"), /Setor inválido/);
+    await assert.rejects(one("select pcp_rastro_ler('1','P1','EMB','PROBLEMA',1,'x','t')"), /Descreva/);
+    await one("select pcp_rastro_ler('1','P1','EMB','ENTRADA',1,'','t')");
+    await one("select pcp_rastro_ler('1','P1','EMB','SAIDA',1,'','t')");
+    await one("select pcp_rastro_ler('1','P2','EMB','ENTRADA',1,'','t')");
+    const d = await one("select inicio_real,fim_real,pecas::int p from pcp_v_rastro_setor_datas where pedido='1' and setor='EMB'");
+    assert.ok(d.inicio_real && d.fim_real); assert.equal(d.p, 2);
+    assert.equal((await one("select evento from pcp_v_rastro_atual where pedido='1' and peca='P1'")).evento, "SAIDA");
+    await assert.rejects(one("update pcp_rastro_leituras set obs='x'"), /imutável/);
+    await db.query("insert into pcp_rastro_leituras(pedido,peca,setor_id,evento,por,em) select '2','Z',id,'ENTRADA','t',now()-interval '3 days' from wms_setores where codigo='EMB'");
+    assert.equal((await all("select * from pcp_v_rastro_paradas")).length, 1);
+  } finally { await db.close(); }
+});

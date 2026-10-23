@@ -34,7 +34,7 @@ const menus: MenuGroup[] = [
   ] },
   { label: "Medição e Engenharia", items: [{ path: "/engenharia", label: "Engenharia de Produto", icon: Layers }, { path: "/medicoes", label: "Medições e Aprovação", icon: Ruler }, { path: "/producao-consultas", label: "Rastreio e Onde é Usado", icon: Target }] },
   { label: "Carteira de Pedidos", items: [{ path: "/carteira", label: "Carteira de Pedidos", icon: FolderOpen }] },
-  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Receipt }, { path: "/cotacoes", label: "Cotações e Fornecedores", icon: Scale }, { path: "/estoque", label: "Estoque", icon: Warehouse }, { path: "/estoque-avancado", label: "Endereços, Cíclico e PEPS", icon: Layers }, { path: "/wms", label: "WMS: Setores, Pallets e Revisões", icon: Container }] },
+  { label: "Compras e Estoque", items: [{ path: "/compras", label: "Compras e Terceirização", icon: Receipt }, { path: "/cotacoes", label: "Cotações e Fornecedores", icon: Scale }, { path: "/estoque", label: "Estoque", icon: Warehouse }, { path: "/estoque-avancado", label: "Endereços, Cíclico e PEPS", icon: Layers }, { path: "/mapa-fabrica", label: "Mapa da Fábrica e Rastro", icon: Container }, { path: "/wms", label: "WMS: Setores, Pallets e Revisões", icon: Container }] },
   {
     label: "PCP e Produção",
     items: [
