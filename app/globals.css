@@ -1987,3 +1987,21 @@ button.lp-tile{width:100%;text-align:left;justify-content:space-between;cursor:p
 .pl-feed{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:var(--fs-sm)}
 .pl-feed time{color:var(--text-3);font-variant-numeric:tabular-nums;margin-right:6px}
 @media (prefers-reduced-motion:reduce){.pl-pulse,.pl-live{animation:none}}
+
+/* Programação: período (mês atual / próximo), agendadas e botão do assistente */
+.periodo-seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--border);border-radius:var(--radius-md,10px);background:var(--surface-2)}
+.periodo-seg button{border:0;background:transparent;padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text-2);min-height:36px}
+.periodo-seg button.on{background:var(--primary);color:var(--on-primary,#fff)}
+.agenda-aviso{display:flex;gap:10px;align-items:flex-start;margin-top:var(--sp-3);padding:10px 12px;border-radius:10px;background:var(--primary-soft);color:var(--text);font-size:13px;line-height:1.4}
+.agenda-aviso svg{flex:none;margin-top:2px;color:var(--primary)}
+.agenda-lista{display:grid;gap:8px}
+.agenda-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--surface)}
+.agenda-item>svg{color:var(--primary);flex:none}
+.agenda-item>span{flex:1;min-width:0;display:grid}
+.agenda-item small{color:var(--text-3);font-size:12px}
+@media (max-width:640px){.agenda-item{flex-wrap:wrap}}
+/* Assistente: botão redondo discreto, não cobre o conteúdo */
+.ai-fab{width:46px;height:46px;padding:0;justify-content:center;gap:0;font-size:0;right:14px;bottom:14px;opacity:.88;box-shadow:0 4px 14px rgba(0,0,0,.22)}
+.ai-fab svg{width:20px;height:20px}
+.ai-fab:hover{opacity:1}
+.main{padding-bottom:72px}

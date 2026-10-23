@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronRight, FileSpreadsheet, FileText, Trash2, UploadCloud, X } from "lucide-react";
+import { CalendarClock, ChevronRight, FileSpreadsheet, FileText, Trash2, UploadCloud, X } from "lucide-react";
 import type { ImportResult, TipoPedido } from "@/types/pcp";
 import { useOps } from "@/components/operational-provider";
 import { Badge, Card, DataTable, Field, PageHeader, StatCard, type Tone } from "@/components/ui";
@@ -37,6 +37,23 @@ export default function Programacao() {
   const [data, setData] = useState(new Date().toISOString().slice(0, 10));
   const [turno, setTurno] = useState("A");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [agendadas, setAgendadas] = useState<Array<{ id: string; filtro: string; data: string; turno: string; pedidos: number; pecas: number }>>([]);
+  const hoje = new Date();
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const inicioProx = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+  const fimProx = new Date(hoje.getFullYear(), hoje.getMonth() + 2, 0);
+  const proximoMes = data >= iso(inicioProx);
+  const nomeMesProx = inicioProx.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  async function carregarAgendadas() {
+    try { const r = await fetch("/api/programacoes/agendadas", { cache: "no-store" }); if (r.ok) setAgendadas((await r.json()).rows || []); } catch { /* sem agendadas */ }
+  }
+  useEffect(() => { void carregarAgendadas(); }, []);
+  async function cancelarAgendada(id: string) {
+    const r = await fetch(`/api/programacoes/agendadas?id=${id}`, { method: "DELETE" });
+    if (!r.ok) { toast("error", (await r.json().catch(() => ({}))).error || "Falha ao cancelar."); return; }
+    toast("success", "Agendamento cancelado.");
+    await carregarAgendadas();
+  }
   const [descricaoExpandida, setDescricaoExpandida] = useState(true);
 
   async function cadastrarCatalogo() {
@@ -178,6 +195,7 @@ export default function Programacao() {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       const preparados = Number(j.romaneios?.preparados || 0);
+      if (j.agendada) { toast("success", `Filtro agendado para ${nomeMesProx}. Só aparece para a fábrica quando o mês chegar.`); setDraft(null); await carregarAgendadas(); return; }
       toast("success", preparados > 0 ? `Programação liberada. ${preparados} romaneio(s) pré-pronto(s) gerado(s).` : "Programação liberada para a fábrica.");
       setDraft(null);
       await refresh();
@@ -231,28 +249,6 @@ export default function Programacao() {
         ) : undefined}
       />
 
-      <Card title="Catálogo Mestre de Produtos" subtitle="Base permanente no Neon — atualização apenas quando o cadastro da empresa mudar" className="mb">
-        <div className="file-upload-layout">
-          <div className="file-upload-control">
-            <input id="catalogo-file-input" className="file-upload-input" type="file" accept=".xlsx,.xls" disabled={catalogoBusy} onChange={(e)=>setCatalogoFile(e.target.files?.[0] || null)} aria-label="Planilha do catálogo" />
-            <label htmlFor="catalogo-file-input" className={`file-upload-dropzone ${catalogoBusy ? "is-disabled" : ""}`}>
-              <span className="file-upload-icon"><UploadCloud size={22}/></span>
-              <span className="file-upload-copy">
-                <strong>{catalogoFile ? "Planilha pronta para importar" : "Selecione a planilha do catálogo"}</strong>
-                <small>{catalogoFile ? catalogoFile.name : "Clique aqui para procurar o arquivo no computador"}</small>
-              </span>
-              <span className="file-upload-action">{catalogoFile ? "Trocar arquivo" : "Escolher arquivo"}</span>
-            </label>
-            <div className="file-upload-meta"><FileSpreadsheet size={14}/> Formatos aceitos: Excel (.xlsx, .xls)</div>
-          </div>
-          <div className="file-upload-submit">
-            <button type="button" disabled={!catalogoFile || catalogoBusy} onClick={()=>void cadastrarCatalogo()}>
-              <UploadCloud size={17}/> {catalogoBusy ? "Cadastrando catálogo…" : "Cadastrar / atualizar produtos"}
-            </button>
-          </div>
-        </div>
-        <p className="muted">{catalogoResumo || "Importe Eng Empresa 34.xlsx uma vez. Nas próximas programações, o código Produto recuperará automaticamente a narrativa cadastrada. Códigos com narrativas divergentes só são usados quando a variante puder ser identificada com segurança; os demais são sinalizados para conferência."}</p>
-      </Card>
 
       {!draft ? (
         <div className="split-form" style={{ gridTemplateColumns: "minmax(0,3fr) minmax(0,2fr)" }}>
@@ -279,7 +275,13 @@ export default function Programacao() {
               )}
 
               <div className="form-grid" style={{ alignItems: "end" }}>
-                <Field label="Data"><input type="date" value={data} onChange={(e) => setData(e.target.value)} /></Field>
+                <Field label="Período">
+                  <div className="periodo-seg" role="group" aria-label="Período da programação">
+                    <button type="button" className={!proximoMes ? "on" : ""} onClick={() => setData(iso(hoje))}>Mês atual</button>
+                    <button type="button" className={proximoMes ? "on" : ""} onClick={() => setData(iso(inicioProx))}>Próximo mês</button>
+                  </div>
+                </Field>
+                <Field label="Data"><input type="date" value={data} min={iso(new Date(hoje.getFullYear(), hoje.getMonth(), 1))} max={iso(fimProx)} onChange={(e) => setData(e.target.value)} /></Field>
                 <Field label="Turno">
                   <select value={turno} onChange={(e) => setTurno(e.target.value)}>
                     <option value="A">A</option>
@@ -291,6 +293,7 @@ export default function Programacao() {
                   {busy ? (analiseIA || "Processando…") : <>Processar <ChevronRight /></>}
                 </button>
               </div>
+              {proximoMes && <div className="agenda-aviso"><CalendarClock size={16} /> <span><b>Filtro do próximo mês.</b> Fica agendado e só aparece para a fábrica a partir de {inicioProx.toLocaleDateString("pt-BR")}; a programação atual não muda.</span></div>}
             </div>
           </Card>
 
@@ -307,6 +310,41 @@ export default function Programacao() {
       ) : (
         <Review d={draft} busy={busy} back={() => setDraft(null)} release={release} setTipoPedido={definirTipoPedido} correcoes={correcoesIA} descricaoExpandida={descricaoExpandida} setDescricaoExpandida={setDescricaoExpandida} />
       )}
+      {agendadas.length > 0 && (
+        <Card title="Agendadas para o próximo mês" subtitle="Entram em vigor automaticamente quando o mês chegar" className="mb">
+          <div className="agenda-lista">
+            {agendadas.map((a) => (
+              <div key={a.id} className="agenda-item">
+                <CalendarClock size={18} />
+                <span><b>Filtro {a.filtro || "—"}</b><small>{new Date(a.data + "T12:00:00").toLocaleDateString("pt-BR")} · turno {a.turno} · {Number(a.pedidos || 0)} pedidos · {Number(a.pecas || 0).toLocaleString("pt-BR")} peças</small></span>
+                <button type="button" className="ghost" onClick={() => void cancelarAgendada(a.id)}><Trash2 size={14} /> Cancelar</button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+      <Card title="Catálogo Mestre de Produtos" subtitle="Base permanente no Neon — atualização apenas quando o cadastro da empresa mudar" className="mb">
+        <div className="file-upload-layout">
+          <div className="file-upload-control">
+            <input id="catalogo-file-input" className="file-upload-input" type="file" accept=".xlsx,.xls" disabled={catalogoBusy} onChange={(e)=>setCatalogoFile(e.target.files?.[0] || null)} aria-label="Planilha do catálogo" />
+            <label htmlFor="catalogo-file-input" className={`file-upload-dropzone ${catalogoBusy ? "is-disabled" : ""}`}>
+              <span className="file-upload-icon"><UploadCloud size={22}/></span>
+              <span className="file-upload-copy">
+                <strong>{catalogoFile ? "Planilha pronta para importar" : "Selecione a planilha do catálogo"}</strong>
+                <small>{catalogoFile ? catalogoFile.name : "Clique aqui para procurar o arquivo no computador"}</small>
+              </span>
+              <span className="file-upload-action">{catalogoFile ? "Trocar arquivo" : "Escolher arquivo"}</span>
+            </label>
+            <div className="file-upload-meta"><FileSpreadsheet size={14}/> Formatos aceitos: Excel (.xlsx, .xls)</div>
+          </div>
+          <div className="file-upload-submit">
+            <button type="button" disabled={!catalogoFile || catalogoBusy} onClick={()=>void cadastrarCatalogo()}>
+              <UploadCloud size={17}/> {catalogoBusy ? "Cadastrando catálogo…" : "Cadastrar / atualizar produtos"}
+            </button>
+          </div>
+        </div>
+        <p className="muted">{catalogoResumo || "Importe Eng Empresa 34.xlsx uma vez. Nas próximas programações, o código Produto recuperará automaticamente a narrativa cadastrada. Códigos com narrativas divergentes só são usados quando a variante puder ser identificada com segurança; os demais são sinalizados para conferência."}</p>
+      </Card>
     </>
   );
 }
