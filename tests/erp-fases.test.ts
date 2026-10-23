@@ -223,3 +223,42 @@ test("Postgres: banco de horas, férias, custo hora-homem, EHS e cronograma de p
     assert.equal(String(r[3].i).slice(0, 10), "2026-10-26");
   } finally { await db.close(); }
 });
+
+test("Postgres: naturezas de estoque, conferência de consumo e certificados", async () => {
+  const { db, one, all, n } = await bancoCompleto();
+  try {
+    // naturezas
+    const loc = (await one("insert into est_locais(codigo,descricao) values('ALM-MP','Almox MP') returning id")).id;
+    await assert.rejects(one("select est_local_classificar($1,'XXX','ALMOXARIFADO','','t')", [loc]), /Natureza inválida/);
+    await one("select est_local_classificar($1,'MATERIA_PRIMA','ALMOXARIFADO','Joana','t')", [loc]);
+    assert.equal((await one("select natureza from est_locais where id=$1", [loc])).natureza, "MATERIA_PRIMA");
+    assert.ok((await all("select * from est_v_saldo_natureza")).some((x) => x.natureza === "MATERIA_PRIMA"));
+    // conferência: sem consumo por apontamento não confere
+    const pr = (await one("insert into est_produtos(codigo,descricao,unidade_base,criado_por) values('C1','Cola','UN','t') returning id")).id;
+    const of0 = (await all("select id from erp_ordens_fabricacao limit 1"))[0];
+    await assert.rejects(one("select est_consumo_conferir($1,$2,$3,5,'','t')", [of0?.id ?? "00000000-0000-0000-0000-000000000000", pr, loc]), /Não há consumo/);
+    // views executam
+    assert.equal((await all("select * from est_v_apontamentos_em_lote")).length, 0);
+    assert.equal((await all("select * from est_v_consumo_conferir")).length, 0);
+    // certificados
+    const nf1 = (await one("insert into cert_nfs(numero_nf,fornecedor,criado_por) values('55583','Forn','t') returning id")).id;
+    const nf2 = (await one("insert into cert_nfs(numero_nf,fornecedor,criado_por) values('55586','Forn','t') returning id")).id;
+    await one("insert into cert_nf_itens(nf_id,item,codigo,descricao,unidade,quantidade) values($1,1,'3826129','MARCO','PC',1330),($1,2,'3826147','ALIZAR','PC',3618)", [nf1]);
+    await one("insert into cert_nf_itens(nf_id,item,codigo,descricao,unidade,quantidade) values($1,1,'3826129','MARCO','PC',532)", [nf2]);
+    await one("select cert_vincular('26847',$1,'t')", [nf1]);
+    await one("select cert_vincular('26847',$1,'t')", [nf2]);
+    await assert.rejects(one("select cert_consumir('26847','3826129',2000,'MANUAL','','t')"), /SALDO_CERTIFICADO_INSUFICIENTE/);
+    assert.equal(n((await one("select cert_consumir('26847','3826129',1500,'MANUAL','','t') n")).n), 2); // 1330 na NF 1 + 170 na NF 2 (FIFO)
+    const sp = await one("select recebido::float r,utilizado::float u,saldo::float s from cert_v_saldo_produto where pedido='26847' and codigo='3826129'");
+    assert.deepEqual([sp.r, sp.u, sp.s], [1862, 1500, 362]);
+    await assert.rejects(one("update cert_consumos set quantidade=1 where id=1"), /use estorno/);
+    const c1 = (await one("select id from cert_consumos order by id limit 1")).id;
+    await assert.rejects(one("select cert_estornar($1,'x','t')", [c1]), /motivo/);
+    await one("select cert_estornar($1,'lançado no pedido errado','t')", [c1]);
+    await assert.rejects(one("select cert_estornar($1,'lançado no pedido errado','t')", [c1]), /já estornado/);
+    assert.equal(n((await one("select saldo::float s from cert_v_saldo_produto where pedido='26847' and codigo='3826129'")).s), 1692);
+    // NF não certificada não conta (nf1 voltou a 1330 após o estorno)
+    await one("update cert_nfs set certificada=false where id=$1", [nf2]);
+    assert.equal(n((await one("select saldo::float s from cert_v_saldo_produto where pedido='26847' and codigo='3826129'")).s), 1330);
+  } finally { await db.close(); }
+});
