@@ -134,6 +134,23 @@ async function unidadeGET(req: Request) {
       ]);
       return NextResponse.json({ pecas, datas, historico, paradas, setores }, { headers: H });
     }
+    if (visao === "layout") {
+      const [pl] = await q("select id,codigo,nome,largura,altura from wms_plantas where codigo='FABRICA'");
+      const blocos = pl ? await q("select id,tipo,nome,setor_id,endereco_id,etapa,x::float,y::float,w::float,h::float,cor from wms_layout_blocos where planta_id=$1::uuid order by tipo,nome", [pl.id]) : [];
+      const [setores, enderecos] = await Promise.all([
+        q("select id,codigo,nome,tipo from wms_setores where ativo order by tipo,codigo"),
+        q("select e.id,e.codigo,s.codigo setor from est_enderecos e left join wms_setores s on s.id=e.setor_id where e.ativo order by e.codigo limit 3000"),
+      ]);
+      return NextResponse.json({ planta: pl ?? null, blocos, setores, enderecos }, { headers: H });
+    }
+    if (visao === "pedido-pecas") {
+      const pedido = clean(url.searchParams.get("pedido"), 60);
+      const rows = pedido ? await q(
+        `select p.item,p.produto,p.descricao,p.medida,p.acabamento,p.cor,p.quantidade::float
+         from pcp_produtos p where p.pedido=$1 and p.programacao_id=(select programacao_id from pcp_produtos where pedido=$1 order by programacao_id desc limit 1)
+         order by p.item,p.produto limit 500`, [pedido]) : [];
+      return NextResponse.json({ pecas: rows }, { headers: H });
+    }
     return NextResponse.json({ error: "Visão inválida." }, { status: 400 });
   } catch (e) { return erro(e, "Falha ao consultar o WMS."); }
 }
@@ -190,6 +207,14 @@ async function unidadePOST(req: Request) {
       const qtdS = num(b.quantidade, "Quantidade inválida.");
       await q("insert into wms_sobras(descricao,medida,material,acabamento,mao,quantidade,origem_pedido,endereco_id,criado_por) values($1,$2,$3,$4,$5,$6,$7,$8::uuid,$9)",
         [clean(b.descricao, 300) || "Retalho", clean(b.medida, 80), clean(b.material, 80), clean(b.acabamento, 80), clean(b.mao, 10), qtdS, clean(b.origem, 60), opt(b.enderecoId, "Endereço inválido."), ator]);
+    } else if (acao === "LAYOUT_SALVAR") {
+      if (!["PCP", "GERENTE"].includes(user.perfil)) throw new Error("SEM_PERMISSAO");
+      const blocos = Array.isArray(b.blocos) ? b.blocos.slice(0, 400) : [];
+      const [r] = await q("select wms_layout_salvar('FABRICA',$1::jsonb,$2) n", [JSON.stringify(blocos), ator]);
+      resp = { ok: true, blocos: r.n };
+    } else if (acao === "MOVER") {
+      const [r] = await q("select wms_mover($1,$2,$3,$4,$5,$6) r", [clean(b.tipo, 8), clean(b.ref, 120), clean(b.endereco, 40), ator, clean(b.pedido, 60), clean(b.obs, 200)]);
+      resp = { ok: true, resultado: r.r };
     } else if (acao === "RASTRO_LER") {
       const [r] = await q("select pcp_rastro_ler($1,$2,$3,$4,$5,$6,$7) id", [clean(b.pedido, 60), clean(b.peca, 120), clean(b.setor, 30), clean(b.evento, 10), Number(String(b.quantidade ?? 1).replace(",", ".")) || 1, clean(b.obs, 300), ator]);
       resp = { ok: true, id: r.id };

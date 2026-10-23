@@ -1562,6 +1562,31 @@
       "verificacao": "48_2026-11-15_38_mapa_fabrica_rastro.verify.sql",
       "down": "48_2026-11-15_38_mapa_fabrica_rastro.down.sql",
       "baseline": "48_2026-11-15_38_mapa_fabrica_rastro.baseline.sql"
+    },
+    {
+      "ordem": 49,
+      "arquivo": "2026-11-16_39_planta_layout_movimentacao.sql",
+      "descricao": "2026-11-16_39_planta_layout_movimentacao.sql",
+      "dependenciasDeclaradas": [
+        "2026-11-15_38_mapa_fabrica_rastro.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "fbdefc85fa18b078c2fca8caa9a6a57c0e96c159af234893723474254e6a30ab",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "baixo",
+      "objetos": [
+        "wms_plantas",
+        "wms_layout_blocos",
+        "wms_peca_posicoes",
+        "wms_movimentacoes",
+        "wms_v_localizador"
+      ],
+      "colunasAdicionadas": [],
+      "up": "49_2026-11-16_39_planta_layout_movimentacao.up.sql",
+      "verificacao": "49_2026-11-16_39_planta_layout_movimentacao.verify.sql",
+      "down": "49_2026-11-16_39_planta_layout_movimentacao.down.sql",
+      "baseline": "49_2026-11-16_39_planta_layout_movimentacao.baseline.sql"
     }
   ]
 }

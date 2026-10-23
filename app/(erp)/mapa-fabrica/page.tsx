@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge, DataTable, Drawer, Empty, Field, Kpi, PageHeader, Panel, Segmented, type Tone } from "@/components/ui";
 import { useOps } from "@/components/operational-provider";
+import { AbaEtiquetas, AbaMovimentar, AbaPlanta } from "@/components/fabrica-qr";
 
 type Row = Record<string, any>;
-type Aba = "PLANTA" | "BI" | "MAPA" | "LOCALIZADOR" | "RASTRO";
+type Aba = "PLANTA" | "DESENHO" | "MOVER" | "ETIQUETAS" | "BI" | "MAPA" | "LOCALIZADOR" | "RASTRO";
 const NOME: Record<string, string> = { PREPARACAO: "Preparação", COLAGEM_PORTAS: "Colagem de portas", ESQUADRIAS_BORDAS: "Esquadrias e bordas", RECOBRIDORA_PERFIL: "Recobridora de perfil", USINAGEM: "Usinagem", USINAGEM_2: "Usinagem 2", CNC: "CNC", LUSTRACAO: "Lustração", PLASTIFICADORA: "Plastificadora", PLASTIFICADORA_PORTAS: "Plastificadora de portas", EMBALAGEM: "Embalagem", EXPEDICAO: "Expedição" };
 const ATRASO_DIAS = 5;
 const dia = (v: unknown) => (v ? new Date(String(v).slice(0, 10) + "T12:00:00").toLocaleDateString("pt-BR") : "—");
@@ -22,7 +23,7 @@ async function api(url: string, body?: unknown) {
 export default function MapaFabricaPage() {
   const { me } = useOps();
   const pode = ["PCP", "GERENTE", "ENCARREGADO", "LOGISTICA"].includes(me?.perfil || "");
-  const [aba, setAba] = useState<Aba>("PLANTA");
+  const [aba, setAba] = useState<Aba>("DESENHO");
   const [erro, setErro] = useState(""); const [ok, setOk] = useState(""); const [busy, setBusy] = useState(false);
   const [fab, setFab] = useState<Row | null>(null);
   const [sel, setSel] = useState<Row | null>(null);
@@ -78,9 +79,13 @@ export default function MapaFabricaPage() {
   return (
     <div className="page">
       <PageHeader eyebrow="Chão de fábrica" title="Mapa da fábrica" description="Onde está cada pallet, sobra e item de estoque, e por onde cada peça passou." />
-      <Segmented value={aba} onChange={setAba} options={[{ value: "PLANTA", label: "Planta (fluxo)" }, { value: "BI", label: "Painel BI" }, { value: "MAPA", label: "Endereços" }, { value: "LOCALIZADOR", label: "Localizador" }, { value: "RASTRO", label: "Rastro por pedido" }]} />
+      <Segmented value={aba} onChange={setAba} options={[{ value: "DESENHO", label: "Planta da fábrica" }, { value: "MOVER", label: "Movimentar (QR)" }, { value: "ETIQUETAS", label: "Etiquetas" }, { value: "PLANTA", label: "Fluxo por setor" }, { value: "BI", label: "Painel BI" }, { value: "MAPA", label: "Endereços" }, { value: "LOCALIZADOR", label: "Localizador" }, { value: "RASTRO", label: "Rastro por pedido" }]} />
       {erro && <p className="error" role="alert">{erro}</p>}
       {ok && <p className="success" role="status">{ok}</p>}
+
+      {aba === "DESENHO" && <AbaPlanta pode={["PCP", "GERENTE"].includes(me?.perfil || "")} />}
+      {aba === "MOVER" && <AbaMovimentar />}
+      {aba === "ETIQUETAS" && <AbaEtiquetas />}
 
       {aba === "PLANTA" && planta && (() => {
         const rotaPor: Record<string, Row> = Object.fromEntries((rota?.etapas ?? []).map((e: Row) => [e.etapa, e]));
