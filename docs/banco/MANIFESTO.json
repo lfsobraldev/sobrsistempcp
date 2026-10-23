@@ -1587,6 +1587,31 @@
       "verificacao": "49_2026-11-16_39_planta_layout_movimentacao.verify.sql",
       "down": "49_2026-11-16_39_planta_layout_movimentacao.down.sql",
       "baseline": "49_2026-11-16_39_planta_layout_movimentacao.baseline.sql"
+    },
+    {
+      "ordem": 50,
+      "arquivo": "2026-11-17_40_perdas_pecas_reposicao.sql",
+      "descricao": "2026-11-17_40_perdas_pecas_reposicao.sql",
+      "dependenciasDeclaradas": [
+        "2026-11-16_39_planta_layout_movimentacao.sql"
+      ],
+      "destino": "operacional (Sul/Nordeste)",
+      "checksum": "ec0703258cb1ba96a63b9c6529bafe1b1f9eaf9eb1f27d3b316133aaa62cdd22",
+      "reversao": "down disponível; revisar alcance e destrutividade",
+      "alteraDadosOuCadastros": true,
+      "risco": "baixo",
+      "objetos": [
+        "pcp_perda_motivos",
+        "pcp_familia_responsaveis",
+        "pcp_perdas_pecas",
+        "pcp_perdas_pecas_eventos",
+        "pcp_v_perdas_pecas"
+      ],
+      "colunasAdicionadas": [],
+      "up": "50_2026-11-17_40_perdas_pecas_reposicao.up.sql",
+      "verificacao": "50_2026-11-17_40_perdas_pecas_reposicao.verify.sql",
+      "down": "50_2026-11-17_40_perdas_pecas_reposicao.down.sql",
+      "baseline": "50_2026-11-17_40_perdas_pecas_reposicao.baseline.sql"
     }
   ]
 }

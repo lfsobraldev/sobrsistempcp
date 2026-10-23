@@ -51,7 +51,7 @@ const menusBase: MenuGroup[] = [
       { path: "/andon", label: "Andon", icon: Siren },
     ],
   },
-  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: BadgeCheck }, { path: "/qualidade-inspecao", label: "Inspeção e CAPA", icon: ScanSearch }] },
+  { label: "Qualidade", items: [{ path: "/inspecao-pallets", label: "Qualidade", icon: BadgeCheck }, { path: "/qualidade-inspecao", label: "Inspeção e CAPA", icon: ScanSearch }, { path: "/perdas-pecas", label: "Perdas, Reposição e Extravio", icon: PackageSearch }] },
   {
     label: "Expedição e Entregas",
     items: [
@@ -91,7 +91,7 @@ const menus: MenuGroup[] = [
   modulo("PLM · Engenharia e Medição", ["/engenharia", "/medicoes", "/documentos"]),
   modulo("MM · Materiais e Compras", ["/compras", "/cotacoes", "/estoque"]),
   modulo("WM · Depósito e Rastro", ["/estoque-avancado", "/wms", "/mapa-fabrica", "/producao-consultas"]),
-  modulo("QM · Qualidade", ["/inspecao-pallets", "/qualidade-inspecao"]),
+  modulo("QM · Qualidade", ["/inspecao-pallets", "/qualidade-inspecao", "/perdas-pecas"]),
   modulo("PM · Manutenção", ["/manutencao"]),
   modulo("FI · Contabilidade Financeira", ["/financeiro", "/fiscal"]),
   modulo("CO · Controladoria e Custos", ["/custos", "/controladoria"]),

@@ -316,3 +316,26 @@ test("Postgres: planta, movimentação por QR e posição de peças", async () =
     await assert.rejects(one("select wms_layout_salvar('XX','[]'::jsonb,'t')"), /Planta inexistente/);
   } finally { await db.close(); }
 });
+
+test("Postgres: ciclo de perda de peça, reposição e peça extraviada", async () => {
+  const { db, one, all } = await bancoCompleto();
+  try {
+    await assert.rejects(one("select pcp_perda_abrir('100','P1','','PREP',1,'XX','REFUGO','','t')"), /Motivo inválido/);
+    await assert.rejects(one("select pcp_perda_abrir('100','P1','','PREP',1,'OUTRO','REFUGO','','t')"), /Descreva o motivo/);
+    await assert.rejects(one("select pcp_perda_abrir('100','P1','','PREP',1,'MED_ERRADA','EXTRAVIADA','','t')"), /exige o motivo EXTRAVIO/);
+    const n = Number((await one("select pcp_perda_abrir('100','P1','OF9','CNC',2,'MED_ERRADA','REFUGO','corte curto','lider') n")).n);
+    await assert.rejects(one("select pcp_perda_fechar($1,'','t')", [n]), /Decida antes/);
+    await assert.rejects(one("select pcp_perda_decidir($1,'REPOR','',null,'','t')", [n]), /responsável e prazo/);
+    await one("select pcp_perda_decidir($1,'REPOR','Maria','2026-12-01','','enc')", [n]);
+    assert.equal((await one("select status from pcp_perdas_pecas where numero=$1", [n])).status, "REPOSICAO");
+    await one("select pcp_perda_fechar($1,'reposta lida na expedição','t')", [n]);
+    assert.equal((await one("select status from pcp_perdas_pecas where numero=$1", [n])).status, "FECHADA");
+    assert.equal((await all("select * from pcp_perdas_pecas_eventos")).length, 3);
+    await assert.rejects(one("update pcp_perdas_pecas_eventos set detalhe='x'"), /imutável/);
+    const e = Number((await one("select pcp_perda_abrir('100','P2','','',1,'EXTRAVIO','EXTRAVIADA','','t') n")).n);
+    assert.ok((await one("select prazo from pcp_perdas_pecas where numero=$1", [e])).prazo);
+    await assert.rejects(one("select pcp_perda_decidir($1,'ACEITAR','',null,'ok','t')", [e]), /Justifique/);
+    await one("select pcp_perda_decidir($1,'ACEITAR','',null,'cliente aceitou sem a peça','t')", [e]);
+    assert.equal((await one("select status from pcp_v_perdas_pecas where numero=$1", [e])).status, "FECHADA");
+  } finally { await db.close(); }
+});
