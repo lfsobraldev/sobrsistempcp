@@ -106,6 +106,34 @@ async function unidadeGET(req: Request) {
       const rows = await q("select id,tipo,referencia,pedido,revisao,valida,impressa_por,impressa_em from wms_etiquetas where ($1='' or pedido=$1) order by impressa_em desc limit 200", [pedido]);
       return NextResponse.json({ etiquetas: rows }, { headers: H });
     }
+    if (visao === "fabrica") {
+      const [setores, posicoes, itens, semEndereco] = await Promise.all([
+        q("select id,codigo,nome,tipo from wms_setores where ativo order by tipo,codigo"),
+        q("select m.id,m.codigo,m.rua,m.modulo,m.nivel,m.setor,m.tipo_posicao,m.bloqueado,m.capacidade_pallets,m.pallets::int from wms_v_mapa m where m.ativo order by m.setor,m.rua,m.modulo,m.nivel,m.codigo limit 3000"),
+        q("select endereco_id,tipo,ref,codigo,descricao,quantidade::float,pedido,dias from wms_v_localizador_end order by endereco_id,tipo,codigo limit 5000"),
+        q("select tipo,ref,codigo,descricao,quantidade::float,pedido,desde from wms_v_sem_endereco order by desde limit 300"),
+      ]);
+      return NextResponse.json({ setores, posicoes, itens, semEndereco }, { headers: H });
+    }
+    if (visao === "localizador") {
+      const busca = clean(url.searchParams.get("busca"), 80);
+      const rows = await q(
+        `select tipo,ref,codigo,descricao,quantidade::float,pedido,dias,endereco,setor,setor_nome from wms_v_localizador_end
+         where $1='' or descricao ilike '%'||$1||'%' or codigo ilike '%'||$1||'%' or pedido ilike '%'||$1||'%' or endereco ilike '%'||$1||'%'
+         order by tipo,dias desc limit 300`, [busca]);
+      return NextResponse.json({ itens: rows }, { headers: H });
+    }
+    if (visao === "rastro") {
+      const pedido = clean(url.searchParams.get("pedido"), 60);
+      const [pecas, datas, historico, paradas, setores] = await Promise.all([
+        pedido ? q("select peca,setor,setor_nome,evento,quantidade::float,obs,por,em,dias_parada::float from pcp_v_rastro_atual where pedido=$1 order by setor,peca", [pedido]) : Promise.resolve([]),
+        pedido ? q("select setor,setor_nome,inicio_real,fim_real,pecas::int,problemas::int from pcp_v_rastro_setor_datas where pedido=$1 order by inicio_real nulls last", [pedido]) : Promise.resolve([]),
+        pedido ? q("select l.peca,s.nome setor,l.evento,l.quantidade::float,l.obs,l.por,l.em from pcp_rastro_leituras l join wms_setores s on s.id=l.setor_id where l.pedido=$1 order by l.em desc,l.id desc limit 200", [pedido]) : Promise.resolve([]),
+        q("select pedido,peca,setor_nome,evento,obs,por,em,dias_parada::float from pcp_v_rastro_paradas order by dias_parada desc limit 100"),
+        q("select codigo,nome from wms_setores where ativo order by tipo,codigo"),
+      ]);
+      return NextResponse.json({ pecas, datas, historico, paradas, setores }, { headers: H });
+    }
     return NextResponse.json({ error: "Visão inválida." }, { status: 400 });
   } catch (e) { return erro(e, "Falha ao consultar o WMS."); }
 }
@@ -162,6 +190,9 @@ async function unidadePOST(req: Request) {
       const qtdS = num(b.quantidade, "Quantidade inválida.");
       await q("insert into wms_sobras(descricao,medida,material,acabamento,mao,quantidade,origem_pedido,endereco_id,criado_por) values($1,$2,$3,$4,$5,$6,$7,$8::uuid,$9)",
         [clean(b.descricao, 300) || "Retalho", clean(b.medida, 80), clean(b.material, 80), clean(b.acabamento, 80), clean(b.mao, 10), qtdS, clean(b.origem, 60), opt(b.enderecoId, "Endereço inválido."), ator]);
+    } else if (acao === "RASTRO_LER") {
+      const [r] = await q("select pcp_rastro_ler($1,$2,$3,$4,$5,$6,$7) id", [clean(b.pedido, 60), clean(b.peca, 120), clean(b.setor, 30), clean(b.evento, 10), Number(String(b.quantidade ?? 1).replace(",", ".")) || 1, clean(b.obs, 300), ator]);
+      resp = { ok: true, id: r.id };
     } else if (acao === "PICKING_CRIAR") {
       const [r] = await q("select wms_picking_criar($1,$2::uuid,$3) id", [clean(b.pedido, 60), opt(b.remessaId, "Remessa inválida."), ator]);
       resp = { ok: true, id: r.id };
