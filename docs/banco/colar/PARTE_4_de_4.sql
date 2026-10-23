@@ -1,43 +1,6 @@
--- ============================================================
--- SOBRAL PCP — PACOTE ÚNICO PARA SUL E NORDESTE (migrações 27, 28, 30 a 35)
--- Cole TUDO no SQL Editor do Neon da unidade (uma por vez) e execute. Faça backup antes.
--- Pode rodar de novo sem problema (já aplicadas são reaplicadas com segurança).
--- A migração 29 NÃO está aqui: use UNICO_CENTRAL_29.sql só no banco central de usuários.
--- No fim, o resultado deve mostrar todas as linhas com ok = true.
--- ============================================================
+-- PARTE 4 de 4 — migrações 27, 28 e 30 a 35 + verificação final. Execute na ordem 1,2,3,4. Pode rodar de novo sem problema.
 
--- >>>>>>>>>> 1_registro_de_migracoes_SE_AINDA_NAO_EXISTIR.sql
--- Preparação do controle, derivada da migração 02. Não marca migrações como aplicadas.
-BEGIN;
-create table if not exists schema_migrations (
-  name varchar(200) primary key,
-  checksum char(64) not null,
-  aplicada_em timestamptz,
-  aplicada_por varchar(160),
-  duracao_ms bigint not null default 0,
-  status varchar(20) not null default 'APLICADA' check (status in ('APLICADA', 'BASELINE', 'REVERTIDA', 'FALHOU')),
-  erro text,
-  criado_em timestamptz not null default now(),
-  atualizado_em timestamptz not null default now()
-);
-
-create table if not exists schema_migration_events (
-  id bigserial primary key,
-  migration_name varchar(200) not null,
-  checksum char(64) not null,
-  acao varchar(20) not null check (acao in ('BASELINE', 'APLICAR', 'REVERTER')),
-  actor varchar(160) not null,
-  status varchar(20) not null check (status in ('BASELINE', 'APLICADA', 'REVERTIDA', 'FALHOU')),
-  duracao_ms bigint not null default 0,
-  erro text,
-  criado_em timestamptz not null default now()
-);
-
-create index if not exists ix_schema_migrations_status on schema_migrations(status, aplicada_em desc);
-create index if not exists ix_schema_migration_events_name on schema_migration_events(migration_name, criado_em desc);
-COMMIT;
-
--- >>>>>>>>>> 5_migracao_27_wms_revisoes_sobras.sql
+-- >>>>>>>>>> migração 27_wms_revisoes_sobras
 -- GERADO do arquivo canônico 2026-11-04_27_wms_revisoes_sobras.sql; SHA256 7a68606915a4426f256b0f1f9a1413e179234743a826169b0fed9525709042e6
 -- Destino: operacional (Sul/Nordeste). Dependências: 2026-11-03_26_sac_qualidade_oee.sql.
 -- Administrador: executar 00_registro.sql antes; conferir baseline e destino.
@@ -402,7 +365,7 @@ insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) val
 insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-11-04_27_wms_revisoes_sobras.sql','7a68606915a4426f256b0f1f9a1413e179234743a826169b0fed9525709042e6','APLICAR',current_user,'APLICADA');
 COMMIT;
 
--- >>>>>>>>>> 6_migracao_28_rh_ehs_projetos.sql
+-- >>>>>>>>>> migração 28_rh_ehs_projetos
 -- GERADO do arquivo canônico 2026-11-05_28_rh_ehs_projetos.sql; SHA256 1ea072a4844c5b994ac4b52ee50c3c8d15e97470707d498b691450128bef8af1
 -- Destino: operacional (Sul/Nordeste). Dependências: 2026-11-04_27_wms_revisoes_sobras.sql.
 -- Administrador: executar 00_registro.sql antes; conferir baseline e destino.
@@ -598,7 +561,7 @@ insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) val
 insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-11-05_28_rh_ehs_projetos.sql','1ea072a4844c5b994ac4b52ee50c3c8d15e97470707d498b691450128bef8af1','APLICAR',current_user,'APLICADA');
 COMMIT;
 
--- >>>>>>>>>> 8_migracao_30_seguranca_aprovacoes_auditoria.sql
+-- >>>>>>>>>> migração 30_seguranca_aprovacoes_auditoria
 -- GERADO do arquivo canônico 2026-11-07_30_seguranca_aprovacoes_auditoria.sql; SHA256 5943c3c806d7fa3b41f36924fec2f388bda55b94f06edc8f1f1762e79f24a444
 -- Destino: operacional (Sul/Nordeste). Dependências: 2026-11-06_29_cargos_identidade.sql.
 -- Administrador: executar 00_registro.sql antes; conferir baseline e destino.
@@ -807,7 +770,7 @@ insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) val
 insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-11-07_30_seguranca_aprovacoes_auditoria.sql','5943c3c806d7fa3b41f36924fec2f388bda55b94f06edc8f1f1762e79f24a444','APLICAR',current_user,'APLICADA');
 COMMIT;
 
--- >>>>>>>>>> 9_migracao_31_embalagem_mrp_horizonte.sql
+-- >>>>>>>>>> migração 31_embalagem_mrp_horizonte
 -- GERADO do arquivo canônico 2026-11-08_31_embalagem_mrp_horizonte.sql; SHA256 1ac3c0601d83c38150f9c7f27cfe53888bbbe15358ab75d9becb191758aa5498
 -- Destino: operacional (Sul/Nordeste). Dependências: 2026-11-07_30_seguranca_aprovacoes_auditoria.sql.
 -- Administrador: executar 00_registro.sql antes; conferir baseline e destino.
@@ -957,7 +920,7 @@ insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) val
 insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-11-08_31_embalagem_mrp_horizonte.sql','1ac3c0601d83c38150f9c7f27cfe53888bbbe15358ab75d9becb191758aa5498','APLICAR',current_user,'APLICADA');
 COMMIT;
 
--- >>>>>>>>>> 10_migracao_32_compras_qualidade_comercial.sql
+-- >>>>>>>>>> migração 32_compras_qualidade_comercial
 -- GERADO do arquivo canônico 2026-11-09_32_compras_qualidade_comercial.sql; SHA256 582fa4138cbb66838170a6d1dedbe91fba6c02e4d37b0bfcb2a07fc95b84ff36
 -- Destino: operacional (Sul/Nordeste). Dependências: 2026-11-08_31_embalagem_mrp_horizonte.sql.
 -- Administrador: executar 00_registro.sql antes; conferir baseline e destino.
@@ -1093,7 +1056,7 @@ insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) val
 insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-11-09_32_compras_qualidade_comercial.sql','582fa4138cbb66838170a6d1dedbe91fba6c02e4d37b0bfcb2a07fc95b84ff36','APLICAR',current_user,'APLICADA');
 COMMIT;
 
--- >>>>>>>>>> 11_migracao_33_financeiro_fechamento_rateio_margem.sql
+-- >>>>>>>>>> migração 33_financeiro_fechamento_rateio_margem
 -- GERADO do arquivo canônico 2026-11-10_33_financeiro_fechamento_rateio_margem.sql; SHA256 e57d3ec9357f43e29a1fec73ed7f010a34a71980f76a9990b3250d38ddc8f08c
 -- Destino: operacional (Sul/Nordeste). Dependências: 2026-11-09_32_compras_qualidade_comercial.sql.
 -- Administrador: executar 00_registro.sql antes; conferir baseline e destino.
@@ -1248,7 +1211,7 @@ insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) val
 insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-11-10_33_financeiro_fechamento_rateio_margem.sql','e57d3ec9357f43e29a1fec73ed7f010a34a71980f76a9990b3250d38ddc8f08c','APLICAR',current_user,'APLICADA');
 COMMIT;
 
--- >>>>>>>>>> 12_migracao_34_plataforma_eventos_campos_notificacoes.sql
+-- >>>>>>>>>> migração 34_plataforma_eventos_campos_notificacoes
 -- GERADO do arquivo canônico 2026-11-11_34_plataforma_eventos_campos_notificacoes.sql; SHA256 c44674b0e625ab3f9b53f8efff59ab2bfe6b44fa464e1ba5d771221a6ee65594
 -- Destino: operacional (Sul/Nordeste). Dependências: 2026-11-10_33_financeiro_fechamento_rateio_margem.sql.
 -- Administrador: executar 00_registro.sql antes; conferir baseline e destino.
@@ -1441,7 +1404,7 @@ insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) val
 insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-11-11_34_plataforma_eventos_campos_notificacoes.sql','c44674b0e625ab3f9b53f8efff59ab2bfe6b44fa464e1ba5d771221a6ee65594','APLICAR',current_user,'APLICADA');
 COMMIT;
 
--- >>>>>>>>>> 13_migracao_35_pessoas_ehs_projetos.sql
+-- >>>>>>>>>> migração 35_pessoas_ehs_projetos
 -- GERADO do arquivo canônico 2026-11-12_35_pessoas_ehs_projetos.sql; SHA256 13a3c41c03e796d0230aeb148b847b82a3d155552a6cc20e7f47c27e8517d8b6
 -- Destino: operacional (Sul/Nordeste). Dependências: 2026-11-11_34_plataforma_eventos_campos_notificacoes.sql.
 -- Administrador: executar 00_registro.sql antes; conferir baseline e destino.
@@ -1630,7 +1593,7 @@ insert into schema_migrations(name,checksum,aplicada_em,aplicada_por,status) val
 insert into schema_migration_events(migration_name,checksum,acao,actor,status) values('2026-11-12_35_pessoas_ehs_projetos.sql','13a3c41c03e796d0230aeb148b847b82a3d155552a6cc20e7f47c27e8517d8b6','APLICAR',current_user,'APLICADA');
 COMMIT;
 
--- >>>>>>>>>> 4_verificar_tudo.sql
+-- >>>>>>>>>> VERIFICAÇÃO FINAL (todas as linhas devem ser ok = true)
 -- Somente leitura. Todas as linhas devem mostrar ok = true.
 select * from (
 select 'tabela erp_substitutos' item, to_regclass('public.erp_substitutos') is not null ok
