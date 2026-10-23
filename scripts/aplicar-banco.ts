@@ -37,9 +37,9 @@ async function main() {
   const dir = path.join(process.cwd(), "docs", "banco", "colar");
   const pool = new Pool({ connectionString: url });
   try {
-    const temBase = (await pool.query("select to_regclass('public.pcp_empresas') is not null as ok")).rows[0]?.ok;
+    const temBase = (await pool.query("select to_regclass('public.pcp_programacao_mensal_base') is not null and to_regclass('public.pcp_empresas') is not null as ok")).rows[0]?.ok;
     if (!temBase && process.argv[3] !== "central") {
-      console.log("Base ausente (pcp_empresas). Aplicando schema inicial e migrações anteriores à 08...");
+      console.log("Base incompleta. Aplicando schema inicial e migrações anteriores à 08...");
       for (const b of arquivosBase()) {
         const c = await pool.connect();
         try { await c.query("BEGIN"); await c.query(b.sql); await c.query("COMMIT"); console.log(`BASE OK   ${b.nome}`); }
